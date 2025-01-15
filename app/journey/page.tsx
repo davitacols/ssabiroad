@@ -43,7 +43,7 @@ const MapComponent = ({ currentLocation, destinationLocation }: { currentLocatio
   React.useEffect(() => {
     if (typeof window.google === 'undefined') {
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyCMs6xd8S-q7A2hzvvKvfogbhAsleUEODg`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`;
       script.async = true;
       script.defer = true;
       script.onload = initMap;
