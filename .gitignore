@@ -34,3 +34,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/sabiroad-434310-4ee4354b8b38.json
+/sabiroad-434310-f5daabe0ace7.json
+
+*.json
