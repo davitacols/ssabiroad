@@ -87,7 +87,7 @@ interface BuildingResponse {
   location?: Location;
   address?: string;
   directions?: Directions;
-  error?: string;
+  errorMessage?: string;
   buildings?: Building[];
   analysis?: {
     timeOfDay: string;
@@ -107,7 +107,7 @@ interface BuildingResponse {
 // Vision client with enhanced error handling and caching
 class VisionClient {
   private static instance: vision.ImageAnnotatorClient | null = null;
-  private static readonly cache = new Map<string, { data: any; timestamp: number }>();
+  private static readonly cache = new Map<string, { data: unknown; timestamp: number }>();
   private static readonly MAX_RETRIES = 3;
   private static readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
   private static readonly RETRY_DELAY = 1000; // Base delay in milliseconds
@@ -130,16 +130,13 @@ class VisionClient {
     throw new Error(`Operation failed after ${this.MAX_RETRIES} retries: ${lastError?.message}`);
   }
 
-  private static async readCredentialsFile(filePath: string): Promise<any> {
+  private static async readCredentialsFile(filePath: string): Promise<unknown> {
     try {
       const fileContent = await fs.readFile(filePath, 'utf8');
       return JSON.parse(fileContent);
     } catch (error) {
-      if (error instanceof Error) {
-        if ('code' in error && error.code === 'ENOENT') {
-          throw new Error(`Credentials file not found: ${filePath}`);
-        }
-        throw new Error(`Error reading credentials file: ${error.message}`);
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+        throw new Error(`Credentials file not found: ${filePath}`);
       }
       throw error;
     }
@@ -156,7 +153,7 @@ class VisionClient {
 
       const isFilePath = credentialsEnv.endsWith('.json');
       
-      let credentials;
+      let credentials: unknown;
       if (isFilePath) {
         credentials = await this.readCredentialsFile(credentialsEnv);
       } else {
@@ -167,10 +164,14 @@ class VisionClient {
         }
       }
 
+      if (typeof credentials !== 'object' || !credentials || !('project_id' in credentials)) {
+        throw new Error('Invalid credentials format');
+      }
+
       this.instance = await this.withRetry(() => 
         new vision.ImageAnnotatorClient({
-          credentials: credentials,
-          projectId: credentials.project_id
+          credentials: credentials as object,
+          projectId: (credentials as { project_id: string }).project_id
         })
       );
 
@@ -202,129 +203,6 @@ class VisionClient {
   }
 }
 
-class EnvironmentalContext {
-  private static readonly URBAN_FEATURES = [
-    'Road', 'Street', 'Sidewalk', 'Traffic Light', 'Parking',
-    'Tree', 'Garden', 'Park', 'Fence', 'Gate'
-  ];
-
-  private static readonly RESIDENTIAL_INDICATORS = [
-    'Mailbox', 'Driveway', 'Garden', 'Lawn', 'Residential Street',
-    'Garage Door', 'Front Yard', 'Back Yard', 'Fence'
-  ];
-
-  private static readonly COMMERCIAL_INDICATORS = [
-    'Parking Lot', 'Sign', 'Store Front', 'Shopping Cart',
-    'Commercial Vehicle', 'Billboard', 'Business Sign'
-  ];
-
-  static async analyzeSurroundings(
-    buffer: Buffer,
-    client: vision.ImageAnnotatorClient
-  ): Promise<{
-    environmentType: 'urban' | 'suburban' | 'rural';
-    buildingContext: {
-      nearbyFeatures: string[];
-      probableUsage: BuildingType;
-      confidence: number;
-    };
-  }> {
-    // Detect all objects in the image
-    const [objectResult] = await client.objectLocalization({ image: { content: buffer } });
-    const [labelResult] = await client.labelDetection({ image: { content: buffer } });
-
-    const detectedObjects = objectResult.localizedObjectAnnotations?.map(obj => obj.name) || [];
-    const detectedLabels = labelResult.labelAnnotations?.map(label => label.description) || [];
-    const allDetections = [...new Set([...detectedObjects, ...detectedLabels])];
-
-    // Analyze environment type
-    const environmentType = this.determineEnvironmentType(allDetections);
-
-    // Analyze building context
-    const nearbyFeatures = this.identifyNearbyFeatures(allDetections);
-    const { probableUsage, confidence } = this.determineBuildingType(nearbyFeatures);
-
-    return {
-      environmentType,
-      buildingContext: {
-        nearbyFeatures,
-        probableUsage,
-        confidence
-      }
-    };
-  }
-
-  private static determineEnvironmentType(
-    detections: string[]
-  ): 'urban' | 'suburban' | 'rural' {
-    const urbanScore = this.calculateEnvironmentScore(detections, [
-      'Skyscraper', 'Office Building', 'Traffic Light', 'Bus Stop',
-      'Subway Station', 'High-rise'
-    ]);
-
-    const suburbanScore = this.calculateEnvironmentScore(detections, [
-      'Residential Area', 'Garden', 'Lawn', 'Driveway',
-      'Single Family Home', 'Tree-lined Street'
-    ]);
-
-    const ruralScore = this.calculateEnvironmentScore(detections, [
-      'Field', 'Farm', 'Forest', 'Countryside',
-      'Barn', 'Agricultural Land'
-    ]);
-
-    const scores = {
-      urban: urbanScore,
-      suburban: suburbanScore,
-      rural: ruralScore
-    };
-
-    return Object.entries(scores).reduce((a, b) => 
-      scores[a as keyof typeof scores] > scores[b[0] as keyof typeof scores] ? a : b[0]
-    ) as 'urban' | 'suburban' | 'rural';
-  }
-
-  private static calculateEnvironmentScore(
-    detections: string[],
-    indicators: string[]
-  ): number {
-    return indicators.reduce((score, indicator) => 
-      score + (detections.some(d => d.toLowerCase().includes(indicator.toLowerCase())) ? 1 : 0),
-      0
-    );
-  }
-
-  private static identifyNearbyFeatures(detections: string[]): string[] {
-    return this.URBAN_FEATURES.filter(feature =>
-      detections.some(d => d.toLowerCase().includes(feature.toLowerCase()))
-    );
-  }
-
-  private static determineBuildingType(
-    nearbyFeatures: string[]
-  ): { probableUsage: BuildingType; confidence: number } {
-    const scores = {
-      residential: this.calculateTypeScore(nearbyFeatures, this.RESIDENTIAL_INDICATORS),
-      commercial: this.calculateTypeScore(nearbyFeatures, this.COMMERCIAL_INDICATORS)
-    };
-
-    const totalFeatures = nearbyFeatures.length;
-    const maxScore = Math.max(scores.residential, scores.commercial);
-    const confidence = totalFeatures > 0 ? maxScore / totalFeatures : 0.5;
-
-    return {
-      probableUsage: scores.residential >= scores.commercial ? 'residential' : 'commercial',
-      confidence
-    };
-  }
-
-  private static calculateTypeScore(features: string[], indicators: string[]): number {
-    return indicators.reduce((score, indicator) =>
-      score + (features.some(f => f.toLowerCase().includes(indicator.toLowerCase())) ? 1 : 0),
-      0
-    );
-  }
-}
-
 // Location and Navigation Services
 class LocationService {
   private static readonly API_BASE_URL = "https://maps.googleapis.com/maps/api";
@@ -353,13 +231,20 @@ class LocationService {
 
     if (response.status === "OK" && response.routes.length > 0) {
       const route = response.routes[0];
-      const steps = route.legs[0]?.steps.map((step: any) => ({
+      const steps = route.legs[0]?.steps.map((step: { 
+        html_instructions: string;
+        distance: { text: string };
+        duration: { text: string };
+        travel_mode: string;
+        polyline?: { points: string };
+        traffic_speed_entry?: Array<{ traffic_condition: string }>;
+      }) => ({
         instruction: step.html_instructions,
         distance: step.distance.text,
         duration: step.duration.text,
         travelMode: step.travel_mode.toUpperCase() as TravelMode,
         polyline: step.polyline?.points,
-        trafficInfo: step.traffic_speed_entry?.map((entry: any) => entry.traffic_condition),
+        trafficInfo: step.traffic_speed_entry?.map(entry => entry.traffic_condition),
       })) || [];
 
       return {
@@ -375,8 +260,6 @@ class LocationService {
   }
 }
 
-
-// Building Detection Service
 class BuildingDetectionService {
   static async detectBuilding(buffer: Buffer, currentLocation: Location): Promise<BuildingResponse> {
     const client = await VisionClient.getInstance();
@@ -392,15 +275,15 @@ class BuildingDetectionService {
       try {
         const result = await method.call(this, buffer, currentLocation, client);
         if (result.success) return result;
-      } catch (error) {
-        console.error(`Detection method failed: ${method.name}`, error);
+      } catch (err) {
+        console.error(`Detection method failed: ${method.name}`, err);
       }
     }
 
     return {
       success: false,
       type: 'unknown',
-      error: 'No buildings detected in the image'
+      errorMessage: 'No buildings detected in the image'
     };
   }
 
@@ -563,7 +446,13 @@ class BuildingDetectionService {
     const response = await fetch(
       `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}`
     );
-    const data = await response.json();
+    const data = await response.json() as {
+      status: string;
+      results: Array<{
+        geometry: { location: Location };
+        formatted_address: string;
+      }>;
+    };
 
     if (data.status !== 'OK' || !data.results.length) {
       return {};
@@ -607,8 +496,8 @@ async function getLocation(
         lng: GPSLongitude
       };
     }
-  } catch (error) {
-    console.error('Error extracting EXIF data:', error);
+  } catch (err) {
+    console.error('Error extracting EXIF data:', err);
   }
 
   return null;
@@ -628,7 +517,7 @@ export async function POST(request: Request): Promise<NextResponse<BuildingRespo
         { 
           success: false, 
           type: 'unknown',
-          error: 'Invalid or missing image file' 
+          errorMessage: 'Invalid or missing image file' 
         }, 
         { status: 400 }
       );
@@ -645,7 +534,7 @@ export async function POST(request: Request): Promise<NextResponse<BuildingRespo
         { 
           success: false, 
           type: 'unknown',
-          error: 'Could not determine location from image or provided coordinates' 
+          errorMessage: 'Could not determine location from image or provided coordinates' 
         }, 
         { status: 400 }
       );
@@ -658,13 +547,13 @@ export async function POST(request: Request): Promise<NextResponse<BuildingRespo
       result, 
       { status: result.success ? 200 : 404 }
     );
-  } catch (error) {
-    console.error('API Error:', error);
+  } catch (err) {
+    console.error('API Error:', err);
     return NextResponse.json(
       {
         success: false,
         type: 'unknown',
-        error: error instanceof Error ? error.message : 'An unexpected error occurred'
+        errorMessage: err instanceof Error ? err.message : 'An unexpected error occurred'
       },
       { status: 500 }
     );
