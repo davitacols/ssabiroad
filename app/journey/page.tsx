@@ -1,11 +1,14 @@
 "use client";
 
 import React, { useState, useRef, ChangeEvent } from 'react';
-import { Camera, Upload, Loader2, Info, MapPin, Clock, Navigation, Building, Landmark, ChevronRight } from 'lucide-react';
+import { Camera, Upload, Loader2, Info, MapPin, Clock, Navigation, Building, Landmark, ChevronRight, Sun, Cloud, Wind, Users, Palette } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { ShareResult } from '@/components/share-result';
 
 interface Location {
   lat: number;
@@ -35,6 +38,28 @@ interface BuildingResponse {
   address?: string;
   directions?: Directions;
   error?: string;
+}
+
+interface NearbyPlace {
+  name: string;
+  type: string;
+  distance: string;
+  rating?: number;
+}
+
+interface EnhancedBuildingResponse extends BuildingResponse {
+  weather?: WeatherInfo;
+  nearbyPlaces?: NearbyPlace[];
+  popularTimes?: Record<string, number[]>;
+  estimatedWaitTime?: string;
+  analysis?: {
+    timeOfDay: string;
+    lightingConditions: string;
+    weatherConditions: string;
+    crowdDensity?: CrowdDensity;
+    mainColors: string[];
+    architecturalFeatures: string[];
+  };
 }
 
 const MapComponent = ({ currentLocation, destinationLocation }: { currentLocation: Location; destinationLocation: Location }) => {
@@ -133,7 +158,7 @@ export default function BuildingDetectorDemo(): JSX.Element {
   const [preview, setPreview] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [result, setResult] = useState<BuildingResponse | null>(null);
+  const [result, setResult] = useState<EnhancedBuildingResponse | null>(null);
   const [usageCount, setUsageCount] = useState<number>(0);
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -179,10 +204,10 @@ export default function BuildingDetectorDemo(): JSX.Element {
         body: formData
       });
       
-      const data: BuildingResponse = await response.json();
+      const data: EnhancedBuildingResponse = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to detect building');
+        throw new Error(data.errorMessage || 'Failed to detect building');
       }
       
       setResult(data);
@@ -202,11 +227,11 @@ export default function BuildingDetectorDemo(): JSX.Element {
           <div className="inline-flex items-center gap-3 mb-6 bg-white p-3 rounded-2xl shadow-sm">
             <Landmark className="w-10 h-10 text-blue-600" />
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Building Detector AI
+              Enhanced Building Detector AI
             </h1>
           </div>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
-            Instantly identify buildings and get detailed directions with our advanced AI technology
+            Instantly identify buildings and get detailed information with our advanced AI technology
           </p>
           <div className="bg-white p-4 rounded-2xl shadow-sm inline-flex items-center gap-4">
             <div className="flex items-center gap-2">
@@ -269,7 +294,7 @@ export default function BuildingDetectorDemo(): JSX.Element {
                     <div className="relative rounded-xl overflow-hidden bg-gray-100 border-2 border-blue-100 shadow-inner">
                       <div className="aspect-video">
                         <img
-                          src={preview}
+                          src={preview || "/placeholder.svg"}
                           alt="Preview"
                           className="w-full h-full object-cover"
                         />
@@ -314,7 +339,7 @@ export default function BuildingDetectorDemo(): JSX.Element {
               <CardHeader className="border-b bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-xl">
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <Landmark className="w-6 h-6 text-green-600" />
-                  Detection Results
+                  Enhanced Detection Results
                 </CardTitle>
                 {result.confidence && (
                   <CardDescription className="text-base">
@@ -323,15 +348,139 @@ export default function BuildingDetectorDemo(): JSX.Element {
                 )}
               </CardHeader>
               <CardContent className="p-6 space-y-6">
-                {result.description && (
-                  <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl shadow-sm">
-                    <h3 className="font-semibold flex items-center gap-2 text-green-800 mb-2">
-                      <Building className="w-5 h-5" />
-                      Building Identified
-                    </h3>
-                    <p className="text-green-900">{result.description}</p>
-                  </div>
-                )}
+                <Tabs defaultValue="info" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="info">Info</TabsTrigger>
+                    <TabsTrigger value="analysis">Analysis</TabsTrigger>
+                    <TabsTrigger value="nearby">Nearby</TabsTrigger>
+                    <TabsTrigger value="weather">Weather</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="info" className="mt-4">
+                    {result.description && (
+                      <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl shadow-sm">
+                        <h3 className="font-semibold flex items-center gap-2 text-green-800 mb-2">
+                          <Building className="w-5 h-5" />
+                          Building Identified
+                        </h3>
+                        <p className="text-green-900">{result.description}</p>
+                      </div>
+                    )}
+                    {result.address && (
+                      <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm mt-4">
+                        <MapPin className="w-5 h-5 text-blue-600 flex-shrink-0 mt-1" />
+                        <div>
+                          <h3 className="font-semibold text-blue-900 mb-1">Location</h3>
+                          <p className="text-blue-800">{result.address}</p>
+                        </div>
+                      </div>
+                    )}
+                    {result.estimatedWaitTime && (
+                      <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl shadow-sm mt-4">
+                        <Clock className="w-5 h-5 text-purple-600 flex-shrink-0 mt-1" />
+                        <div>
+                          <h3 className="font-semibold text-purple-900 mb-1">Estimated Wait Time</h3>
+                          <p className="text-purple-800">{result.estimatedWaitTime}</p>
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+                  <TabsContent value="analysis" className="mt-4">
+                    {result.analysis && (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="p-4 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-xl shadow-sm">
+                            <h3 className="font-semibold flex items-center gap-2 text-yellow-800 mb-2">
+                              <Sun className="w-5 h-5" />
+                              Time of Day
+                            </h3>
+                            <p className="text-yellow-900">{result.analysis.timeOfDay}</p>
+                          </div>
+                          <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl shadow-sm">
+                            <h3 className="font-semibold flex items-center gap-2 text-blue-800 mb-2">
+                              <Cloud className="w-5 h-5" />
+                              Weather Conditions
+                            </h3>
+                            <p className="text-blue-900">{result.analysis.weatherConditions}</p>
+                          </div>
+                        </div>
+                        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl shadow-sm">
+                          <h3 className="font-semibold flex items-center gap-2 text-green-800 mb-2">
+                            <Users className="w-5 h-5" />
+                            Crowd Density
+                          </h3>
+                          <p className="text-green-900">{result.analysis.crowdDensity}</p>
+                        </div>
+                        <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl shadow-sm">
+                          <h3 className="font-semibold flex items-center gap-2 text-purple-800 mb-2">
+                            <Palette className="w-5 h-5" />
+                            Main Colors
+                          </h3>
+                          <div className="flex gap-2">
+                            {result.analysis.mainColors.map((color, index) => (
+                              <div key={index} className="w-8 h-8 rounded-full" style={{ backgroundColor: color }} />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="p-4 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl shadow-sm">
+                          <h3 className="font-semibold flex items-center gap-2 text-indigo-800 mb-2">
+                            <Building className="w-5 h-5" />
+                            Architectural Features
+                          </h3>
+                          <div className="flex flex-wrap gap-2">
+                            {result.analysis.architecturalFeatures.map((feature, index) => (
+                              <Badge key={index} variant="secondary">{feature}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+                  <TabsContent value="nearby" className="mt-4">
+                    {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
+                      <div className="space-y-4">
+                        {result.nearbyPlaces.map((place, index) => (
+                          <div key={index} className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm">
+                            <h3 className="font-semibold text-blue-900 mb-1">{place.name}</h3>
+                            <p className="text-blue-800">{place.type} • {place.distance}</p>
+                            {place.rating && (
+                              <div className="flex items-center mt-1">
+                                <span className="text-yellow-500 mr-1">★</span>
+                                <span className="text-blue-800">{place.rating.toFixed(1)}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                  <TabsContent value="weather" className="mt-4">
+                    {result.weather && (
+                      <div className="space-y-4">
+                        <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl shadow-sm">
+                          <h3 className="font-semibold flex items-center gap-2 text-blue-800 mb-2">
+                            <Sun className="w-5 h-5" />
+                            Temperature
+                          </h3>
+                          <p className="text-blue-900">{result.weather.temperature}°C</p>
+                        </div>
+                        <div className="p-4 bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl shadow-sm">
+                          <h3 className="font-semibold flex items-center gap-2 text-gray-800 mb-2">
+                            <Cloud className="w-5 h-5" />
+                            Conditions
+                          </h3>
+                          <p className="text-gray-900">{result.weather.conditions}</p>
+                        </div>
+                        <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm">
+                          <h3 className="font-semibold flex items-center gap-2 text-blue-800 mb-2">
+                            <Wind className="w-5 h-5" />
+                            Wind Speed
+                          </h3>
+                          <p className="text-blue-900">{result.weather.windSpeed} m/s</p>
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
 
                 {result.location && currentLocation && (
                   <div className="space-y-4">
@@ -339,16 +488,6 @@ export default function BuildingDetectorDemo(): JSX.Element {
                       currentLocation={currentLocation}
                       destinationLocation={result.location}
                     />
-                  </div>
-                )}
-
-                {result.address && (
-                  <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm">
-                    <MapPin className="w-5 h-5 text-blue-600 flex-shrink-0 mt-1" />
-                    <div>
-                      <h3 className="font-semibold text-blue-900 mb-1">Location</h3>
-                      <p className="text-blue-800">{result.address}</p>
-                    </div>
                   </div>
                 )}
 
@@ -377,40 +516,43 @@ export default function BuildingDetectorDemo(): JSX.Element {
                         <div
                           key={index}
                           className="p-4 bg-white rounded-xl border border-gray-100 text-sm text-gray-700 shadow-sm hover:shadow-md transition-shadow duration-300 flex items-center gap-3"
-                        ><span className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-sm font-medium text-gray-600 flex-shrink-0">
-                        {index + 1}
-                      </span>
-                      <div dangerouslySetInnerHTML={{ __html: step.instruction }} />
+                        >
+                          <span className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-sm font-medium text-gray-600 flex-shrink-0">
+                            {index + 1}
+                          </span>
+                          <div dangerouslySetInnerHTML={{ __html: step.instruction }} />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-    </div>
+                  </div>
+                )}
 
-    {/* Upgrade Card */}
-    {usageCount >= MAX_FREE_USES && (
-      <Card className="border-0 shadow-lg overflow-hidden">
-        <CardContent className="p-8 bg-gradient-to-r from-blue-600 to-purple-600">
-          <div className="text-center space-y-6">
-            <h3 className="text-3xl font-bold text-white">
-              Ready to unlock unlimited detections?
-            </h3>
-            <p className="text-lg text-blue-100 max-w-2xl mx-auto">
-              Get unlimited building detections, premium features, and priority support with our Pro plan.
-            </p>
-            <Button className="bg-white text-blue-600 hover:bg-blue-50 transition-colors duration-300 h-12 px-8 text-lg font-medium shadow-lg hover:shadow-xl">
-              Upgrade to Pro
-              <ChevronRight className="ml-2 w-5 h-5" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    )}
-  </div>
-</div>
-);
+                <ShareResult result={result} />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Upgrade Card */}
+        {usageCount >= MAX_FREE_USES && (
+          <Card className="border-0 shadow-lg overflow-hidden">
+            <CardContent className="p-8 bg-gradient-to-r from-blue-600 to-purple-600">
+              <div className="text-center space-y-6">
+                <h3 className="text-3xl font-bold text-white">
+                  Ready to unlock unlimited detections?
+                </h3>
+                <p className="text-lg text-blue-100 max-w-2xl mx-auto">
+                  Get unlimited building detections, premium features, and priority support with our Pro plan.
+                </p>
+                <Button className="bg-white text-blue-600 hover:bg-blue-50 transition-colors duration-300 h-12 px-8 text-lg font-medium shadow-lg hover:shadow-xl">
+                  Upgrade to Pro
+                  <ChevronRight className="ml-2 w-5 h-5" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
 }
