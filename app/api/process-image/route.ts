@@ -220,7 +220,7 @@ class VisionClient {
     try {
       if (this.instance) return this.instance;
 
-      const credentialsEnv = process.env.NEXT_PUBLIC_GOOGLE_APPLICATION_CREDENTIALS_JSON;
+      const credentialsEnv = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
       if (!credentialsEnv) {
         throw new Error('Missing GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable');
       }
@@ -540,7 +540,7 @@ class LocationService {
   private static readonly API_BASE_URL = "https://maps.googleapis.com/maps/api";
 
   public static async reverseGeocode(location: Location): Promise<string> {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) throw new Error("Missing Google Maps API key");
     
     const response = await fetch(
@@ -564,7 +564,7 @@ class LocationService {
     destination: Location,
     travelMode: TravelMode = "DRIVING"
   ): Promise<Directions> {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) throw new Error("Missing Google Maps API key");
 
     const response = await fetch(
@@ -759,7 +759,7 @@ class BuildingDetectionService {
   }
 
   private static async searchPlace(query: string): Promise<{ location?: Location; address?: string }> {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) throw new Error('Missing Google Maps API key');
 
     const cacheKey = `place_${query}`;
