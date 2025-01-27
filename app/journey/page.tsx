@@ -8,7 +8,6 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { ShareResult } from '@/components/share-result';
 
 interface Location {
   lat: number;
@@ -29,6 +28,21 @@ interface Directions {
   steps: DirectionStep[];
 }
 
+interface WeatherInfo {
+  temperature: number;
+  conditions: string;
+  windSpeed: number;
+}
+
+type CrowdDensity = 'Low' | 'Moderate' | 'High' | 'Very High';
+
+interface NearbyPlace {
+  name: string;
+  type: string;
+  distance: string;
+  rating?: number;
+}
+
 interface BuildingResponse {
   success: boolean;
   type: 'landmark' | 'text-detection' | 'image-metadata' | 'building' | 'unknown';
@@ -38,13 +52,6 @@ interface BuildingResponse {
   address?: string;
   directions?: Directions;
   error?: string;
-}
-
-interface NearbyPlace {
-  name: string;
-  type: string;
-  distance: string;
-  rating?: number;
 }
 
 interface EnhancedBuildingResponse extends BuildingResponse {
@@ -61,6 +68,33 @@ interface EnhancedBuildingResponse extends BuildingResponse {
     architecturalFeatures: string[];
   };
 }
+
+interface ShareResultProps {
+  result: EnhancedBuildingResponse;
+}
+
+const ShareResult: React.FC<ShareResultProps> = ({ result }) => {
+  const handleShare = async () => {
+    try {
+      await navigator.share({
+        title: 'Building Detection Result',
+        text: `I found ${result.description} using Building Detector AI!`,
+        url: window.location.href,
+      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  return (
+    <Button
+      onClick={handleShare}
+      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+    >
+      Share Result
+    </Button>
+  );
+};
 
 const MapComponent = ({ currentLocation, destinationLocation }: { currentLocation: Location; destinationLocation: Location }) => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -86,7 +120,6 @@ const MapComponent = ({ currentLocation, destinationLocation }: { currentLocatio
       center: currentLocation,
     });
 
-    // Add markers for current location and destination
     new google.maps.Marker({
       position: currentLocation,
       map,
@@ -107,7 +140,6 @@ const MapComponent = ({ currentLocation, destinationLocation }: { currentLocatio
       title: 'Destination',
     });
 
-    // Draw route between points
     const directionsService = new google.maps.DirectionsService();
     const directionsRenderer = new google.maps.DirectionsRenderer({
       map,
@@ -137,6 +169,7 @@ const getCurrentLocation = async (): Promise<Location> => {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error('Geolocation is not supported by your browser.'));
+      return;
     }
 
     navigator.geolocation.getCurrentPosition(
@@ -161,11 +194,67 @@ export default function BuildingDetectorDemo(): JSX.Element {
   const [result, setResult] = useState<EnhancedBuildingResponse | null>(null);
   const [usageCount, setUsageCount] = useState<number>(0);
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
+  const [isUsingCamera, setIsUsingCamera] = useState<boolean>(false);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   
   const MAX_FREE_USES = 3;
 
-  const handleImageCapture = (e: ChangeEvent<HTMLInputElement>): void => {
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        } 
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setIsUsingCamera(true);
+      }
+    } catch (err) {
+      setError('Unable to access camera. Please check permissions.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+      setIsUsingCamera(false);
+    }
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], "camera-photo.jpg", { type: "image/jpeg" });
+            setImage(file);
+            setPreview(URL.createObjectURL(blob));
+            stopCamera();
+          }
+        }, 'image/jpeg', 0.95);
+      }
+    }
+  };
+
+  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>): void => {
     if (usageCount >= MAX_FREE_USES) {
       setError('You have reached the maximum number of free attempts. Sign up for unlimited access!');
       return;
@@ -207,7 +296,7 @@ export default function BuildingDetectorDemo(): JSX.Element {
       const data: EnhancedBuildingResponse = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.errorMessage || 'Failed to detect building');
+        throw new Error(data.error || 'Failed to detect building');
       }
       
       setResult(data);
@@ -263,10 +352,10 @@ export default function BuildingDetectorDemo(): JSX.Element {
                 <div className="space-y-6">
                   <div className="flex gap-4 justify-center">
                     <Button
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={startCamera}
                       variant="outline"
                       className="w-44 h-12 border-2 hover:border-blue-400 hover:bg-blue-50 transition-all duration-300"
-                      disabled={usageCount >= MAX_FREE_USES}
+                      disabled={usageCount >= MAX_FREE_USES || isUsingCamera}
                     >
                       <Camera className="mr-2 h-5 w-5" />
                       Take Photo
@@ -274,8 +363,7 @@ export default function BuildingDetectorDemo(): JSX.Element {
                     <input
                       type="file"
                       accept="image/*"
-                      capture="environment"
-                      onChange={handleImageCapture}
+                      onChange={handleImageUpload}
                       ref={fileInputRef}
                       className="hidden"
                     />
@@ -283,18 +371,42 @@ export default function BuildingDetectorDemo(): JSX.Element {
                       onClick={() => fileInputRef.current?.click()}
                       variant="outline"
                       className="w-44 h-12 border-2 hover:border-blue-400 hover:bg-blue-50 transition-all duration-300"
-                      disabled={usageCount >= MAX_FREE_USES}
+                      disabled={usageCount >= MAX_FREE_USES || isUsingCamera}
                     >
                       <Upload className="mr-2 h-5 w-5" />
                       Upload Image
                     </Button>
                   </div>
 
-                  {preview && (
+                  {isUsingCamera ? (
+                    <div className="relative rounded-xl overflow-hidden bg-gray-100 border-2 border-blue-100 shadow-inner">
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        className="w-full aspect-video object-cover"
+                      />
+                      <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
+                        <Button
+                          onClick={capturePhoto}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Camera className="mr-2 h-5 w-5" />
+                          Capture
+                        </Button>
+                        <Button
+                          onClick={stopCamera}
+                          variant="secondary"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : preview && (
                     <div className="relative rounded-xl overflow-hidden bg-gray-100 border-2 border-blue-100 shadow-inner">
                       <div className="aspect-video">
                         <img
-                          src={preview || "/placeholder.svg"}
+                          src={preview}
                           alt="Preview"
                           className="w-full h-full object-cover"
                         />
@@ -302,7 +414,9 @@ export default function BuildingDetectorDemo(): JSX.Element {
                     </div>
                   )}
 
-                  {image && (
+                  <canvas ref={canvasRef} className="hidden" />
+
+                  {image && !isUsingCamera && (
                     <Button
                       onClick={handleSubmit}
                       disabled={loading || usageCount >= MAX_FREE_USES}
@@ -417,7 +531,12 @@ export default function BuildingDetectorDemo(): JSX.Element {
                           </h3>
                           <div className="flex gap-2">
                             {result.analysis.mainColors.map((color, index) => (
-                              <div key={index} className="w-8 h-8 rounded-full" style={{ backgroundColor: color }} />
+                              <div 
+                                key={index} 
+                                className="w-8 h-8 rounded-full shadow-sm"
+                                style={{ backgroundColor: color }}
+                                title={color}
+                              />
                             ))}
                           </div>
                         </div>
@@ -436,7 +555,7 @@ export default function BuildingDetectorDemo(): JSX.Element {
                     )}
                   </TabsContent>
                   <TabsContent value="nearby" className="mt-4">
-                    {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
+                    {result.nearbyPlaces && result.nearbyPlaces.length > 0 ? (
                       <div className="space-y-4">
                         {result.nearbyPlaces.map((place, index) => (
                           <div key={index} className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm">
@@ -451,10 +570,14 @@ export default function BuildingDetectorDemo(): JSX.Element {
                           </div>
                         ))}
                       </div>
+                    ) : (
+                      <div className="text-center p-8 text-gray-500">
+                        No nearby places found
+                      </div>
                     )}
                   </TabsContent>
                   <TabsContent value="weather" className="mt-4">
-                    {result.weather && (
+                    {result.weather ? (
                       <div className="space-y-4">
                         <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl shadow-sm">
                           <h3 className="font-semibold flex items-center gap-2 text-blue-800 mb-2">
@@ -478,6 +601,10 @@ export default function BuildingDetectorDemo(): JSX.Element {
                           <p className="text-blue-900">{result.weather.windSpeed} m/s</p>
                         </div>
                       </div>
+                    ) : (
+                      <div className="text-center p-8 text-gray-500">
+                        Weather information unavailable
+                      </div>
                     )}
                   </TabsContent>
                 </Tabs>
@@ -496,15 +623,9 @@ export default function BuildingDetectorDemo(): JSX.Element {
                     <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl shadow-sm">
                       <div className="flex items-center gap-3">
                         <Clock className="w-5 h-5 text-purple-600" />
-                        <div className="space-x-4">
-                          <span className="font-medium text-purple-900">Duration: </span>
-                          <span className="text-purple-800">{result.directions.duration}</span>
-                        </div>
+                        <span className="text-purple-900">{result.directions.duration}</span>
                       </div>
-                      <div>
-                        <span className="font-medium text-purple-900">Distance: </span>
-                        <span className="text-purple-800">{result.directions.distance}</span>
-                      </div>
+                      <div className="text-purple-800">{result.directions.distance}</div>
                     </div>
 
                     <div className="space-y-3">

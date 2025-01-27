@@ -458,7 +458,7 @@ const Home = () => {
                 </Button>
                 <Button 
                   className="bg-teal-600 hover:bg-teal-700 font-bold text-white"
-                  onClick={() => router.push('/dashboard')}
+                  onClick={() => router.push('/journey')}
                 >
                   Dashboard
                   <ArrowRight className="ml-2 h-4 w-4" />

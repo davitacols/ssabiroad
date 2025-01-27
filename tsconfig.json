@@ -10,8 +10,8 @@
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
+    "module": "ESNext",
+    "moduleResolution": "node", // Changed from "bundler" to "node"
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
@@ -26,7 +26,8 @@
         "./*"
       ]
     },
-    "target": "ES2017"
+    "target": "ESNext" // Ensure this is set to at least ES2017,
+    
   },
   "include": [
     "next-env.d.ts",
