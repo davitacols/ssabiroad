@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { useState, useContext, createContext, ReactNode, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -36,40 +36,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 
-// Global Constants
-const FEATURES = [
-  {
-    icon: Navigation,
-    title: "Smart AI Navigation",
-    description: "Personalized routes that adapt dynamically to your preferences and real-time conditions"
-  },
-  {
-    icon: Shield,
-    title: "Enterprise-Grade Security",
-    description: "Cutting-edge encryption and rigorous compliance with global privacy standards"
-  },
-  {
-    icon: Globe,
-    title: "Worldwide Coverage",
-    description: "Comprehensive high-definition maps spanning every continent with unparalleled precision"
-  },
-  {
-    icon: Users,
-    title: "Collaborative Intelligence",
-    description: "Seamless real-time route sharing, location tracking, and team insights"
-  },
-  {
-    icon: Compass,
-    title: "Unlimited Connectivity",
-    description: "Full-featured navigation even in the most remote areas without internet connection"
-  },
-  {
-    icon: MapPin,
-    title: "Advanced Waypoint System",
-    description: "Interactive markers with rich media, collaborative annotations, and intelligent context"
-  }
-]
-
 // Authentication Types
 interface User {
   id: string
@@ -95,60 +61,12 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false
 })
 
-// Map Display Component
-export const MapDisplay = () => (
-  <div className="relative w-full h-full bg-gradient-to-br from-teal-800 to-indigo-900 rounded-2xl overflow-hidden shadow-2xl">
-    <div 
-      className="absolute inset-0 opacity-20" 
-      style={{
-        backgroundImage: `radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px)`,
-        backgroundSize: '30px 30px'
-      }}
-    />
-    
-    <div className="absolute inset-0 overflow-hidden">
-      {[...Array(20)].map((_, i) => (
-        <div
-          key={i}
-          className="absolute w-3 h-3 bg-white/20 rounded-full"
-          style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            animation: `float ${4 + i * 0.7}s ease-in-out infinite`,
-            animationDelay: `${i * 0.3}s`
-          }}
-        />
-      ))}
-    </div>
-    
-    <div className="absolute inset-0 pointer-events-none">
-      <svg className="w-full h-full">
-        <path 
-          d="M20 30 Q50 10 80 40 T120 70" 
-          fill="none" 
-          stroke="rgba(255,255,255,0.1)" 
-          strokeWidth="3" 
-          strokeDasharray="8,8"
-        />
-        <path 
-          d="M10 50 Q70 20 130 60" 
-          fill="none" 
-          stroke="rgba(255,255,255,0.05)" 
-          strokeWidth="2" 
-          strokeDasharray="6,6"
-        />
-      </svg>
-    </div>
-  </div>
-)
-
 // Authentication Provider
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
 
-  // Check authentication on mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -187,10 +105,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsAuthenticated(true)
         router.push('/journey')
         return true
-      } else {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Login failed')
       }
+      return false
     } catch (error) {
       console.error('Login error', error)
       return false
@@ -214,15 +130,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsAuthenticated(true)
         router.push('/journey')
         return true
-      } else {
-        // More detailed error parsing
-        const errorData = await response.json()
-        setError(errorData.message || 'Signup failed')
-        return false
       }
+      return false
     } catch (error) {
       console.error('Signup error', error)
-      setError('Network or server error occurred')
       return false
     }
   }
@@ -280,14 +191,10 @@ const AuthDialog = () => {
     try {
       if (isLogin) {
         const success = await login(email, password)
-        if (!success) {
-          setError('Invalid email or password')
-        }
+        if (!success) setError('Invalid email or password')
       } else {
         const success = await signup(email, password, name)
-        if (!success) {
-          setError('Signup failed. Please try again.')
-        }
+        if (!success) setError('Signup failed. Please try again.')
       }
     } catch (err) {
       setError('An unexpected error occurred')
@@ -297,14 +204,13 @@ const AuthDialog = () => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="bg-teal-600 hover:bg-teal-700 font-bold text-white">
-          Start Journey
-          <ArrowRight className="ml-2 h-4 w-4" />
+        <Button className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6">
+          Get Started
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isLogin ? 'Login to SabiRoad' : 'Create Your Account'}</DialogTitle>
+          <DialogTitle>{isLogin ? 'Welcome Back' : 'Create Account'}</DialogTitle>
           <DialogDescription>
             {isLogin 
               ? 'Access your personalized navigation dashboard' 
@@ -323,9 +229,9 @@ const AuthDialog = () => {
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  className="w-full p-2 pl-10 border rounded-lg focus:ring-2 focus:ring-indigo-500"
                   placeholder="Enter your full name"
                   required
-                  className="w-full p-2 pl-10 border rounded focus:ring-2 focus:ring-teal-500"
                 />
                 <Users className="absolute left-3 top-3 text-gray-400" />
               </div>
@@ -342,9 +248,9 @@ const AuthDialog = () => {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="w-full p-2 pl-10 border rounded-lg focus:ring-2 focus:ring-indigo-500"
                 placeholder="Enter your email"
                 required
-                className="w-full p-2 pl-10 border rounded focus:ring-2 focus:ring-teal-500"
               />
               <Mail className="absolute left-3 top-3 text-gray-400" />
             </div>
@@ -360,17 +266,17 @@ const AuthDialog = () => {
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="w-full p-2 pl-10 border rounded-lg focus:ring-2 focus:ring-indigo-500"
                 placeholder="Enter your password"
                 required
                 minLength={8}
-                className="w-full p-2 pl-10 border rounded focus:ring-2 focus:ring-teal-500"
               />
               <Lock className="absolute left-3 top-3 text-gray-400" />
             </div>
           </div>
           
           {error && (
-            <div className="flex items-center text-red-600 bg-red-50 p-3 rounded">
+            <div className="flex items-center text-red-600 bg-red-50 p-3 rounded-lg">
               <AlertCircle className="mr-2 h-5 w-5" />
               <span>{error}</span>
             </div>
@@ -378,20 +284,20 @@ const AuthDialog = () => {
           
           <Button 
             type="submit" 
-            className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+            className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-2 rounded-lg"
           >
-            {isLogin ? 'Login' : 'Create Account'}
+            {isLogin ? 'Sign In' : 'Create Account'}
           </Button>
           
           <div className="text-center mt-4">
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-teal-600 hover:underline"
+              className="text-sm text-indigo-600 hover:underline"
             >
               {isLogin 
                 ? 'Need an account? Sign Up' 
-                : 'Already have an account? Login'}
+                : 'Already have an account? Sign In'}
             </button>
           </div>
         </form>
@@ -400,243 +306,199 @@ const AuthDialog = () => {
   )
 }
 
-// Protected Route Component
-export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
-  const { isAuthenticated, user } = useAuth()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/')
-    }
-  }, [isAuthenticated, router])
-
-  // Optional: Role-based access
-  if (user && user.role !== 'user') {
-    return <div>Unauthorized Access</div>
+const FEATURES = [
+  {
+    icon: Navigation,
+    title: "Intuitive Pathfinding",
+    description: "Smart routes that adapt to your journey preferences and real-time conditions"
+  },
+  {
+    icon: Shield,
+    title: "Reliable Security",
+    description: "Your journey data protected with state-of-the-art encryption and privacy measures"
+  },
+  {
+    icon: Globe,
+    title: "Global Coverage",
+    description: "Detailed maps and routes covering every corner of the world with precision"
+  },
+  {
+    icon: Users,
+    title: "Team Synergy",
+    description: "Share routes and locations in real-time with your team members effortlessly"
+  },
+  {
+    icon: Compass,
+    title: "Offline Access",
+    description: "Keep navigating even when offline with downloadable map regions"
+  },
+  {
+    icon: MapPin,
+    title: "Smart Waypoints",
+    description: "Create rich, interactive markers with notes and media attachments"
   }
+]
 
-  return isAuthenticated ? <>{children}</> : null
-}
+const MapDisplay = () => (
+  <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 rounded-3xl overflow-hidden shadow-lg">
+    <div className="absolute inset-0 bg-white/50 backdrop-blur-sm"/>
+    <div 
+      className="absolute inset-0 opacity-10" 
+      style={{
+        backgroundImage: `radial-gradient(circle, rgba(99,102,241,0.4) 1px, transparent 1px)`,
+        backgroundSize: '20px 20px'
+      }}
+    />
+    <div className="absolute inset-0">
+      {[...Array(15)].map((_, i) => (
+        <div
+          key={i}
+          className="absolute w-2 h-2 bg-indigo-400/30 rounded-full"
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            animation: `pulse ${3 + Math.random() * 2}s ease-in-out infinite`,
+            animationDelay: `${i * 0.2}s`
+          }}
+        />
+      ))}
+    </div>
+  </div>
+)
 
-// Home Page Component
 const Home = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { user, logout } = useAuth()
   const router = useRouter()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="fixed w-full bg-white/90 backdrop-blur-md border-b border-gray-200 z-50">
-        <nav className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-teal-600 text-white rounded-lg flex items-center justify-center">
-                <Navigation className="w-6 h-6" />
-              </div>
-              <span className="text-2xl font-black">
-                Sabi<span className="text-indigo-700">Road</span>
-              </span>
-            </Link>
-            
-            <div className="hidden md:flex items-center gap-6">
-              <a href="#features" className="text-sm font-semibold text-gray-600 hover:text-teal-600 transition-colors">Features</a>
-              <a href="#enterprise" className="text-sm font-semibold text-gray-600 hover:text-teal-600 transition-colors">Enterprise</a>
-              <a href="#pricing" className="text-sm font-semibold text-gray-600 hover:text-teal-600 transition-colors">Pricing</a>
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+      <header className="fixed w-full bg-white/70 backdrop-blur-md border-b border-gray-100 z-50">
+        <nav className="container mx-auto px-6 h-20 flex items-center justify-between">
+          <Link href="/" className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
+              <Navigation className="w-6 h-6 text-white" />
             </div>
-          </div>
-          
-          <div className="hidden md:flex items-center gap-4">
+            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
+              Sabi<span className="font-black">Road</span>
+            </span>
+          </Link>
+
+          <div className="hidden md:flex items-center gap-8">
+            <Button variant="ghost" className="text-gray-600 hover:text-indigo-600">Features</Button>
+            <Button variant="ghost" className="text-gray-600 hover:text-indigo-600">Solutions</Button>
+            <Button variant="ghost" className="text-gray-600 hover:text-indigo-600">Pricing</Button>
             {user ? (
-              <>
-                <Button 
-                  variant="outline" 
-                  onClick={() => logout()}
-                  className="font-bold text-indigo-700 border-indigo-200 hover:bg-indigo-50"
-                >
-                  Logout
-                </Button>
-                <Button 
-                  className="bg-teal-600 hover:bg-teal-700 font-bold text-white"
-                  onClick={() => router.push('/journey')}
-                >
-                  Dashboard
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </>
+              <Button 
+                className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium rounded-xl px-6"
+                onClick={() => router.push('/journey')}
+              >
+                Dashboard
+              </Button>
             ) : (
-              <>
-                <Button variant="outline" className="font-bold text-indigo-700 border-indigo-200 hover:bg-indigo-50">
-                  Documentation
-                </Button>
-                <AuthDialog />
-              </>
+              <AuthDialog />
             )}
           </div>
 
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}><SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <Menu className="h-6 w-6" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent>
-            <SheetHeader>
-              <SheetTitle className="text-2xl font-black text-indigo-800">SabiRoad</SheetTitle>
-            </SheetHeader>
-            <div className="mt-8 flex flex-col gap-4">
-              <Button variant="ghost" className="justify-start text-lg text-gray-700 hover:text-teal-600">Features</Button>
-              <Button variant="ghost" className="justify-start text-lg text-gray-700 hover:text-teal-600">Enterprise</Button>
-              <Button variant="ghost" className="justify-start text-lg text-gray-700 hover:text-teal-600">Pricing</Button>
-              <div className="mt-4 pt-4 border-t">
-                {user ? (
-                  <>
-                    <Button 
-                      onClick={() => {
-                        logout()
-                        setMobileMenuOpen(false)
-                      }}
-                      className="w-full text-lg font-bold text-gray-700 hover:text-teal-600 mb-4"
-                      variant="ghost"
-                    >
-                      Logout
-                    </Button>
-                    <Button 
-                      onClick={() => {
-                        router.push('/dashboard')
-                        setMobileMenuOpen(false)
-                      }}
-                      className="w-full text-lg font-bold bg-teal-600 hover:bg-teal-700 text-white"
-                    >
-                      Dashboard
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </Button>
-                  </>
-                ) : (
-                  <Button 
-                    onClick={() => {
-                      setMobileMenuOpen(false)
-                    }}
-                    className="w-full text-lg font-bold bg-teal-600 hover:bg-teal-700 text-white"
-                  >
-                    Start Journey
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                )}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <div className="flex flex-col gap-4 mt-8">
+                <Button variant="ghost">Features</Button>
+                <Button variant="ghost">Solutions</Button>
+                <Button variant="ghost">Pricing</Button>
+                <Button className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
+                  Get Started
+                </Button>
               </div>
-            </div>
-          </SheetContent>
-        </Sheet>
-      </nav>
-    </header>
+            </SheetContent>
+          </Sheet>
+        </nav>
+      </header>
 
-    <main className="pt-24 pb-16">
-      <div className="container mx-auto px-6">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div className="relative z-10 max-w-2xl">
-            <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-50">
-              <Star className="w-5 h-5 text-teal-500" />
-              <span className="text-sm font-bold text-teal-800">New: AI-Powered Route Optimization</span>
+      <main className="pt-32 pb-16">
+        <div className="container mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 mb-8">
+                <Star className="w-4 h-4 text-indigo-600" />
+                <span className="text-sm font-medium text-indigo-600">New AI Map Router</span>
+              </div>
+              
+              <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+                Smart Routes for
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600"> Modern Teams</span>
+              </h1>
+              
+              <p className="text-xl text-gray-600 mb-10">
+                Experience intelligent navigation that adapts to your needs, powered by advanced AI and real-time data.
+              </p>
+              
+              <div className="flex gap-4">
+                <Button className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-8 py-6 rounded-xl text-lg">
+                  Start Free Trial
+                </Button>
+                <Button variant="outline" className="px-8 py-6 rounded-xl text-lg border-indigo-200">Watch Demo
+                </Button>
+              </div>
             </div>
             
-            <h1 className="text-5xl lg:text-6xl font-black mb-6 text-indigo-900 leading-tight">
-              Navigate Smarter, Journey Further
-            </h1>
-          
-            <p className="text-xl text-gray-700 mb-10 font-medium">
-              Revolutionize your navigation with intelligent routing, real-time insights, and unparalleled team collaboration technologies.
-            </p>
-          
-            <div className="flex flex-col sm:flex-row gap-4">
-              {user ? (
-                <Button 
-                  size="lg" 
-                  onClick={() => router.push('/dashboard')}
-                  className="px-10 bg-teal-600 hover:bg-teal-700 text-white font-bold"
-                >
-                  Go to Dashboard
-                  <ArrowRight className="ml-3 h-5 w-5" />
-                </Button>
-              ) : (
-                <>
-                  <AuthDialog />
-                  <Button 
-                    size="lg" 
-                    variant="outline" 
-                    className="px-10 font-bold text-indigo-700 border-indigo-200 hover:bg-indigo-50"
-                  >
-                    View Documentation
-                  </Button>
-                </>
-              )}
+            <div className="relative h-[600px]">
+              <MapDisplay />
             </div>
           </div>
-          
-          <div className="relative h-[500px] lg:h-[600px]">
-            <MapDisplay />
-          </div>
-        </div>
-      </div>
-    </main>
-
-    <section id="features" className="py-20 bg-white">
-      <div className="container mx-auto px-6">
-        <div className="max-w-3xl mx-auto text-center mb-16">
-          <h2 className="text-4xl font-black mb-4 text-indigo-900">
-            Powerful Navigation Ecosystem
-          </h2>
-          <p className="text-xl text-gray-700 font-medium">
-            Cutting-edge routing solutions engineered for modern enterprises and dynamic teams
-          </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {FEATURES.map((feature, index) => (
-            <Card 
-              key={index} 
-              className="p-6 border-gray-200 hover:shadow-xl transition-all group bg-gray-50 hover:bg-white"
-            >
-              <div className="flex gap-4">
-                <div className="mt-1">
-                  <feature.icon className="w-6 h-6 text-teal-600 group-hover:scale-110 transition-transform" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold mb-2 text-indigo-900">{feature.title}</h3>
-                  <p className="text-gray-700 leading-relaxed font-medium">{feature.description}</p>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </section>
+        <section className="py-24">
+          <div className="container mx-auto px-6">
+            <div className="max-w-3xl mx-auto text-center mb-16">
+              <h2 className="text-4xl font-bold mb-6 text-gray-900">
+                Everything you need for
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600"> seamless navigation</span>
+              </h2>
+            </div>
 
-    <footer className="bg-gray-50 border-t border-gray-200">
-      <div className="container mx-auto px-6 py-12">
-        <div className="flex flex-col md:flex-row justify-between items-center">
-          <div className="flex items-center gap-8">
-            <span className="text-sm font-semibold text-gray-600">© 2025 SabiRoad Technologies</span>
-            <a href="#" className="text-sm font-semibold text-gray-600 hover:text-teal-600">Privacy</a>
-            <a href="#" className="text-sm font-semibold text-gray-600 hover:text-teal-600">Terms</a>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {FEATURES.map((feature, index) => (
+                <Card key={index} className="p-6 bg-white/50 backdrop-blur-sm border-0 rounded-2xl hover:shadow-xl transition-all">
+                  <feature.icon className="w-8 h-8 text-indigo-600 mb-4" />
+                  <h3 className="text-xl font-bold mb-2 text-gray-900">{feature.title}</h3>
+                  <p className="text-gray-600">{feature.description}</p>
+                </Card>
+              ))}
+            </div>
           </div>
-          <div className="flex items-center gap-6 mt-4 md:mt-0">
-            <a href="#" className="text-gray-500 hover:text-teal-600">
-              <Github className="w-6 h-6" />
-            </a>
+        </section>
+      </main>
+
+      <footer className="border-t border-gray-100 py-12 bg-white">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-8">
+              <span className="text-sm text-gray-500">© 2025 SabiRoad</span>
+              <Link href="#" className="text-sm text-gray-500 hover:text-indigo-600">Privacy</Link>
+              <Link href="#" className="text-sm text-gray-500 hover:text-indigo-600">Terms</Link>
+            </div>
+            <div className="flex items-center gap-6">
+              <Link href="#" className="text-gray-400 hover:text-indigo-600">
+                <Github className="w-6 h-6" />
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
-    </footer>
-  </div>
-)
+      </footer>
+    </div>
+  )
 }
 
-// Wrap the Home component with AuthProvider
-const HomeWrapper = () => {
+export default function HomeWrapper() {
   return (
     <AuthProvider>
       <Home />
     </AuthProvider>
   )
 }
-
-export default HomeWrapper

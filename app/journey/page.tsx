@@ -1,90 +1,126 @@
-"use client";
+"use client"
 
-import React, { useState, useRef, ChangeEvent } from 'react';
-import { Camera, Upload, Loader2, Info, MapPin, Clock, Navigation, Building, Landmark, ChevronRight, Sun, Cloud, Wind, Users, Palette } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useRef, type ChangeEvent, useEffect } from "react"
+import {
+  Camera,
+  Upload,
+  Loader2,
+  Info,
+  MapPin,
+  Clock,
+  Navigation,
+  Building,
+  Landmark,
+  Star,
+  Sun,
+  Cloud,
+  Wind,
+  Users,
+  Palette,
+} from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
+import { Progress } from "@/components/ui/progress"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
 
+// Types
 interface Location {
-  lat: number;
-  lng: number;
+  lat: number
+  lng: number
 }
 
 type DirectionStep = {
-  instruction: string;
-  distance: string;
-  duration: string;
-  travelMode: 'DRIVING' | 'WALKING' | 'BICYCLING' | 'TRANSIT' | 'FLIGHT' | 'SHIP';
-};
+  instruction: string
+  distance: string
+  duration: string
+  travelMode: "DRIVING" | "WALKING" | "BICYCLING" | "TRANSIT" | "FLIGHT" | "SHIP"
+}
 
 interface Directions {
-  distance: string;
-  duration: string;
-  primaryMode: 'road' | 'transit' | 'flight' | 'ship';
-  steps: DirectionStep[];
+  distance: string
+  duration: string
+  primaryMode: "road" | "transit" | "flight" | "ship"
+  steps: DirectionStep[]
 }
 
 interface WeatherInfo {
-  temperature: number;
-  conditions: string;
-  windSpeed: number;
+  temperature: number
+  conditions: string
+  windSpeed: number
 }
 
-type CrowdDensity = 'Low' | 'Moderate' | 'High' | 'Very High';
+type CrowdDensity = "Low" | "Moderate" | "High" | "Very High"
 
 interface NearbyPlace {
-  name: string;
-  type: string;
-  distance: string;
-  rating?: number;
+  name: string
+  type: string
+  distance: string
+  rating?: number
 }
 
 interface BuildingResponse {
-  success: boolean;
-  type: 'landmark' | 'text-detection' | 'image-metadata' | 'building' | 'unknown';
-  description?: string;
-  confidence?: number;
-  location?: Location;
-  address?: string;
-  directions?: Directions;
-  error?: string;
+  success: boolean
+  type: "landmark" | "text-detection" | "image-metadata" | "building" | "unknown"
+  description?: string
+  confidence?: number
+  location?: Location
+  address?: string
+  directions?: Directions
+  error?: string
 }
 
 interface EnhancedBuildingResponse extends BuildingResponse {
-  weather?: WeatherInfo;
-  nearbyPlaces?: NearbyPlace[];
-  popularTimes?: Record<string, number[]>;
-  estimatedWaitTime?: string;
+  weather?: WeatherInfo
+  nearbyPlaces?: NearbyPlace[]
+  popularTimes?: Record<string, number[]>
+  estimatedWaitTime?: string
   analysis?: {
-    timeOfDay: string;
-    lightingConditions: string;
-    weatherConditions: string;
-    crowdDensity?: CrowdDensity;
-    mainColors: string[];
-    architecturalFeatures: string[];
-  };
+    timeOfDay: string
+    lightingConditions: string
+    weatherConditions: string
+    crowdDensity?: CrowdDensity
+    mainColors: string[]
+    architecturalFeatures: string[]
+  }
 }
 
-interface ShareResultProps {
-  result: EnhancedBuildingResponse;
+// Utility function
+const getCurrentLocation = async (): Promise<Location> => {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Geolocation is not supported by your browser."))
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        })
+      },
+      (error) => {
+        reject(new Error("Unable to retrieve your location."))
+      },
+    )
+  })
 }
 
-const ShareResult: React.FC<ShareResultProps> = ({ result }) => {
+// ShareResult component
+const ShareResult: React.FC<{ result: EnhancedBuildingResponse }> = ({ result }) => {
   const handleShare = async () => {
     try {
       await navigator.share({
-        title: 'Building Detection Result',
+        title: "Building Detection Result",
         text: `I found ${result.description} using Building Detector AI!`,
         url: window.location.href,
-      });
+      })
     } catch (error) {
-      console.error('Error sharing:', error);
+      console.error("Error sharing:", error)
     }
-  };
+  }
 
   return (
     <Button
@@ -93,220 +129,206 @@ const ShareResult: React.FC<ShareResultProps> = ({ result }) => {
     >
       Share Result
     </Button>
-  );
-};
+  )
+}
 
-const MapComponent = ({ currentLocation, destinationLocation }: { currentLocation: Location; destinationLocation: Location }) => {
-  const mapRef = useRef<HTMLDivElement>(null);
+// MapComponent
+const MapComponent: React.FC<{ currentLocation: Location; destinationLocation: Location }> = ({
+  currentLocation,
+  destinationLocation,
+}) => {
+  const mapRef = useRef<HTMLDivElement>(null)
 
-  React.useEffect(() => {
-    if (typeof window.google === 'undefined') {
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`;
-      script.async = true;
-      script.defer = true;
-      script.onload = initMap;
-      document.head.appendChild(script);
+  useEffect(() => {
+    const initMap = () => {
+      if (!mapRef.current) return
+
+      const map = new google.maps.Map(mapRef.current, {
+        zoom: 13,
+        center: currentLocation,
+      })
+
+      new google.maps.Marker({
+        position: currentLocation,
+        map,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: "#4285F4",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 2,
+        },
+        title: "Your Location",
+      })
+
+      new google.maps.Marker({
+        position: destinationLocation,
+        map,
+        title: "Destination",
+      })
+
+      const directionsService = new google.maps.DirectionsService()
+      const directionsRenderer = new google.maps.DirectionsRenderer({
+        map,
+        suppressMarkers: true,
+      })
+
+      directionsService.route(
+        {
+          origin: currentLocation,
+          destination: destinationLocation,
+          travelMode: google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+          if (status === "OK") {
+            directionsRenderer.setDirections(result)
+          }
+        },
+      )
+    }
+
+    if (typeof window.google === "undefined") {
+      const script = document.createElement("script")
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+      script.async = true
+      script.defer = true
+      script.onload = initMap
+      document.head.appendChild(script)
     } else {
-      initMap();
+      initMap()
     }
-  }, [currentLocation, destinationLocation]);
+  }, [currentLocation, destinationLocation])
 
-  const initMap = () => {
-    if (!mapRef.current) return;
+  return <div ref={mapRef} className="w-full h-64 rounded-xl overflow-hidden shadow-md" />
+}
 
-    const map = new google.maps.Map(mapRef.current, {
-      zoom: 13,
-      center: currentLocation,
-    });
-
-    new google.maps.Marker({
-      position: currentLocation,
-      map,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 8,
-        fillColor: '#4285F4',
-        fillOpacity: 1,
-        strokeColor: '#ffffff',
-        strokeWeight: 2,
-      },
-      title: 'Your Location',
-    });
-
-    new google.maps.Marker({
-      position: destinationLocation,
-      map,
-      title: 'Destination',
-    });
-
-    const directionsService = new google.maps.DirectionsService();
-    const directionsRenderer = new google.maps.DirectionsRenderer({
-      map,
-      suppressMarkers: true,
-    });
-
-    directionsService.route(
-      {
-        origin: currentLocation,
-        destination: destinationLocation,
-        travelMode: google.maps.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        if (status === 'OK') {
-          directionsRenderer.setDirections(result);
-        }
-      }
-    );
-  };
-
-  return (
-    <div ref={mapRef} className="w-full h-64 rounded-xl overflow-hidden shadow-md" />
-  );
-};
-
-const getCurrentLocation = async (): Promise<Location> => {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error('Geolocation is not supported by your browser.'));
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-      },
-      (error) => {
-        reject(new Error('Unable to retrieve your location.'));
-      }
-    );
-  });
-};
-
+// Main component
 export default function BuildingDetectorDemo(): JSX.Element {
-  const [image, setImage] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
-  const [result, setResult] = useState<EnhancedBuildingResponse | null>(null);
-  const [usageCount, setUsageCount] = useState<number>(0);
-  const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
-  const [isUsingCamera, setIsUsingCamera] = useState<boolean>(false);
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  
-  const MAX_FREE_USES = 3;
+  const MAX_FREE_USES = 3
+
+  const [image, setImage] = useState<File | null>(null)
+  const [preview, setPreview] = useState<string>("")
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string>("")
+  const [result, setResult] = useState<EnhancedBuildingResponse | null>(null)
+  const [usageCount, setUsageCount] = useState<number>(0)
+  const [currentLocation, setCurrentLocation] = useState<Location | null>(null)
+  const [isUsingCamera, setIsUsingCamera] = useState<boolean>(false)
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: 'environment',
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "environment",
           width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        } 
-      });
-      
+          height: { ideal: 1080 },
+        },
+      })
+
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setIsUsingCamera(true);
+        videoRef.current.srcObject = stream
+        setIsUsingCamera(true)
       }
     } catch (err) {
-      setError('Unable to access camera. Please check permissions.');
+      setError("Unable to access camera. Please check permissions.")
     }
-  };
+  }
 
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-      setIsUsingCamera(false);
+      const stream = videoRef.current.srcObject as MediaStream
+      stream.getTracks().forEach((track) => track.stop())
+      videoRef.current.srcObject = null
+      setIsUsingCamera(false)
     }
-  };
+  }
 
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      const context = canvas.getContext('2d');
+      const video = videoRef.current
+      const canvas = canvasRef.current
+
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+
+      const context = canvas.getContext("2d")
       if (context) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], "camera-photo.jpg", { type: "image/jpeg" });
-            setImage(file);
-            setPreview(URL.createObjectURL(blob));
-            stopCamera();
-          }
-        }, 'image/jpeg', 0.95);
+        context.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const file = new File([blob], "camera-photo.jpg", { type: "image/jpeg" })
+              setImage(file)
+              setPreview(URL.createObjectURL(blob))
+              stopCamera()
+            }
+          },
+          "image/jpeg",
+          0.95,
+        )
       }
     }
-  };
+  }
 
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>): void => {
     if (usageCount >= MAX_FREE_USES) {
-      setError('You have reached the maximum number of free attempts. Sign up for unlimited access!');
-      return;
+      setError("You have reached the maximum number of free attempts. Sign up for unlimited access!")
+      return
     }
 
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    setImage(file);
-    setPreview(URL.createObjectURL(file));
-    setResult(null);
-    setError('');
-  };
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setImage(file)
+    setPreview(URL.createObjectURL(file))
+    setResult(null)
+    setError("")
+  }
 
   const handleSubmit = async (): Promise<void> => {
-    if (!image) return;
+    if (!image) return
     if (usageCount >= MAX_FREE_USES) {
-      setError('You have reached the maximum number of free attempts. Sign up for unlimited access!');
-      return;
+      setError("You have reached the maximum number of free attempts. Sign up for unlimited access!")
+      return
     }
 
     try {
-      setLoading(true);
-      setError('');
-      
-      const location = await getCurrentLocation();
-      setCurrentLocation(location);
-      
-      const formData = new FormData();
-      formData.append('image', image);
-      formData.append('currentLat', location.lat.toString());
-      formData.append('currentLng', location.lng.toString());
-      
-      const response = await fetch('/api/process-image', {
-        method: 'POST',
-        body: formData
-      });
-      
-      const data: EnhancedBuildingResponse = await response.json();
-      
+      setLoading(true)
+      setError("")
+
+      const location = await getCurrentLocation()
+      setCurrentLocation(location)
+
+      const formData = new FormData()
+      formData.append("image", image)
+      formData.append("currentLat", location.lat.toString())
+      formData.append("currentLng", location.lng.toString())
+
+      const response = await fetch("/api/process-image", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data: EnhancedBuildingResponse = await response.json()
+
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to detect building');
+        throw new Error(data.error || "Failed to detect building")
       }
-      
-      setResult(data);
-      setUsageCount(prev => prev + 1);
+
+      setResult(data)
+      setUsageCount((prev) => prev + 1)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setError(err instanceof Error ? err.message : "An unexpected error occurred")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -324,10 +346,7 @@ export default function BuildingDetectorDemo(): JSX.Element {
           </p>
           <div className="bg-white p-4 rounded-2xl shadow-sm inline-flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <Progress 
-                value={((MAX_FREE_USES - usageCount) / MAX_FREE_USES) * 100} 
-                className="w-32 h-3"
-              />
+              <Progress value={((MAX_FREE_USES - usageCount) / MAX_FREE_USES) * 100} className="w-32 h-3" />
               <span className="text-sm text-blue-800 font-medium whitespace-nowrap">
                 {MAX_FREE_USES - usageCount} attempts remaining
               </span>
@@ -344,9 +363,7 @@ export default function BuildingDetectorDemo(): JSX.Element {
                   <Camera className="w-6 h-6 text-blue-600" />
                   Capture or Upload
                 </CardTitle>
-                <CardDescription className="text-base">
-                  Take a photo or upload an image of any building
-                </CardDescription>
+                <CardDescription className="text-base">Take a photo or upload an image of any building</CardDescription>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-6">
@@ -380,38 +397,29 @@ export default function BuildingDetectorDemo(): JSX.Element {
 
                   {isUsingCamera ? (
                     <div className="relative rounded-xl overflow-hidden bg-gray-100 border-2 border-blue-100 shadow-inner">
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        className="w-full aspect-video object-cover"
-                      />
+                      <video ref={videoRef} autoPlay playsInline className="w-full aspect-video object-cover" />
                       <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
-                        <Button
-                          onClick={capturePhoto}
-                          className="bg-blue-600 hover:bg-blue-700"
-                        >
+                        <Button onClick={capturePhoto} className="bg-blue-600 hover:bg-blue-700">
                           <Camera className="mr-2 h-5 w-5" />
                           Capture
                         </Button>
-                        <Button
-                          onClick={stopCamera}
-                          variant="secondary"
-                        >
+                        <Button onClick={stopCamera} variant="secondary">
                           Cancel
                         </Button>
                       </div>
                     </div>
-                  ) : preview && (
-                    <div className="relative rounded-xl overflow-hidden bg-gray-100 border-2 border-blue-100 shadow-inner">
-                      <div className="aspect-video">
-                        <img
-                          src={preview}
-                          alt="Preview"
-                          className="w-full h-full object-cover"
-                        />
+                  ) : (
+                    preview && (
+                      <div className="relative rounded-xl overflow-hidden bg-gray-100 border-2 border-blue-100 shadow-inner">
+                        <div className="aspect-video">
+                          <img
+                            src={preview || "/placeholder.svg"}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
                       </div>
-                    </div>
+                    )
                   )}
 
                   <canvas ref={canvasRef} className="hidden" />
@@ -448,20 +456,20 @@ export default function BuildingDetectorDemo(): JSX.Element {
           </div>
 
           {/* Results Section */}
-          {result && result.success && (
-            <Card className="border-0 shadow-lg animate-in slide-in-from-right duration-500">
-              <CardHeader className="border-b bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-xl">
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <Landmark className="w-6 h-6 text-green-600" />
-                  Enhanced Detection Results
-                </CardTitle>
-                {result.confidence && (
-                  <CardDescription className="text-base">
-                    Confidence Score: {(result.confidence * 100).toFixed(1)}%
-                  </CardDescription>
-                )}
-              </CardHeader>
-              <CardContent className="p-6 space-y-6">
+          {result && result.success ? (
+              <Card className="border-0 shadow-lg animate-in slide-in-from-right duration-500">
+              <CardHeader className="border-b bg-gradient-to-r from-indigo-50 to-purple-50 rounded-t-xl">
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <Landmark className="w-6 h-6 text-indigo-600" />
+                    Detection Results
+                  </CardTitle>
+                  {result.confidence && (
+                    <CardDescription>
+                      Confidence Score: {(result.confidence * 100).toFixed(1)}%
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent className="p-6">
                 <Tabs defaultValue="info" className="w-full">
                   <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="info">Info</TabsTrigger>
@@ -531,8 +539,8 @@ export default function BuildingDetectorDemo(): JSX.Element {
                           </h3>
                           <div className="flex gap-2">
                             {result.analysis.mainColors.map((color, index) => (
-                              <div 
-                                key={index} 
+                              <div
+                                key={index}
                                 className="w-8 h-8 rounded-full shadow-sm"
                                 style={{ backgroundColor: color }}
                                 title={color}
@@ -547,7 +555,9 @@ export default function BuildingDetectorDemo(): JSX.Element {
                           </h3>
                           <div className="flex flex-wrap gap-2">
                             {result.analysis.architecturalFeatures.map((feature, index) => (
-                              <Badge key={index} variant="secondary">{feature}</Badge>
+                              <Badge key={index} variant="secondary">
+                                {feature}
+                              </Badge>
                             ))}
                           </div>
                         </div>
@@ -558,9 +568,14 @@ export default function BuildingDetectorDemo(): JSX.Element {
                     {result.nearbyPlaces && result.nearbyPlaces.length > 0 ? (
                       <div className="space-y-4">
                         {result.nearbyPlaces.map((place, index) => (
-                          <div key={index} className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm">
+                          <div
+                            key={index}
+                            className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm"
+                          >
                             <h3 className="font-semibold text-blue-900 mb-1">{place.name}</h3>
-                            <p className="text-blue-800">{place.type} • {place.distance}</p>
+                            <p className="text-blue-800">
+                              {place.type} • {place.distance}
+                            </p>
                             {place.rating && (
                               <div className="flex items-center mt-1">
                                 <span className="text-yellow-500 mr-1">★</span>
@@ -571,9 +586,7 @@ export default function BuildingDetectorDemo(): JSX.Element {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center p-8 text-gray-500">
-                        No nearby places found
-                      </div>
+                      <div className="text-center p-8 text-gray-500">No nearby places found</div>
                     )}
                   </TabsContent>
                   <TabsContent value="weather" className="mt-4">
@@ -602,19 +615,14 @@ export default function BuildingDetectorDemo(): JSX.Element {
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center p-8 text-gray-500">
-                        Weather information unavailable
-                      </div>
+                      <div className="text-center p-8 text-gray-500">Weather information unavailable</div>
                     )}
                   </TabsContent>
                 </Tabs>
 
                 {result.location && currentLocation && (
                   <div className="space-y-4">
-                    <MapComponent
-                      currentLocation={currentLocation}
-                      destinationLocation={result.location}
-                    />
+                    <MapComponent currentLocation={currentLocation} destinationLocation={result.location} />
                   </div>
                 )}
 
@@ -649,19 +657,22 @@ export default function BuildingDetectorDemo(): JSX.Element {
                 )}
 
                 <ShareResult result={result} />
-              </CardContent>
-            </Card>
-          )}
-        </div>
+                </CardContent>
+              </Card>
+            ) : error ? (
+              <Alert variant="destructive" className="border-0 shadow-lg animate-in fade-in duration-300">
+                <AlertTitle className="text-lg">Error</AlertTitle>
+                <AlertDescription className="text-base">{error}</AlertDescription>
+              </Alert>
+            ) : null}
+          </div>
 
         {/* Upgrade Card */}
         {usageCount >= MAX_FREE_USES && (
           <Card className="border-0 shadow-lg overflow-hidden">
             <CardContent className="p-8 bg-gradient-to-r from-blue-600 to-purple-600">
               <div className="text-center space-y-6">
-                <h3 className="text-3xl font-bold text-white">
-                  Ready to unlock unlimited detections?
-                </h3>
+                <h3 className="text-3xl font-bold text-white">Ready to unlock unlimited detections?</h3>
                 <p className="text-lg text-blue-100 max-w-2xl mx-auto">
                   Get unlimited building detections, premium features, and priority support with our Pro plan.
                 </p>
@@ -673,7 +684,21 @@ export default function BuildingDetectorDemo(): JSX.Element {
             </CardContent>
           </Card>
         )}
+
+        {/* Footer Section */}
+        <footer className="border-t border-gray-100 py-12 bg-white">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-8">
+              <span className="text-sm text-gray-500">© 2025 Building Detector AI</span>
+              <a href="#" className="text-sm text-gray-500 hover:text-indigo-600">Privacy</a>
+              <a href="#" className="text-sm text-gray-500 hover:text-indigo-600">Terms</a>
+            </div>
+          </div>
+        </div>
+      </footer>
       </div>
     </div>
-  );
+  )
 }
+
