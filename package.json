@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
+    "vercel-build": "prisma generate && next build",
     "build:fast": "SKIP_TYPE_CHECK=true next build"
   },
   "dependencies": {
