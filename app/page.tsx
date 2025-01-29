@@ -40,7 +40,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { Loader } from "@googlemaps/js-api-loader"
 
 // Authentication Types
 interface User {
@@ -48,10 +47,6 @@ interface User {
   email: string
   name: string
   role: 'user' | 'admin' | 'enterprise'
-}
-
-interface GoogleMapProps {
-  apiKey: string
 }
 
 interface AuthContextType {
@@ -494,211 +489,211 @@ const Home = () => {
             {user ? (
               <Button 
                 className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium rounded-xl px-6"onClick={() => router.push('/journey')}
-                >
-                  Dashboard
-                </Button>
-              ) : (
-                <AuthDialog />
-              )}
-            </div>
-  
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
-                  <Menu className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent>
-                <div className="flex flex-col gap-4 mt-8">
-                  <Button variant="ghost">Features</Button>
-                  <Button variant="ghost">Solutions</Button>
-                  <Button variant="ghost">Pricing</Button>
-                  {user ? (
-                    <Button 
-                      className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
-                      onClick={() => router.push('/journey')}
-                    >
-                      Dashboard
-                    </Button>
-                  ) : (
-                    <AuthDialog />
-                  )}
-                </div>
-              </SheetContent>
-            </Sheet>
-          </nav>
-        </header>
-  
-        <main className="pt-32 pb-16">
-          <div className="container mx-auto px-6">
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
-              <div>
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 mb-8">
-                  <Star className="w-4 h-4 text-indigo-600" />
-                  <span className="text-sm font-medium text-indigo-600">New AI Map Router</span>
-                </div>
-                
-                <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                  Smart Routes for
-                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600"> Modern Teams</span>
-                </h1>
-                
-                <p className="text-xl text-gray-600 mb-10">
-                  Experience intelligent navigation that adapts to your needs, powered by advanced AI and real-time data.
-                </p>
-                
-                <div className="flex gap-4">
-                  <Button className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-8 py-6 rounded-xl text-lg">
-                    Start Free Trial
+              >
+                Dashboard
+              </Button>
+            ) : (
+              <AuthDialog />
+            )}
+          </div>
+
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <div className="flex flex-col gap-4 mt-8">
+                <Button variant="ghost">Features</Button>
+                <Button variant="ghost">Solutions</Button>
+                <Button variant="ghost">Pricing</Button>
+                {user ? (
+                  <Button 
+                    className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
+                    onClick={() => router.push('/journey')}
+                  >
+                    Dashboard
                   </Button>
-                  <Button variant="outline" className="px-8 py-6 rounded-xl text-lg border-indigo-200">Watch Demo
-                  </Button>
-                </div>
+                ) : (
+                  <AuthDialog />
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </nav>
+      </header>
+
+      <main className="pt-32 pb-16">
+        <div className="container mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 mb-8">
+                <Star className="w-4 h-4 text-indigo-600" />
+                <span className="text-sm font-medium text-indigo-600">New AI Map Router</span>
               </div>
               
-              <div className="relative h-[600px]">
-                <MapDisplay />
+              <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+                Smart Routes for
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600"> Modern Teams</span>
+              </h1>
+              
+              <p className="text-xl text-gray-600 mb-10">
+                Experience intelligent navigation that adapts to your needs, powered by advanced AI and real-time data.
+              </p>
+              
+              <div className="flex gap-4">
+                <Button className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-8 py-6 rounded-xl text-lg">
+                  Start Free Trial
+                </Button>
+                <Button variant="outline" className="px-8 py-6 rounded-xl text-lg border-indigo-200">Watch Demo
+                </Button>
               </div>
+            </div>
+            
+            <div className="relative h-[600px]">
+              <MapDisplay />
             </div>
           </div>
-  
-          <section className="py-24">
-            <div className="container mx-auto px-6">
-              <div className="max-w-3xl mx-auto text-center mb-16">
-                <h2 className="text-4xl font-bold mb-6 text-gray-900">
-                  Everything you need for
-                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600"> seamless navigation</span>
-                </h2>
-              </div>
-  
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {FEATURES.map((feature, index) => (
-                  <Card key={index} className="p-6 bg-white/50 backdrop-blur-sm border-0 rounded-2xl hover:shadow-xl transition-all">
-                    <feature.icon className="w-8 h-8 text-indigo-600 mb-4" />
-                    <h3 className="text-xl font-bold mb-2 text-gray-900">{feature.title}</h3>
-                    <p className="text-gray-600">{feature.description}</p>
-                  </Card>
-                ))}
-              </div>
+        </div>
+
+        <section className="py-24">
+          <div className="container mx-auto px-6">
+            <div className="max-w-3xl mx-auto text-center mb-16">
+              <h2 className="text-4xl font-bold mb-6 text-gray-900">
+                Everything you need for
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600"> seamless navigation</span>
+              </h2>
             </div>
-          </section>
-  
-          <section className="py-24 bg-gray-50">
-            <div className="container mx-auto px-6">
-              <div className="max-w-3xl mx-auto text-center mb-16">
-                <h2 className="text-4xl font-bold mb-6 text-gray-900">
-                  Tailored solutions for
-                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600"> every scale</span>
-                </h2>
-                <p className="text-xl text-gray-600">
-                  From individual users to enterprise fleets, we have the right solution for your needs
-                </p>
-              </div>
-  
-              <div className="grid md:grid-cols-2 gap-8">
-                {SOLUTIONS.map((solution, index) => (
-                  <Card key={index} className="p-8 bg-white/50 backdrop-blur-sm border-0 rounded-2xl hover:shadow-xl transition-all">
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 bg-indigo-50 rounded-xl">
-                        <solution.icon className="w-6 h-6 text-indigo-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold mb-2 text-gray-900">{solution.title}</h3>
-                        <p className="text-gray-600 mb-4">{solution.description}</p>
-                        <ul className="space-y-2">
-                          {solution.features.map((feature, i) => (
-                            <li key={i} className="flex items-center gap-2 text-gray-600">
-                              <Check className="w-4 h-4 text-indigo-600" />
-                              <span>{feature}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {FEATURES.map((feature, index) => (
+                <Card key={index} className="p-6 bg-white/50 backdrop-blur-sm border-0 rounded-2xl hover:shadow-xl transition-all">
+                  <feature.icon className="w-8 h-8 text-indigo-600 mb-4" />
+                  <h3 className="text-xl font-bold mb-2 text-gray-900">{feature.title}</h3>
+                  <p className="text-gray-600">{feature.description}</p>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="py-24 bg-gray-50">
+          <div className="container mx-auto px-6">
+            <div className="max-w-3xl mx-auto text-center mb-16">
+              <h2 className="text-4xl font-bold mb-6 text-gray-900">
+                Tailored solutions for
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600"> every scale</span>
+              </h2>
+              <p className="text-xl text-gray-600">
+                From individual users to enterprise fleets, we have the right solution for your needs
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              {SOLUTIONS.map((solution, index) => (
+                <Card key={index} className="p-8 bg-white/50 backdrop-blur-sm border-0 rounded-2xl hover:shadow-xl transition-all">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-indigo-50 rounded-xl">
+                      <solution.icon className="w-6 h-6 text-indigo-600" />
                     </div>
-                  </Card>
-                ))}
-              </div>
+                    <div>
+                      <h3 className="text-xl font-bold mb-2 text-gray-900">{solution.title}</h3>
+                      <p className="text-gray-600 mb-4">{solution.description}</p>
+                      <ul className="space-y-2">
+                        {solution.features.map((feature, i) => (
+                          <li key={i} className="flex items-center gap-2 text-gray-600">
+                            <Check className="w-4 h-4 text-indigo-600" />
+                            <span>{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
-          </section>
-  
-          <section className="py-24">
-            <div className="container mx-auto px-6">
-              <div className="max-w-3xl mx-auto text-center mb-16">
-                <h2 className="text-4xl font-bold mb-6 text-gray-900">
-                  Simple, transparent
-                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600"> pricing</span>
-                </h2>
-                <p className="text-xl text-gray-600">
-                  Choose the plan that best fits your needs
-                </p>
-              </div>
-  
-              <div className="grid md:grid-cols-3 gap-8">
-                {PRICING_PLANS.map((plan, index) => (
-                  <Card 
-                    key={index} 
-                    className={`p-8 rounded-2xl transition-all ${
-                      plan.highlighted 
-                        ? 'bg-gradient-to-br from-indigo-500 to-purple-500 text-white shadow-xl' 
-                        : 'bg-white/50 backdrop-blur-sm border-0 hover:shadow-xl'
+          </div>
+        </section>
+
+        <section className="py-24">
+          <div className="container mx-auto px-6">
+            <div className="max-w-3xl mx-auto text-center mb-16">
+              <h2 className="text-4xl font-bold mb-6 text-gray-900">
+                Simple, transparent
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600"> pricing</span>
+              </h2>
+              <p className="text-xl text-gray-600">
+                Choose the plan that best fits your needs
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {PRICING_PLANS.map((plan, index) => (
+                <Card 
+                  key={index} 
+                  className={`p-8 rounded-2xl transition-all ${
+                    plan.highlighted 
+                      ? 'bg-gradient-to-br from-indigo-500 to-purple-500 text-white shadow-xl' 
+                      : 'bg-white/50 backdrop-blur-sm border-0 hover:shadow-xl'
+                  }`}
+                >
+                  <h3 className={`text-2xl font-bold mb-2 ${plan.highlighted ? 'text-white' : 'text-gray-900'}`}>
+                    {plan.name}
+                  </h3>
+                  <div className="mb-4">
+                    <span className="text-4xl font-bold">{plan.price}</span>
+                    {plan.period && <span className={`text-sm ${plan.highlighted ? 'text-white/80' : 'text-gray-500'}`}>{plan.period}</span>}
+                  </div>
+                  <p className={`mb-6 ${plan.highlighted ? 'text-white/80' : 'text-gray-600'}`}>{plan.description}</p>
+                  <ul className="space-y-3 mb-8">
+                    {plan.features.map((feature, i) => (
+                      <li key={i} className="flex items-center gap-2">
+                        <Check className={`w-4 h-4 ${plan.highlighted ? 'text-white' : 'text-indigo-600'}`} />
+                        <span className={plan.highlighted ? 'text-white/80' : 'text-gray-600'}>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Button 
+                    className={`w-full ${
+                      plan.highlighted
+                        ? 'bg-white text-indigo-600 hover:bg-gray-100'
+                        : 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white'
                     }`}
                   >
-                    <h3 className={`text-2xl font-bold mb-2 ${plan.highlighted ? 'text-white' : 'text-gray-900'}`}>
-                      {plan.name}
-                    </h3>
-                    <div className="mb-4">
-                      <span className="text-4xl font-bold">{plan.price}</span>
-                      {plan.period && <span className={`text-sm ${plan.highlighted ? 'text-white/80' : 'text-gray-500'}`}>{plan.period}</span>}
-                    </div>
-                    <p className={`mb-6 ${plan.highlighted ? 'text-white/80' : 'text-gray-600'}`}>{plan.description}</p>
-                    <ul className="space-y-3 mb-8">
-                      {plan.features.map((feature, i) => (
-                        <li key={i} className="flex items-center gap-2">
-                          <Check className={`w-4 h-4 ${plan.highlighted ? 'text-white' : 'text-indigo-600'}`} />
-                          <span className={plan.highlighted ? 'text-white/80' : 'text-gray-600'}>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <Button 
-                      className={`w-full ${
-                        plan.highlighted
-                          ? 'bg-white text-indigo-600 hover:bg-gray-100'
-                          : 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white'
-                      }`}
-                    >
-                      Get Started
-                    </Button>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </section>
-        </main>
-  
-        <footer className="border-t border-gray-100 py-12 bg-white">
-          <div className="container mx-auto px-6">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-              <div className="flex items-center gap-8">
-                <span className="text-sm text-gray-500">© 2025 SabiRoad</span>
-                <Link href="#" className="text-sm text-gray-500 hover:text-indigo-600">Privacy</Link>
-                <Link href="#" className="text-sm text-gray-500 hover:text-indigo-600">Terms</Link>
-              </div>
-              <div className="flex items-center gap-6">
-                <Link href="#" className="text-gray-400 hover:text-indigo-600">
-                  <Github className="w-6 h-6" />
-                </Link>
-              </div>
+                    Get Started
+                  </Button>
+                </Card>
+              ))}
             </div>
           </div>
-        </footer>
-      </div>
-    )
-  }
-  
-  export default function HomeWrapper() {
-    return (
-      <AuthProvider>
-        <Home />
-      </AuthProvider>
-    )
-  }
+        </section>
+      </main>
+
+      <footer className="border-t border-gray-100 py-12 bg-white">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-8">
+              <span className="text-sm text-gray-500">© 2025 SabiRoad</span>
+              <Link href="#" className="text-sm text-gray-500 hover:text-indigo-600">Privacy</Link>
+              <Link href="#" className="text-sm text-gray-500 hover:text-indigo-600">Terms</Link>
+            </div>
+            <div className="flex items-center gap-6">
+              <Link href="#" className="text-gray-400 hover:text-indigo-600">
+                <Github className="w-6 h-6" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  )
+}
+
+export default function HomeWrapper() {
+  return (
+    <AuthProvider>
+      <Home />
+    </AuthProvider>
+  )
+}
