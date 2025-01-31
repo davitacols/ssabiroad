@@ -1,6 +1,6 @@
 "use client"
-
-import { useState, useContext, createContext, ReactNode, useEffect } from 'react'
+import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
+import { useState, useContext, createContext, ReactNode, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from "next/link"
 import {
@@ -437,32 +437,53 @@ const PRICING_PLANS = [
   }
 ]
 
-const MapDisplay = () => (
-  <div className="relative w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 rounded-3xl overflow-hidden shadow-lg">
-    <div className="absolute inset-0 bg-white/50 backdrop-blur-sm"/>
-    <div 
-      className="absolute inset-0 opacity-10" 
-      style={{
-        backgroundImage: `radial-gradient(circle, rgba(99,102,241,0.4) 1px, transparent 1px)`,
-        backgroundSize: '20px 20px'
-      }}
-    />
-    <div className="absolute inset-0">
-      {[...Array(15)].map((_, i) => (
-        <div
-          key={i}
-          className="absolute w-2 h-2 bg-indigo-400/30 rounded-full"
-          style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            animation: `pulse ${3 + Math.random() * 2}s ease-in-out infinite`,
-            animationDelay: `${i * 0.2}s`
-          }}
-        />
-      ))}
-    </div>
-  </div>
-)
+const useUserLocation = () => {
+  const [location, setLocation] = useState(null);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+          console.log("User Location:", position.coords);
+        },
+        (error) => {
+          console.error("Error fetching location:", error);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      console.error("Geolocation is not supported by this browser.");
+    }
+  }, []);
+
+  return location;
+};
+
+const MapDisplay = () => {
+  const location = useUserLocation();
+
+  return (
+    <LoadScript googleMapsApiKey="AIzaSyCMs6xd8S-q7A2hzvvKvfogbhAsleUEODg">
+      {location ? (
+        <GoogleMap
+          mapContainerClassName="w-full h-[600px] rounded-3xl overflow-hidden shadow-lg"
+          center={location}
+          zoom={15}
+        >
+          <Marker position={location} />
+        </GoogleMap>
+      ) : (
+        <p>Loading map...</p>
+      )}
+    </LoadScript>
+  );
+};
+
+export { useUserLocation, MapDisplay };
 
 const Home = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
