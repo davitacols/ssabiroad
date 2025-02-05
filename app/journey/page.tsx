@@ -1,3 +1,5 @@
+// app/journey/page.tsx
+
 "use client"
 
 import React, { useState, useRef, type ChangeEvent, useEffect } from "react"

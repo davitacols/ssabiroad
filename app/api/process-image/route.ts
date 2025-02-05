@@ -1,3 +1,5 @@
+// api/process-image/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import * as vision from '@google-cloud/vision';
 import axios from 'axios';
