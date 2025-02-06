@@ -11,6 +11,9 @@
     "vercel-build": "prisma generate && next build",
     "build:fast": "SKIP_TYPE_CHECK=true next build"
   },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
+  },
   "dependencies": {
     "@google-cloud/vision": "^4.3.2",
     "@prisma/client": "^6.3.0",
