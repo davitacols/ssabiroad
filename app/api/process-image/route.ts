@@ -132,7 +132,7 @@ class BuildingAnalyzer {
           query: name,
           location: `${location.latitude},${location.longitude}`,
           radius: 500, // Limit search to nearby buildings
-          key: process.env.GOOGLE_MAPS_API_KEY
+          key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
         }
       });
   
@@ -217,7 +217,7 @@ class BuildingAnalyzer {
           location: `${location.latitude},${location.longitude}`,
           radius: 100,
           type: 'point_of_interest',
-          key: process.env.GOOGLE_MAPS_API_KEY
+          key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
         }
       });
 
@@ -256,7 +256,7 @@ class BuildingAnalyzer {
       const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
         params: {
           address: text,
-          key: process.env.GOOGLE_MAPS_API_KEY
+          key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
         }
       });
 
@@ -413,7 +413,7 @@ async function geocodeAddress(address: string): Promise<any | null> {
     const geocodeResponse = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
       params: {
         address,
-        key: process.env.GOOGLE_MAPS_API_KEY || ''
+        key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
       }
     });
 
