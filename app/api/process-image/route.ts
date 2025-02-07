@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { NextApiRequest, NextApiResponse } from 'next';
 import * as vision from '@google-cloud/vision';
 import axios from 'axios';
 import * as exifParser from 'exif-parser';
@@ -32,6 +33,40 @@ interface BuildingDetectionResponse {
     brightness: number;
     contrast: number;
   };
+}
+
+;
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Decode the Base64 credentials
+  const base64Credentials = process.env.GCLOUD_CREDENTIALS;
+  if (!base64Credentials) {
+    res.status(500).json({ error: 'GCLOUD_CREDENTIALS environment variable is not set.' });
+    return;
+  }
+
+  const credentialsBuffer = Buffer.from(base64Credentials, 'base64');
+  const credentialsJson = credentialsBuffer.toString('utf8');
+  const serviceAccount = JSON.parse(credentialsJson);
+
+  // Initialize the Vision client with the credentials
+  const client = new vision.ImageAnnotatorClient({
+    credentials: {
+      client_email: serviceAccount.client_email,
+      private_key: serviceAccount.private_key,
+    },
+    projectId: serviceAccount.project_id,
+  });
+
+  // Your existing logic
+  try {
+    // For example, if you're processing an image:
+    const [result] = await client.labelDetection(/* your image source */);
+    // Process result...
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 }
 
 class BuildingAnalyzer {
