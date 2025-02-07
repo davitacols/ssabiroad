@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("POSTGRES_PRISMA_URL")
+  directUrl  = env("POSTGRES_URL_NON_POOLING")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  username     String   @unique
+  name         String
+  password     String
+  profileImage String?  
+  coverImage   String?  
+  bio          String?  
+  role         String   @default("user")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relation fields
+  detections   Detection[]
+  savedLocations SavedLocation[]
+}
+
+model Detection {
+  id            String    @id @default(uuid())
+  createdAt     DateTime  @default(now())
+  buildingName  String?
+  description   String?
+  address       String?
+  confidence    Float
+  latitude      Float?
+  longitude     Float?
+  architecture  String[]
+  materials     String[]
+  styles        String[]
+  imageUrl      String?
+  
+  // Relation to User
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SavedLocation {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  name      String
+  address   String
+  latitude  Float
+  longitude Float
+  visits    Int      @default(0)
+  
+  // Relation to User
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
