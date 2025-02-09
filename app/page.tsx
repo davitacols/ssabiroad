@@ -1,759 +1,177 @@
 "use client"
 
-import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api"
-import { useState, useContext, createContext, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
+import React, { useState, useEffect } from 'react';
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Navigation,
-  Shield,
-  Globe,
-  Users,
   Menu,
   Star,
+  Check,
+  ChevronRight,
+  ArrowRight,
+  Globe,
+  Shield,
+  Users,
   Compass,
   MapPin,
   Github,
-  Lock,
-  Mail,
-  AlertCircle,
   Building2,
   Car,
   Factory,
-  Truck,
-  Check,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+  Truck
+} from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogDescription,
-} from "@/components/ui/dialog"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+} from "@/components/ui/dialog";
 
-// Types
-export type UserRole = "user" | "admin" | "enterprise"
-
-export interface User {
-  id: string
-  email: string
-  username: string
-  name: string
-  role: UserRole
-  profileImage?: string
-  coverImage?: string
-  bio?: string
-  createdAt: string
-  updatedAt: string
-}
-
-interface AuthContextType {
-  user: User | null
-  login: (email: string, password: string) => Promise<boolean>
-  signup: (email: string, password: string, name: string) => Promise<boolean>
-  logout: () => void
-  isAuthenticated: boolean
-}
-
-// Constants
-const FEATURES = [
-  {
-    icon: Navigation,
-    title: "Intuitive Pathfinding",
-    description: "Smart routes that adapt to your journey preferences and real-time conditions",
-  },
-  {
-    icon: Shield,
-    title: "Reliable Security",
-    description: "Your journey data protected with state-of-the-art encryption and privacy measures",
-  },
-  {
-    icon: Globe,
-    title: "Global Coverage",
-    description: "Detailed maps and routes covering every corner of the world with precision",
-  },
-  {
-    icon: Users,
-    title: "Team Synergy",
-    description: "Share routes and locations in real-time with your team members effortlessly",
-  },
-  {
-    icon: Compass,
-    title: "Offline Access",
-    description: "Keep navigating even when offline with downloadable map regions",
-  },
-  {
-    icon: MapPin,
-    title: "Smart Waypoints",
-    description: "Create rich, interactive markers with notes and media attachments",
-  },
-]
-
-const SOLUTIONS = [
-  {
-    icon: Car,
-    title: "Personal Navigation",
-    description: "Smart routing for individual drivers and daily commuters",
-    features: [
-      "Personalized route optimization",
-      "Real-time traffic updates",
-      "Favorite locations saving",
-      "Basic voice navigation",
-    ],
-  },
-  {
-    icon: Truck,
-    title: "Fleet Management",
-    description: "Comprehensive solution for delivery and logistics companies",
-    features: [
-      "Fleet-wide route optimization",
-      "Driver assignment system",
-      "Delivery status tracking",
-      "Fuel efficiency analytics",
-    ],
-  },
-  {
-    icon: Building2,
-    title: "Enterprise Solutions",
-    description: "Custom routing solutions for large organizations",
-    features: [
-      "Custom integration options",
-      "Advanced analytics dashboard",
-      "24/7 premium support",
-      "Multi-region deployment",
-    ],
-  },
-  {
-    icon: Factory,
-    title: "Industrial Logistics",
-    description: "Specialized routing for industrial and manufacturing sectors",
-    features: [
-      "Heavy vehicle routing",
-      "Multi-stop optimization",
-      "Resource allocation",
-      "Compliance monitoring"
-    ],
-  },
-]
-
-const PRICING_PLANS = [
-  {
-    name: "Basic",
-    price: "Free",
-    description: "Perfect for individual users",
-    features: [
-      "Basic route optimization",
-      "Standard navigation",
-      "Traffic updates",
-      "5 saved locations",
-      "Community support",
-    ],
-    highlighted: false,
-  },
-  {
-    name: "Pro",
-    price: "$12",
-    period: "per month",
-    description: "Ideal for small teams",
-    features: [
-      "Advanced route optimization",
-      "Voice navigation",
-      "Real-time tracking",
-      "Unlimited saved locations",
-      "Priority support",
-      "Team collaboration tools",
-    ],
-    highlighted: true,
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    description: "For large organizations",
-    features: [
-      "Custom route algorithms",
-      "Advanced analytics",
-      "API access",
-      "24/7 premium support",
-      "SLA guarantee",
-      "Custom integrations",
-      "Dedicated account manager",
-    ],
-    highlighted: false,
-  },
-]
-
-// Context
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  login: async () => false,
-  signup: async () => false,
-  logout: () => {},
-  isAuthenticated: false,
-})
-
-// Custom Hooks
-const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider")
-  }
-  return context
-}
-
-const useUserLocation = () => {
-  const [location, setLocation] = useState(null)
+const ModernHome = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    if (!navigator.geolocation) {
-      console.error("Geolocation is not supported by this browser.")
-      return
-    }
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const userLocation = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        }
-        setLocation(userLocation)
-        console.log("User Location:", userLocation)
-      },
-      (error) => {
-        console.error("Error fetching location:", error)
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    )
-  }, [])
-
-  return location
-}
-
-// Components
-const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const router = useRouter()
-
-  const handleAuth = async (endpoint, data) => {
-    try {
-      const response = await fetch(`/api/auth/${endpoint}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
-      })
-
-      const responseData = await response.json()
-
-      if (!response.ok) {
-        console.error(`${endpoint} failed:`, responseData.error || "Unknown error")
-        return false
-      }
-
-      setUser(responseData.user)
-      setIsAuthenticated(true)
-      router.push("/dashboard")
-      return true
-    } catch (error) {
-      console.error(`${endpoint} request error:`, error)
-      return false
-    }
-  }
-
-  useEffect(() => {
-    const verifyAuth = async () => {
-      try {
-        const response = await fetch("/api/auth/verify", {
-          method: "GET",
-          credentials: "include",
-        })
-
-        if (response.ok) {
-          const userData = await response.json()
-          setUser(userData.user)
-          setIsAuthenticated(true)
-        }
-      } catch (error) {
-        console.error("Auth verification failed:", error)
-        setIsAuthenticated(false)
-      }
-    }
-
-    verifyAuth()
-  }, [])
-
-  const login = (email, password) => handleAuth("login", { email, password })
-  
-  const signup = (email, password, name, username, profileImage, coverImage) => 
-    handleAuth("signup", { email, password, name, username, profileImage, coverImage })
-
-  const logout = async () => {
-    try {
-      const response = await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      })
-
-      if (response.ok) {
-        setUser(null)
-        setIsAuthenticated(false)
-        router.push("/")
-      }
-    } catch (error) {
-      console.error("Logout error:", error)
-    }
-  }
+  const handleGetStarted = () => {
+    router.push('/dashboard');
+  };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, signup, logout }}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
-
-const AuthDialog = () => {
-  const [isLogin, setIsLogin] = useState(true)
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    name: "",
-    username: "",
-  })
-  const [error, setError] = useState(null)
-  const { login, signup } = useAuth()
-
-  const handleInputChange = (e) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.id]: e.target.value
-    }))
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError(null)
-
-    try {
-      const { email, password, name, username } = formData
-      const success = isLogin 
-        ? await login(email, password)
-        : await signup(email, password, name, username)
-
-      if (!success) {
-        setError(isLogin ? "Invalid email or password" : "Signup failed. Please try again.")
-      }
-    } catch (err) {
-      setError("An unexpected error occurred")
-    }
-  }
-
-  const renderFormField = (id, label, type = "text", icon, options = {}) => (
-    <div>
-      <label htmlFor={id} className="block mb-2 text-sm font-medium">
-        {label}
-      </label>
-      <div className="relative">
-        <input
-          type={type}
-          id={id}
-          value={formData[id]}
-          onChange={handleInputChange}
-          className="w-full p-2 pl-10 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-          placeholder={`Enter your ${label.toLowerCase()}`}
-          required
-          {...options}
-        />
-        {icon}
-      </div>
-    </div>
-  )
-
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6">
-          Get Started
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{isLogin ? "Welcome Back" : "Create Account"}</DialogTitle>
-          <DialogDescription>
-            {isLogin 
-              ? "Access your personalized navigation dashboard" 
-              : "Join the intelligent routing revolution"}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <>
-              {renderFormField("name", "Full Name", "text", 
-                <Users className="absolute left-3 top-3 text-gray-400" />)}
-              {renderFormField("username", "Username", "text", 
-                <Users className="absolute left-3 top-3 text-gray-400" />, {
-                pattern: "^[a-zA-Z0-9_]{3,20}$",
-                title: "Username must be 3-20 characters long and contain only letters, numbers, and underscores"
-              })}
-            </>
-          )}
-
-          {renderFormField("email", "Email Address", "email", 
-            <Mail className="absolute left-3 top-3 text-gray-400" />)}
-          {renderFormField("password", "Password", "password", 
-            <Lock className="absolute left-3 top-3 text-gray-400" />, {
-            minLength: 8
-          })}
-
-          {error && (
-            <div className="flex items-center text-red-600 bg-red-50 p-3 rounded-lg">
-              <AlertCircle className="mr-2 h-5 w-5" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <Button
-            type="submit"
-            className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-2 rounded-lg"
-          >
-            {isLogin ? "Sign In" : "Create Account"}
-          </Button>
-
-          <div className="text-center mt-4">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-indigo-600 hover:underline"
-            >
-              {isLogin ? "Need an account? Sign Up" : "Already have an account? Sign In"}
-            </button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-const MapDisplay = () => {
-  const location = useUserLocation()
-
-  return (
-    <LoadScript googleMapsApiKey="AIzaSyCMs6xd8S-q7A2hzvvKvfogbhAsleUEODg">
-      {location ? (
-        <GoogleMap
-          mapContainerClassName="w-full h-[600px] rounded-3xl overflow-hidden shadow-lg"
-          center={location}
-          zoom={15}
-        >
-          <Marker position={location} />
-        </GoogleMap>
-      ) : (
-        <p>Loading map...</p>
-      )}
-    </LoadScript>
-  )
-}
-
-const FeatureSection = () => (
-  <section className="py-24">
-    <div className="container mx-auto px-6">
-      <div className="max-w-3xl mx-auto text-center mb-16">
-        <h2 className="text-4xl font-bold mb-6 text-gray-900">
-          Everything you need for
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-            {" "}seamless navigation
-          </span>
-        </h2>
-      </div>
-
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {FEATURES.map((feature, index) => (
-          <Card
-            key={index}
-            className="p-6 bg-white/50 backdrop-blur-sm border-0 rounded-2xl hover:shadow-xl transition-all"
-          >
-            <feature.icon className="w-8 h-8 text-indigo-600 mb-4" />
-            <h3 className="text-xl font-bold mb-2 text-gray-900">{feature.title}</h3>
-            <p className="text-gray-600">{feature.description}</p>
-          </Card>
-        ))}
-      </div>
-    </div>
-  </section>
-)
-
-const Home = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { user, logout, isAuthenticated } = useAuth()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      router.push("/dashboard")
-    }
-  }, [isAuthenticated, router])
-
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-      <header className="fixed w-full bg-white/70 backdrop-blur-md border-b border-gray-100 z-50">
-        <nav className="container mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
-              <Navigation className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-              Sabi<span className="font-black">Road</span>
-            </span>
-          </Link>
-
-          <div className="hidden md:flex items-center gap-8">
-            <Button variant="ghost" className="text-gray-600 hover:text-indigo-600">
-              Features
-            </Button>
-            <Button variant="ghost" className="text-gray-600 hover:text-indigo-600">
-              Solutions
-            </Button>
-            <Button variant="ghost" className="text-gray-600 hover:text-indigo-600">
-              Pricing
-            </Button>
-            {user ? (
-              <Button
-                className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium rounded-xl px-6"
-                onClick={() => router.push("/journey")}
-              >
-                Dashboard
-              </Button>
-            ) : (
-              <AuthDialog />
-            )}
-          </div>
-
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent>
-              <div className="flex flex-col gap-4 mt-8">
-                <Button variant="ghost">Features</Button>
-                <Button variant="ghost">Solutions</Button>
-                <Button variant="ghost">Pricing</Button>
-                {user ? (
-                  <Button
-                    className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
-                    onClick={() => router.push("/journey")}
-                  >
-                    Dashboard
-                  </Button>
-                ) : (
-                  <AuthDialog />
-                )}
-              </div>
-            </SheetContent>
-          </Sheet>
-        </nav>
-      </header>
-
-      <main className="pt-32 pb-16">
+    <div className="min-h-screen bg-[#FAFAFA]">
+      {/* Modern Navbar */}
+      <nav className={`fixed w-full z-50 transition-all duration-300 ${
+        isScrolled ? 'bg-white/80 backdrop-blur-lg shadow-sm' : 'bg-transparent'
+      }`}>
         <div className="container mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 mb-8">
-                <Star className="w-4 h-4 text-indigo-600" />
-                <span className="text-sm font-medium text-indigo-600">New AI Map Router</span>
+          <div className="flex items-center justify-between h-20">
+            <Link href="/" className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
+                <Navigation className="w-6 h-6 text-white" />
               </div>
-
-              <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                Smart Routes for
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-                  {" "}
-                  Modern Teams
-                </span>
-              </h1>
-
-              <p className="text-xl text-gray-600 mb-10">
-                Experience intelligent navigation that adapts to your needs, powered by advanced AI and real-time data.
-              </p>
-
-              <div className="flex gap-4">
-                <Button className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-8 py-6 rounded-xl text-lg">
-                  Start Free Trial
-                </Button>
-                <Button variant="outline" className="px-8 py-6 rounded-xl text-lg border-indigo-200">
-                  Watch Demo
-                </Button>
-              </div>
-            </div>
-
-            <div className="relative h-[600px]">
-              <MapDisplay />
+              <span className="text-2xl font-bold">
+                Sabi<span className="text-indigo-600">Road</span>
+              </span>
+            </Link>
+            
+            <div className="hidden md:flex items-center gap-8">
+              <Button variant="ghost" className="text-sm font-medium">Features</Button>
+              <Button variant="ghost" className="text-sm font-medium">Solutions</Button>
+              <Button variant="ghost" className="text-sm font-medium">Pricing</Button>
+              <Button 
+                className="bg-black text-white hover:bg-black/90"
+                onClick={handleGetStarted}
+              >
+                Get Started <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
             </div>
           </div>
         </div>
+      </nav>
 
-        <section className="py-24">
-          <div className="container mx-auto px-6">
-            <div className="max-w-3xl mx-auto text-center mb-16">
-              <h2 className="text-4xl font-bold mb-6 text-gray-900">
-                Everything you need for
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-                  {" "}
-                  seamless navigation
-                </span>
-              </h2>
+      {/* Hero Section */}
+      <section className="pt-32 pb-20">
+        <div className="container mx-auto px-6">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 mb-8">
+              <Star className="w-4 h-4" />
+              <span className="text-sm font-medium">New AI-Powered Routes</span>
             </div>
+            
+            <h1 className="text-6xl font-bold mb-6 leading-tight">
+              Navigate Smarter, 
+              <span className="text-indigo-600"> Move Faster</span>
+            </h1>
+            
+            <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
+              Experience intelligent navigation that adapts to your needs, powered by 
+              advanced AI and real-time data analysis.
+            </p>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {FEATURES.map((feature, index) => (
-                <Card
-                  key={index}
-                  className="p-6 bg-white/50 backdrop-blur-sm border-0 rounded-2xl hover:shadow-xl transition-all"
-                >
-                  <feature.icon className="w-8 h-8 text-indigo-600 mb-4" />
-                  <h3 className="text-xl font-bold mb-2 text-gray-900">{feature.title}</h3>
-                  <p className="text-gray-600">{feature.description}</p>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="py-24 bg-gray-50">
-          <div className="container mx-auto px-6">
-            <div className="max-w-3xl mx-auto text-center mb-16">
-              <h2 className="text-4xl font-bold mb-6 text-gray-900">
-                Tailored solutions for
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-                  {" "}
-                  every scale
-                </span>
-              </h2>
-              <p className="text-xl text-gray-600">
-                From individual users to enterprise fleets, we have the right solution for your needs
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-8">
-              {SOLUTIONS.map((solution, index) => (
-                <Card
-                  key={index}
-                  className="p-8 bg-white/50 backdrop-blur-sm border-0 rounded-2xl hover:shadow-xl transition-all"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 bg-indigo-50 rounded-xl">
-                      <solution.icon className="w-6 h-6 text-indigo-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold mb-2 text-gray-900">{solution.title}</h3>
-                      <p className="text-gray-600 mb-4">{solution.description}</p>
-                      <ul className="space-y-2">
-                        {solution.features.map((feature, i) => (
-                          <li key={i} className="flex items-center gap-2 text-gray-600">
-                            <Check className="w-4 h-4 text-indigo-600" />
-                            <span>{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                className="bg-black text-white hover:bg-black/90 h-12 px-8"
+                onClick={handleGetStarted}
+              >
+                Start Free <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+              <Button variant="outline" className="h-12 px-8">
+                Watch Demo
+              </Button>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="py-24">
-          <div className="container mx-auto px-6">
-            <div className="max-w-3xl mx-auto text-center mb-16">
-              <h2 className="text-4xl font-bold mb-6 text-gray-900">
-                Simple, transparent
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-                  {" "}
-                  pricing
-                </span>
-              </h2>
-              <p className="text-xl text-gray-600">Choose the plan that best fits your needs</p>
-            </div>
+      {/* Features Grid */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-6">
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { icon: Globe, title: "Global Coverage", desc: "Navigate anywhere with precision" },
+              { icon: Shield, title: "Enterprise Security", desc: "Bank-grade data protection" },
+              { icon: Users, title: "Team Collaboration", desc: "Share routes seamlessly" }
+            ].map((feature, i) => (
+              <Card key={i} className="p-6 hover:shadow-lg transition-all border-0 bg-gray-50">
+                <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center mb-4">
+                  <feature.icon className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
+                <p className="text-gray-600">{feature.desc}</p>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
 
-            <div className="grid md:grid-cols-3 gap-8">
-              {PRICING_PLANS.map((plan, index) => (
-                <Card
-                  key={index}
-                  className={`p-8 rounded-2xl transition-all ${
-                    plan.highlighted
-                      ? "bg-gradient-to-br from-indigo-500 to-purple-500 text-white shadow-xl"
-                      : "bg-white/50 backdrop-blur-sm border-0 hover:shadow-xl"
-                  }`}
-                >
-                  <h3 className={`text-2xl font-bold mb-2 ${plan.highlighted ? "text-white" : "text-gray-900"}`}>
-                    {plan.name}
-                  </h3>
-                  <div className="mb-4">
-                    <span className="text-4xl font-bold">{plan.price}</span>
-                    {plan.period && (
-                      <span className={`text-sm ${plan.highlighted ? "text-white/80" : "text-gray-500"}`}>
-                        {plan.period}
-                      </span>
-                    )}
+      {/* Solutions Section */}
+      <section className="py-20">
+        <div className="container mx-auto px-6">
+          <div className="max-w-2xl">
+            <h2 className="text-4xl font-bold mb-4">Solutions for every scale</h2>
+            <p className="text-xl text-gray-600 mb-12">
+              From individual users to enterprise fleets, we have the right solution for you
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {[
+              { icon: Car, title: "Personal", price: "Free" },
+              { icon: Building2, title: "Enterprise", price: "Custom" }
+            ].map((plan, i) => (
+              <Card key={i} className="p-8 hover:shadow-xl transition-all border-0 bg-white">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mb-4">
+                      <plan.icon className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-2xl font-bold mb-2">{plan.title}</h3>
+                    <p className="text-4xl font-bold mb-6">{plan.price}</p>
                   </div>
-                  <p className={`mb-6 ${plan.highlighted ? "text-white/80" : "text-gray-600"}`}>{plan.description}</p>
-                  <ul className="space-y-3 mb-8">
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-center gap-2">
-                        <Check className={`w-4 h-4 ${plan.highlighted ? "text-white" : "text-indigo-600"}`} />
-                        <span className={plan.highlighted ? "text-white/80" : "text-gray-600"}>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    className={`w-full ${
-                      plan.highlighted
-                        ? "bg-white text-indigo-600 hover:bg-gray-100"
-                        : "bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
-                    }`}
+                  <Button 
+                    className="bg-black text-white hover:bg-black/90"
+                    onClick={handleGetStarted}
                   >
                     Get Started
                   </Button>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <footer className="border-t border-gray-100 py-12 bg-white">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-8">
-              <span className="text-sm text-gray-500">© 2025 SabiRoad</span>
-              <Link href="#" className="text-sm text-gray-500 hover:text-indigo-600">
-                Privacy
-              </Link>
-              <Link href="#" className="text-sm text-gray-500 hover:text-indigo-600">
-                Terms
-              </Link>
-            </div>
-            <div className="flex items-center gap-6">
-              <Link href="#" className="text-gray-400 hover:text-indigo-600">
-                <Github className="w-6 h-6" />
-              </Link>
-            </div>
+                </div>
+              </Card>
+            ))}
           </div>
         </div>
-      </footer>
+      </section>
     </div>
-  )
-}
+  );
+};
 
-export default function HomeWrapper() {
-  return (
-    <AuthProvider>
-      <Home />
-    </AuthProvider>
-  )
-}
-
+export default ModernHome;
