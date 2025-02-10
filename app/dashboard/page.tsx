@@ -139,6 +139,17 @@ const BuildingDetector = ({ onDetectionComplete, currentLocation }) => {
     }
   }
 
+  const resetState = () => {
+    if (preview) {
+      URL.revokeObjectURL(preview)
+    }
+    setImage(null)
+    setPreview("")
+    setError("")
+    stopCamera()
+  }
+
+
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current
@@ -176,26 +187,25 @@ const BuildingDetector = ({ onDetectionComplete, currentLocation }) => {
 
   const handleDetection = async () => {
     if (!image) return
-
+  
     setLoading(true)
     setError("")
-
+  
     try {
-      const formData = new FormData()
-      formData.append("image", image)
-
+      const formData = new FormData();
+      formData.append('image', image); // ✅ Use 'image' state variable
       if (currentLocation) {
-        formData.append("currentLat", currentLocation.lat.toString())
-        formData.append("currentLng", currentLocation.lng.toString())
+        formData.append('currentLat', currentLocation.lat.toString());
+        formData.append('currentLng', currentLocation.lng.toString());
       }
-
-      const response = await fetch("/api/process-image", {
-        method: "POST",
-        body: formData,
-      })
-
+  
+      const response = await fetch('/api/process-image', {
+        method: 'POST',
+        body: formData
+      });
+  
       if (!response.ok) throw new Error("Failed to process image")
-
+  
       const result = await response.json()
       onDetectionComplete(result)
       
@@ -208,16 +218,7 @@ const BuildingDetector = ({ onDetectionComplete, currentLocation }) => {
       setLoading(false)
     }
   }
-
-  const resetState = () => {
-    if (preview) {
-      URL.revokeObjectURL(preview)
-    }
-    setImage(null)
-    setPreview("")
-    setError("")
-    stopCamera()
-  }
+  
 
   return (
     <Card className="bg-white/50 backdrop-blur-xl border-0 shadow-lg dark:bg-gray-900/50">
