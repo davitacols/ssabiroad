@@ -24,10 +24,16 @@ import {
   X,
   Search,
   BarChart3,
-  ListFilter
+  ListFilter,
+  Home,
+  Clock,
+  BookmarkPlus,
+  
 } from "lucide-react"
+import { Combobox } from "@/components/ui/combobox"
 
-// Types
+
+// Types remain the same as in original code
 interface Location {
   lat: number
   lng: number
@@ -59,42 +65,213 @@ interface RecentDetection {
   imageUrl?: string
 }
 
+// Initialize Places Autocomplete
+const loadGoogleMapsScript = () => {
+  const script = document.createElement('script')
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`
+  script.async = true
+  document.head.appendChild(script)
+  return new Promise((resolve) => {
+    script.onload = resolve
+  })
+}
+
 const DashboardHeader = () => {
+  const router = useRouter()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [predictions, setPredictions] = useState([])
+  const [autocompleteService, setAutocompleteService] = useState(null)
+
+  useEffect(() => {
+    loadGoogleMapsScript().then(() => {
+      if (window.google) {
+        setAutocompleteService(new window.google.maps.places.AutocompleteService())
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    if (!autocompleteService || !searchQuery) {
+      setPredictions([])
+      return
+    }
+
+    const fetchPredictions = async () => {
+      const request = {
+        input: searchQuery,
+        types: ['establishment', 'geocode'],
+        componentRestrictions: { country: 'US' } // Modify for your needs
+      }
+
+      try {
+        const response = await new Promise((resolve, reject) => {
+          autocompleteService.getPlacePredictions(request, (results, status) => {
+            if (status === window.google.maps.places.PlacesServiceStatus.OK) {
+              resolve(results)
+            } else {
+              reject(status)
+            }
+          })
+        })
+
+        if (active) {
+          setPredictions(response)
+        }
+      } catch (error) {
+        console.error('Error fetching predictions:', error)
+        setPredictions([])
+      }
+    }
+
+    if (searchQuery.length > 2) {
+      fetchPredictions()
+    }
+
+    return () => {
+      active = false
+    }
+  }, [searchQuery, autocompleteService])
+
+  const handleNavigation = (path) => {
+    router.push(path)
+    setIsMenuOpen(false)
+  }
+
+  const handleSearchSelect = (prediction) => {
+    // Here you could:
+    // 1. Navigate to a details page
+    // 2. Center map on this location
+    // 3. Show building details
+    console.log('Selected:', prediction)
+    setSearchQuery(prediction.description)
+    // Example: router.push(`/building/${prediction.place_id}`)
+  }
+
+  const handleLogout = async () => {
+    try {
+      // Add your logout logic here
+      await fetch('/api/auth/logout', {
+        method: 'POST'
+      })
+      router.push('/login')
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
+  }
+
+  const handleSettings = () => {
+    router.push('/settings')
+  }
+
+  const navItems = [
+    { name: "Dashboard", path: "/dashboard", icon: Home },
+    { name: "History", path: "/history", icon: Clock },
+    { name: "Saved", path: "/saved", icon: BookmarkPlus }
+  ]
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-800">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl dark:bg-gray-900/90 border-b border-gray-200 dark:border-gray-800">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-              BuildingAI
+            <span 
+              onClick={() => handleNavigation('/dashboard')}
+              className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent cursor-pointer"
+            >
+              SabiRoad
             </span>
             <div className="hidden md:flex items-center gap-6">
-              <Button variant="ghost" className="text-gray-600 hover:text-gray-900">Dashboard</Button>
-              <Button variant="ghost" className="text-gray-600 hover:text-gray-900">History</Button>
-              <Button variant="ghost" className="text-gray-600 hover:text-gray-900">Saved</Button>
+              {navItems.map((item) => (
+                <Button
+                  key={item.name}
+                  variant="ghost"
+                  onClick={() => handleNavigation(item.path)}
+                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-800/50 transition-all"
+                >
+                  {item.name}
+                </Button>
+              ))}
             </div>
           </div>
+          
           <div className="flex items-center gap-4">
-            <div className="relative hidden md:block">
+            <div className="relative hidden md:block w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search buildings..."
-                className="pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 border-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 border-none focus:ring-2 focus:ring-blue-500 transition-all"
               />
+              {predictions.length > 0 && searchQuery && (
+                <div className="absolute mt-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                  {predictions.map((prediction) => (
+                    <div
+                      key={prediction.place_id}
+                      onClick={() => handleSearchSelect(prediction)}
+                      className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                    >
+                      <p className="text-sm font-medium">{prediction.structured_formatting.main_text}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {prediction.structured_formatting.secondary_text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <Button variant="ghost" size="icon">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSettings}
+              className="hover:bg-gray-100/50 dark:hover:bg-gray-800/50"
+            >
               <Settings className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+              className="hover:bg-gray-100/50 dark:hover:bg-gray-800/50"
+            >
               <LogOut className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden hover:bg-gray-100/50 dark:hover:bg-gray-800/50"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
         </div>
+        
+        {/* Mobile menu */}
+        {isMenuOpen && (
+          <div className="md:hidden py-4 space-y-2 border-t border-gray-200 dark:border-gray-800">
+            {navItems.map((item) => (
+              <Button
+                key={item.name}
+                variant="ghost"
+                onClick={() => handleNavigation(item.path)}
+                className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-800/50"
+              >
+                <item.icon className="w-4 h-4 mr-2" />
+                {item.name}
+              </Button>
+            ))}
+          </div>
+        )}
       </nav>
     </header>
   )
 }
+
 
 const BuildingDetector = ({ onDetectionComplete, currentLocation }) => {
   const [isCapturing, setIsCapturing] = useState(false)
@@ -220,30 +397,30 @@ const BuildingDetector = ({ onDetectionComplete, currentLocation }) => {
   }
 
   return (
-    <Card className="bg-white/50 backdrop-blur-xl border-0 shadow-lg dark:bg-gray-900/50">
+    <Card className="bg-white/80 backdrop-blur-2xl border-0 shadow-xl dark:bg-gray-900/80 overflow-hidden">
       <CardContent className="p-8">
         <div className="space-y-8">
           {error && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-2">
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
           {!isCapturing && !preview && (
-            <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-              <Building className="w-12 h-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-gray-300/50 dark:border-gray-700/50 rounded-xl bg-gradient-to-b from-gray-50/50 to-white/50 dark:from-gray-800/50 dark:to-gray-900/50 transition-all hover:border-blue-500/50 dark:hover:border-blue-400/50">
+              <Building className="w-16 h-16 text-blue-500 mb-4 animate-pulse" />
+              <h3 className="text-xl font-medium text-gray-900 dark:text-gray-100 mb-2">
                 Start Detection
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">
-                Take a photo or upload an image of a building to identify it
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6 max-w-md">
+                Take a photo or upload an image of a building to identify it using our AI
               </p>
               <div className="flex gap-4">
                 <Button 
                   variant="outline"
                   onClick={startCamera}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                 >
                   <Camera className="w-4 h-4" />
                   Camera
@@ -258,7 +435,7 @@ const BuildingDetector = ({ onDetectionComplete, currentLocation }) => {
                 <Button
                   variant="outline"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                 >
                   <Upload className="w-4 h-4" />
                   Upload
@@ -326,15 +503,17 @@ const BuildingDetector = ({ onDetectionComplete, currentLocation }) => {
   )
 }
 
+// StatsCard component with enhanced animations and gradients
 const StatsCard = ({ title, value, change, icon: Icon }) => (
-  <Card className="bg-white/50 backdrop-blur-xl border-0 shadow-lg dark:bg-gray-900/50">
-    <CardContent className="p-6">
-      <div className="flex items-center justify-between">
+  <Card className="bg-white/80 backdrop-blur-2xl border-0 shadow-xl dark:bg-gray-900/80 overflow-hidden group hover:scale-102 transition-all duration-300">
+    <CardContent className="p-6 relative">
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 dark:from-blue-500/10 dark:to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="relative flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
           <p className="text-2xl font-semibold mt-1 text-gray-900 dark:text-gray-100">{value}</p>
         </div>
-        <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+        <div className="p-3 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-lg group-hover:scale-110 transition-transform">
           <Icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
         </div>
       </div>
