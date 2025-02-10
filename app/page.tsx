@@ -6,6 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import * as LucideIcons from "lucide-react"
+import { useSession } from "next-auth/react"
 
 // 🚀 Define Features & Plans Data
 const features = [
@@ -22,6 +23,7 @@ const plans = [
 const ModernHome = () => {
   const [isScrolled, setIsScrolled] = useState(false)
   const router = useRouter()
+  const { data: session, status } = useSession()
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20)
@@ -29,13 +31,25 @@ const ModernHome = () => {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const handleGetStarted = useCallback(() => {
-    router.push("/dashboard")
-  }, [router])
+  const handleGetStarted = useCallback((plan?: string) => {
+    if (status === "authenticated" && session) {
+      router.push("/dashboard")
+    } else {
+      // If it's a paid plan, direct to signup, otherwise to login
+      const authPath = plan === "Professional" ? "/signup" : "/login"
+      router.push(authPath)
+    }
+  }, [router, session, status])
+
+  // If user is already authenticated and tries to access home page, redirect to dashboard
+  useEffect(() => {
+    if (status === "authenticated" && session) {
+      router.push("/dashboard")
+    }
+  }, [session, status, router])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      
       {/* 🔥 Navbar */}
       <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? "bg-white/90 backdrop-blur-xl shadow-sm dark:bg-gray-900/90" : "bg-transparent"}`}>
         <div className="container mx-auto px-6">
@@ -53,8 +67,12 @@ const ModernHome = () => {
               {["Features", "Solutions", "Pricing"].map((item) => (
                 <Button key={item} variant="ghost" className="text-sm font-medium">{item}</Button>
               ))}
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90" onClick={handleGetStarted}>
-                Get Started <LucideIcons.ChevronRight className="w-4 h-4 ml-2" />
+              <Button 
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90" 
+                onClick={() => handleGetStarted()}
+              >
+                {status === "authenticated" ? "Go to Dashboard" : "Get Started"} 
+                <LucideIcons.ChevronRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
           </div>
@@ -81,8 +99,12 @@ const ModernHome = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 h-12 px-8" onClick={handleGetStarted}>
-              Try Now <LucideIcons.Camera className="w-4 h-4 ml-2" />
+            <Button 
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 h-12 px-8" 
+              onClick={() => handleGetStarted()}
+            >
+              {status === "authenticated" ? "Open Dashboard" : "Try Now"} 
+              <LucideIcons.Camera className="w-4 h-4 ml-2" />
             </Button>
             <Button variant="outline" className="h-12 px-8">Watch Demo</Button>
           </div>
@@ -130,8 +152,11 @@ const ModernHome = () => {
                       ))}
                     </ul>
                   </div>
-                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90" onClick={handleGetStarted}>
-                    Get Started
+                  <Button 
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90" 
+                    onClick={() => handleGetStarted(title)}
+                  >
+                    {status === "authenticated" ? "Access Plan" : "Get Started"}
                   </Button>
                 </div>
               </Card>
@@ -144,5 +169,3 @@ const ModernHome = () => {
 }
 
 export default ModernHome
-// Compare this snippet from app/api/process-image/index.ts:
-// // app/api/process-image/index.ts
