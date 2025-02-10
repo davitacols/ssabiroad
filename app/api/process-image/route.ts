@@ -1,5 +1,6 @@
+// app/api/process-image/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
-import { NextApiRequest, NextApiResponse } from 'next';
 import * as vision from '@google-cloud/vision';
 import axios from 'axios';
 import * as exifParser from 'exif-parser';
@@ -35,40 +36,6 @@ interface BuildingDetectionResponse {
   };
 }
 
-;
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Decode the Base64 credentials
-  const base64Credentials = process.env.GCLOUD_CREDENTIALS;
-  if (!base64Credentials) {
-    res.status(500).json({ error: 'GCLOUD_CREDENTIALS environment variable is not set.' });
-    return;
-  }
-
-  const credentialsBuffer = Buffer.from(base64Credentials, 'base64');
-  const credentialsJson = credentialsBuffer.toString('utf8');
-  const serviceAccount = JSON.parse(credentialsJson);
-
-  // Initialize the Vision client with the credentials
-  const client = new vision.ImageAnnotatorClient({
-    credentials: {
-      client_email: serviceAccount.client_email,
-      private_key: serviceAccount.private_key,
-    },
-    projectId: serviceAccount.project_id,
-  });
-
-  // Your existing logic
-  try {
-    // For example, if you're processing an image:
-    const [result] = await client.labelDetection(/* your image source */);
-    // Process result...
-    res.status(200).json({ success: true, data: result });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
-
 class BuildingAnalyzer {
   private static readonly KNOWN_BUILDINGS = {
     "Empire State Building": {
@@ -87,7 +54,24 @@ class BuildingAnalyzer {
 
   static async analyzeImage(imageBuffer: Buffer, currentLocation: Location): Promise<BuildingDetectionResponse> {
     try {
-      const client = new vision.ImageAnnotatorClient();
+      // Initialize Vision client with credentials from the environment
+      const base64Credentials = process.env.GCLOUD_CREDENTIALS;
+      if (!base64Credentials) {
+        throw new Error('GCLOUD_CREDENTIALS environment variable is not set.');
+      }
+
+      const credentialsBuffer = Buffer.from(base64Credentials, 'base64');
+      const credentialsJson = credentialsBuffer.toString('utf8');
+      const serviceAccount = JSON.parse(credentialsJson);
+
+      const client = new vision.ImageAnnotatorClient({
+        credentials: {
+          client_email: serviceAccount.client_email,
+          private_key: serviceAccount.private_key,
+        },
+        projectId: serviceAccount.project_id,
+      });
+
       const [textData, landmarkData, objectData, propertyData, webData, safetyData] = await Promise.all([
         client.textDetection({ image: { content: imageBuffer } }),
         client.landmarkDetection({ image: { content: imageBuffer } }),
@@ -144,16 +128,14 @@ class BuildingAnalyzer {
         }
       }
   
-      const addresses = text.match(/\b\d+\s+[A-Z][a-z]+\s+(?:Street|Ave|Avenue|Road|Rd|Boulevard|Blvd)\b/g);
+      const addresses = text.match(/\b\d+\s+[A-Z][a-z]+\s+(?:Street|St|Ave|Avenue|Road|Rd|Boulevard|Blvd)\b/g);
       if (addresses) {
         for (const address of addresses) {
           const geocoded = await this.geocodeText(address);
           if (geocoded) return geocoded;
         }
       }
-
   
-      // Check Google Places for nearby matches
       const placeMatch = await this.findNearbyPlaceByName(text, location);
       if (placeMatch) return placeMatch;
     }
@@ -167,7 +149,7 @@ class BuildingAnalyzer {
         params: {
           query: name,
           location: `${location.latitude},${location.longitude}`,
-          radius: 500, // Limit search to nearby buildings
+          radius: 500,
           key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
         }
       });
@@ -198,16 +180,6 @@ class BuildingAnalyzer {
   ): Promise<BuildingDetectionResponse> {
     const [result] = await client.landmarkDetection({ image: { content: imageBuffer } });
     const landmark = result.landmarkAnnotations?.[0];
-
-    const geocoded = await geocodeAddress(landmark.description || '');
-    if (geocoded) {
-      return {
-        ...geocoded,
-        confidence: landmark.score,
-        type: 'landmark'
-      };
-    }
-
     
     if (landmark) {
       try {
@@ -404,39 +376,7 @@ class BuildingAnalyzer {
   }
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  try {
-    const formData = await request.formData();
-    const image = formData.get('image') as File | null;
-    const lat = formData.get('currentLat');
-    const lng = formData.get('currentLng');
-
-    if (!image || !(image instanceof File)) {
-      return NextResponse.json({ success: false, error: 'Invalid image' }, { status: 400 });
-    }
-
-    const imageBuffer = Buffer.from(await image.arrayBuffer());
-    const location = lat && lng ? {
-      latitude: parseFloat(lat.toString()),
-      longitude: parseFloat(lng.toString())
-    } : await extractExifLocation(imageBuffer);
-
-    if (!location) {
-      return NextResponse.json({ success: false, error: 'Location required' }, { status: 400 });
-    }
-
-    const result = await BuildingAnalyzer.analyzeImage(imageBuffer, location);
-    return NextResponse.json(result, { status: result.success ? 200 : 404 });
-  } catch (error) {
-    console.error('Request failed:', error);
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Server error'
-    }, { status: 500 });
-  }
-}
-
-async function extractLocationFromExif(buffer: Buffer): Promise<Location | null> {
+async function extractExifLocation(buffer: Buffer): Promise<Location | null> {
   try {
     const parser = exifParser.create(buffer);
     const result = parser.parse();
@@ -454,16 +394,14 @@ async function extractLocationFromExif(buffer: Buffer): Promise<Location | null>
   return null;
 }
 
-async function geocodeAddress(address: string): Promise<any | null> {
+async function geocodeAddress(address: string): Promise<BuildingDetectionResponse | null> {
   try {
     const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
       params: {
         address,
-        key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
+        key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
       }
     });
-
-    console.log("Google Geocode API Response:", response.data);
 
     const result = response.data.results[0];
     if (result) {
@@ -484,4 +422,57 @@ async function geocodeAddress(address: string): Promise<any | null> {
     console.warn(`Geocoding failed for: ${address}`, error);
     return null;
   }
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  try {
+    const formData = await request.formData();
+    const image = formData.get('image') as File | null;
+    const lat = formData.get('currentLat');
+    const lng = formData.get('currentLng');
+
+    if (!image || !(image instanceof File)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid image' },
+        { status: 400 }
+      );
+    }
+
+    const imageBuffer = Buffer.from(await image.arrayBuffer());
+    const location = lat && lng ? {
+      latitude: parseFloat(lat.toString()),
+      longitude: parseFloat(lng.toString())
+    } : await extractExifLocation(imageBuffer);
+
+    if (!location) {
+      return NextResponse.json(
+        { success: false, error: 'Location required' },
+        { status: 400 }
+      );
+    }
+
+    const result = await BuildingAnalyzer.analyzeImage(imageBuffer, location);
+    return NextResponse.json(result, { status: result.success ? 200 : 404 });
+  } catch (error) {
+    console.error('Request failed:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Server error'
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// Add OPTIONS method to handle CORS preflight requests
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 }
