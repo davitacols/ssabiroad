@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from 'next-auth/react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
@@ -28,6 +29,8 @@ import {
   Home,
   Clock,
   BookmarkPlus,
+  Navigation2,
+  Crosshair
   
 } from "lucide-react"
 import { Combobox } from "@/components/ui/combobox"
@@ -624,96 +627,225 @@ const ActivityChart = ({ data }) => (
 )
 
 const Dashboard = () => {
-  const [currentLocation, setCurrentLocation] = useState(null);
-  const [detectionResult, setDetectionResult] = useState(null);
-  const [showResult, setShowResult] = useState(false);
-  const [userName, setUserName] = useState('');
+  const router = useRouter()
+  const { data: session, status } = useSession()
+  
+  // State for user and authentication
+  const [userName, setUserName] = useState('')
+  const [recentDetections, setRecentDetections] = useState([])
+  const [usageData, setUsageData] = useState([])
 
-  useEffect(() => {
-    // Get user's current location
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCurrentLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-      },
-      (error) => {
-        console.error('Error getting location:', error);
+  // Location tracking states (keep existing)
+  const [currentLocation, setCurrentLocation] = useState(null)
+  const [locationError, setLocationError] = useState(null)
+  const [isTrackingLocation, setIsTrackingLocation] = useState(false)
+  const [currentAddress, setCurrentAddress] = useState('')
+  const watchIdRef = useRef(null)
+
+  // Detection states (keep existing)
+  const [detectionResult, setDetectionResult] = useState(null)
+  const [showResult, setShowResult] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+
+  // State for statistics and data
+  const [stats, setStats] = useState({
+    totalDetections: 0,
+    savedBuildings: 0,
+    detectionAccuracy: 0,
+    detectionHistory: 0
+  });
+
+  // Location tracking functions
+  const getAddressFromCoords = async (lat, lng) => {
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+      );
+      const data = await response.json();
+      if (data.results && data.results[0]) {
+        return data.results[0].formatted_address;
       }
-    );
+      return 'Address not found';
+    } catch (error) {
+      console.error('Error getting address:', error);
+      return 'Error getting address';
+    }
+  };
 
-    // Fetch user data
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch('/api/user', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`, // Assuming token is stored in localStorage
-          },
-        });
+  const startLocationTracking = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser');
+      return;
+    }
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('Fetched user data:', data); // Debugging log
-        setUserName(data.user.username); // Adjusted to data.user.username
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      }
+    setIsTrackingLocation(true);
+    
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 5000,
+      maximumAge: 0
     };
 
-    fetchUserData();
-  }, []);
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      async (position) => {
+        const newLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy
+        };
+        
+        setCurrentLocation(newLocation);
+        setLocationError(null);
 
-  const statsData = [
-    { title: "Total Detections", value: "1,234", change: 12.5, icon: BarChart3 },
-    { title: "Saved Buildings", value: "56", change: 8.2, icon: Star },
-    { title: "Detection Accuracy", value: "94%", change: 3.1, icon: Navigation },
-    { title: "Detection History", value: "89", change: -2.4, icon: History }
-  ]
+        const address = await getAddressFromCoords(newLocation.lat, newLocation.lng);
+        setCurrentAddress(address);
+      },
+      (error) => {
+        setLocationError(getLocationErrorMessage(error));
+        setIsTrackingLocation(false);
+      },
+      options
+    );
+  };
 
-  const recentDetections = [
-    {
-      id: 1,
-      building: "Empire State Building",
-      time: "2 minutes ago",
-      confidence: 0.98,
-      imageUrl: "/buildings/empire-state.jpg"
-    },
-    {
-      id: 2,
-      building: "Chrysler Building",
-      time: "15 minutes ago",
-      confidence: 0.95,
-      imageUrl: "/buildings/chrysler.jpg"
-    },
-    {
-      id: 3,
-      building: "Flatiron Building",
-      time: "1 hour ago",
-      confidence: 0.92,
-      imageUrl: "/buildings/flatiron.jpg"
+  // Fetch all dashboard data
+  const fetchDashboardData = async () => {
+    try {
+      const token = session?.accessToken
+      if (!token) return
+
+      const headers = {
+        'Authorization': `Bearer ${token}`
+      }
+
+      const [statsRes, detectionsRes, usageRes] = await Promise.all([
+        fetch('/api/statistics', { headers }),
+        fetch('/api/recent-detections', { headers }),
+        fetch('/api/usage-data', { headers })
+      ])
+
+      if (!statsRes.ok || !detectionsRes.ok || !usageRes.ok) {
+        throw new Error('Failed to fetch dashboard data')
+      }
+
+      const [statsData, detectionsData, usageData] = await Promise.all([
+        statsRes.json(),
+        detectionsRes.json(),
+        usageRes.json()
+      ])
+
+      setStats(statsData)
+      setRecentDetections(detectionsData)
+      setUsageData(usageData)
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
     }
-  ]
-
-  const usageData = [
-    { day: "Mon", detections: 12 },
-    { day: "Tue", detections: 18 },
-    { day: "Wed", detections: 15 },
-    { day: "Thu", detections: 25 },
-    { day: "Fri", detections: 20 },
-    { day: "Sat", detections: 14 },
-    { day: "Sun", detections: 10 }
-  ]
-
-  const handleDetectionComplete = (result) => {
-    setDetectionResult(result)
-    setShowResult(true)
   }
+
+
+  const stopLocationTracking = () => {
+    if (watchIdRef.current) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    setIsTrackingLocation(false);
+  };
+
+  const getLocationErrorMessage = (error) => {
+    switch(error.code) {
+      case error.PERMISSION_DENIED:
+        return "Location access denied. Please enable location services.";
+      case error.POSITION_UNAVAILABLE:
+        return "Location information unavailable.";
+      case error.TIMEOUT:
+        return "Location request timed out.";
+      default:
+        return "An unknown error occurred.";
+    }
+  };
+
+  // Navigation function
+  const handleNavigate = () => {
+    if (currentLocation && detectionResult?.location) {
+      const origin = `${currentLocation.lat},${currentLocation.lng}`;
+      const destination = `${detectionResult.location.lat},${detectionResult.location.lng}`;
+      const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
+      window.open(url, '_blank');
+    }
+  };
+
+  // Building detection handler
+  const handleDetectionComplete = async (result) => {
+    try {
+      setDetectionResult(result)
+      setShowResult(true)
+
+      if (result.success) {
+        // Save the detection result
+        const response = await fetch('/api/save-detection', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.accessToken}`
+          },
+          body: JSON.stringify({
+            description: result.description,
+            confidence: result.confidence,
+            location: currentLocation,
+            timestamp: new Date().toISOString()
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to save detection')
+        }
+
+        // Refresh dashboard data
+        await fetchDashboardData()
+      }
+    } catch (error) {
+      console.error('Error handling detection:', error)
+    }
+  }
+
+  // Initialize data on component mount
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchUserData()
+      fetchDashboardData()
+    } else if (status === 'unauthenticated') {
+      router.push('/login')
+    }
+  }, [status])
+  
+
+  // Stats data for display
+  const statsData = [
+    { 
+      title: "Total Detections", 
+      value: stats.totalDetections.toString(), 
+      change: 12.5, 
+      icon: BarChart3 
+    },
+    { 
+      title: "Saved Buildings", 
+      value: stats.savedBuildings.toString(), 
+      change: 8.2, 
+      icon: Star 
+    },
+    { 
+      title: "Detection Accuracy", 
+      value: `${stats.detectionAccuracy}%`, 
+      change: 3.1, 
+      icon: Navigation 
+    },
+    { 
+      title: "Detection History", 
+      value: stats.detectionHistory.toString(), 
+      change: -2.4, 
+      icon: History 
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -727,21 +859,60 @@ const Dashboard = () => {
               Welcome back, {userName || 'User'}! 👋
             </h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">
-              Ready to explore more buildings today, {userName || 'User'}? Start by capturing or uploading a photo.
+              Ready to explore more buildings today? Start by capturing or uploading a photo.
             </p>
           </div>
 
+          {/* Location Status */}
+          <Card className="bg-white/80 backdrop-blur-2xl border-0 shadow-xl dark:bg-gray-900/80">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Crosshair className={`w-5 h-5 ${isTrackingLocation ? 'text-green-500 animate-pulse' : 'text-gray-500'}`} />
+                  <div>
+                    <h3 className="font-medium">Current Location</h3>
+                    {currentLocation && (
+                      <p className="text-sm text-gray-500">
+                        Accuracy: ±{Math.round(currentLocation.accuracy)}m
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={isTrackingLocation ? stopLocationTracking : startLocationTracking}
+                  className={isTrackingLocation ? 'bg-red-50 hover:bg-red-100 text-red-600' : 'bg-green-50 hover:bg-green-100 text-green-600'}
+                >
+                  {isTrackingLocation ? 'Stop Tracking' : 'Start Tracking'}
+                </Button>
+              </div>
+              {locationError ? (
+                <Alert variant="destructive" className="mt-2">
+                  <AlertDescription>{locationError}</AlertDescription>
+                </Alert>
+              ) : currentAddress && (
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  {currentAddress}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Building Detector */}
           <BuildingDetector 
             onDetectionComplete={handleDetectionComplete}
             currentLocation={currentLocation}
           />
           
+          {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {statsData.map((stat) => (
               <StatsCard key={stat.title} {...stat} />
             ))}
           </div>
 
+          {/* Charts and Recent Detections */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <ActivityChart data={usageData} />
             <RecentDetectionsCard detections={recentDetections} />
@@ -749,6 +920,7 @@ const Dashboard = () => {
         </div>
       </main>
 
+      {/* Detection Result Dialog */}
       <Dialog open={showResult} onOpenChange={setShowResult}>
         <DialogContent>
           <DialogHeader>
@@ -766,9 +938,20 @@ const Dashboard = () => {
                     <p className="text-gray-600 dark:text-gray-300">{detectionResult.description}</p>
                   )}
                   {detectionResult.address && (
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                      <MapPin className="w-5 h-5" />
-                      <span>{detectionResult.address}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                        <MapPin className="w-5 h-5" />
+                        <span>{detectionResult.address}</span>
+                      </div>
+                      {detectionResult.location && currentLocation && (
+                        <Button
+                          onClick={handleNavigate}
+                          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Navigation2 className="w-4 h-4" />
+                          Navigate
+                        </Button>
+                      )}
                     </div>
                   )}
                   {detectionResult.features && (
@@ -804,7 +987,7 @@ const Dashboard = () => {
         </DialogContent>
       </Dialog>
     </div>
-  )
-}
+  );
+};
 
 export default Dashboard;
