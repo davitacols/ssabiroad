@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,21 +11,59 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  username     String   @unique
-  name         String
-  password     String
-  profileImage String?  
-  coverImage   String?  
-  bio          String?  
-  role         String   @default("user")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String          @id @default(uuid())
+  email          String          @unique
+  username       String          @unique
+  name           String
+  password       String
+  profileImage   String?  
+  coverImage     String?  
+  bio            String?  
+  role           String          @default("user")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   
   // Relation fields
-  detections   Detection[]
+  detections     Detection[]
   savedLocations SavedLocation[]
+  buildings      Building[]      // New relation to buildings they've analyzed
+}
+
+model Building {
+  id             String    @id @default(uuid())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  // Basic building info
+  name           String?
+  description    String?
+  address        String?
+  latitude       Float?
+  longitude      Float?
+  confidence     Float?
+  type           String    // detection type (text-detection, landmark, visual-detection, etc.)
+  
+  // Building features
+  architecture   String[]
+  materials      String[]
+  style          String[]
+  condition      String?
+  
+  // Image properties
+  dominantColors String[]
+  brightness     Float?
+  contrast       Float?
+  safetyScore    Float?
+  
+  // Relations
+  similarBuildings BuildingSimilarity[] @relation("SimilarTo")
+  similarTo       BuildingSimilarity[] @relation("SimilarFrom")
+  images          BuildingImage[]
+  detections      Detection[]          // Link to detections
+  
+  // User who first discovered/analyzed the building
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
 }
 
 model Detection {
@@ -40,9 +80,11 @@ model Detection {
   styles        String[]
   imageUrl      String?
   
-  // Relation to User
+  // Relation to User and Building
   userId        String
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  buildingId    String?
+  building      Building? @relation(fields: [buildingId], references: [id])
 }
 
 model SavedLocation {
@@ -57,4 +99,23 @@ model SavedLocation {
   // Relation to User
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BuildingImage {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  buildingId  String
+  imageUrl    String
+  building    Building @relation(fields: [buildingId], references: [id])
+}
+
+model BuildingSimilarity {
+  id            String   @id @default(uuid())
+  buildingId    String
+  similarToId   String
+  similarity    Float
+  building      Building @relation("SimilarTo", fields: [buildingId], references: [id])
+  similarTo     Building @relation("SimilarFrom", fields: [similarToId], references: [id])
+
+  @@unique([buildingId, similarToId])
 }
