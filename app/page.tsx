@@ -22,6 +22,7 @@ const plans = [
 
 const ModernHome = () => {
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const router = useRouter()
   const { data: session, status } = useSession()
 
@@ -35,23 +36,23 @@ const ModernHome = () => {
     if (status === "authenticated" && session) {
       router.push("/dashboard")
     } else {
-      // If it's a paid plan, direct to signup, otherwise to login
       const authPath = plan === "Professional" ? "/signup" : "/login"
       router.push(authPath)
     }
   }, [router, session, status])
 
-  // If user is already authenticated and tries to access home page, redirect to dashboard
   useEffect(() => {
     if (status === "authenticated" && session) {
       router.push("/dashboard")
     }
   }, [session, status, router])
 
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       {/* 🔥 Navbar */}
-      <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? "bg-white/90 backdrop-blur-xl shadow-sm dark:bg-gray-900/90" : "bg-transparent"}`}>
+      <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? "bg-white/90 backdrop-blur-xl shadow-sm dark:bg-gray-900/90" : "bg-white"}`}>
         <div className="container mx-auto px-6">
           <div className="flex items-center justify-between h-20">
             <Link href="/" className="flex items-center space-x-3">
@@ -75,93 +76,54 @@ const ModernHome = () => {
                 <LucideIcons.ChevronRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
+
+            <div className="md:hidden flex items-center">
+              <button onClick={toggleMenu} className="text-2xl bg-white dark:bg-gray-900 p-2 rounded-md shadow-md border border-gray-300 dark:border-gray-700">
+                {isMenuOpen ? <LucideIcons.X /> : <LucideIcons.Menu />}
+              </button>
+            </div>
           </div>
         </div>
       </nav>
 
-      {/* 🔥 Hero Section */}
-      <section className="pt-32 pb-20 text-center">
-        <div className="container mx-auto px-6 max-w-4xl">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-8">
-            <LucideIcons.Star className="w-4 h-4 text-blue-600" />
-            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">AI-Powered Building Detection</span>
-          </div>
-
-          <h1 className="text-6xl font-bold mb-6 leading-tight">
-            Identify Buildings{" "}
-            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Instantly
-            </span>
-          </h1>
-
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-10">
-            Experience intelligent building recognition powered by AI. Get instant architectural insights.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 h-12 px-8" 
-              onClick={() => handleGetStarted()}
-            >
-              {status === "authenticated" ? "Open Dashboard" : "Try Now"} 
-              <LucideIcons.Camera className="w-4 h-4 ml-2" />
-            </Button>
-            <Button variant="outline" className="h-12 px-8">Watch Demo</Button>
-          </div>
-        </div>
+      {/* 🌟 Hero Section */}
+      <section className="flex flex-col items-center justify-center text-center py-32 px-6 md:px-12 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+        <h1 className="text-5xl font-bold mb-4">Discover Buildings Instantly</h1>
+        <p className="text-lg max-w-2xl">Upload an image and find detailed information about any building worldwide.</p>
+        <Button 
+          className="mt-6 bg-white text-blue-600 font-semibold px-6 py-3 rounded-lg hover:bg-gray-200"
+          onClick={() => handleGetStarted()}
+        >
+          Get Started
+        </Button>
       </section>
 
-      {/* 🔥 Features Section */}
-      <section className="py-20 bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl">
-        <div className="container mx-auto px-6 grid md:grid-cols-3 gap-8">
-          {features.map(({ icon, title, desc }, i) => {
-            const IconComponent = LucideIcons[icon]
-            return (
-              <Card key={i} className="p-6 hover:shadow-lg transition-all border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center mb-4">
-                  {IconComponent ? <IconComponent className="w-6 h-6 text-white" /> : null}
-                </div>
-                <h3 className="text-xl font-bold mb-2">{title}</h3>
-                <p className="text-gray-600 dark:text-gray-300">{desc}</p>
-              </Card>
-            )
-          })}
-        </div>
+      {/* 🔹 Features Section */}
+      <section className="container mx-auto py-20 px-6 grid md:grid-cols-3 gap-8">
+        {features.map((feature) => (
+          <Card key={feature.title} className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg text-center">
+            {LucideIcons[feature.icon] && React.createElement(LucideIcons[feature.icon], { className: "w-12 h-12 text-blue-600 mx-auto" })}
+            <h3 className="text-xl font-semibold mt-4">{feature.title}</h3>
+            <p className="text-gray-600 dark:text-gray-300 mt-2">{feature.desc}</p>
+          </Card>
+        ))}
       </section>
 
-      {/* 🔥 Pricing Plans */}
-      <section className="py-20">
-        <div className="container mx-auto px-6 grid md:grid-cols-2 gap-8">
-          {plans.map(({ icon, title, price, features }, i) => {
-            const PlanIcon = LucideIcons[icon]
-            return (
-              <Card key={i} className="p-8 hover:shadow-xl transition-all border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-xl flex items-center justify-center mb-4">
-                      {PlanIcon ? <PlanIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" /> : null}
-                    </div>
-                    <h3 className="text-2xl font-bold mb-2">{title}</h3>
-                    <p className="text-4xl font-bold mb-6">{price}</p>
-                    <ul className="space-y-2">
-                      {features.map((feature, index) => (
-                        <li key={index} className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                          <LucideIcons.Check className="w-4 h-4 text-blue-600" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <Button 
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90" 
-                    onClick={() => handleGetStarted(title)}
-                  >
-                    {status === "authenticated" ? "Access Plan" : "Get Started"}
-                  </Button>
-                </div>
-              </Card>
-            )
-          })}
+      {/* 💰 Pricing Plans */}
+      <section className="bg-gray-100 dark:bg-gray-900 py-20 px-6 text-center">
+        <h2 className="text-4xl font-bold">Choose Your Plan</h2>
+        <div className="container mx-auto grid md:grid-cols-2 gap-8 mt-10">
+          {plans.map((plan) => (
+            <Card key={plan.title} className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg text-center">
+              {LucideIcons[plan.icon] && React.createElement(LucideIcons[plan.icon], { className: "w-12 h-12 text-blue-600 mx-auto" })}
+              <h3 className="text-2xl font-bold mt-4">{plan.title}</h3>
+              <p className="text-gray-600 dark:text-gray-300 mt-2">{plan.price}</p>
+              <ul className="mt-4 space-y-2 text-gray-600 dark:text-gray-300">
+                {plan.features.map((feat) => <li key={feat}>✔ {feat}</li>)}
+              </ul>
+              <Button className="mt-6 bg-blue-600 text-white px-6 py-3 rounded-lg" onClick={() => handleGetStarted(plan.title)}>Get Started</Button>
+            </Card>
+          ))}
         </div>
       </section>
     </div>

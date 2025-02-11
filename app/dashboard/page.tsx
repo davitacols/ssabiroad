@@ -624,9 +624,10 @@ const ActivityChart = ({ data }) => (
 )
 
 const Dashboard = () => {
-  const [currentLocation, setCurrentLocation] = useState<Location | null>(null)
-  const [detectionResult, setDetectionResult] = useState<DetectionResult | null>(null)
-  const [showResult, setShowResult] = useState(false)
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [detectionResult, setDetectionResult] = useState(null);
+  const [showResult, setShowResult] = useState(false);
+  const [userName, setUserName] = useState('');
 
   useEffect(() => {
     // Get user's current location
@@ -634,14 +635,39 @@ const Dashboard = () => {
       (position) => {
         setCurrentLocation({
           lat: position.coords.latitude,
-          lng: position.coords.longitude
-        })
+          lng: position.coords.longitude,
+        });
       },
       (error) => {
-        console.error("Error getting location:", error)
+        console.error('Error getting location:', error);
       }
-    )
-  }, [])
+    );
+
+    // Fetch user data
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch('/api/user', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`, // Assuming token is stored in localStorage
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Fetched user data:', data); // Debugging log
+        setUserName(data.user.username); // Adjusted to data.user.username
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   const statsData = [
     { title: "Total Detections", value: "1,234", change: 12.5, icon: BarChart3 },
@@ -650,7 +676,7 @@ const Dashboard = () => {
     { title: "Detection History", value: "89", change: -2.4, icon: History }
   ]
 
-  const recentDetections: RecentDetection[] = [
+  const recentDetections = [
     {
       id: 1,
       building: "Empire State Building",
@@ -674,7 +700,7 @@ const Dashboard = () => {
     }
   ]
 
-  const usageData: UsageStats[] = [
+  const usageData = [
     { day: "Mon", detections: 12 },
     { day: "Tue", detections: 18 },
     { day: "Wed", detections: 15 },
@@ -684,7 +710,7 @@ const Dashboard = () => {
     { day: "Sun", detections: 10 }
   ]
 
-  const handleDetectionComplete = (result: DetectionResult) => {
+  const handleDetectionComplete = (result) => {
     setDetectionResult(result)
     setShowResult(true)
   }
@@ -695,6 +721,16 @@ const Dashboard = () => {
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="grid grid-cols-1 gap-8">
+          {/* Welcome Message */}
+          <div className="mt-4 mb-2">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Welcome back, {userName || 'User'}! 👋
+            </h1>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
+              Ready to explore more buildings today, {userName || 'User'}? Start by capturing or uploading a photo.
+            </p>
+          </div>
+
           <BuildingDetector 
             onDetectionComplete={handleDetectionComplete}
             currentLocation={currentLocation}
@@ -771,4 +807,4 @@ const Dashboard = () => {
   )
 }
 
-export default Dashboard
+export default Dashboard;
