@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "User registered successfully", user: newUser }, { status: 201 });
   } catch (error) {
     console.error("Registration error:", error);
-    return NextResponse.json({ error: "An error occurred" }, { status: 500 });
+    return NextResponse.json({ error: "An error occurred during registration" }, { status: 500 });
   }
 }
 
@@ -70,7 +70,7 @@ export async function PUT(req: NextRequest) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!);
     const { username, password } = await req.json();
-    const updates: any = {};
+    const updates: { username?: string; password?: string } = {};
 
     if (username) updates.username = username;
     if (password) updates.password = await bcrypt.hash(password, 10);
@@ -78,6 +78,7 @@ export async function PUT(req: NextRequest) {
     const updatedUser = await prisma.user.update({ where: { id: (decoded as any).userId }, data: updates });
     return NextResponse.json({ message: "User updated successfully", user: updatedUser }, { status: 200 });
   } catch (error) {
+    console.error("User update error:", error);
     return NextResponse.json({ error: "Invalid request or token" }, { status: 400 });
   }
 }
@@ -94,6 +95,7 @@ export async function DELETE(req: NextRequest) {
     await prisma.user.delete({ where: { id: (decoded as any).userId } });
     return NextResponse.json({ message: "User deleted successfully" }, { status: 200 });
   } catch (error) {
+    console.error("User deletion error:", error);
     return NextResponse.json({ error: "Invalid request or token" }, { status: 400 });
   }
 }

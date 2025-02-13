@@ -1,24 +1,24 @@
-import { Card, CardContent } from "@/components/ui/card"
-import { BarChart3, Star, Navigation, History } from "lucide-react"
-import type React from "react" // Added import for React
+import { Card, CardContent } from "@/components/ui/card";
+import { BarChart3, Star, Navigation, History } from "lucide-react";
+import type React from "react";
 
 interface StatsCardProps {
-  title: string
-  value: string | number
-  change: number
-  icon: React.ElementType
+  title: string;
+  value: string | number;
+  change: number;
+  icon: React.ElementType;
 }
 
 const StatsCard = ({ title, value, change, icon: Icon }: StatsCardProps) => (
-  <Card className="bg-white/80 backdrop-blur-2xl border-0 shadow-xl dark:bg-gray-900/80 group hover:scale-102 transition-all duration-300">
+  <Card className="bg-white/90 dark:bg-gray-800 border-0 shadow-xl group hover:scale-105 transition-transform duration-300 rounded-xl">
     <CardContent className="p-6">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
-          <p className="text-2xl font-semibold mt-1 text-gray-900 dark:text-gray-100">{value}</p>
+          <p className="text-3xl font-bold mt-2 text-gray-900 dark:text-gray-100">{value}</p>
         </div>
-        <div className="p-3 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-lg">
-          <Icon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-500 dark:from-blue-900 dark:to-purple-900 rounded-full">
+          <Icon className="w-6 h-6 text-white" />
         </div>
       </div>
       <div className="mt-4 flex items-center">
@@ -30,15 +30,15 @@ const StatsCard = ({ title, value, change, icon: Icon }: StatsCardProps) => (
       </div>
     </CardContent>
   </Card>
-)
+);
 
 interface StatsGridProps {
   stats: {
-    totalDetections: number
-    savedBuildings: number
-    detectionAccuracy: number
-    detectionHistory: number
-  }
+    totalDetections: number;
+    savedBuildings: number;
+    detectionAccuracy: number;
+    detectionHistory: number;
+  };
 }
 
 export default function StatsGrid({ stats }: StatsGridProps) {
@@ -67,14 +67,13 @@ export default function StatsGrid({ stats }: StatsGridProps) {
       change: -2.4,
       icon: History,
     },
-  ]
+  ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
       {statsCards.map((stat) => (
         <StatsCard key={stat.title} {...stat} />
       ))}
     </div>
-  )
+  );
 }
-

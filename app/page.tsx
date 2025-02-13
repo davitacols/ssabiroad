@@ -1,57 +1,57 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import * as LucideIcons from "lucide-react"
-import { useSession } from "next-auth/react"
+import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import * as LucideIcons from "lucide-react";
+import { useSession } from "next-auth/react";
 
 // 🚀 Define Features & Plans Data
 const features = [
   { icon: "Architecture", title: "Instant Recognition", desc: "Identify buildings in real-time with high accuracy." },
   { icon: "Database", title: "Rich Information", desc: "Access detailed architectural and historical data." },
   { icon: "Globe", title: "Global Coverage", desc: "Supports buildings worldwide with local context." },
-]
+];
 
 const plans = [
   { icon: "Building2", title: "Personal", price: "Free", features: ["Building Recognition", "Basic Info", "5 Scans/Day"] },
   { icon: "Landmark", title: "Professional", price: "Custom", features: ["Advanced Analytics", "Historical Data", "Unlimited Scans"] },
-]
+];
 
 const ModernHome = () => {
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const router = useRouter()
-  const { data: session, status } = useSession()
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const router = useRouter();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20)
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleGetStarted = useCallback((plan?: string) => {
     if (status === "authenticated" && session) {
-      router.push("/dashboard")
+      router.push("/dashboard");
     } else {
-      const authPath = plan === "Professional" ? "/signup" : "/login"
-      router.push(authPath)
+      const authPath = plan === "Professional" ? "/signup" : "/login";
+      router.push(authPath);
     }
-  }, [router, session, status])
+  }, [router, session, status]);
 
   useEffect(() => {
     if (status === "authenticated" && session) {
-      router.push("/dashboard")
+      router.push("/dashboard");
     }
-  }, [session, status, router])
+  }, [session, status, router]);
 
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      {/* 🔥 Navbar */}
+      {/* Navbar */}
       <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? "bg-white/90 backdrop-blur-xl shadow-sm dark:bg-gray-900/90" : "bg-white"}`}>
         <div className="container mx-auto px-6">
           <div className="flex items-center justify-between h-20">
@@ -84,9 +84,27 @@ const ModernHome = () => {
             </div>
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        {isMenuOpen && (
+          <div className="md:hidden bg-white dark:bg-gray-900 shadow-lg border-t border-gray-200 dark:border-gray-700">
+            <div className="container mx-auto px-6 py-4 space-y-4">
+              {["Features", "Solutions", "Pricing"].map((item) => (
+                <Button key={item} variant="ghost" className="w-full text-left">{item}</Button>
+              ))}
+              <Button 
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90" 
+                onClick={() => handleGetStarted()}
+              >
+                {status === "authenticated" ? "Go to Dashboard" : "Get Started"} 
+                <LucideIcons.ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        )}
       </nav>
 
-      {/* 🌟 Hero Section */}
+      {/* Hero Section */}
       <section className="flex flex-col items-center justify-center text-center py-32 px-6 md:px-12 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
         <h1 className="text-5xl font-bold mb-4">Discover Buildings Instantly</h1>
         <p className="text-lg max-w-2xl">Upload an image and find detailed information about any building worldwide.</p>
@@ -98,7 +116,7 @@ const ModernHome = () => {
         </Button>
       </section>
 
-      {/* 🔹 Features Section */}
+      {/* Features Section */}
       <section className="container mx-auto py-20 px-6 grid md:grid-cols-3 gap-8">
         {features.map((feature) => (
           <Card key={feature.title} className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg text-center">
@@ -109,7 +127,7 @@ const ModernHome = () => {
         ))}
       </section>
 
-      {/* 💰 Pricing Plans */}
+      {/* Pricing Plans */}
       <section className="bg-gray-100 dark:bg-gray-900 py-20 px-6 text-center">
         <h2 className="text-4xl font-bold">Choose Your Plan</h2>
         <div className="container mx-auto grid md:grid-cols-2 gap-8 mt-10">
@@ -127,7 +145,7 @@ const ModernHome = () => {
         </div>
       </section>
     </div>
-  )
-}
+  );
+};
 
-export default ModernHome
+export default ModernHome;
