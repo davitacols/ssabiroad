@@ -134,7 +134,7 @@ export default function Dashboard() {
               Welcome back, {userName}! 👋
             </h1>
             <p className="mt-2 text-lg">
-              Ready to explore more buildings today? Start by capturing, uploading, or searching for a location.
+              Ready to explore cities far and near you? 🌍
             </p>
           </div>
 
@@ -162,7 +162,7 @@ export default function Dashboard() {
         </div>
       </main>
 
-      <DetectionResultDialog showResult={showResult} setShowResult={setShowResult} detectionResult={detectionResult} />
+      <DetectionResultDialog showResult={showResult} setShowResult={setShowResult} detectionResult={detectionResult} currentLocation={null} />
     </div>
   );
 }
