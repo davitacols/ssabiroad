@@ -2,7 +2,19 @@ import { type NextRequest, NextResponse } from "next/server"
 import * as vision from "@google-cloud/vision"
 import axios from "axios"
 import * as exifParser from "exif-parser"
+import NodeCache from "node-cache"
+import { rateLimit } from "express-rate-limit"
 
+// Cache configuration
+const cache = new NodeCache({ stdTTL: 3600 }) // 1 hour cache
+
+// Rate limiting configuration
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+})
+
+// Interfaces
 interface Location {
   latitude: number
   longitude: number
@@ -14,6 +26,99 @@ interface BuildingFeatures {
   style?: string[]
   estimatedAge?: string
   condition?: string
+  height?: string
+  floors?: number
+  yearBuilt?: number
+  architecturalStyle?: string
+  constructionType?: string
+}
+
+interface PublicInformation {
+  openingHours?: string[]
+  contactInfo?: {
+    phone?: string
+    email?: string
+    website?: string
+    socialMedia?: {
+      facebook?: string
+      twitter?: string
+      instagram?: string
+    }
+  }
+  amenities?: string[]
+  ratings?: {
+    average: number
+    total: number
+    source: string
+    details?: {
+      cleanliness?: number
+      service?: number
+      value?: number
+      location?: number
+    }
+  }[]
+  historicalInfo?: {
+    yearBuilt?: number
+    architect?: string
+    significance?: string
+    events?: {
+      date: string
+      description: string
+    }[]
+    description: string
+  }
+  nearbyAttractions?: {
+    name: string
+    distance: string
+    type: string
+    rating?: number
+    description?: string
+  }[]
+  publicTransport?: {
+    type: string
+    station: string
+    distance: string
+    lines?: string[]
+    schedule?: string
+  }[]
+  accessibility?: {
+    features: string[]
+    restrictions?: string[]
+    ratings?: {
+      wheelchair: number
+      visualImpairment: number
+      hearingImpairment: number
+    }
+  }
+  services?: {
+    name: string
+    description: string
+    availability: string
+    pricing?: string
+  }[]
+  events?: {
+    name: string
+    date: string
+    description: string
+    ticketInfo?: string
+  }[]
+  parking?: {
+    available: boolean
+    type: string[]
+    pricing?: string
+    capacity?: number
+  }
+  restrictions?: {
+    photography: boolean
+    bags: boolean
+    dress: string[]
+    other: string[]
+  }
+  sustainabilityInfo?: {
+    certifications: string[]
+    features: string[]
+    rating?: string
+  }
 }
 
 interface BuildingDetectionResponse {
@@ -31,6 +136,40 @@ interface BuildingDetectionResponse {
     dominantColors: string[]
     brightness: number
     contrast: number
+    primaryStyle?: string
+    aestheticScore?: number
+  }
+  publicInfo?: PublicInformation
+  lastUpdated?: string
+  sourceReliability?: number
+}
+
+// API Configuration
+const API_CONFIG = {
+  GOOGLE_PLACES: {
+    BASE_URL: 'https://maps.googleapis.com/maps/api/place',
+    FIELDS: [
+      'name',
+      'rating',
+      'user_ratings_total',
+      'formatted_phone_number',
+      'website',
+      'opening_hours',
+      'price_level',
+      'wheelchair_accessible_entrance',
+      'photos',
+      'reviews',
+      'address_components',
+      'formatted_address'
+    ].join(',')
+  },
+  WIKIPEDIA: {
+    BASE_URL: 'https://en.wikipedia.org/api/rest_v1/page',
+    TIMEOUT: 5000
+  },
+  TRANSIT: {
+    RADIUS: 500, // meters
+    MAX_RESULTS: 5
   }
 }
 
@@ -41,13 +180,260 @@ class BuildingAnalyzer {
       location: { latitude: 40.748817, longitude: -73.985428 },
       description: "Empire State Building",
       confidence: 0.9,
-    },
-    "Eiffel Tower": {
-      address: "Champ de Mars, 5 Avenue Anatole France, 75007 Paris, France",
-      location: { latitude: 48.858844, longitude: 2.294351 },
-      description: "Eiffel Tower",
-      confidence: 0.9,
-    },
+      features: {
+        architecture: ["Art Deco"],
+        height: "1,454 feet",
+        floors: 102,
+        yearBuilt: 1931,
+        architecturalStyle: "Art Deco",
+        constructionType: "Steel frame"
+      },
+      publicInfo: {
+        openingHours: ["8:00 AM - 2:00 AM daily"],
+        contactInfo: {
+          phone: "+1 212-736-3100",
+          website: "https://www.esbnyc.com",
+          socialMedia: {
+            facebook: "EmpireStateBuilding",
+            twitter: "EmpireStateBldg",
+            instagram: "empirestatebldg"
+          }
+        },
+        amenities: [
+          "Observatory",
+          "Restaurants",
+          "Gift Shop",
+          "Museum",
+          "Audio Tours",
+          "Express Pass Options"
+        ],
+        ratings: [{
+          average: 4.7,
+          total: 85000,
+          source: "Google Reviews",
+          details: {
+            cleanliness: 4.8,
+            service: 4.6,
+            value: 4.5,
+            location: 4.9
+          }
+        }],
+        historicalInfo: {
+          yearBuilt: 1931,
+          architect: "Shreve, Lamb & Harmon",
+          significance: "Iconic Art Deco skyscraper and former world's tallest building",
+          events: [
+            {
+              date: "1931-05-01",
+              description: "Official opening ceremony"
+            },
+            {
+              date: "1945-07-28",
+              description: "B-25 Mitchell bomber crash incident"
+            }
+          ],
+          description: "The Empire State Building is a 102-story Art Deco skyscraper in Midtown Manhattan. It stood as the world's tallest building until 1970, and has become one of New York City's most iconic landmarks."
+        },
+        accessibility: {
+          features: [
+            "Wheelchair accessible",
+            "Elevator access",
+            "ADA compliant",
+            "Braille signage",
+            "Audio guides"
+          ],
+          ratings: {
+            wheelchair: 4.5,
+            visualImpairment: 4.2,
+            hearingImpairment: 4.3
+          }
+        },
+        sustainabilityInfo: {
+          certifications: ["LEED Gold", "Energy Star"],
+          features: [
+            "LED lighting",
+            "Green power",
+            "Energy efficiency upgrades",
+            "Waste management program"
+          ],
+          rating: "LEED Gold Certified"
+        }
+      }
+    }
+    // Add more known buildings as needed
+  }
+
+  private static async fetchWithCache<T>(
+    cacheKey: string,
+    fetchFn: () => Promise<T>,
+    ttl: number = 3600
+  ): Promise<T> {
+    const cached = cache.get<T>(cacheKey)
+    if (cached) return cached
+
+    const data = await fetchFn()
+    cache.set(cacheKey, data, ttl)
+    return data
+  }
+
+  private static async fetchGooglePlacesData(
+    buildingName: string,
+    location: Location
+  ): Promise<Partial<PublicInformation>> {
+    const cacheKey = `places_${buildingName}_${location.latitude}_${location.longitude}`
+    
+    return this.fetchWithCache(cacheKey, async () => {
+      try {
+        const placesKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+        if (!placesKey) throw new Error("Google Places API key not configured")
+
+        // Find place ID
+        const searchResponse = await axios.get(
+          `${API_CONFIG.GOOGLE_PLACES.BASE_URL}/findplacefromtext/json`,
+          {
+            params: {
+              input: buildingName,
+              inputtype: 'textquery',
+              locationbias: `point:${location.latitude},${location.longitude}`,
+              key: placesKey,
+              fields: 'place_id'
+            }
+          }
+        )
+
+        if (!searchResponse.data.candidates?.[0]?.place_id) {
+          return {}
+        }
+
+        // Get detailed place information
+        const detailsResponse = await axios.get(
+          `${API_CONFIG.GOOGLE_PLACES.BASE_URL}/details/json`,
+          {
+            params: {
+              place_id: searchResponse.data.candidates[0].place_id,
+              fields: API_CONFIG.GOOGLE_PLACES.FIELDS,
+              key: placesKey
+            }
+          }
+        )
+
+        const place = detailsResponse.data.result
+        
+        return {
+          openingHours: place.opening_hours?.weekday_text,
+          contactInfo: {
+            phone: place.formatted_phone_number,
+            website: place.website
+          },
+          ratings: [{
+            average: place.rating,
+            total: place.user_ratings_total,
+            source: "Google Reviews",
+            details: this.extractRatingDetails(place.reviews)
+          }],
+          accessibility: {
+            features: this.extractAccessibilityFeatures(place)
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching Places data:", error)
+        return {}
+      }
+    })
+  }
+
+  private static extractRatingDetails(reviews: any[]): any {
+    if (!reviews?.length) return undefined
+
+    const aspects = ['cleanliness', 'service', 'value', 'location']
+    const details: any = {}
+
+    aspects.forEach(aspect => {
+      const relevantReviews = reviews.filter(r => 
+        r.text?.toLowerCase().includes(aspect)
+      )
+      if (relevantReviews.length > 0) {
+        details[aspect] = relevantReviews.reduce((sum, r) => sum + r.rating, 0) / relevantReviews.length
+      }
+    })
+
+    return Object.keys(details).length > 0 ? details : undefined
+  }
+
+  private static extractAccessibilityFeatures(place: any): string[] {
+    const features: string[] = []
+    
+    if (place.wheelchair_accessible_entrance) {
+      features.push("Wheelchair accessible entrance")
+    }
+
+    // Extract more accessibility features from reviews and attributes
+    if (place.reviews) {
+      const accessibilityKeywords = [
+        "elevator", "ramp", "braille", "audio guide",
+        "handicap", "accessible bathroom"
+      ]
+
+      place.reviews.forEach((review: any) => {
+        if (review.text) {
+          accessibilityKeywords.forEach(keyword => {
+            if (review.text.toLowerCase().includes(keyword) &&
+                !features.includes(keyword)) {
+              features.push(keyword)
+            }
+          })
+        }
+      })
+    }
+
+    return features
+  }
+
+  private static async fetchWikipediaData(buildingName: string): Promise<any> {
+    const cacheKey = `wiki_${buildingName}`
+    
+    return this.fetchWithCache(cacheKey, async () => {
+      try {
+        const response = await axios.get(
+          `${API_CONFIG.WIKIPEDIA.BASE_URL}/summary/${encodeURIComponent(buildingName)}`,
+          { timeout: API_CONFIG.WIKIPEDIA.TIMEOUT }
+        )
+
+        if (!response.data.extract) return {}
+
+        // Get more detailed history from the full article
+        const pageResponse = await axios.get(
+          `${API_CONFIG.WIKIPEDIA.BASE_URL}/mobile-sections/${encodeURIComponent(buildingName)}`
+        )
+
+        return {
+          historicalInfo: {
+            description: response.data.extract,
+            events: this.extractHistoricalEvents(pageResponse.data)
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching Wikipedia data:", error)
+        return {}
+      }
+    })
+  }
+
+  private static extractHistoricalEvents(pageData: any): any[] {
+    const events: any[] = []
+    // Implementation to extract historical events from Wikipedia page sections
+    // This would involve parsing the page content and identifying dates and events
+    return events
+  }
+
+  private static async fetchTransitData(location: Location): Promise<any[]> {
+    const cacheKey = `transit_${location.latitude}_${location.longitude}`
+    
+    return this.fetchWithCache(cacheKey, async () => {
+      // Implementation would depend on available transit APIs
+      // This could integrate with local transit authorities' APIs
+      return []
+    })
   }
 
   static async analyzeImage(imageBuffer: Buffer, currentLocation: Location): Promise<BuildingDetectionResponse> {
@@ -144,6 +530,265 @@ class BuildingAnalyzer {
       return { success: false, type: "detection-failed", error: error.message || "Analysis error occurred" }
     }
   }
+
+  private static async processAnalysisResults(
+    textData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse,
+    landmarkData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse,
+    objectData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse,
+    propertyData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse,
+    webData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse,
+    safetyData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse,
+    currentLocation: Location
+  ): Promise<BuildingDetectionResponse> {
+    // Process all detection methods
+    const textResult = await this.detectFromText(textData, currentLocation)
+    if (textResult.success) {
+      return this.enrichResult(textResult, objectData, propertyData, webData, safetyData)
+    }
+
+    const landmarkResult = await this.detectLandmark(landmarkData)
+    if (landmarkResult.success) {
+      return this.enrichResult(landmarkResult, objectData, propertyData, webData, safetyData)
+    }
+
+    const visualResult = await this.detectFromVisuals(objectData, propertyData, webData, currentLocation)
+    if (visualResult.success) {
+        return this.enrichResult(visualResult, objectData, propertyData, webData, safetyData);
+    }
+
+    return {
+      success: false,
+      type: "detection-failed",
+      error: "Building not identified through any detection method"
+    }
+  }
+
+  private static async enrichResult(
+    baseResult: BuildingDetectionResponse,
+    objectData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse,
+    propertyData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse,
+    webData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse,
+    safetyData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse
+  ): Promise<BuildingDetectionResponse> {
+    console.log("Enriching detection result...")
+    const enrichedResult: BuildingDetectionResponse = { ...baseResult }
+
+    try {
+      // Fetch and merge public information
+      if (enrichedResult.description && enrichedResult.location) {
+        const [placesData, wikiData, transitData] = await Promise.all([
+          this.fetchGooglePlacesData(enrichedResult.description, enrichedResult.location),
+          this.fetchWikipediaData(enrichedResult.description),
+          this.fetchTransitData(enrichedResult.location)
+        ])
+
+        enrichedResult.publicInfo = {
+          ...placesData,
+          ...wikiData,
+          publicTransport: transitData
+        }
+      }
+
+      // Add building features
+      enrichedResult.features = {
+        ...enrichedResult.features,
+        ...this.extractBuildingFeatures(objectData, webData)
+      }
+
+      // Add image properties
+      if (propertyData.imagePropertiesAnnotation) {
+        enrichedResult.imageProperties = this.extractImageProperties(propertyData)
+      }
+
+      // Add safety score
+      if (safetyData.safeSearchAnnotation) {
+        enrichedResult.safetyScore = this.calculateSafetyScore(safetyData.safeSearchAnnotation)
+      }
+
+      // Add similar buildings
+      enrichedResult.similarBuildings = this.extractSimilarBuildings(webData)
+
+      // Add metadata
+      enrichedResult.lastUpdated = new Date().toISOString()
+      enrichedResult.sourceReliability = this.calculateSourceReliability(enrichedResult)
+
+      return enrichedResult
+    } catch (error) {
+      console.error("Error during result enrichment:", error)
+      return enrichedResult
+    }
+  }
+
+  private static extractBuildingFeatures(
+    objectData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse,
+    webData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse
+  ): BuildingFeatures {
+    const features: BuildingFeatures = {}
+
+    // Extract architectural features from object detection
+    const objects = objectData.localizedObjectAnnotations || []
+    const architecturalElements = objects
+      .filter(obj => this.isArchitecturalElement(obj.name || ''))
+      .map(obj => obj.name || '')
+
+    features.architecture = [...new Set(architecturalElements)]
+
+    // Extract materials
+    features.materials = objects
+      .filter(obj => this.isBuildingMaterial(obj.name || ''))
+      .map(obj => obj.name || '')
+
+    // Extract style from web detection
+    const webEntities = webData.webDetection?.webEntities || []
+    features.style = webEntities
+      .filter(entity => this.isArchitecturalStyle(entity.description || ''))
+      .map(entity => entity.description || '')
+
+    return features
+  }
+
+  private static isArchitecturalElement(name: string): boolean {
+    const architecturalElements = [
+      'column', 'arch', 'dome', 'spire', 'tower', 'facade',
+      'window', 'door', 'balcony', 'cornice', 'pillar'
+    ]
+    return architecturalElements.some(element => 
+      name.toLowerCase().includes(element)
+    )
+  }
+
+  private static isBuildingMaterial(name: string): boolean {
+    const materials = [
+      'brick', 'stone', 'concrete', 'glass', 'steel', 'wood',
+      'marble', 'granite', 'metal', 'copper', 'bronze'
+    ]
+    return materials.some(material => 
+      name.toLowerCase().includes(material)
+    )
+  }
+
+  private static isArchitecturalStyle(description: string): boolean {
+    const styles = [
+      'gothic', 'modern', 'contemporary', 'art deco', 'baroque',
+      'victorian', 'classical', 'renaissance', 'neoclassical'
+    ]
+    return styles.some(style => 
+      description.toLowerCase().includes(style)
+    )
+  }
+
+  private static extractImageProperties(
+    propertyData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse
+  ): BuildingDetectionResponse['imageProperties'] {
+    const properties = propertyData.imagePropertiesAnnotation
+    const colors = properties?.dominantColors?.colors || []
+
+    return {
+      dominantColors: colors.map(color => 
+        `rgb(${color.color?.red || 0}, ${color.color?.green || 0}, ${color.color?.blue || 0})`
+      ),
+      brightness: this.calculateAverageBrightness(colors),
+      contrast: this.calculateImageContrast(colors),
+      primaryStyle: this.determinePrimaryStyle(properties),
+      aestheticScore: this.calculateAestheticScore(properties)
+    }
+  }
+
+  private static calculateAverageBrightness(
+    colors: vision.protos.google.cloud.vision.v1.IColorInfo[]
+  ): number {
+    if (!colors.length) return 0
+
+    const totalBrightness = colors.reduce((sum, color) => {
+      const rgb = color.color || {}
+      return sum + ((rgb.red || 0) + (rgb.green || 0) + (rgb.blue || 0)) / 3
+    }, 0)
+
+    return totalBrightness / (colors.length * 255)
+  }
+
+  private static calculateImageContrast(
+    colors: vision.protos.google.cloud.vision.v1.IColorInfo[]
+  ): number {
+    if (!colors.length) return 0
+
+    const brightnesses = colors.map(color => {
+      const rgb = color.color || {}
+      return ((rgb.red || 0) + (rgb.green || 0) + (rgb.blue || 0)) / 3
+    })
+
+    const maxBrightness = Math.max(...brightnesses)
+    const minBrightness = Math.min(...brightnesses)
+
+    return (maxBrightness - minBrightness) / 255
+  }
+
+  private static determinePrimaryStyle(
+    properties: vision.protos.google.cloud.vision.v1.IImageProperties | null | undefined
+  ): string | undefined {
+    // Implement style detection based on color patterns and distributions
+    return undefined
+  }
+
+  private static calculateAestheticScore(
+    properties: vision.protos.google.cloud.vision.v1.IImageProperties | null | undefined
+  ): number | undefined {
+    // Implement aesthetic scoring based on color harmony and composition
+    return undefined
+  }
+
+  private static calculateSafetyScore(
+    safeSearch: vision.protos.google.cloud.vision.v1.IImageProperties | null | undefined
+  ): number {
+    // Implement safety score calculation
+    return 1.0
+  }
+
+  private static extractSimilarBuildings(
+    webData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse
+  ): string[] {
+    const entities = webData.webDetection?.webEntities || []
+    return entities
+      .filter(entity => 
+        entity.description?.toLowerCase().includes('building') &&
+        entity.score && entity.score > 0.5
+      )
+      .map(entity => entity.description || '')
+      .filter(Boolean)
+  }
+
+  private static calculateSourceReliability(result: BuildingDetectionResponse): number {
+    let reliabilityScore = 0
+    let factorsCount = 0
+
+    // Add confidence score if available
+    if (result.confidence) {
+      reliabilityScore += result.confidence
+      factorsCount++
+    }
+
+    // Check for multiple data sources
+    if (result.publicInfo) {
+      if (result.publicInfo.historicalInfo) {
+        reliabilityScore += 0.8
+        factorsCount++
+      }
+      if (result.publicInfo.ratings?.length) {
+        reliabilityScore += 0.7
+        factorsCount++
+      }
+    }
+
+    // Consider image quality
+    if (result.imageProperties?.contrast && result.imageProperties?.brightness) {
+      const imageQualityScore = (result.imageProperties.contrast + result.imageProperties.brightness) / 2
+      reliabilityScore += imageQualityScore
+      factorsCount++
+    }
+
+    return factorsCount > 0 ? reliabilityScore / factorsCount : 0
+  }
+
 
   static async detectFromText(
     client: vision.ImageAnnotatorClient,
@@ -255,93 +900,6 @@ class BuildingAnalyzer {
     return { success: false, type: "visual-detection-failed", error: "No building identified from visual data" }
   }
 
-  static enrichResult(
-    baseResult: BuildingDetectionResponse,
-    objectData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse,
-    propertyData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse,
-    webData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse,
-    safetyData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse,
-  ): BuildingDetectionResponse {
-    console.log("Enriching detection result...")
-    const objects = objectData.localizedObjectAnnotations
-    const properties = propertyData.imagePropertiesAnnotation
-    const webEntities = webData.webDetection?.webEntities
-    const safeSearch = safetyData.safeSearchAnnotation
-
-    const enrichedResult: BuildingDetectionResponse = { ...baseResult }
-
-    // Add building features
-    enrichedResult.features = {
-      architecture: objects
-        ?.filter((obj) => obj.name?.toLowerCase().includes("architecture"))
-        .map((obj) => obj.name || ""),
-      materials: objects
-        ?.filter((obj) => ["brick", "concrete", "glass", "wood"].includes(obj.name?.toLowerCase() || ""))
-        .map((obj) => obj.name || ""),
-      style: webEntities
-        ?.filter((entity) => entity.description?.toLowerCase().includes("style"))
-        .map((entity) => entity.description || ""),
-    }
-
-    // Add image properties
-    if (properties && properties.dominantColors) {
-      enrichedResult.imageProperties = {
-        dominantColors:
-          properties.dominantColors.colors?.map(
-            (color) => `rgb(${color.color?.red}, ${color.color?.green}, ${color.color?.blue})`,
-          ) || [],
-        brightness:
-          properties.dominantColors.colors?.reduce(
-            (sum, color) => sum + ((color.color?.red || 0) + (color.color?.green || 0) + (color.color?.blue || 0)) / 3,
-            0,
-          ) /
-            (properties.dominantColors.colors?.length || 1) /
-            255 || 0,
-        contrast:
-          Math.max(
-            ...(properties.dominantColors.colors?.map(
-              (color) => (color.color?.red || 0) + (color.color?.green || 0) + (color.color?.blue || 0),
-            ) || []),
-          ) -
-          Math.min(
-            ...(properties.dominantColors.colors?.map(
-              (color) => (color.color?.red || 0) + (color.color?.green || 0) + (color.color?.blue || 0),
-            ) || []),
-          ),
-      }
-    }
-
-    // Add similar buildings
-    enrichedResult.similarBuildings = webEntities
-      ?.filter(
-        (entity) =>
-          entity.description?.toLowerCase().includes("building") && entity.description !== baseResult.description,
-      )
-      .map((entity) => entity.description || "")
-
-    // Add safety score
-    if (safeSearch) {
-      const safetyScores = {
-        adult: safeSearch.adult,
-        medical: safeSearch.medical,
-        racy: safeSearch.racy,
-        spoof: safeSearch.spoof,
-        violence: safeSearch.violence,
-      }
-      const scoreMap: { [key: string]: number } = {
-        VERY_UNLIKELY: 1,
-        UNLIKELY: 2,
-        POSSIBLE: 3,
-        LIKELY: 4,
-        VERY_LIKELY: 5,
-      }
-      const totalScore = Object.values(safetyScores).reduce((sum, score) => sum + (scoreMap[score || ""] || 0), 0)
-      enrichedResult.safetyScore = 1 - totalScore / (Object.keys(safetyScores).length * 5)
-    }
-
-    console.log("Enrichment complete")
-    return enrichedResult
-  }
 }
 
 async function extractExifLocation(buffer: Buffer): Promise<Location | null> {
