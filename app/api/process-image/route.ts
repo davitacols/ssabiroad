@@ -800,12 +800,50 @@ class BuildingAnalyzer {
     const detections = result.textAnnotations
 
     if (detections && detections.length > 0) {
-      const text = detections[0].description
+      const text = detections[0].description?.toLowerCase()
       console.log("Detected text:", text)
 
-      // Check if the text matches any known buildings
+      // Enhanced commercial building detection
+      const commercialKeywords = [
+        'fitness', 'hub', 'gym', 'mall', 'shop', 'store', 'center', 'centre',
+        'plaza', 'complex', 'office', 'building', 'tower', 'eco'
+      ]
+
+      const detectedKeywords = commercialKeywords.filter(keyword => 
+        text?.includes(keyword.toLowerCase())
+      )
+
+      if (detectedKeywords.length > 0) {
+        // Construct building name from detected text
+        const textLines = text?.split('\n').filter(line => line.trim()) || []
+        const potentialNames = textLines.filter(line => 
+          detectedKeywords.some(keyword => line.toLowerCase().includes(keyword))
+        )
+        const buildingName = potentialNames[0] || "Commercial Building"
+
+        console.log(`Identified commercial building: ${buildingName}`)
+        return {
+          success: true,
+          type: "commercial-building",
+          description: buildingName,
+          location: currentLocation,
+          confidence: 0.8,
+          features: {
+            type: "Commercial",
+            architecture: ["Modern"],
+            constructionType: "Commercial Building"
+          },
+          publicInfo: {
+            openingHours: ["Hours may vary"],
+            amenities: detectedKeywords,
+            type: "Commercial Property"
+          }
+        }
+      }
+
+      // Continue with existing known buildings check
       for (const [buildingName, buildingInfo] of Object.entries(BuildingAnalyzer.KNOWN_BUILDINGS)) {
-        if (text?.toLowerCase().includes(buildingName.toLowerCase())) {
+        if (text?.includes(buildingName.toLowerCase())) {
           console.log(`Matched known building: ${buildingName}`)
           return {
             success: true,
@@ -815,7 +853,7 @@ class BuildingAnalyzer {
         }
       }
 
-      // If no known building is matched, attempt to geocode the detected text
+      // Attempt geocoding if no commercial building or known building is found
       console.log("Attempting to geocode detected text...")
       const geocodeResult = await geocodeAddress(text || "")
       if (geocodeResult) {
@@ -824,39 +862,8 @@ class BuildingAnalyzer {
       }
     }
 
-    console.log("Text detection failed to identify building")
+    // Don't fail immediately, try visual detection
     return { success: false, type: "text-detection-failed", error: "No building identified from text" }
-  }
-
-  static async detectLandmark(
-    client: vision.ImageAnnotatorClient,
-    imageBuffer: Buffer,
-  ): Promise<BuildingDetectionResponse> {
-    console.log("Detecting landmarks...")
-    const [result] = await client.landmarkDetection({ image: { content: imageBuffer } })
-    const landmarks = result.landmarkAnnotations
-
-    if (landmarks && landmarks.length > 0) {
-      const landmark = landmarks[0]
-      console.log("Detected landmark:", landmark.description)
-
-      if (landmark.locations && landmark.locations.length > 0) {
-        const location = landmark.locations[0].latLng
-        return {
-          success: true,
-          type: "landmark-detection",
-          description: landmark.description,
-          location: {
-            latitude: location?.latitude || 0,
-            longitude: location?.longitude || 0,
-          },
-          confidence: landmark.score || 0,
-        }
-      }
-    }
-
-    console.log("Landmark detection failed")
-    return { success: false, type: "landmark-detection-failed", error: "No landmark detected" }
   }
 
   static async detectFromVisuals(
@@ -866,32 +873,31 @@ class BuildingAnalyzer {
     currentLocation: Location,
   ): Promise<BuildingDetectionResponse> {
     console.log("Analyzing visual data...")
-    const objects = objectData.localizedObjectAnnotations
-    const properties = propertyData.imagePropertiesAnnotation
-    const webEntities = webData.webDetection?.webEntities
+    const objects = objectData.localizedObjectAnnotations || []
+    
+    // Enhanced building detection logic
+    const buildingIndicators = objects.filter(obj => {
+      const name = obj.name?.toLowerCase() || ""
+      return [
+        'building', 'architecture', 'wall', 'window', 'door',
+        'house', 'structure', 'property', 'facade'
+      ].some(indicator => name.includes(indicator))
+    })
 
-    if (objects && objects.some((obj) => obj.name?.toLowerCase().includes("building"))) {
-      console.log("Building object detected")
+    if (buildingIndicators.length > 0) {
+      console.log("Building indicators found:", buildingIndicators.map(i => i.name))
+      const confidence = buildingIndicators.reduce((sum, obj) => sum + (obj.score || 0), 0) / buildingIndicators.length
+
       return {
         success: true,
         type: "visual-detection",
-        description: "Unidentified building",
+        description: "Commercial Building",
         location: currentLocation,
-        confidence: objects.find((obj) => obj.name?.toLowerCase().includes("building"))?.score || 0,
-      }
-    }
-
-    if (webEntities && webEntities.length > 0) {
-      console.log("Web entities detected:", webEntities.map((e) => e.description).join(", "))
-      for (const entity of webEntities) {
-        if (entity.description && BuildingAnalyzer.KNOWN_BUILDINGS.hasOwnProperty(entity.description)) {
-          console.log(`Matched known building from web entity: ${entity.description}`)
-          return {
-            success: true,
-            type: "web-detection",
-            ...BuildingAnalyzer.KNOWN_BUILDINGS[entity.description as keyof typeof BuildingAnalyzer.KNOWN_BUILDINGS],
-            confidence: entity.score || 0,
-          }
+        confidence: confidence,
+        features: {
+          architecture: this.inferArchitecturalFeatures(objects),
+          type: "Commercial",
+          constructionType: this.inferConstructionType(objects)
         }
       }
     }
@@ -900,6 +906,231 @@ class BuildingAnalyzer {
     return { success: false, type: "visual-detection-failed", error: "No building identified from visual data" }
   }
 
+
+  private static calculateBuildingConfidence(
+    objects: vision.protos.google.cloud.vision.v1.ILocalizedObjectAnnotation[],
+    webEntities: vision.protos.google.cloud.vision.v1.IWebDetection.IWebEntity[]
+  ): number {
+    let confidence = 0
+    let indicators = 0
+
+    // Check direct building detection
+    const buildingObject = objects.find(obj => 
+      obj.name?.toLowerCase().includes("building") ||
+      obj.name?.toLowerCase().includes("structure")
+    )
+    if (buildingObject) {
+      confidence += buildingObject.score || 0
+      indicators++
+    }
+
+    // Check for building components
+    const buildingComponents = objects.filter(obj => 
+      ["window", "door", "wall", "roof", "facade"].some(component => 
+        obj.name?.toLowerCase().includes(component)
+      )
+    )
+    if (buildingComponents.length > 0) {
+      confidence += Math.min(buildingComponents.length * 0.2, 0.8)
+      indicators++
+    }
+
+    // Check web entities for building-related terms
+    const buildingRelatedEntities = webEntities.filter(entity =>
+      entity.description?.toLowerCase().match(/building|architecture|structure|house|apartment|office|tower/g)
+    )
+    if (buildingRelatedEntities.length > 0) {
+      confidence += Math.min(
+        buildingRelatedEntities.reduce((sum, entity) => sum + (entity.score || 0), 0) / buildingRelatedEntities.length,
+        0.8
+      )
+      indicators++
+    }
+
+    return indicators > 0 ? confidence / indicators : 0
+  }
+
+  private static extractBuildingCharacteristics(
+    objects: vision.protos.google.cloud.vision.v1.ILocalizedObjectAnnotation[],
+    properties: vision.protos.google.cloud.vision.v1.IImageProperties | null | undefined
+  ): {
+    architecturalElements: string[]
+    materials: string[]
+    styles: string[]
+    estimatedHeight: string
+    constructionType: string
+  } {
+    const architecturalElements = new Set<string>()
+    const materials = new Set<string>()
+    const styles = new Set<string>()
+    
+    // Analyze objects for architectural elements and materials
+    objects.forEach(obj => {
+      if (obj.name) {
+        // Check for architectural elements
+        const elements = ["window", "door", "balcony", "column", "arch", "roof"]
+        elements.forEach(element => {
+          if (obj.name.toLowerCase().includes(element)) {
+            architecturalElements.add(element)
+          }
+        })
+
+        // Check for materials
+        const buildingMaterials = ["glass", "concrete", "brick", "stone", "metal", "wood"]
+        buildingMaterials.forEach(material => {
+          if (obj.name.toLowerCase().includes(material)) {
+            materials.add(material)
+          }
+        })
+      }
+    })
+
+    // Estimate height based on vertical objects
+    const estimatedHeight = this.estimateBuildingHeight(objects)
+
+    // Determine construction type based on materials
+    const constructionType = this.inferConstructionType(Array.from(materials))
+
+    return {
+      architecturalElements: Array.from(architecturalElements),
+      materials: Array.from(materials),
+      styles: Array.from(styles),
+      estimatedHeight,
+      constructionType
+    }
+  }
+
+  private static determineBuildingType(
+    objects: vision.protos.google.cloud.vision.v1.ILocalizedObjectAnnotation[],
+    webEntities: vision.protos.google.cloud.vision.v1.IWebDetection.IWebEntity[]
+  ): string {
+    const typeIndicators = {
+      residential: 0,
+      commercial: 0,
+      industrial: 0,
+      institutional: 0
+    }
+
+    // Analyze objects for building type indicators
+    objects.forEach(obj => {
+      if (obj.name) {
+        const name = obj.name.toLowerCase()
+        if (name.includes("house") || name.includes("apartment")) typeIndicators.residential++
+        if (name.includes("store") || name.includes("office")) typeIndicators.commercial++
+        if (name.includes("factory") || name.includes("warehouse")) typeIndicators.industrial++
+        if (name.includes("school") || name.includes("hospital")) typeIndicators.institutional++
+      }
+    })
+
+    // Analyze web entities for building type clues
+    webEntities.forEach(entity => {
+      if (entity.description) {
+        const desc = entity.description.toLowerCase()
+        if (desc.match(/house|apartment|residential|home/g)) typeIndicators.residential++
+        if (desc.match(/office|store|shop|commercial|retail/g)) typeIndicators.commercial++
+        if (desc.match(/factory|industrial|warehouse|plant/g)) typeIndicators.industrial++
+        if (desc.match(/school|hospital|government|institution/g)) typeIndicators.institutional++
+      }
+    })
+
+    // Determine the most likely building type
+    const maxType = Object.entries(typeIndicators).reduce((max, [type, count]) => 
+      count > max[1] ? [type, count] : max
+    , ["unknown", 0])
+
+    return maxType[0] === "unknown" ? "General" : maxType[0].charAt(0).toUpperCase() + maxType[0].slice(1)
+  }
+
+  private static estimateBuildingHeight(
+    objects: vision.protos.google.cloud.vision.v1.ILocalizedObjectAnnotation[]
+  ): string {
+    const floorIndicators = objects.filter(obj => 
+      obj.name?.toLowerCase().includes("window") ||
+      obj.name?.toLowerCase().includes("floor") ||
+      obj.name?.toLowerCase().includes("level")
+    ).length
+
+    if (floorIndicators === 0) return "Unknown"
+    if (floorIndicators <= 2) return "Low-rise"
+    if (floorIndicators <= 7) return "Mid-rise"
+    return "High-rise"
+  }
+
+  private static inferConstructionType(materials: string[]): string {
+    if (materials.includes("glass") && materials.includes("metal")) return "Modern Steel-Glass"
+    if (materials.includes("concrete")) return "Concrete"
+    if (materials.includes("brick")) return "Masonry"
+    if (materials.includes("wood")) return "Wooden"
+    return "Standard Construction"
+  }
+
+  private static hasBuildinCharacteristics(
+    objects: vision.protos.google.cloud.vision.v1.ILocalizedObjectAnnotation[],
+    properties: vision.protos.google.cloud.vision.v1.IImageProperties | null | undefined
+  ): boolean {
+    // Count building-related objects
+    const buildingFeatures = objects.filter(obj => 
+      ["window", "door", "wall", "roof", "building", "structure"].some(feature => 
+        obj.name?.toLowerCase().includes(feature)
+      )
+    ).length
+
+    return buildingFeatures >= 2 // If at least 2 building features are detected
+  }
+
+  private static inferBuildingFeatures(
+    objects: vision.protos.google.cloud.vision.v1.ILocalizedObjectAnnotation[],
+    properties: vision.protos.google.cloud.vision.v1.IImageProperties | null | undefined
+  ): BuildingFeatures {
+    return {
+      architecture: objects
+        .filter(obj => ["window", "door", "roof", "wall"].some(feature => 
+          obj.name?.toLowerCase().includes(feature)
+        ))
+        .map(obj => obj.name || "")
+        .filter(Boolean),
+      materials: this.inferMaterialsFromColors(properties),
+      height: this.estimateBuildingHeight(objects)
+    }
+  }
+
+  private static inferArchitecturalFeatures(
+    objects: vision.protos.google.cloud.vision.v1.ILocalizedObjectAnnotation[]
+  ): string[] {
+    const features = new Set<string>()
+    
+    objects.forEach(obj => {
+      const name = obj.name?.toLowerCase() || ""
+      if (name.includes('window')) features.add('Modern Windows')
+      if (name.includes('glass')) features.add('Glass Facade')
+      if (name.includes('wall')) features.add('Commercial Walls')
+      if (name.includes('door')) features.add('Commercial Entrance')
+    })
+
+    return Array.from(features)
+  }
+
+
+  private static inferMaterialsFromColors(
+    properties: vision.protos.google.cloud.vision.v1.IImageProperties | null | undefined
+  ): string[] {
+    const materials: string[] = []
+    const colors = properties?.dominantColors?.colors || []
+
+    colors.forEach(color => {
+      const rgb = color.color || {}
+      const r = rgb.red || 0
+      const g = rgb.green || 0
+      const b = rgb.blue || 0
+
+      // Infer materials based on color patterns
+      if (r > 200 && g > 200 && b > 200) materials.push("glass")
+      if (r > 150 && g > 150 && b > 150) materials.push("concrete")
+      if (r > 150 && g < 100 && b < 100) materials.push("brick")
+    })
+
+    return [...new Set(materials)]
+  }
 }
 
 async function extractExifLocation(buffer: Buffer): Promise<Location | null> {
