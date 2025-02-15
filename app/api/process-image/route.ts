@@ -263,6 +263,65 @@ class BuildingAnalyzer {
     // Add more known buildings as needed
   }
 
+  static async detectLandmark(
+    client: vision.ImageAnnotatorClient,
+    imageBuffer: Buffer
+  ): Promise<BuildingDetectionResponse> {
+    console.log("Analyzing landmark detection results...")
+    const [result] = await client.landmarkDetection({ image: { content: imageBuffer } })
+    const landmarks = result.landmarkAnnotations || []
+  
+    if (landmarks.length > 0) {
+      const landmark = landmarks[0]
+      const confidence = landmark.score || 0
+  
+      // Extract location from landmark
+      const location = landmark.locations?.[0]?.latLng
+      const detectedLocation = location ? {
+        latitude: location.latitude || 0,
+        longitude: location.longitude || 0
+      } : undefined
+  
+      // Search for known building information
+      const knownBuildingInfo = Object.entries(BuildingAnalyzer.KNOWN_BUILDINGS)
+        .find(([name]) => landmark.description?.toLowerCase().includes(name.toLowerCase()))
+  
+      if (knownBuildingInfo) {
+        console.log(`Matched known landmark: ${knownBuildingInfo[0]}`)
+        return {
+          success: true,
+          type: "landmark-detection",
+          description: landmark.description || knownBuildingInfo[0],
+          location: detectedLocation || knownBuildingInfo[1].location,
+          confidence,
+          ...knownBuildingInfo[1]
+        }
+      }
+  
+      // If not a known building, return general landmark information
+      console.log(`Detected unknown landmark: ${landmark.description}`)
+      return {
+        success: true,
+        type: "landmark-detection",
+        description: landmark.description || "Unknown Landmark",
+        location: detectedLocation,
+        confidence,
+        features: {
+          architecture: [],  // Would need visual analysis to determine
+          type: "Landmark",
+          constructionType: "Historical Structure"
+        }
+      }
+    }
+  
+    console.log("No landmarks detected")
+    return {
+      success: false,
+      type: "landmark-detection-failed",
+      error: "No landmarks detected in image"
+    }
+  }
+
   private static async fetchWithCache<T>(
     cacheKey: string,
     fetchFn: () => Promise<T>,
@@ -798,49 +857,88 @@ class BuildingAnalyzer {
     console.log("Detecting text from image...")
     const [result] = await client.textDetection({ image: { content: imageBuffer } })
     const detections = result.textAnnotations
-
+  
     if (detections && detections.length > 0) {
       const text = detections[0].description?.toLowerCase()
       console.log("Detected text:", text)
-
-      // Enhanced commercial building detection
-      const commercialKeywords = [
-        'fitness', 'hub', 'gym', 'mall', 'shop', 'store', 'center', 'centre',
-        'plaza', 'complex', 'office', 'building', 'tower', 'eco'
-      ]
-
-      const detectedKeywords = commercialKeywords.filter(keyword => 
-        text?.includes(keyword.toLowerCase())
-      )
-
-      if (detectedKeywords.length > 0) {
-        // Construct building name from detected text
-        const textLines = text?.split('\n').filter(line => line.trim()) || []
-        const potentialNames = textLines.filter(line => 
-          detectedKeywords.some(keyword => line.toLowerCase().includes(keyword))
+  
+      // Enhanced business type detection
+      const businessTypes = {
+        financial: ['bank', 'credit union', 'atm', 'financial'],
+        retail: ['shop', 'store', 'mall', 'market'],
+        food: ['restaurant', 'cafe', 'diner'],
+        fitness: ['gym', 'fitness', 'sport'],
+        office: ['office', 'plaza', 'tower', 'complex'],
+        medical: ['hospital', 'clinic', 'medical'],
+      }
+  
+      let detectedType: string | null = null
+      let businessName: string | null = null
+  
+      // First pass: identify business type and name
+      for (const [type, keywords] of Object.entries(businessTypes)) {
+        if (keywords.some(keyword => text?.includes(keyword))) {
+          detectedType = type
+          // Extract business name by finding the line containing the keyword
+          const lines = text?.split('\n') || []
+          for (const line of lines) {
+            if (keywords.some(keyword => line.toLowerCase().includes(keyword))) {
+              businessName = line.trim()
+              break
+            }
+          }
+          break
+        }
+      }
+  
+      // Special handling for financial institutions
+      if (text?.includes('bank')) {
+        const lines = text.split('\n').filter(line => line.trim())
+        const bankNameLine = lines.find(line => 
+          line.toLowerCase().includes('bank') || 
+          /^[A-Za-z\s]+(bank|banking)/i.test(line)
         )
-        const buildingName = potentialNames[0] || "Commercial Building"
-
-        console.log(`Identified commercial building: ${buildingName}`)
+        
+        if (bankNameLine) {
+          businessName = bankNameLine.trim()
+          detectedType = 'financial'
+        }
+      }
+  
+      if (detectedType && businessName) {
+        console.log(`Identified ${detectedType} building: ${businessName}`)
+        
+        // Create appropriate features based on business type
+        const features: BuildingFeatures = {
+          architecture: ["Commercial"],
+          constructionType: "Commercial Building",
+        }
+  
+        // Add type-specific features
+        if (detectedType === 'financial') {
+          features.architecture?.push("Banking Hall")
+          features.materials = ["Glass", "Concrete"]
+          features.style = ["Modern Commercial"]
+        }
+  
+        // Create the detection response
         return {
           success: true,
           type: "commercial-building",
-          description: buildingName,
+          description: businessName,
           location: currentLocation,
-          confidence: 0.8,
-          features: {
-            type: "Commercial",
-            architecture: ["Modern"],
-            constructionType: "Commercial Building"
-          },
+          confidence: 0.9,
+          features,
           publicInfo: {
-            openingHours: ["Hours may vary"],
-            amenities: detectedKeywords,
-            type: "Commercial Property"
+            openingHours: ["Monday-Friday: 8:00 AM - 5:00 PM"],
+            amenities: detectedType === 'financial' 
+              ? ["ATM", "Banking Hall", "Customer Service"] 
+              : ["Customer Service"],
+            type: `${detectedType.charAt(0).toUpperCase() + detectedType.slice(1)} Institution`
           }
         }
       }
-
+  
       // Continue with existing known buildings check
       for (const [buildingName, buildingInfo] of Object.entries(BuildingAnalyzer.KNOWN_BUILDINGS)) {
         if (text?.includes(buildingName.toLowerCase())) {
@@ -852,7 +950,7 @@ class BuildingAnalyzer {
           }
         }
       }
-
+  
       // Attempt geocoding if no commercial building or known building is found
       console.log("Attempting to geocode detected text...")
       const geocodeResult = await geocodeAddress(text || "")
@@ -861,9 +959,12 @@ class BuildingAnalyzer {
         return geocodeResult
       }
     }
-
-    // Don't fail immediately, try visual detection
-    return { success: false, type: "text-detection-failed", error: "No building identified from text" }
+  
+    return { 
+      success: false, 
+      type: "text-detection-failed", 
+      error: "No building identified from text" 
+    }
   }
 
   static async detectFromVisuals(
