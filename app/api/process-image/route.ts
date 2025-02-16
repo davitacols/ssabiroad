@@ -322,6 +322,93 @@ class BuildingAnalyzer {
     }
   }
 
+
+  static async handleAddressLookup(address: string): Promise<BuildingDetectionResponse> {
+    try {
+      console.log("Processing address lookup:", address)
+      
+      // Geocode the address
+      const geocodeResult = await geocodeAddress(address)
+      if (!geocodeResult) {
+        return {
+          success: false,
+          type: "address-lookup-failed",
+          error: "Unable to geocode address"
+        }
+      }
+  
+      // Fetch additional data using the geocoded location
+      const location = {
+        latitude: geocodeResult.location?.latitude || 0,
+        longitude: geocodeResult.location?.longitude || 0
+      }
+  
+      // Fetch Places API data
+      const placesData = await BuildingAnalyzer.fetchGooglePlacesData(address, location)
+      
+      // Fetch Wikipedia data
+      const wikiData = await BuildingAnalyzer.fetchWikipediaData(address)
+      
+      // Fetch transit data
+      const transitData = await BuildingAnalyzer.fetchTransitData(location)
+  
+      return {
+        success: true,
+        type: "address-lookup",
+        address: geocodeResult.address,
+        location: geocodeResult.location,
+        description: address,
+        confidence: 0.9,
+        features: await inferBuildingFeaturesFromAddress(geocodeResult.address || ""),
+        publicInfo: {
+          ...placesData,
+          ...wikiData,
+          publicTransport: transitData
+        },
+        lastUpdated: new Date().toISOString(),
+        sourceReliability: 0.8
+      }
+    } catch (error) {
+      console.error("Address lookup failed:", error)
+      return {
+        success: false,
+        type: "address-lookup-failed",
+        error: error instanceof Error ? error.message : "Address lookup failed"
+      }
+    }
+  }
+  
+  private static async inferBuildingFeaturesFromAddress(address: string): Promise<BuildingFeatures> {
+    const features: BuildingFeatures = {
+      architecture: [],
+      materials: [],
+      style: []
+    }
+  
+    // Infer building type from address components
+    const addressLower = address.toLowerCase()
+    
+    // Check for building type indicators
+    if (addressLower.includes("apt") || addressLower.includes("apartment")) {
+      features.architecture?.push("Residential")
+      features.type = "Apartment Building"
+    } else if (addressLower.includes("suite") || addressLower.includes("plaza")) {
+      features.architecture?.push("Commercial")
+      features.type = "Office Building"
+    } else if (addressLower.includes("mall") || addressLower.includes("center")) {
+      features.architecture?.push("Commercial")
+      features.type = "Shopping Center"
+    }
+  
+    // Add default values if no specific type was determined
+    if (!features.type) {
+      features.type = "General Building"
+      features.architecture?.push("Standard Construction")
+    }
+  
+    return features
+  }
+
   private static async fetchWithCache<T>(
     cacheKey: string,
     fetchFn: () => Promise<T>,
@@ -967,6 +1054,7 @@ class BuildingAnalyzer {
     }
   }
 
+
   static async detectFromVisuals(
     objectData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse,
     propertyData: vision.protos.google.cloud.vision.v1.IAnnotateImageResponse,
@@ -1157,6 +1245,8 @@ class BuildingAnalyzer {
     return "High-rise"
   }
 
+  
+
   private static inferConstructionType(materials: string[]): string {
     if (materials.includes("glass") && materials.includes("metal")) return "Modern Steel-Glass"
     if (materials.includes("concrete")) return "Concrete"
@@ -1282,58 +1372,149 @@ async function geocodeAddress(address: string): Promise<BuildingDetectionRespons
   }
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+
+async function getStreetViewImage(location: { latitude: number; longitude: number } | string): Promise<Buffer | null> {
   try {
-    console.log("Received POST request")
-    const formData = await request.formData()
-    const image = formData.get("image") as File | null
-    const lat = formData.get("lat")
-    const lng = formData.get("lng")
-
-    console.log("Received form data:", {
-      image: image ? `File present (${image.size} bytes)` : "No file",
-      lat,
-      lng,
-    })
-
-    if (!image || !(image instanceof File)) {
-      console.error("Invalid image")
-      return NextResponse.json({ success: false, error: "Invalid image" }, { status: 400 })
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      throw new Error("Google Maps API key not configured");
     }
 
-    const imageBuffer = Buffer.from(await image.arrayBuffer())
-    let location: Location | null = null
+    // Construct location parameter
+    const locationParam = typeof location === 'string' 
+      ? encodeURIComponent(location)
+      : `${location.latitude},${location.longitude}`;
+
+    // Get Street View image
+    const response = await axios({
+      method: 'get',
+      url: `https://maps.googleapis.com/maps/api/streetview`,
+      params: {
+        size: '600x400',
+        location: locationParam,
+        key: apiKey,
+      },
+      responseType: 'arraybuffer'
+    });
+
+    if (response.status === 200) {
+      return Buffer.from(response.data);
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error fetching Street View image:", error);
+    return null;
+  }
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  try {
+    console.log("Received POST request");
+    const formData = await request.formData();
+    
+    // Check for address input
+    const address = formData.get("address");
+    if (address && typeof address === "string") {
+      console.log("Processing address-based lookup");
+      
+      // First, geocode the address
+      const geocodeResponse = await axios.get(
+        "https://maps.googleapis.com/maps/api/geocode/json",
+        {
+          params: {
+            address,
+            key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+          },
+        }
+      );
+
+      const geocodeResult = geocodeResponse.data.results[0];
+      if (!geocodeResult) {
+        return NextResponse.json({ 
+          success: false, 
+          error: "Address not found" 
+        }, { status: 404 });
+      }
+
+      // Get Street View image for the location
+      const streetViewImage = await getStreetViewImage(address);
+      if (!streetViewImage) {
+        return NextResponse.json({ 
+          success: false, 
+          error: "Street View image not available for this location" 
+        }, { status: 404 });
+      }
+
+      // Process the Street View image with Building Analyzer
+      const location = {
+        latitude: geocodeResult.geometry.location.lat,
+        longitude: geocodeResult.geometry.location.lng,
+      };
+
+      const result = await BuildingAnalyzer.analyzeImage(streetViewImage, location);
+      
+      // Add the street view image URL to the response
+      return NextResponse.json({
+        ...result,
+        streetViewUrl: `https://maps.googleapis.com/maps/api/streetview?size=600x400&location=${encodeURIComponent(address)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`,
+        formattedAddress: geocodeResult.formatted_address,
+      }, { status: result.success ? 200 : 404 });
+    }
+
+    // Handle existing image upload case
+    const image = formData.get("image") as File | null;
+    const lat = formData.get("lat");
+    const lng = formData.get("lng");
+
+    if (!image && !address) {
+      console.error("Invalid image and no address provided");
+      return NextResponse.json({ 
+        success: false, 
+        error: "Must provide either an image or an address" 
+      }, { status: 400 });
+    }
+
+    let imageBuffer: Buffer;
+    let location: Location | null = null;
+
+    if (image) {
+      imageBuffer = Buffer.from(await image.arrayBuffer());
+    } else {
+      return NextResponse.json({ 
+        success: false, 
+        error: "No image provided" 
+      }, { status: 400 });
+    }
 
     if (lat && lng) {
       location = {
         latitude: Number.parseFloat(lat.toString()),
         longitude: Number.parseFloat(lng.toString()),
-      }
+      };
     } else {
-      location = await extractExifLocation(imageBuffer)
+      location = await extractExifLocation(imageBuffer);
     }
-
-    console.log("Parsed location:", location)
 
     if (!location) {
-      console.error("Location required")
-      return NextResponse.json({ success: false, error: "Location required" }, { status: 400 })
+      return NextResponse.json({ 
+        success: false, 
+        error: "Location required" 
+      }, { status: 400 });
     }
 
-    console.log("Starting building analysis...")
-    const result = await BuildingAnalyzer.analyzeImage(imageBuffer, location)
-    console.log("Analysis result:", result)
+    const result = await BuildingAnalyzer.analyzeImage(imageBuffer, location);
+    return NextResponse.json(result, { status: result.success ? 200 : 404 });
 
-    return NextResponse.json(result, { status: result.success ? 200 : 404 })
   } catch (error) {
-    console.error("Request failed:", error)
+    console.error("Request failed:", error);
     return NextResponse.json(
       {
         success: false,
         error: error instanceof Error ? error.message : "Server error",
       },
-      { status: 500 },
-    )
+      { status: 500 }
+    );
   }
 }
 
@@ -1345,6 +1526,5 @@ export async function OPTIONS(request: NextRequest) {
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
     },
-  })
+  });
 }
-
