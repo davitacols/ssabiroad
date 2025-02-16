@@ -1,10 +1,32 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import type React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Info, MapPin, Navigation, Star, Clock, Phone, Globe, AccessibilityIcon, Shield, CheckCircle } from 'lucide-react'
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import {
+  Info,
+  MapPin,
+  Navigation,
+  Star,
+  Clock,
+  Phone,
+  Globe,
+  AccessibilityIcon,
+  Shield,
+  CheckCircle,
+  Building,
+  Bus,
+  Palette,
+  Droplet,
+  Contrast,
+  Zap,
+  Layers,
+  PaintBucket,
+} from "lucide-react"
 
 interface DetectionResult {
   success: boolean
@@ -51,10 +73,32 @@ interface DetectionResult {
 
 interface BuildingInfoCardProps {
   detectionResult: DetectionResult
-  address: string | null
 }
 
-const BuildingInfoCard: React.FC<BuildingInfoCardProps> = ({ detectionResult, address }) => {
+const BuildingInfoCard: React.FC<BuildingInfoCardProps> = ({ detectionResult }) => {
+  const [address, setAddress] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchAddress = async () => {
+      try {
+        const response = await fetch(
+          `https://api.opencagedata.com/geocode/v1/json?q=${detectionResult.location.latitude}+${detectionResult.location.longitude}&key=YOUR_API_KEY`,
+        )
+        const data = await response.json()
+        if (data.results && data.results.length > 0) {
+          setAddress(data.results[0].formatted)
+        }
+      } catch (error) {
+        console.error("Error fetching address:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAddress()
+  }, [detectionResult.location])
+
   const handleNavigate = () => {
     if (detectionResult?.location) {
       const destination = encodeURIComponent(
@@ -65,219 +109,375 @@ const BuildingInfoCard: React.FC<BuildingInfoCardProps> = ({ detectionResult, ad
     }
   }
 
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 0.8) return "text-green-500"
+    if (confidence >= 0.6) return "text-yellow-500"
+    return "text-red-500"
+  }
+
+  const getSafetyBadgeColor = (score: number) => {
+    if (score >= 8) return "bg-green-500"
+    if (score >= 6) return "bg-yellow-500"
+    return "bg-red-500"
+  }
+
+  const getBrightnessContrastColor = (hexColor: string): string => {
+    const r = Number.parseInt(hexColor.slice(1, 3), 16)
+    const g = Number.parseInt(hexColor.slice(3, 5), 16)
+    const b = Number.parseInt(hexColor.slice(5, 7), 16)
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000
+    return brightness > 128 ? "#000000" : "#ffffff"
+  }
+
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold">{detectionResult.description || "Building Details"}</CardTitle>
+    <Card className="w-full shadow-lg bg-card">
+      <CardHeader className="bg-gradient-to-r from-background to-muted px-4 sm:px-6">
+        <div className="flex items-center gap-2">
+          <Building className="w-5 h-5 sm:w-6 sm:h-6 text-foreground" />
+          <CardTitle className="text-xl sm:text-2xl font-bold text-foreground truncate">
+            {detectionResult.description || "Building Details"}
+          </CardTitle>
+        </div>
       </CardHeader>
-      <CardContent>
+
+      <CardContent className="p-3 sm:p-6">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="w-full justify-start mb-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="amenities">Amenities</TabsTrigger>
-            <TabsTrigger value="imageProperties">Image Properties</TabsTrigger>
+          <TabsList className="w-full justify-start mb-4 sm:mb-6 bg-muted p-1 rounded-lg overflow-x-auto flex-nowrap">
+            <TabsTrigger value="overview" className="flex-shrink-0">
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="amenities" className="flex-shrink-0">
+              Amenities
+            </TabsTrigger>
+            <TabsTrigger value="imageProperties" className="flex-shrink-0">
+              Image Analysis
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-2 text-green-600">
-                <Info className="w-5 h-5" />
-                <span>Detection Type: {detectionResult.type}</span>
-              </div>
-              <div className="flex items-center gap-2 text-green-600">
-                <Info className="w-5 h-5" />
-                <span>Confidence: {(detectionResult.confidence * 100).toFixed(1)}%</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="w-5 h-5" />
-                <span>
-                  Location: {detectionResult.location.latitude.toFixed(6)},{" "}
-                  {detectionResult.location.longitude.toFixed(6)}
-                </span>
-              </div>
-              {address && (
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  <span>Address: {address}</span>
+          <TabsContent value="overview" className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`${getConfidenceColor(detectionResult.confidence)} text-xs sm:text-sm`}
+                  >
+                    <Info className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                    Confidence: {(detectionResult.confidence * 100).toFixed(1)}%
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className={`${getSafetyBadgeColor(detectionResult.safetyScore)} text-white text-xs sm:text-sm`}
+                  >
+                    <Shield className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                    Safety Score: {detectionResult.safetyScore}/10
+                  </Badge>
                 </div>
-              )}
-              <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                <span>Safety Score: {detectionResult.safetyScore}</span>
+
+                <div className="flex flex-col gap-2">
+                  <span className="font-semibold flex items-center gap-2 text-foreground">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    Location
+                  </span>
+                  <div className="pl-4 sm:pl-6 space-y-2">
+                    <div className="text-xs sm:text-sm text-muted-foreground break-words">
+                      Coordinates: {detectionResult.location.latitude.toFixed(6)},{" "}
+                      {detectionResult.location.longitude.toFixed(6)}
+                    </div>
+                    {loading ? (
+                      <div className="text-xs sm:text-sm text-muted-foreground">Fetching address...</div>
+                    ) : address ? (
+                      <div className="text-xs sm:text-sm text-foreground break-words">{address}</div>
+                    ) : (
+                      <div className="text-xs sm:text-sm text-muted-foreground">Address not available</div>
+                    )}
+                  </div>
+                </div>
+
+                <Button onClick={handleNavigate} className="w-full mt-4 sm:mt-6" size="sm">
+                  <Navigation className="w-4 h-4 mr-2" />
+                  Open in Maps
+                </Button>
               </div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5" />
-                <span>Last Updated: {new Date(detectionResult.lastUpdated).toLocaleString()}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5" />
-                <span>Source Reliability: {(detectionResult.sourceReliability * 100).toFixed(2)}%</span>
+
+              <div className="space-y-4">
+                <div className="flex flex-col gap-2">
+                  <span className="font-semibold flex items-center gap-2 text-foreground">
+                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    Last Updated
+                  </span>
+                  <div className="pl-4 sm:pl-6">
+                    <div className="text-xs sm:text-sm text-muted-foreground">
+                      {new Date(detectionResult.lastUpdated).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <span className="font-semibold flex items-center gap-2 text-foreground">
+                    <CheckCircle className="w-4 h-4 text-muted-foreground" />
+                    Source Reliability
+                  </span>
+                  <div className="pl-4 sm:pl-6">
+                    <Progress value={detectionResult.sourceReliability * 100} className="h-2" />
+                    <span className="text-xs sm:text-sm text-muted-foreground mt-1 block">
+                      {(detectionResult.sourceReliability * 100).toFixed(2)}% reliable
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <Button onClick={handleNavigate} className="w-full mt-4">
-              <Navigation className="w-5 h-5 mr-2" />
-              Open in Maps
-            </Button>
-
-            {detectionResult.features && (
-              <div className="mt-4">
-                <h3 className="font-semibold mb-2">Building Features</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {detectionResult.features.style && (
+            <div className="space-y-4">
+              <div className="flex flex-col gap-2">
+                <span className="font-semibold flex items-center gap-2 text-foreground">
+                  <Building className="w-4 h-4 text-muted-foreground" />
+                  Building Features
+                </span>
+                <div className="pl-4 sm:pl-6 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {detectionResult.features?.architecture && (
                     <div>
-                      <span className="font-medium">Style:</span> {detectionResult.features.style.join(", ")}
+                      <span className="text-sm font-medium text-foreground">Architecture:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {detectionResult.features.architecture.map((item, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {item}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   )}
-                  {detectionResult.features.architecture && (
+                  {detectionResult.features?.materials && (
                     <div>
-                      <span className="font-medium">Architecture:</span>{" "}
-                      {detectionResult.features.architecture.join(", ")}
+                      <span className="text-sm font-medium text-foreground">Materials:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {detectionResult.features.materials.map((item, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {item}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   )}
-                  {detectionResult.features.materials && (
+                  {detectionResult.features?.style && (
                     <div>
-                      <span className="font-medium">Materials:</span> {detectionResult.features.materials.join(", ")}
+                      <span className="text-sm font-medium text-foreground">Style:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {detectionResult.features.style.map((item, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {item}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
-            )}
+            </div>
 
-            {detectionResult.publicInfo && (
-              <div className="space-y-4 mt-4">
-                {detectionResult.publicInfo.ratings && detectionResult.publicInfo.ratings.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Star className="w-5 h-5 text-yellow-500" />
-                    <span>
-                      {detectionResult.publicInfo.ratings[0].average.toFixed(1)} (
-                      {detectionResult.publicInfo.ratings[0].total} reviews)
-                    </span>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-2">
+                <span className="font-semibold flex items-center gap-2 text-foreground">
+                  <Layers className="w-4 h-4 text-muted-foreground" />
+                  Similar Buildings
+                </span>
+                <div className="pl-4 sm:pl-6">
+                  <div className="flex flex-wrap gap-2">
+                    {detectionResult.similarBuildings.map((building, index) => (
+                      <Badge key={index} variant="outline" className="text-xs sm:text-sm">
+                        {building}
+                      </Badge>
+                    ))}
                   </div>
-                )}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
 
+          <TabsContent value="amenities" className="space-y-4 sm:space-y-6">
+            {detectionResult.publicInfo && (
+              <>
                 {detectionResult.publicInfo.openingHours && (
-                  <div>
-                    <h3 className="font-semibold mb-2">Opening Hours</h3>
-                    <ul className="list-disc list-inside">
+                  <div className="flex flex-col gap-2">
+                    <span className="font-semibold flex items-center gap-2 text-foreground">
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      Opening Hours
+                    </span>
+                    <div className="pl-4 sm:pl-6">
                       {detectionResult.publicInfo.openingHours.map((hours, index) => (
-                        <li key={index}>{hours}</li>
+                        <div key={index} className="text-sm text-muted-foreground">
+                          {hours}
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 )}
 
                 {detectionResult.publicInfo.contactInfo && (
-                  <div className="space-y-2">
-                    {detectionResult.publicInfo.contactInfo.phone && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-5 h-5" />
-                        <a
-                          href={`tel:${detectionResult.publicInfo.contactInfo.phone}`}
-                          className="text-blue-600 hover:underline"
-                        >
-                          {detectionResult.publicInfo.contactInfo.phone}
-                        </a>
-                      </div>
-                    )}
-                    {detectionResult.publicInfo.contactInfo.website && (
-                      <div className="flex items-center gap-2">
-                        <Globe className="w-5 h-5" />
-                        <a
-                          href={detectionResult.publicInfo.contactInfo.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
-                        >
-                          Visit Website
-                        </a>
-                      </div>
-                    )}
+                  <div className="flex flex-col gap-2">
+                    <span className="font-semibold flex items-center gap-2 text-foreground">
+                      <Phone className="w-4 h-4 text-muted-foreground" />
+                      Contact Information
+                    </span>
+                    <div className="pl-4 sm:pl-6 space-y-2">
+                      {detectionResult.publicInfo.contactInfo.phone && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">
+                            {detectionResult.publicInfo.contactInfo.phone}
+                          </span>
+                        </div>
+                      )}
+                      {detectionResult.publicInfo.contactInfo.website && (
+                        <div className="flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-muted-foreground" />
+                          <a
+                            href={detectionResult.publicInfo.contactInfo.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-500 hover:underline"
+                          >
+                            {detectionResult.publicInfo.contactInfo.website}
+                          </a>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
-              </div>
+
+                {detectionResult.publicInfo.ratings && detectionResult.publicInfo.ratings.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <span className="font-semibold flex items-center gap-2 text-foreground">
+                      <Star className="w-4 h-4 text-muted-foreground" />
+                      Ratings
+                    </span>
+                    <div className="pl-4 sm:pl-6 space-y-2">
+                      {detectionResult.publicInfo.ratings.map((rating, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <Star className="w-4 h-4 text-yellow-400" />
+                          <span className="text-sm text-muted-foreground">
+                            {rating.average.toFixed(1)} ({rating.total} reviews) - {rating.source}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {detectionResult.publicInfo.accessibility && (
+                  <div className="flex flex-col gap-2">
+                    <span className="font-semibold flex items-center gap-2 text-foreground">
+                      <AccessibilityIcon className="w-4 h-4 text-muted-foreground" />
+                      Accessibility Features
+                    </span>
+                    <div className="pl-4 sm:pl-6">
+                      <div className="flex flex-wrap gap-2">
+                        {detectionResult.publicInfo.accessibility.features.map((feature, index) => (
+                          <Badge key={index} variant="outline" className="text-xs sm:text-sm">
+                            {feature}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {detectionResult.publicInfo.publicTransport && (
+                  <div className="flex flex-col gap-2">
+                    <span className="font-semibold flex items-center gap-2 text-foreground">
+                      <Bus className="w-4 h-4 text-muted-foreground" />
+                      Public Transport
+                    </span>
+                    <div className="pl-4 sm:pl-6">
+                      {detectionResult.publicInfo.publicTransport.map((transport, index) => (
+                        <div key={index} className="text-sm text-muted-foreground">
+                          {transport}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </TabsContent>
 
-          <TabsContent value="amenities" className="space-y-4">
-            {detectionResult.publicInfo?.accessibility && (
-              <div>
-                <h3 className="font-semibold flex items-center gap-2 mb-2">
-                  <AccessibilityIcon className="w-5 h-5" />
-                  Accessibility Features
-                </h3>
-                <ul className="list-disc list-inside">
-                  {detectionResult.publicInfo.accessibility.features.map((feature, index) => (
-                    <li key={index}>{feature}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {detectionResult.similarBuildings && detectionResult.similarBuildings.length > 0 && (
-              <div>
-                <h3 className="font-semibold mb-2">Similar Buildings</h3>
-                <ul className="list-disc list-inside">
-                  {detectionResult.similarBuildings.map((building, index) => (
-                    <li key={index}>{building}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {detectionResult.publicInfo?.publicTransport && detectionResult.publicInfo.publicTransport.length > 0 && (
-              <div>
-                <h3 className="font-semibold mb-2">Public Transport</h3>
-                <ul className="list-disc list-inside">
-                  {detectionResult.publicInfo.publicTransport.map((transport, index) => (
-                    <li key={index}>{transport}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="imageProperties" className="space-y-4">
-            <h3 className="font-semibold text-lg">Image Properties</h3>
-            {detectionResult.imageProperties && (
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-semibold">Dominant Colors</h4>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {detectionResult.imageProperties.dominantColors.map((color, index) => (
+          <TabsContent value="imageProperties" className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="flex flex-col gap-2">
+                <span className="font-semibold flex items-center gap-2 text-foreground">
+                  <Palette className="w-4 h-4 text-muted-foreground" />
+                  Dominant Colors
+                </span>
+                <div className="pl-4 sm:pl-6 flex flex-wrap gap-2">
+                  {detectionResult.imageProperties.dominantColors.map((color, index) => (
+                    <div key={index} className="flex items-center gap-2">
                       <div
-                        key={index}
-                        className="w-8 h-8 rounded-full border"
+                        className="w-6 h-6 rounded-full border border-gray-300"
                         style={{ backgroundColor: color }}
-                        title={color}
                       ></div>
-                    ))}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="font-semibold">Brightness</h4>
-                    <p>{(detectionResult.imageProperties.brightness * 100).toFixed(2)}%</p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold">Contrast</h4>
-                    <p>{(detectionResult.imageProperties.contrast * 100).toFixed(2)}%</p>
-                  </div>
-                  {detectionResult.imageProperties.primaryStyle && (
-                    <div>
-                      <h4 className="font-semibold">Primary Style</h4>
-                      <p>{detectionResult.imageProperties.primaryStyle}</p>
+                      <span className="text-xs font-mono" style={{ color: getBrightnessContrastColor(color) }}>
+                        {color}
+                      </span>
                     </div>
-                  )}
-                  {detectionResult.imageProperties.aestheticScore !== undefined && (
-                    <div>
-                      <h4 className="font-semibold">Aesthetic Score</h4>
-                      <p>{detectionResult.imageProperties.aestheticScore.toFixed(2)}</p>
-                    </div>
-                  )}
+                  ))}
                 </div>
               </div>
-            )}
+
+              <div className="flex flex-col gap-2">
+                <span className="font-semibold flex items-center gap-2 text-foreground">
+                  <Droplet className="w-4 h-4 text-muted-foreground" />
+                  Brightness
+                </span>
+                <div className="pl-4 sm:pl-6">
+                  <Progress value={detectionResult.imageProperties.brightness * 100} className="h-2" />
+                  <span className="text-xs sm:text-sm text-muted-foreground mt-1 block">
+                    {(detectionResult.imageProperties.brightness * 100).toFixed(2)}%
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <span className="font-semibold flex items-center gap-2 text-foreground">
+                  <Contrast className="w-4 h-4 text-muted-foreground" />
+                  Contrast
+                </span>
+                <div className="pl-4 sm:pl-6">
+                  <Progress value={detectionResult.imageProperties.contrast * 100} className="h-2" />
+                  <span className="text-xs sm:text-sm text-muted-foreground mt-1 block">
+                    {(detectionResult.imageProperties.contrast * 100).toFixed(2)}%
+                  </span>
+                </div>
+              </div>
+
+              {detectionResult.imageProperties.primaryStyle && (
+                <div className="flex flex-col gap-2">
+                  <span className="font-semibold flex items-center gap-2 text-foreground">
+                    <PaintBucket className="w-4 h-4 text-muted-foreground" />
+                    Primary Style
+                  </span>
+                  <div className="pl-4 sm:pl-6">
+                    <Badge variant="secondary" className="text-xs sm:text-sm">
+                      {detectionResult.imageProperties.primaryStyle}
+                    </Badge>
+                  </div>
+                </div>
+              )}
+
+              {detectionResult.imageProperties.aestheticScore !== undefined && (
+                <div className="flex flex-col gap-2">
+                  <span className="font-semibold flex items-center gap-2 text-foreground">
+                    <Zap className="w-4 h-4 text-muted-foreground" />
+                    Aesthetic Score
+                  </span>
+                  <div className="pl-4 sm:pl-6">
+                    <Progress value={detectionResult.imageProperties.aestheticScore * 10} className="h-2" />
+                    <span className="text-xs sm:text-sm text-muted-foreground mt-1 block">
+                      {detectionResult.imageProperties.aestheticScore.toFixed(1)}/10
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </CardContent>
@@ -286,3 +486,4 @@ const BuildingInfoCard: React.FC<BuildingInfoCardProps> = ({ detectionResult, ad
 }
 
 export default BuildingInfoCard
+
