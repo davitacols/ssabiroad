@@ -5,22 +5,37 @@ import { useRouter } from "next/navigation";
 import DashboardHeader from "./components/DashboardHeader";
 import BuildingDetector from "./components/BuildingDetector";
 import StatsGrid from "./components/StatsGrid";
+import BuildingInfoCard from "./components/BuildingInfoCard";
 import ActivityChart from "./components/ActivityChart";
 import RecentDetectionsCard from "./components/RecentDetectionsCard";
-import BuildingInfoCard from "./components/BuildingInfoCard";
+import LocationSearch from "./components/LocationSearch";
 import { fetchUserData, fetchStats, fetchRecentDetections } from "./utils/api";
 import {
   updateStats,
   addRecentDetection,
   updateUsageData,
 } from "./utils/dataHelpers";
-import LocationSearch from "./components/LocationSearch";
 
 interface Location {
   lat: number;
   lng: number;
   accuracy: number;
   timestamp: number;
+}
+
+interface LocationDetails {
+  name: string;
+  formattedAddress: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
+  placeId: string;
+  types: string[];
+  website?: string;
+  phoneNumber?: string;
+  rating?: number;
+  userRatingsTotal?: number;
 }
 
 export default function Dashboard() {
@@ -48,10 +63,23 @@ export default function Dashboard() {
   ]);
   const [theme, setTheme] = useState("system");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [fetchState, setFetchState] = useState({ loading: true, error: null });
+  const [locationDetails, setLocationDetails] = useState<LocationDetails | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     fetchInitialData();
     applyTheme();
+
+    // Add scroll event listener
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   const applyTheme = () => {
@@ -87,6 +115,9 @@ export default function Dashboard() {
     ) {
       setLocationHistory((prev) => [...prev, newLocation]);
     }
+
+    // Fetch location details and set them
+    fetchLocationDetails(newLocation);
   };
 
   const calculateDistance = (loc1: Location, loc2: Location) => {
@@ -104,44 +135,62 @@ export default function Dashboard() {
     return R * c;
   };
 
+  const fetchLocationDetails = async (location: Location) => {
+    try {
+      const response = await fetch(`/api/location-search?query=${location.lat},${location.lng}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch location details");
+      }
+      const data: LocationDetails = await response.json();
+      setLocationDetails(data);
+    } catch (error) {
+      console.error("Error fetching location details:", error);
+    }
+  };
+
   const fetchInitialData = async () => {
     setFetchState({ loading: true, error: null });
-    
+
     try {
       // Fetch data in parallel but handle each response independently
       const userDataPromise = fetchUserData()
-        .then(data => setUserName(data.name))
-        .catch(error => {
+        .then((data) => setUserName(data.name))
+        .catch((error) => {
           console.error("Error fetching user data:", error);
           setUserName("Guest");
         });
 
       const statsPromise = fetchStats()
-        .then(data => setStats(data))
-        .catch(error => {
+        .then((data) => setStats(data))
+        .catch((error) => {
           console.error("Error fetching stats:", error);
           // Keep default stats
         });
 
       const detectionsPromise = fetchRecentDetections()
-        .then(data => {
+        .then((data) => {
           if (data && data.length > 0) {
             setRecentDetections(data);
           }
         })
-        .catch(error => {
+        .catch((error) => {
           console.error("Error fetching recent detections:", error);
           // Keep fallback detections
         });
 
       // Wait for all promises to settle (regardless of success/failure)
-      await Promise.allSettled([userDataPromise, statsPromise, detectionsPromise]);
-      
+      await Promise.allSettled([
+        userDataPromise,
+        statsPromise,
+        detectionsPromise,
+      ]);
+
       setFetchState({ loading: false, error: null });
     } catch (error) {
-      setFetchState({ 
-        loading: false, 
-        error: "Unable to load some dashboard data. Please try refreshing the page."
+      setFetchState({
+        loading: false,
+        error:
+          "Unable to load some dashboard data. Please try refreshing the page.",
       });
     }
   };
@@ -179,61 +228,140 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200">
-      {/* Responsive Header */}
-      <header className="sticky top-0 z-50 bg-white dark:bg-gray-800 shadow-md">
+      {/* Responsive Header with transition effect for scrolling */}
+      <header className={`sticky top-0 z-50 bg-white dark:bg-gray-800 shadow-md transition-all duration-300 ${isScrolled ? 'py-2' : 'py-4'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <h1 className="text-xl font-bold">Dashboard</h1>
-            
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 md:hidden"
-            >
-              <span className="sr-only">Open main menu</span>
-              <svg
-                className="block h-6 w-6"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className="h-8 w-8 text-indigo-500" 
+                fill="none" 
+                viewBox="0 0 24 24" 
                 stroke="currentColor"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" 
                 />
               </svg>
-            </button>
+              <h1 className={`font-bold transition-all duration-300 ${isScrolled ? 'text-lg' : 'text-xl'}`}>Building Explorer</h1>
+            </div>
 
             {/* Desktop navigation */}
             <div className="hidden md:flex items-center space-x-4">
+              <nav className="flex items-center space-x-6">
+                <a href="#" className="text-gray-700 dark:text-gray-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors duration-150">
+                  Dashboard
+                </a>
+                <a href="#" className="text-gray-700 dark:text-gray-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors duration-150">
+                  Favorites
+                </a>
+                <a href="#" className="text-gray-700 dark:text-gray-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors duration-150">
+                  History
+                </a>
+              </nav>
+              <div className="border-l border-gray-200 dark:border-gray-700 h-6"></div>
               <select
                 value={theme}
                 onChange={(e) => setTheme(e.target.value)}
-                className="p-2 bg-gray-200 dark:bg-gray-700 rounded"
+                className="p-2 bg-gray-200 dark:bg-gray-700 rounded text-sm"
               >
                 <option value="light">Light</option>
                 <option value="dark">Dark</option>
                 <option value="system">System</option>
               </select>
+              <button
+                onClick={handleLogout}
+                className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-md text-sm transition-colors duration-150"
+              >
+                Logout
+              </button>
             </div>
+
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 md:hidden transition-colors duration-150"
+              aria-expanded={isMobileMenuOpen}
+            >
+              <span className="sr-only">
+                {isMobileMenuOpen ? "Close main menu" : "Open main menu"}
+              </span>
+              {isMobileMenuOpen ? (
+                <svg
+                  className="block h-6 w-6"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="block h-6 w-6"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Mobile menu */}
-        <div className={`${isMobileMenuOpen ? 'block' : 'hidden'} md:hidden`}>
-          <div className="px-2 pt-2 pb-3 space-y-1">
-            <select
-              value={theme}
-              onChange={(e) => setTheme(e.target.value)}
-              className="w-full p-2 bg-gray-200 dark:bg-gray-700 rounded"
-            >
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-              <option value="system">System</option>
-            </select>
+        {/* Mobile menu - animated slide down */}
+        <div 
+          className={`transform transition-transform duration-300 ease-in-out ${
+            isMobileMenuOpen ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+          } md:hidden absolute w-full bg-white dark:bg-gray-800 shadow-lg z-50`}
+          style={{ visibility: isMobileMenuOpen ? 'visible' : 'hidden' }}
+        >
+          <div className="px-4 py-2 space-y-1 border-t border-gray-200 dark:border-gray-700">
+            <nav className="flex flex-col space-y-3 py-3">
+              <a href="#" className="text-gray-700 dark:text-gray-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors duration-150 py-1">
+                Dashboard
+              </a>
+              <a href="#" className="text-gray-700 dark:text-gray-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors duration-150 py-1">
+                Favorites
+              </a>
+              <a href="#" className="text-gray-700 dark:text-gray-300 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors duration-150 py-1">
+                History
+              </a>
+            </nav>
+            <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+            <div className="flex flex-col space-y-3 py-2">
+              <select
+                value={theme}
+                onChange={(e) => setTheme(e.target.value)}
+                className="w-full p-2 bg-gray-200 dark:bg-gray-700 rounded text-sm"
+              >
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="system">System</option>
+              </select>
+              <button
+                onClick={handleLogout}
+                className="w-full bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-md text-sm transition-colors duration-150"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -269,6 +397,8 @@ export default function Dashboard() {
               currentLocation={currentLocation}
             />
           </div>
+
+          
 
           {/* Detection Result */}
           {showResult && detectionResult && (
