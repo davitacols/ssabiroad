@@ -1,157 +1,157 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { Search, Loader2, X, MapPin, Info, Globe, Map, Building, Navigation } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import type React from "react"
+
+import { useState, useEffect } from "react"
+import { Search, Loader2, X, MapPin, Info, Globe, Map, Building } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface LocationSearchProps {
   onSelectLocation: (location: {
-    lat: number;
-    lng: number;
-    accuracy: number;
-    details?: LocationDetails;
-  }) => void;
+    lat: number
+    lng: number
+    accuracy: number
+    details?: LocationDetails
+  }) => void
 }
 
 interface Suggestion {
-  place_id: string;
-  description: string;
+  place_id: string
+  description: string
   structured_formatting?: {
-    main_text?: string;
-    secondary_text?: string;
-  };
+    main_text?: string
+    secondary_text?: string
+  }
 }
 
 interface LocationDetails {
-  address_components: any[];
-  formatted_address: string;
+  address_components: any[]
+  formatted_address: string
   geometry: {
-    location: { lat: number; lng: number };
-    viewport: any;
-  };
-  place_id: string;
-  types: string[];
-  name?: string;
-  photos?: any[];
-  rating?: number;
-  user_ratings_total?: number;
-  opening_hours?: any;
-  website?: string;
-  formatted_phone_number?: string;
-  international_phone_number?: string;
-  reviews?: any[];
-  price_level?: number;
-  vicinity?: string;
-  adr_address?: string;
-  utc_offset_minutes?: number;
-  business_status?: string;
-  icon?: string;
-  icon_mask_base_uri?: string;
-  icon_background_color?: string;
-  nearby_places?: any[];
-  demographic_data?: any;
-  local_government_data?: any;
-  weather_data?: any;
-  accessibility_data?: any;
-  public_records?: any;
-  property_data?: any;
-  zoning_info?: any;
-  environmental_data?: any;
-  historical_data?: any;
-  transit_data?: any;
-  satellite_imagery?: any;
+    location: { lat: number; lng: number }
+    viewport: any
+  }
+  place_id: string
+  types: string[]
+  name?: string
+  photos?: any[]
+  rating?: number
+  user_ratings_total?: number
+  opening_hours?: any
+  website?: string
+  formatted_phone_number?: string
+  international_phone_number?: string
+  reviews?: any[]
+  price_level?: number
+  vicinity?: string
+  adr_address?: string
+  utc_offset_minutes?: number
+  business_status?: string
+  icon?: string
+  icon_mask_base_uri?: string
+  icon_background_color?: string
+  nearby_places?: any[]
+  demographic_data?: any
+  local_government_data?: any
+  weather_data?: any
+  accessibility_data?: any
+  public_records?: any
+  property_data?: any
+  zoning_info?: any
+  environmental_data?: any
+  historical_data?: any
+  transit_data?: any
+  satellite_imagery?: any
 }
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyC56tMVTlDcInBCHog0YqkuQ2cgH9JJuhU";
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "YOUR_API_KEY_HERE"
 
 export default function LocationSearch({ onSelectLocation }: LocationSearchProps) {
-  const [search, setSearch] = useState("");
-  const [activeSuggestion, setActiveSuggestion] = useState<number | null>(null);
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isApiLoaded, setIsApiLoaded] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [locationDetails, setLocationDetails] = useState<LocationDetails | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [searchType, setSearchType] = useState<'address' | 'coordinates' | 'place'>('address');
+  const [search, setSearch] = useState("")
+  const [activeSuggestion, setActiveSuggestion] = useState<number | null>(null)
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [isApiLoaded, setIsApiLoaded] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [locationDetails, setLocationDetails] = useState<LocationDetails | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [searchType, setSearchType] = useState<"address" | "coordinates" | "place">("address")
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
-    };
+      setIsMobile(window.innerWidth < 640)
+    }
 
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+    return () => window.removeEventListener("resize", checkMobile)
+  }, [])
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: NodeJS.Timeout
 
     if (search.trim() === "") {
-      setSuggestions([]);
-      setError(null);
-      return;
+      setSuggestions([])
+      setError(null)
+      return
     }
 
-    // Detect if search is coordinates
-    const coordRegex = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/;
+    const coordRegex = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/
     if (coordRegex.test(search.trim())) {
-      setSearchType('coordinates');
+      setSearchType("coordinates")
     } else {
-      setSearchType('address');
+      setSearchType("address")
     }
 
-    setIsLoading(true);
-    setError(null);
-    
+    setIsLoading(true)
+    setError(null)
+
     timeoutId = setTimeout(async () => {
       try {
-        let endpoint = '/api/location-search';
-        
-        if (searchType === 'coordinates') {
-          endpoint = '/api/reverse-geocode';
-        }
-        
-        const response = await fetch(`${endpoint}?query=${encodeURIComponent(search)}`);
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to fetch suggestions");
-        }
-        
-        const data = await response.json();
-        console.log("API Response:", data);
-        
-        if (data.length === 0) {
-          setError("No results found. Try a different search term or format.");
-        }
-        
-        setSuggestions(data);
-      } catch (error) {
-        console.error("Error fetching suggestions:", error);
-        setSuggestions([]);
-        setError(error instanceof Error ? error.message : "An unknown error occurred");
-      } finally {
-        setIsLoading(false);
-      }
-    }, 300);
+        let endpoint = "/api/location-search"
 
-    return () => clearTimeout(timeoutId);
-  }, [search]);
+        if (searchType === "coordinates") {
+          endpoint = "/api/reverse-geocode"
+        }
+
+        const response = await fetch(`${endpoint}?query=${encodeURIComponent(search)}`)
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch suggestions")
+        }
+
+        const data = await response.json()
+
+        if (data.length === 0) {
+          setError("No results found. Try a different search term or format.")
+        }
+
+        setSuggestions(data)
+      } catch (error) {
+        console.error("Error fetching suggestions:", error)
+        setSuggestions([])
+        setError("An error occurred while fetching suggestions. Please try again.")
+      } finally {
+        setIsLoading(false)
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [search, searchType])
 
   const fetchDetailedLocationInfo = async (placeId: string): Promise<LocationDetails> => {
     try {
-      // First, fetch detailed place information using Places API
-      const placeDetailsResponse = await fetch(`/api/place-details?place_id=${placeId}`);
+      const placeDetailsResponse = await fetch(`/api/place-details?place_id=${placeId}`)
       if (!placeDetailsResponse.ok) {
-        throw new Error("Failed to fetch place details");
+        throw new Error("Failed to fetch place details")
       }
-      
-      const placeDetails = await placeDetailsResponse.json();
-      
-      // Run all data fetching in parallel for better performance
+
+      const placeDetails = await placeDetailsResponse.json()
+
       const [
         nearbyPlaces,
         demographicData,
@@ -164,23 +164,34 @@ export default function LocationSearch({ onSelectLocation }: LocationSearchProps
         environmentalData,
         historicalData,
         transitData,
-        satelliteImagery
+        satelliteImagery,
       ] = await Promise.all([
-        fetchNearbyPlaces(placeDetails.geometry.location),
-        fetchDemographicData(placeDetails.geometry.location),
-        fetchGovernmentData(placeDetails.formatted_address),
-        fetchWeatherData(placeDetails.geometry.location),
-        fetchAccessibilityData(placeId),
-        fetchPublicRecords(placeDetails.formatted_address),
-        fetchPropertyData(placeDetails.formatted_address),
-        fetchZoningInfo(placeDetails.geometry.location),
-        fetchEnvironmentalData(placeDetails.geometry.location),
-        fetchHistoricalData(placeDetails.formatted_address),
-        fetchTransitData(placeDetails.geometry.location),
-        fetchSatelliteImagery(placeDetails.geometry.location)
-      ]);
-      
-      // Combine all data
+        fetchData(
+          `/api/nearby-places?lat=${placeDetails.geometry.location.lat}&lng=${placeDetails.geometry.location.lng}`,
+        ),
+        fetchData(
+          `/api/demographic-data?lat=${placeDetails.geometry.location.lat}&lng=${placeDetails.geometry.location.lng}`,
+        ),
+        fetchData(`/api/government-data?address=${encodeURIComponent(placeDetails.formatted_address)}`),
+        fetchData(`/api/weather?lat=${placeDetails.geometry.location.lat}&lng=${placeDetails.geometry.location.lng}`),
+        fetchData(`/api/accessibility?place_id=${placeId}`),
+        fetchData(`/api/public-records?address=${encodeURIComponent(placeDetails.formatted_address)}`),
+        fetchData(`/api/property-data?address=${encodeURIComponent(placeDetails.formatted_address)}`),
+        fetchData(
+          `/api/zoning-info?lat=${placeDetails.geometry.location.lat}&lng=${placeDetails.geometry.location.lng}`,
+        ),
+        fetchData(
+          `/api/environmental-data?lat=${placeDetails.geometry.location.lat}&lng=${placeDetails.geometry.location.lng}`,
+        ),
+        fetchData(`/api/historical-data?address=${encodeURIComponent(placeDetails.formatted_address)}`),
+        fetchData(
+          `/api/transit-data?lat=${placeDetails.geometry.location.lat}&lng=${placeDetails.geometry.location.lng}`,
+        ),
+        fetchData(
+          `/api/satellite-imagery?lat=${placeDetails.geometry.location.lat}&lng=${placeDetails.geometry.location.lng}`,
+        ),
+      ])
+
       return {
         ...placeDetails,
         nearby_places: nearbyPlaces,
@@ -194,269 +205,157 @@ export default function LocationSearch({ onSelectLocation }: LocationSearchProps
         environmental_data: environmentalData,
         historical_data: historicalData,
         transit_data: transitData,
-        satellite_imagery: satelliteImagery
-      };
+        satellite_imagery: satelliteImagery,
+      }
     } catch (error) {
-      console.error("Error fetching detailed location info:", error);
-      return {} as LocationDetails;
+      console.error("Error fetching detailed location info:", error)
+      throw error
     }
-  };
+  }
 
-  // Helper functions to fetch different types of data
-  const fetchNearbyPlaces = async (location: { lat: number, lng: number }) => {
+  const fetchData = async (url: string) => {
     try {
-      const response = await fetch(`/api/nearby-places?lat=${location.lat}&lng=${location.lng}`);
-      return await response.json();
+      const response = await fetch(url)
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null
+        }
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      return await response.json()
     } catch (error) {
-      console.error("Error fetching nearby places:", error);
-      return null;
+      console.error(`Error fetching data from ${url}:`, error)
+      return null
     }
-  };
-
-  const fetchDemographicData = async (location: { lat: number, lng: number }) => {
-    try {
-      const response = await fetch(`/api/demographic-data?lat=${location.lat}&lng=${location.lng}`);
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching demographic data:", error);
-      return null;
-    }
-  };
-
-  const fetchGovernmentData = async (address: string) => {
-    try {
-      const response = await fetch(`/api/government-data?address=${encodeURIComponent(address)}`);
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching government data:", error);
-      return null;
-    }
-  };
-
-  const fetchWeatherData = async (location: { lat: number, lng: number }) => {
-    try {
-      const response = await fetch(`/api/weather?lat=${location.lat}&lng=${location.lng}`);
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching weather data:", error);
-      return null;
-    }
-  };
-
-  const fetchAccessibilityData = async (placeId: string) => {
-    try {
-      const response = await fetch(`/api/accessibility?place_id=${placeId}`);
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching accessibility data:", error);
-      return null;
-    }
-  };
-
-  const fetchPublicRecords = async (address: string) => {
-    try {
-      const response = await fetch(`/api/public-records?address=${encodeURIComponent(address)}`);
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching public records:", error);
-      return null;
-    }
-  };
-
-  const fetchPropertyData = async (address: string) => {
-    try {
-      const response = await fetch(`/api/property-data?address=${encodeURIComponent(address)}`);
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching property data:", error);
-      return null;
-    }
-  };
-
-  const fetchZoningInfo = async (location: { lat: number, lng: number }) => {
-    try {
-      const response = await fetch(`/api/zoning-info?lat=${location.lat}&lng=${location.lng}`);
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching zoning info:", error);
-      return null;
-    }
-  };
-
-  const fetchEnvironmentalData = async (location: { lat: number, lng: number }) => {
-    try {
-      const response = await fetch(`/api/environmental-data?lat=${location.lat}&lng=${location.lng}`);
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching environmental data:", error);
-      return null;
-    }
-  };
-
-  const fetchHistoricalData = async (address: string) => {
-    try {
-      const response = await fetch(`/api/historical-data?address=${encodeURIComponent(address)}`);
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching historical data:", error);
-      return null;
-    }
-  };
-
-  const fetchTransitData = async (location: { lat: number, lng: number }) => {
-    try {
-      const response = await fetch(`/api/transit-data?lat=${location.lat}&lng=${location.lng}`);
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching transit data:", error);
-      return null;
-    }
-  };
-
-  const fetchSatelliteImagery = async (location: { lat: number, lng: number }) => {
-    try {
-      const response = await fetch(`/api/satellite-imagery?lat=${location.lat}&lng=${location.lng}`);
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching satellite imagery:", error);
-      return null;
-    }
-  };
+  }
 
   const handleSelect = async (suggestion: Suggestion) => {
-    setSearch(suggestion.description);
-    setSuggestions([]);
-    setIsLoading(true);
-    setIsProcessing(true);
-    setError(null);
+    setSearch(suggestion.description)
+    setSuggestions([])
+    setIsLoading(true)
+    setIsProcessing(true)
+    setError(null)
 
     try {
-      // Fetch comprehensive location details
-      const details = await fetchDetailedLocationInfo(suggestion.place_id);
-      setLocationDetails(details);
-      
-      // Extract coordinates
+      const details = await fetchDetailedLocationInfo(suggestion.place_id)
+      setLocationDetails(details)
+
       const location = {
         lat: details.geometry.location.lat,
         lng: details.geometry.location.lng,
         accuracy: 20,
-        details: details
-      };
+        details: details,
+      }
 
-      // Pass all information to the parent component
-      onSelectLocation(location);
-
+      onSelectLocation(location)
     } catch (error) {
-      console.error("Error handling location:", error);
-      setError("Failed to fetch comprehensive location details. Please try again.");
+      console.error("Error handling location:", error)
+      setError("Failed to fetch comprehensive location details. Please try again.")
     } finally {
-      setIsLoading(false);
-      setIsProcessing(false);
+      setIsLoading(false)
+      setIsProcessing(false)
     }
-  };
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (search.trim() === "") return;
+    e.preventDefault()
+    if (search.trim() === "") return
 
     if (suggestions.length > 0) {
-      await handleSelect(suggestions[0]);
+      await handleSelect(suggestions[0])
     } else {
-      // Direct geocoding or reverse geocoding based on input
-      setIsLoading(true);
-      setError(null);
-      
+      setIsLoading(true)
+      setError(null)
+
       try {
-        let endpoint = '/api/geocode';
-        let params = `address=${encodeURIComponent(search)}`;
-        
-        // If input matches coordinate pattern, use reverse geocoding
-        const coordRegex = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/;
+        let endpoint = "/api/geocode"
+        let params = `address=${encodeURIComponent(search)}`
+
+        const coordRegex = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/
         if (coordRegex.test(search.trim())) {
-          endpoint = '/api/reverse-geocode';
-          params = `latlng=${encodeURIComponent(search)}`;
+          endpoint = "/api/reverse-geocode"
+          params = `latlng=${encodeURIComponent(search)}`
         }
-        
-        const geocodeResponse = await fetch(`${endpoint}?${params}`);
-        
+
+        const geocodeResponse = await fetch(`${endpoint}?${params}`)
+
         if (!geocodeResponse.ok) {
-          const errorData = await geocodeResponse.json();
-          throw new Error(errorData.message || "Failed to geocode address");
+          throw new Error("Failed to geocode address")
         }
-        
-        const geocodeResult = await geocodeResponse.json();
-        
+
+        const geocodeResult = await geocodeResponse.json()
+
         if (geocodeResult.results && geocodeResult.results.length > 0) {
-          const result = geocodeResult.results[0];
+          const result = geocodeResult.results[0]
           await handleSelect({
             place_id: result.place_id,
-            description: result.formatted_address || search
-          });
+            description: result.formatted_address || search,
+          })
         } else if (geocodeResult.place_id) {
           await handleSelect({
             place_id: geocodeResult.place_id,
-            description: geocodeResult.formatted_address || search
-          });
+            description: geocodeResult.formatted_address || search,
+          })
         } else {
-          setError("Could not find location. Please try a different search term.");
+          setError("Could not find location. Please try a different search term.")
         }
       } catch (error) {
-        console.error("Error geocoding address:", error);
-        setError(error instanceof Error ? error.message : "Failed to process location. Please try again.");
+        console.error("Error geocoding address:", error)
+        setError("Failed to process location. Please try again.")
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
     }
-  };
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!suggestions.length) return;
+    if (!suggestions.length) return
 
     switch (e.key) {
       case "ArrowDown":
-        e.preventDefault();
-        setActiveSuggestion((prev) => (prev === null ? 0 : Math.min(prev + 1, suggestions.length - 1)));
-        break;
+        e.preventDefault()
+        setActiveSuggestion((prev) => (prev === null ? 0 : Math.min(prev + 1, suggestions.length - 1)))
+        break
       case "ArrowUp":
-        e.preventDefault();
-        setActiveSuggestion((prev) => (prev === null ? suggestions.length - 1 : Math.max(prev - 1, 0)));
-        break;
+        e.preventDefault()
+        setActiveSuggestion((prev) => (prev === null ? suggestions.length - 1 : Math.max(prev - 1, 0)))
+        break
       case "Enter":
         if (activeSuggestion !== null) {
-          e.preventDefault();
-          handleSelect(suggestions[activeSuggestion]);
+          e.preventDefault()
+          handleSelect(suggestions[activeSuggestion])
         }
-        break;
+        break
       case "Escape":
-        setSuggestions([]);
-        setActiveSuggestion(null);
-        break;
+        setSuggestions([])
+        setActiveSuggestion(null)
+        break
     }
-  };
+  }
 
   useEffect(() => {
     const loadScript = async () => {
       try {
         await new Promise((resolve, reject) => {
-          const script = document.createElement("script");
-          script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
-          script.async = true;
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
-        setIsApiLoaded(true);
+          const script = document.createElement("script")
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`
+          script.async = true
+          script.onload = resolve
+          script.onerror = reject
+          document.head.appendChild(script)
+        })
+        setIsApiLoaded(true)
       } catch (error) {
-        console.error("Error loading Google Maps API:", error);
+        console.error("Error loading Google Maps API:", error)
       }
-    };
+    }
 
     if (!window.google) {
-      loadScript();
+      loadScript()
     } else {
-      setIsApiLoaded(true);
+      setIsApiLoaded(true)
     }
-  }, []);
+  }, [])
 
   return (
     <motion.div
@@ -466,9 +365,7 @@ export default function LocationSearch({ onSelectLocation }: LocationSearchProps
       transition={{ duration: 0.4 }}
     >
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Comprehensive Location Search
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Comprehensive Location Search</h2>
         <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
           <Info className="w-3 h-3 mr-1" />
           <span>Search for any address, place, or coordinates</span>
@@ -612,93 +509,154 @@ export default function LocationSearch({ onSelectLocation }: LocationSearchProps
       </AnimatePresence>
 
       {locationDetails && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-md"
-        >
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            {locationDetails.name || locationDetails.formatted_address}
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Comprehensive information about this location has been retrieved and passed to the parent component.
-          </p>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
-            <div className="flex items-start gap-2">
-              <MapPin className="w-4 h-4 text-blue-500 mt-0.5" />
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle>{locationDetails.name || locationDetails.formatted_address}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-gray-700 dark:text-gray-200">Coordinates</p>
-                <p className="text-gray-500 dark:text-gray-400">
-                  {locationDetails.geometry?.location.lat.toFixed(6)}, {locationDetails.geometry?.location.lng.toFixed(6)}
+                <h3 className="text-lg font-semibold mb-2">Location Details</h3>
+                <p>
+                  <strong>Address:</strong> {locationDetails.formatted_address}
                 </p>
+                <p>
+                  <strong>Coordinates:</strong> {locationDetails.geometry.location.lat},{" "}
+                  {locationDetails.geometry.location.lng}
+                </p>
+                <p>
+                  <strong>Type:</strong> {locationDetails.types.join(", ")}
+                </p>
+                {locationDetails.website && (
+                  <p>
+                    <strong>Website:</strong>{" "}
+                    <a
+                      href={locationDetails.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:underline"
+                    >
+                      {locationDetails.website}
+                    </a>
+                  </p>
+                )}
+                {locationDetails.formatted_phone_number && (
+                  <p>
+                    <strong>Phone:</strong> {locationDetails.formatted_phone_number}
+                  </p>
+                )}
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Public Information</h3>
+                {locationDetails.types.includes("establishment") ? (
+                  <div>
+                    <h4 className="text-md font-semibold mt-2 mb-1">Business Information</h4>
+                    {locationDetails.opening_hours && (
+                      <div>
+                        <p className="font-medium">Working Hours:</p>
+                        <ul className="list-disc list-inside ml-2">
+                          {locationDetails.opening_hours.weekday_text.map((day: string, index: number) => (
+                            <li key={index} className="text-sm">
+                              {day}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {locationDetails.accessibility_data?.entrances && (
+                      <div className="mt-2">
+                        <p className="font-medium">Door Entrances:</p>
+                        <ul className="list-disc list-inside ml-2">
+                          {locationDetails.accessibility_data.entrances.map((entrance: string, index: number) => (
+                            <li key={index} className="text-sm">
+                              {entrance}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {locationDetails.business_status && (
+                      <p className="mt-2">
+                        <strong>Business Status:</strong> {locationDetails.business_status}
+                      </p>
+                    )}
+                    {locationDetails.rating && (
+                      <p>
+                        <strong>Rating:</strong> {locationDetails.rating} ({locationDetails.user_ratings_total} reviews)
+                      </p>
+                    )}
+                    {locationDetails.price_level && (
+                      <p>
+                        <strong>Price Level:</strong> {"$".repeat(locationDetails.price_level)}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    {locationDetails.public_records ? (
+                      <>
+                        <p>
+                          <strong>Zoning:</strong> {locationDetails.zoning_info?.zoning_code || "N/A"}
+                        </p>
+                        <p>
+                          <strong>Property Size:</strong> {locationDetails.property_data?.lot_size || "N/A"}
+                        </p>
+                        <p>
+                          <strong>Year Built:</strong> {locationDetails.property_data?.year_built || "N/A"}
+                        </p>
+                        <p>
+                          <strong>Last Sale Date:</strong> {locationDetails.property_data?.last_sale_date || "N/A"}
+                        </p>
+                        <p>
+                          <strong>Last Sale Price:</strong> {locationDetails.property_data?.last_sale_price || "N/A"}
+                        </p>
+                      </>
+                    ) : (
+                      <p>No public records available for this location.</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
-            
-            {locationDetails.address_components && (
-              <div className="flex items-start gap-2">
-                <Map className="w-4 h-4 text-green-500 mt-0.5" />
-                <div>
-                  <p className="text-gray-700 dark:text-gray-200">Address Components</p>
-                  <p className="text-gray-500 dark:text-gray-400">
-                    {locationDetails.address_components.length} components retrieved
-                  </p>
-                </div>
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold mb-2">Additional Information</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {[
+                  "nearby_places",
+                  "demographic_data",
+                  "local_government_data",
+                  "weather_data",
+                  "accessibility_data",
+                ].map((dataType) => (
+                  <div key={dataType} className="p-2 bg-gray-100 dark:bg-gray-700 rounded">
+                    <p className="text-sm font-medium">
+                      {dataType.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                    </p>
+                    {locationDetails[dataType as keyof LocationDetails] ? (
+                      <p className="text-xs text-green-600 dark:text-green-400">Available</p>
+                    ) : (
+                      <p className="text-xs text-red-600 dark:text-red-400">Not Available</p>
+                    )}
+                  </div>
+                ))}
               </div>
-            )}
-            
-            {locationDetails.types && (
-              <div className="flex items-start gap-2">
-                <Building className="w-4 h-4 text-purple-500 mt-0.5" />
-                <div>
-                  <p className="text-gray-700 dark:text-gray-200">Location Type</p>
-                  <p className="text-gray-500 dark:text-gray-400">
-                    {locationDetails.types[0]?.replace('_', ' ')}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {locationDetails.public_records && (
-              <div className="flex items-start gap-2">
-                <Globe className="w-4 h-4 text-orange-500 mt-0.5" />
-                <div>
-                  <p className="text-gray-700 dark:text-gray-200">Public Records</p>
-                  <p className="text-gray-500 dark:text-gray-400">Retrieved successfully</p>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Available Data Categories</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {Object.entries({
-                "Demographic Data": locationDetails.demographic_data,
-                "Government Data": locationDetails.local_government_data,
-                "Weather Information": locationDetails.weather_data,
-                "Accessibility Info": locationDetails.accessibility_data,
-                "Property Records": locationDetails.property_data,
-                "Zoning Information": locationDetails.zoning_info,
-                "Environmental Data": locationDetails.environmental_data,
-                "Historical Records": locationDetails.historical_data,
-                "Transit Information": locationDetails.transit_data,
-                "Satellite Imagery": locationDetails.satellite_imagery,
-                "Nearby Places": locationDetails.nearby_places,
-              }).map(([label, data]) => (
-                <div 
-                  key={label}
-                  className={`p-2 rounded border ${data ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-gray-700/30 border-gray-200 dark:border-gray-700'}`}
-                >
-                  <span className={`text-xs font-medium ${data ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                    {label}
-                  </span>
-                </div>
-              ))}
             </div>
-          </div>
-        </motion.div>
+            <div className="mt-4">
+              <Button
+                as={Link}
+                href={`https://www.google.com/maps/search/?api=1&query=${locationDetails.geometry.location.lat},${locationDetails.geometry.location.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center"
+              >
+                <Map className="w-4 h-4 mr-2" />
+                View in Map
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </motion.div>
-  );
+  )
 }
+

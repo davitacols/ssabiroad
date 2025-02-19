@@ -26,9 +26,9 @@ export default function RecentDetectionsCard({ detections }: RecentDetectionsCar
       <CardContent>
         <div className="space-y-4">
           {detections?.length > 0 ? (
-            detections.map((detection) => (
+            detections.map((detection, index) => (
               <div
-                key={detection.id}
+                key={detection.id ?? `detection-${index}`} // Ensure key is unique
                 className="flex items-center p-3 bg-white/20 hover:bg-white/30 rounded-lg transition-colors cursor-pointer"
               >
                 {detection.imageUrl ? (
@@ -41,11 +41,13 @@ export default function RecentDetectionsCard({ detections }: RecentDetectionsCar
                   <Building className="w-8 h-8 text-white mr-3" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate text-white">{detection.building}</p>
-                  <p className="text-sm text-gray-200">{detection.time}</p>
+                  <p className="font-medium truncate text-white">{detection.building || "Unknown Building"}</p>
+                  <p className="text-sm text-gray-200">{detection.time || "Time unavailable"}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-white">{(detection.confidence * 100).toFixed(0)}%</span>
+                  <span className="text-sm font-medium text-white">
+                    {(detection.confidence ? detection.confidence * 100 : 0).toFixed(0)}%
+                  </span>
                   <ChevronRight className="w-5 h-5 text-gray-200" />
                 </div>
               </div>

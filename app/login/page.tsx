@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { FaGoogle, FaFacebook } from "react-icons/fa";
+import { FaGoogle } from "react-icons/fa";
+import { LockIcon, MailIcon } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -29,15 +30,24 @@ export default function Login() {
       });
 
       const data = await response.json();
+
       if (!response.ok) {
         throw new Error(data.error || "Login failed");
       }
 
       localStorage.setItem("token", data.token);
-      alert("Login successful! Redirecting...");
+      
+      fetch("/api/verify", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${data.token}`,
+        },
+      });
+
       router.push("/dashboard");
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "An error occurred. Please try again.");
       console.error("Login Error:", err);
     } finally {
       setLoading(false);
@@ -45,83 +55,139 @@ export default function Login() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6">
-      {/* Logo */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1 }}
-        className="mb-6"
-      >
-        <img src="/logo.png" alt="App Logo" className="w-20 h-20 rounded-full shadow-lg" />
-      </motion.div>
-      
-      {/* Login Form */}
-      <motion.div
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1 }}
-        className="w-full max-w-sm"
-      >
-        <Card className="p-6 bg-white rounded-2xl shadow-lg text-black">
-          <CardContent>
-            <h2 className="text-2xl font-semibold text-center mb-6 text-gray-800">Login</h2>
-            {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700">Email</label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full p-3 rounded-lg bg-gray-100 text-gray-900 border border-gray-300"
-                />
+    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* Brand Section */}
+          <div className="text-center mb-8">
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="inline-block"
+            >
+              <img 
+                src="logos/logo.png" 
+                alt="Logo" 
+                className="w-16 h-16 mx-auto mb-4 rounded-xl shadow-lg"
+              />
+            </motion.div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Welcome Back
+            </h1>
+            <p className="text-gray-500 mt-2 text-sm">
+              Sign in to continue to your dashboard
+            </p>
+          </div>
+
+          <Card className="p-6 bg-white/70 backdrop-blur-lg border border-gray-100 rounded-2xl shadow-xl">
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg">
+                <p className="text-sm text-red-600 text-center" role="alert">
+                  {error}
+                </p>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700">Password</label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full p-3 rounded-lg bg-gray-100 text-gray-900 border border-gray-300"
-                />
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">
+                  Email
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                    <MailIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="pl-10 h-12 bg-white border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="Enter your email"
+                    disabled={loading}
+                  />
+                </div>
               </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                    <LockIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="pl-10 h-12 bg-white border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="Enter your password"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 p-3 rounded-lg text-white font-bold transition duration-300"
                 disabled={loading}
+                className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
               >
-                {loading ? "Signing in..." : "Sign In"}
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 border-t-2 border-white rounded-full animate-spin" />
+                    <span>Signing in...</span>
+                  </div>
+                ) : (
+                  "Sign In"
+                )}
               </Button>
             </form>
 
-            {/* Social Login */}
-            <div className="mt-4 text-center">
-              <p className="text-sm text-gray-700 mb-2">Or sign in with:</p>
-              <div className="flex justify-center gap-4">
-                <Button className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
-                  <FaGoogle /> Google
-                </Button>
-                <Button className="flex items-center gap-2 bg-blue-800 hover:bg-blue-900 text-white px-4 py-2 rounded-lg">
-                  <FaFacebook /> Facebook
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <Button
+                  type="button"
+                  disabled={loading}
+                  className="w-full h-12 bg-white hover:bg-gray-50 text-gray-700 font-medium border border-gray-200 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                >
+                  <FaGoogle className="w-5 h-5 text-red-500" />
+                  <span>Sign in with Google</span>
                 </Button>
               </div>
             </div>
 
-            {/* Sign up link */}
-            <div className="mt-4 text-center">
-              <p className="text-sm text-gray-700">
-                Don't have an account?
-                <Link href="/signup" className="text-blue-500 hover:text-blue-600 font-medium ml-2">
-                  Sign Up
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                Don't have an account?{" "}
+                <Link 
+                  href="/signup" 
+                  className="font-medium text-indigo-600 hover:text-indigo-700"
+                >
+                  Create one
                 </Link>
               </p>
             </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+          </Card>
+        </motion.div>
+      </div>
     </div>
   );
 }

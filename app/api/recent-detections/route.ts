@@ -12,7 +12,7 @@ interface JwtPayload {
 }
 
 // Verify JWT from cookies
-async function verifyToken(request: NextRequest) {
+async function verifyToken(request: NextRequest): Promise<JwtPayload | null> {
   try {
     const token = request.cookies.get("token")?.value;
     if (!token) return null;

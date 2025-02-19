@@ -63,8 +63,8 @@ export default function DashboardHeader({
     };
     
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   useEffect(() => {
@@ -79,12 +79,12 @@ export default function DashboardHeader({
 
   useEffect(() => {
     if (isMenuOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     }
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, [isMenuOpen]);
 
@@ -138,7 +138,10 @@ export default function DashboardHeader({
     setIsLoadingLocation(false);
     toast({
       title: "Location Error",
-      description: typeof error === "string" ? error : "Unable to track location. Please enable GPS.",
+      description:
+        typeof error === "string"
+          ? error
+          : "Unable to track location. Please enable GPS.",
       variant: "destructive",
     });
   };
@@ -242,18 +245,19 @@ export default function DashboardHeader({
               className="md:hidden"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
-              {isMenuOpen ? 
-                <X className="w-5 h-5 sm:w-6 sm:h-6" /> : 
+              {isMenuOpen ? (
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              ) : (
                 <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
-              }
+              )}
             </Button>
           </div>
         </div>
 
         {/* Mobile Menu */}
-        <div 
+        <div
           className={`md:hidden fixed inset-0 top-14 sm:top-16 bg-white dark:bg-gray-900 transition-transform duration-300 ease-in-out ${
-            isMenuOpen ? 'translate-x-0' : 'translate-x-full'
+            isMenuOpen ? "translate-x-0" : "translate-x-full"
           }`}
         >
           <div className="p-4 space-y-2">
@@ -271,10 +275,12 @@ export default function DashboardHeader({
                 {item.name}
               </Button>
             ))}
-            
+
             {/* Mobile Theme Selector */}
             <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Theme</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                Theme
+              </p>
               <div className="grid grid-cols-3 gap-2">
                 {themeOptions.map((option) => {
                   const Icon = option.icon;

@@ -1,5 +1,3 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -26,7 +24,7 @@ model User {
   // Relation fields
   detections     Detection[]
   savedLocations SavedLocation[]
-  buildings      Building[]      // New relation to buildings they've analyzed
+  buildings      Building[]
 }
 
 model Building {
@@ -59,11 +57,13 @@ model Building {
   similarBuildings BuildingSimilarity[] @relation("SimilarTo")
   similarTo       BuildingSimilarity[] @relation("SimilarFrom")
   images          BuildingImage[]
-  detections      Detection[]          // Link to detections
+  detections      Detection[]
   
   // User who first discovered/analyzed the building
   userId          String
   user            User     @relation(fields: [userId], references: [id])
+
+  @@index([latitude, longitude])
 }
 
 model Detection {
@@ -79,12 +79,17 @@ model Detection {
   materials     String[]
   styles        String[]
   imageUrl      String?
+  rawResult     Json?     // Store the raw detection result
   
   // Relation to User and Building
   userId        String
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   buildingId    String?
   building      Building? @relation(fields: [buildingId], references: [id])
+
+  @@index([latitude, longitude])
+  @@index([userId])
+  @@index([buildingId])
 }
 
 model SavedLocation {
@@ -99,6 +104,9 @@ model SavedLocation {
   // Relation to User
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([latitude, longitude])
+  @@index([userId])
 }
 
 model BuildingImage {
@@ -107,6 +115,8 @@ model BuildingImage {
   buildingId  String
   imageUrl    String
   building    Building @relation(fields: [buildingId], references: [id])
+
+  @@index([buildingId])
 }
 
 model BuildingSimilarity {
@@ -118,4 +128,6 @@ model BuildingSimilarity {
   similarTo     Building @relation("SimilarFrom", fields: [similarToId], references: [id])
 
   @@unique([buildingId, similarToId])
+  @@index([buildingId])
+  @@index([similarToId])
 }
