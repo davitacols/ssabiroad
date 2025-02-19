@@ -18,6 +18,7 @@ import {
   AccessibilityIcon,
   Shield,
   CheckCircle,
+  Loader2,
   Building,
   Bus,
   Palette,
@@ -78,6 +79,8 @@ interface BuildingInfoCardProps {
 const BuildingInfoCard: React.FC<BuildingInfoCardProps> = ({ detectionResult }) => {
   const [address, setAddress] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchAddress = async () => {
@@ -108,6 +111,46 @@ const BuildingInfoCard: React.FC<BuildingInfoCardProps> = ({ detectionResult }) 
       window.open(mapsUrl, "_blank")
     }
   }
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveError(null);
+  
+    try {
+      // ✅ Retrieve token from localStorage (or use useSession if applicable)
+      const token = localStorage.getItem("token"); 
+      if (!token) {
+        setSaveError("You must be logged in to save detections.");
+        return;
+      }
+  
+      // ✅ Make API request with authorization header
+      const response = await fetch("/api/save-detection", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`, // 🔹 Ensure token is included
+        },
+        body: JSON.stringify(detectionResult),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to save detection");
+      }
+  
+      // ✅ Show success notification (optional)
+      toast({
+        title: "Success",
+        description: "Detection saved successfully!",
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error("Error saving detection:", error);
+      setSaveError("Failed to save detection");
+    } finally {
+      setSaving(false);
+    }
+  };  
 
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 0.8) return "text-green-500"
@@ -480,10 +523,31 @@ const BuildingInfoCard: React.FC<BuildingInfoCardProps> = ({ detectionResult }) 
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* ✅ Save Detection Button */}
+        <div className="mt-6 flex justify-end">
+          {saveError && <p className="text-red-500 text-sm">{saveError}</p>}
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4" />
+                Save Detection
+              </>
+            )}
+          </Button>
+        </div>
       </CardContent>
     </Card>
-  )
-}
+  );
+};
 
-export default BuildingInfoCard
-
+export default BuildingInfoCard;

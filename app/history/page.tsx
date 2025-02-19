@@ -28,28 +28,45 @@ export default function HistoryPage() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [timeFilter, setTimeFilter] = useState("all");
   const [detections, setDetections] = useState<HistoricalDetection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const router = useRouter();
 
   useEffect(() => {
-    // Fetch real data from API
     const fetchDetections = async () => {
+      setLoading(true);
+      setError("");
+
       try {
-        const response = await fetch('/api/detections', {
-          method: 'GET',
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("No active session found. Please log in.");
+          return;
+        }
+
+        const response = await fetch("/api/detections", {
+          method: "GET",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`, // Assuming token is stored in localStorage
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
 
-        const data = await response.json();
-        setDetections(data);
-      } catch (error) {
-        console.error('Error fetching detection history:', error);
+        const data = await response.json().catch(() => null);
+        if (!data || !Array.isArray(data.detections)) {
+          throw new Error("Unexpected API response format");
+        }
+
+        setDetections(data.detections);
+      } catch (error: any) {
+        console.error("Error fetching detection history:", error);
+        setError(error.message || "Failed to load detections.");
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -68,7 +85,7 @@ export default function HistoryPage() {
   const filterDetections = (detections: HistoricalDetection[]) => {
     return detections
       .filter(detection => {
-        const matchesSearch = 
+        const matchesSearch =
           detection.buildingName.toLowerCase().includes(searchTerm.toLowerCase()) ||
           detection.address.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -89,13 +106,11 @@ export default function HistoryPage() {
       })
       .sort((a, b) => {
         if (sortField === "date") {
-          return sortOrder === "asc" 
+          return sortOrder === "asc"
             ? new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
             : new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
         } else {
-          return sortOrder === "asc"
-            ? a.confidence - b.confidence
-            : b.confidence - a.confidence;
+          return sortOrder === "asc" ? a.confidence - b.confidence : b.confidence - a.confidence;
         }
       });
   };
@@ -136,10 +151,7 @@ export default function HistoryPage() {
                   />
                 </div>
               </div>
-              <Select
-                value={timeFilter}
-                onValueChange={setTimeFilter}
-              >
+              <Select value={timeFilter} onValueChange={setTimeFilter}>
                 <SelectTrigger className="w-[180px]">
                   <Calendar className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="Time period" />
@@ -160,75 +172,23 @@ export default function HistoryPage() {
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-blue-600 dark:text-blue-400">Detection Results</CardTitle>
             <CardDescription className="text-gray-600 dark:text-gray-400">
-              {filteredDetections.length} detections found
+              {loading ? "Loading..." : `${filteredDetections.length} detections found`}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
+            {error ? (
+              <p className="text-red-600 dark:text-red-400 text-center">{error}</p>
+            ) : (
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Building</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>
-                      <Button
-                        variant="ghost"
-                        onClick={() => handleSort("confidence")}
-                        className="hover:text-blue-600 dark:hover:text-blue-400"
-                      >
-                        Confidence
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button
-                        variant="ghost"
-                        onClick={() => handleSort("date")}
-                        className="hover:text-blue-600 dark:hover:text-blue-400"
-                      >
-                        Date
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
                 <TableBody>
                   {filteredDetections.map((detection) => (
                     <TableRow key={detection.id}>
+                      <TableCell>{detection.buildingName}</TableCell>
+                      <TableCell>{detection.address}</TableCell>
+                      <TableCell>{Math.round(detection.confidence * 100)}%</TableCell>
+                      <TableCell>{new Date(detection.timestamp).toLocaleString()}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Building className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                          <span>{detection.buildingName}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-gray-400" />
-                          <span>{detection.address}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          detection.confidence > 0.9
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                            : detection.confidence > 0.7
-                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
-                            : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-                        }`}>
-                          {Math.round(detection.confidence * 100)}%
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(detection.timestamp).toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => router.push(`/detection/${detection.id}`)}
-                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900"
-                        >
+                        <Button variant="outline" size="sm" onClick={() => router.push(`/detection/${detection.id}`)}>
                           View Details <ArrowRight className="ml-2 w-4 h-4" />
                         </Button>
                       </TableCell>
@@ -236,7 +196,7 @@ export default function HistoryPage() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
