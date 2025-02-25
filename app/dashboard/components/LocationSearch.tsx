@@ -3,12 +3,13 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { Search, Loader2, X, MapPin, Info, Globe, Map, Building } from "lucide-react"
+import { Search, Loader2, X, MapPin, Info, Cloud, Droplets, Thermometer, Wind, Users } from "lucide-react"
+import * as Dialog from "@radix-ui/react-dialog"
+import * as Tabs from "@radix-ui/react-tabs"
+import * as ScrollArea from "@radix-ui/react-scroll-area"
 import { motion, AnimatePresence } from "framer-motion"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
+// Types
 interface LocationSearchProps {
   onSelectLocation: (location: {
     lat: number
@@ -40,7 +41,7 @@ interface LocationDetails {
   photos?: any[]
   rating?: number
   user_ratings_total?: number
-  opening_hours?: any
+  opening_hours?: { weekday_text: string[] }
   website?: string
   formatted_phone_number?: string
   international_phone_number?: string
@@ -54,22 +55,273 @@ interface LocationDetails {
   icon_mask_base_uri?: string
   icon_background_color?: string
   nearby_places?: any[]
-  demographic_data?: any
+  demographic_data?: DemographicData
   local_government_data?: any
-  weather_data?: any
+  weather_data?: WeatherData
   accessibility_data?: any
   public_records?: any
-  property_data?: any
-  zoning_info?: any
+  property_data?: PropertyData
+  zoning_info?: ZoningInfo
   environmental_data?: any
   historical_data?: any
   transit_data?: any
   satellite_imagery?: any
 }
 
+interface WeatherData {
+  temperature?: number
+  feels_like?: number
+  humidity?: number
+  pressure?: number
+  weather_condition?: string
+  wind_speed?: number
+  wind_direction?: number
+  cloudiness?: number
+  visibility?: number
+  location?: {
+    name?: string
+    country?: string
+    sunrise?: string
+    sunset?: string
+  }
+}
+
+interface DemographicData {
+  population?: number
+  median_age?: number
+  households?: number
+  income?: {
+    median?: number
+    average?: number
+  }
+  education?: {
+    high_school?: number
+    bachelors?: number
+    graduate?: number
+  }
+  employment?: {
+    employed?: number
+    unemployed?: number
+  }
+}
+
+interface PropertyData {
+  lot_size?: number
+  year_built?: number
+  last_sale_date?: string
+  last_sale_price?: number
+}
+
+interface ZoningInfo {
+  zoning_code?: string
+}
+
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "YOUR_API_KEY_HERE"
 
+// Component for Weather Card
+const WeatherCard = ({ data }: { data: WeatherData }) => {
+  if (!data) return null
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-gray-100">
+          <Cloud className="w-5 h-5 text-blue-500" />
+          Weather Conditions
+        </h3>
+      </div>
+      <div className="p-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <Thermometer className="w-5 h-5 text-red-500 mt-1" />
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Temperature</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {data.temperature ? `${data.temperature.toFixed(1)}°C` : "N/A"}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Feels like: {data.feels_like ? `${data.feels_like.toFixed(1)}°C` : "N/A"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <Droplets className="w-5 h-5 text-blue-500 mt-1" />
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Humidity</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {data.humidity ? `${data.humidity}%` : "N/A"}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <Wind className="w-5 h-5 text-gray-500 mt-1" />
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Wind</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {data.wind_speed ? `${data.wind_speed.toFixed(1)} m/s` : "N/A"}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Direction: {data.wind_direction ? `${data.wind_direction}°` : "N/A"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <Cloud className="w-5 h-5 text-gray-500 mt-1" />
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Conditions</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {data.weather_condition || "N/A"}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Cloudiness: {data.cloudiness ? `${data.cloudiness}%` : "N/A"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        {data.location && (
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Location: {data.location.name}, {data.location.country}
+            </p>
+            <div className="flex gap-4 mt-1 text-sm text-gray-500 dark:text-gray-400">
+              <p>Sunrise: {data.location.sunrise ? new Date(data.location.sunrise).toLocaleTimeString() : "N/A"}</p>
+              <p>Sunset: {data.location.sunset ? new Date(data.location.sunset).toLocaleTimeString() : "N/A"}</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Component for Demographics Card
+const DemographicsCard = ({ data }: { data: DemographicData }) => {
+  const formatNumber = (num?: number) => {
+    if (num === undefined) return "N/A"
+    return new Intl.NumberFormat("en-US").format(num)
+  }
+
+  const formatPercentage = (num?: number) => {
+    if (num === undefined) return "N/A"
+    return `${num.toFixed(1)}%`
+  }
+
+  const formatCurrency = (num?: number) => {
+    if (num === undefined) return "N/A"
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(num)
+  }
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-gray-100">
+          <Users className="w-5 h-5 text-purple-500" />
+          Demographics
+        </h3>
+      </div>
+      <div className="p-4">
+        {!data || Object.keys(data).length === 0 ? (
+          <p className="text-gray-500 dark:text-gray-400">No demographic data available for this location</p>
+        ) : (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Population</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {formatNumber(data.population)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Median Age</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {data.median_age ? `${data.median_age} years` : "N/A"}
+                </p>
+              </div>
+            </div>
+
+            {data.income && (
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Income</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Median Income</p>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      {formatCurrency(data.income.median)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Average Income</p>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      {formatCurrency(data.income.average)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {data.education && (
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Education</p>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">High School</p>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      {formatPercentage(data.education.high_school)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Bachelor's</p>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      {formatPercentage(data.education.bachelors)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Graduate</p>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      {formatPercentage(data.education.graduate)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {data.employment && (
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Employment</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Employed</p>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      {formatPercentage(data.employment.employed)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Unemployed</p>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      {formatPercentage(data.employment.unemployed)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// LocationSearch main component
 export default function LocationSearch({ onSelectLocation }: LocationSearchProps) {
+  // State management
   const [search, setSearch] = useState("")
   const [activeSuggestion, setActiveSuggestion] = useState<number | null>(null)
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
@@ -79,8 +331,9 @@ export default function LocationSearch({ onSelectLocation }: LocationSearchProps
   const [isProcessing, setIsProcessing] = useState(false)
   const [locationDetails, setLocationDetails] = useState<LocationDetails | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [searchType, setSearchType] = useState<"address" | "coordinates" | "place">("address")
+  const [searchType, setSearchType] = useState<"address" | "coordinates" | "place" | "company">("address")
 
+  // Check if device is mobile
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 640)
@@ -91,6 +344,7 @@ export default function LocationSearch({ onSelectLocation }: LocationSearchProps
     return () => window.removeEventListener("resize", checkMobile)
   }, [])
 
+  // Handle search input changes
   useEffect(() => {
     let timeoutId: NodeJS.Timeout
 
@@ -100,25 +354,23 @@ export default function LocationSearch({ onSelectLocation }: LocationSearchProps
       return
     }
 
+    // Check if search is coordinates
     const coordRegex = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/
     if (coordRegex.test(search.trim())) {
       setSearchType("coordinates")
     } else {
-      setSearchType("address")
+      // If not coordinates, we'll determine the type in the API
+      setSearchType("place")
     }
 
     setIsLoading(true)
     setError(null)
 
+    // Debounce API calls
     timeoutId = setTimeout(async () => {
       try {
-        let endpoint = "/api/location-search"
-
-        if (searchType === "coordinates") {
-          endpoint = "/api/reverse-geocode"
-        }
-
-        const response = await fetch(`${endpoint}?query=${encodeURIComponent(search)}`)
+        const endpoint = searchType === "coordinates" ? "/api/reverse-geocode" : "/api/location-search"
+        const response = await fetch(`${endpoint}?query=${encodeURIComponent(search)}&type=${searchType}`)
 
         if (!response.ok) {
           throw new Error("Failed to fetch suggestions")
@@ -143,6 +395,7 @@ export default function LocationSearch({ onSelectLocation }: LocationSearchProps
     return () => clearTimeout(timeoutId)
   }, [search, searchType])
 
+  // Fetch detailed location information
   const fetchDetailedLocationInfo = async (placeId: string): Promise<LocationDetails> => {
     try {
       const placeDetailsResponse = await fetch(`/api/place-details?place_id=${placeId}`)
@@ -151,7 +404,10 @@ export default function LocationSearch({ onSelectLocation }: LocationSearchProps
       }
 
       const placeDetails = await placeDetailsResponse.json()
+      const { geometry, formatted_address } = placeDetails
+      const { lat, lng } = geometry.location
 
+      // Fetch additional data in parallel
       const [
         nearbyPlaces,
         demographicData,
@@ -166,30 +422,18 @@ export default function LocationSearch({ onSelectLocation }: LocationSearchProps
         transitData,
         satelliteImagery,
       ] = await Promise.all([
-        fetchData(
-          `/api/nearby-places?lat=${placeDetails.geometry.location.lat}&lng=${placeDetails.geometry.location.lng}`,
-        ),
-        fetchData(
-          `/api/demographic-data?lat=${placeDetails.geometry.location.lat}&lng=${placeDetails.geometry.location.lng}`,
-        ),
-        fetchData(`/api/government-data?address=${encodeURIComponent(placeDetails.formatted_address)}`),
-        fetchData(`/api/weather?lat=${placeDetails.geometry.location.lat}&lng=${placeDetails.geometry.location.lng}`),
+        fetchData(`/api/nearby-places?lat=${lat}&lng=${lng}`),
+        fetchData(`/api/demographics?lat=${lat}&lng=${lng}`),
+        fetchData(`/api/government-data?address=${encodeURIComponent(formatted_address)}`),
+        fetchData(`/api/weather?lat=${lat}&lng=${lng}`),
         fetchData(`/api/accessibility?place_id=${placeId}`),
-        fetchData(`/api/public-records?address=${encodeURIComponent(placeDetails.formatted_address)}`),
-        fetchData(`/api/property-data?address=${encodeURIComponent(placeDetails.formatted_address)}`),
-        fetchData(
-          `/api/zoning-info?lat=${placeDetails.geometry.location.lat}&lng=${placeDetails.geometry.location.lng}`,
-        ),
-        fetchData(
-          `/api/environmental-data?lat=${placeDetails.geometry.location.lat}&lng=${placeDetails.geometry.location.lng}`,
-        ),
-        fetchData(`/api/historical-data?address=${encodeURIComponent(placeDetails.formatted_address)}`),
-        fetchData(
-          `/api/transit-data?lat=${placeDetails.geometry.location.lat}&lng=${placeDetails.geometry.location.lng}`,
-        ),
-        fetchData(
-          `/api/satellite-imagery?lat=${placeDetails.geometry.location.lat}&lng=${placeDetails.geometry.location.lng}`,
-        ),
+        fetchData(`/api/public-records?address=${encodeURIComponent(formatted_address)}`),
+        fetchData(`/api/property-data?address=${encodeURIComponent(formatted_address)}`),
+        fetchData(`/api/zoning-info?lat=${lat}&lng=${lng}`),
+        fetchData(`/api/environmental-data?lat=${lat}&lng=${lng}`),
+        fetchData(`/api/historical-data?address=${encodeURIComponent(formatted_address)}`),
+        fetchData(`/api/transit-data?lat=${lat}&lng=${lng}`),
+        fetchData(`/api/satellite-imagery?lat=${lat}&lng=${lng}`),
       ])
 
       return {
@@ -213,6 +457,7 @@ export default function LocationSearch({ onSelectLocation }: LocationSearchProps
     }
   }
 
+  // Helper function to fetch data with error handling
   const fetchData = async (url: string) => {
     try {
       const response = await fetch(url)
@@ -229,6 +474,7 @@ export default function LocationSearch({ onSelectLocation }: LocationSearchProps
     }
   }
 
+  // Handle selection of a location suggestion
   const handleSelect = async (suggestion: Suggestion) => {
     setSearch(suggestion.description)
     setSuggestions([])
@@ -257,6 +503,7 @@ export default function LocationSearch({ onSelectLocation }: LocationSearchProps
     }
   }
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (search.trim() === "") return
@@ -268,19 +515,18 @@ export default function LocationSearch({ onSelectLocation }: LocationSearchProps
       setError(null)
 
       try {
-        let endpoint = "/api/geocode"
-        let params = `address=${encodeURIComponent(search)}`
-
         const coordRegex = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/
-        if (coordRegex.test(search.trim())) {
-          endpoint = "/api/reverse-geocode"
-          params = `latlng=${encodeURIComponent(search)}`
-        }
+        const isCoordinates = coordRegex.test(search.trim())
+
+        const endpoint = isCoordinates ? "/api/reverse-geocode" : "/api/geocode"
+        const params = isCoordinates
+          ? `latlng=${encodeURIComponent(search)}`
+          : `address=${encodeURIComponent(search)}&type=${searchType}`
 
         const geocodeResponse = await fetch(`${endpoint}?${params}`)
 
         if (!geocodeResponse.ok) {
-          throw new Error("Failed to geocode address")
+          throw new Error(`Failed to ${isCoordinates ? "reverse geocode" : "geocode"} address`)
         }
 
         const geocodeResult = await geocodeResponse.json()
@@ -308,6 +554,7 @@ export default function LocationSearch({ onSelectLocation }: LocationSearchProps
     }
   }
 
+  // Handle keyboard navigation for suggestions
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!suggestions.length) return
 
@@ -333,330 +580,322 @@ export default function LocationSearch({ onSelectLocation }: LocationSearchProps
     }
   }
 
+  // Load Google Maps API
   useEffect(() => {
     const loadScript = async () => {
+      // Check if Google Maps API is already loaded
+      if (window.google) {
+        setIsApiLoaded(true)
+        return
+      }
+
       try {
-        await new Promise((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
           const script = document.createElement("script")
           script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`
           script.async = true
-          script.onload = resolve
-          script.onerror = reject
+          script.onload = () => resolve()
+          script.onerror = () => reject(new Error("Failed to load Google Maps API"))
           document.head.appendChild(script)
         })
         setIsApiLoaded(true)
       } catch (error) {
         console.error("Error loading Google Maps API:", error)
+        setError("Failed to load mapping service. Please try again later.")
       }
     }
 
-    if (!window.google) {
-      loadScript()
-    } else {
-      setIsApiLoaded(true)
-    }
+    loadScript()
   }, [])
 
   return (
-    <motion.div
-      className="relative w-full max-w-2xl mx-auto px-4 sm:px-0"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Comprehensive Location Search</h2>
-        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-          <Info className="w-3 h-3 mr-1" />
-          <span>Search for any address, place, or coordinates</span>
-        </div>
-      </div>
+    <div className="w-full max-w-4xl mx-auto bg-white dark:bg-gray-900 shadow-lg rounded-lg overflow-hidden">
+      <div className="p-6">
+        <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Advanced Location Intelligence</h2>
 
-      <form onSubmit={handleSubmit} className="relative flex items-center">
-        <div className="absolute left-3 sm:left-4 text-gray-400">
-          {isLoading || isProcessing ? (
-            <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-          ) : (
-            <Search className="w-4 h-4 sm:w-5 sm:h-5" />
-          )}
-        </div>
-
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Enter address, place name, or coordinates (lat,lng)..."
-          className="w-full pl-9 sm:pl-12 pr-16 sm:pr-24 py-2 sm:py-3 rounded-lg 
-            bg-white dark:bg-gray-800 
-            border-2 border-gray-200 dark:border-gray-700
-            focus:border-blue-500 dark:focus:border-blue-400
-            shadow-sm focus:ring-2 focus:ring-blue-500/20 
-            outline-none transition-all
-            text-gray-900 dark:text-gray-100
-            placeholder-gray-500 dark:placeholder-gray-400
-            text-sm sm:text-base"
-        />
-
-        {search && (
-          <button
-            type="button"
-            onClick={() => setSearch("")}
-            className="absolute right-20 sm:right-24 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-
-        <button
-          type="submit"
-          disabled={!search.trim() || isLoading || isProcessing}
-          className="absolute right-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-md
-            bg-gradient-to-r from-blue-500 to-blue-600
-            hover:from-blue-600 hover:to-blue-700
-            text-white text-xs sm:text-sm font-medium
-            transition-all duration-200
-            disabled:opacity-50 disabled:cursor-not-allowed
-            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-            dark:focus:ring-offset-gray-800"
-        >
-          Search
-        </button>
-      </form>
-
-      {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-2 p-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 text-sm rounded-md border border-red-200 dark:border-red-700"
-        >
-          <div className="flex items-start gap-2">
-            <X className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <p>{error}</p>
+        {/* Search Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Enter address, place name, company, or coordinates (lat,lng)..."
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                aria-label="Location search"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                  aria-label="Clear search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={!search.trim() || isLoading || isProcessing}
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-offset-gray-900"
+              aria-label="Search location"
+            >
+              {isLoading || isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
+            </button>
           </div>
-        </motion.div>
-      )}
+        </form>
 
-      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 flex flex-wrap gap-2">
-        <span className="flex items-center">
-          <MapPin className="w-3 h-3 mr-1 text-blue-500" />
-          <span>Address</span>
-        </span>
-        <span className="flex items-center">
-          <Globe className="w-3 h-3 mr-1 text-green-500" />
-          <span>Coordinates</span>
-        </span>
-        <span className="flex items-center">
-          <Building className="w-3 h-3 mr-1 text-purple-500" />
-          <span>Properties</span>
-        </span>
-        <span className="flex items-center">
-          <Map className="w-3 h-3 mr-1 text-orange-500" />
-          <span>Public Data</span>
-        </span>
-      </div>
+        {/* Search category tags */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {["Address", "Company", "Coordinates", "Properties", "Public Data"].map((item) => (
+            <span
+              key={item}
+              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+            >
+              {item}
+            </span>
+          ))}
+        </div>
 
-      <AnimatePresence>
-        {suggestions.length > 0 && (
+        {/* Error display */}
+        {error && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="fixed sm:absolute inset-x-0 sm:left-0 sm:right-0 top-16 sm:top-auto mt-0 sm:mt-2 
-              bg-white dark:bg-gray-800 
-              border-t sm:border border-gray-200 dark:border-gray-700 
-              sm:rounded-lg shadow-lg 
-              max-h-[60vh] sm:max-h-64 
-              overflow-auto z-50
-              mx-0 sm:mx-4"
+            className="mt-4 p-3 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-200 text-sm rounded-md border border-red-200 dark:border-red-800"
           >
-            <ul>
-              {suggestions.map((suggestion, index) => (
-                <motion.li
-                  key={suggestion.place_id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.2, delay: index * 0.05 }}
-                  onClick={() => handleSelect(suggestion)}
-                  className={`p-3 sm:p-4 flex items-start gap-3 cursor-pointer
-                    ${
-                      activeSuggestion === index
-                        ? "bg-blue-50 dark:bg-blue-900/30"
-                        : "hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                    }
-                    transition-colors duration-150
-                    border-b border-gray-100 dark:border-gray-700 last:border-0`}
-                >
-                  <MapPin className="text-blue-500 w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 dark:text-gray-100 truncate text-sm sm:text-base">
-                      {suggestion.structured_formatting?.main_text || suggestion.description}
-                    </p>
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {suggestion.structured_formatting?.secondary_text || ""}
-                    </p>
-                    <div className="flex items-center mt-1 text-xs text-blue-500">
-                      <Info className="w-3 h-3 mr-1" />
-                      <span>Click for comprehensive details</span>
-                    </div>
-                  </div>
-                </motion.li>
-              ))}
-            </ul>
+            <div className="flex items-start gap-2">
+              <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <p>{error}</p>
+            </div>
           </motion.div>
         )}
-      </AnimatePresence>
 
-      {locationDetails && (
-        <Card className="mt-4">
-          <CardHeader>
-            <CardTitle>{locationDetails.name || locationDetails.formatted_address}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Location Details</h3>
-                <p>
-                  <strong>Address:</strong> {locationDetails.formatted_address}
-                </p>
-                <p>
-                  <strong>Coordinates:</strong> {locationDetails.geometry.location.lat},{" "}
-                  {locationDetails.geometry.location.lng}
-                </p>
-                <p>
-                  <strong>Type:</strong> {locationDetails.types.join(", ")}
-                </p>
-                {locationDetails.website && (
-                  <p>
-                    <strong>Website:</strong>{" "}
-                    <a
-                      href={locationDetails.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline"
+        {/* Suggestions dropdown */}
+        <AnimatePresence>
+          {suggestions.length > 0 && (
+            <Dialog.Root open={suggestions.length > 0} onOpenChange={() => setSuggestions([])}>
+              <Dialog.Portal>
+                <Dialog.Overlay className="fixed inset-0 bg-black/50 dark:bg-black/70" />
+                <Dialog.Content className="fixed top-[20%] left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 rounded-md shadow-lg p-4 max-w-md w-full max-h-[60vh] overflow-hidden">
+                  <ScrollArea.Root className="h-full overflow-hidden">
+                    <ScrollArea.Viewport className="h-full w-full">
+                      {suggestions.map((suggestion, index) => (
+                        <motion.div
+                          key={suggestion.place_id}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 0.2, delay: index * 0.05 }}
+                          onClick={() => handleSelect(suggestion)}
+                          className={`p-3 flex items-start gap-3 cursor-pointer ${
+                            activeSuggestion === index
+                              ? "bg-blue-50 dark:bg-blue-900"
+                              : "hover:bg-gray-50 dark:hover:bg-gray-700"
+                          } transition-colors duration-150 border-b border-gray-100 dark:border-gray-700 last:border-0`}
+                        >
+                          <MapPin className="text-blue-500 w-5 h-5 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                              {suggestion.structured_formatting?.main_text || suggestion.description}
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                              {suggestion.structured_formatting?.secondary_text || ""}
+                            </p>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </ScrollArea.Viewport>
+                    <ScrollArea.Scrollbar
+                      className="flex select-none touch-none p-0.5 bg-gray-100 dark:bg-gray-700 transition-colors duration-[160ms] ease-out hover:bg-gray-200 dark:hover:bg-gray-600 data-[orientation=vertical]:w-2.5 data-[orientation=horizontal]:flex-col data-[orientation=horizontal]:h-2.5"
+                      orientation="vertical"
                     >
-                      {locationDetails.website}
-                    </a>
-                  </p>
-                )}
-                {locationDetails.formatted_phone_number && (
+                      <ScrollArea.Thumb className="flex-1 bg-gray-300 dark:bg-gray-500 rounded-[10px] relative before:content-[''] before:absolute before:top-1/2 before:left-1/2 before:-translate-x-1/2 before:-translate-y-1/2 before:w-full before:h-full before:min-w-[44px] before:min-h-[44px]" />
+                    </ScrollArea.Scrollbar>
+                  </ScrollArea.Root>
+                </Dialog.Content>
+              </Dialog.Portal>
+            </Dialog.Root>
+          )}
+        </AnimatePresence>
+
+        {locationDetails && (
+          <div className="mt-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {locationDetails.name || locationDetails.formatted_address}
+              </h3>
+            </div>
+            <Tabs.Root defaultValue="details" className="w-full">
+              <Tabs.List className="flex border-b border-gray-200 dark:border-gray-700">
+                {["Details", "Public Info", "Additional", "Map"].map((tab) => (
+                  <Tabs.Trigger
+                    key={tab}
+                    value={tab.toLowerCase()}
+                    className="px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:text-gray-700 dark:focus:text-gray-200 focus:bg-gray-100 dark:focus:bg-gray-700"
+                  >
+                    {tab}
+                  </Tabs.Trigger>
+                ))}
+              </Tabs.List>
+              <Tabs.Content value="details" className="p-4">
+                <div className="space-y-2 text-gray-700 dark:text-gray-300">
                   <p>
-                    <strong>Phone:</strong> {locationDetails.formatted_phone_number}
+                    <strong>Address:</strong> {locationDetails.formatted_address}
                   </p>
-                )}
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Public Information</h3>
+                  <p>
+                    <strong>Coordinates:</strong> {locationDetails.geometry.location.lat},{" "}
+                    {locationDetails.geometry.location.lng}
+                  </p>
+                  <p>
+                    <strong>Type:</strong> {locationDetails.types.join(", ")}
+                  </p>
+                  {locationDetails.website && (
+                    <p>
+                      <strong>Website:</strong>{" "}
+                      <a
+                        href={locationDetails.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:underline"
+                      >
+                        {locationDetails.website}
+                      </a>
+                    </p>
+                  )}
+                  {locationDetails.formatted_phone_number && (
+                    <p>
+                      <strong>Phone:</strong> {locationDetails.formatted_phone_number}
+                    </p>
+                  )}
+                  {locationDetails.types.includes("establishment") && (
+                    <div className="mt-4">
+                      <h4 className="font-semibold mb-2">Company Information</h4>
+                      {locationDetails.name && (
+                        <p>
+                          <strong>Company Name:</strong> {locationDetails.name}
+                        </p>
+                      )}
+                      {locationDetails.business_status && (
+                        <p>
+                          <strong>Business Status:</strong> {locationDetails.business_status}
+                        </p>
+                      )}
+                      {locationDetails.rating && (
+                        <p>
+                          <strong>Rating:</strong> {locationDetails.rating} ({locationDetails.user_ratings_total}{" "}
+                          reviews)
+                        </p>
+                      )}
+                      {locationDetails.price_level && (
+                        <p>
+                          <strong>Price Level:</strong> {"$".repeat(locationDetails.price_level)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Tabs.Content>
+              <Tabs.Content value="public" className="p-4">
                 {locationDetails.types.includes("establishment") ? (
-                  <div>
-                    <h4 className="text-md font-semibold mt-2 mb-1">Business Information</h4>
-                    {locationDetails.opening_hours && (
-                      <div>
-                        <p className="font-medium">Working Hours:</p>
-                        <ul className="list-disc list-inside ml-2">
-                          {locationDetails.opening_hours.weekday_text.map((day: string, index: number) => (
-                            <li key={index} className="text-sm">
-                              {day}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {locationDetails.accessibility_data?.entrances && (
-                      <div className="mt-2">
-                        <p className="font-medium">Door Entrances:</p>
-                        <ul className="list-disc list-inside ml-2">
-                          {locationDetails.accessibility_data.entrances.map((entrance: string, index: number) => (
-                            <li key={index} className="text-sm">
-                              {entrance}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {locationDetails.business_status && (
-                      <p className="mt-2">
-                        <strong>Business Status:</strong> {locationDetails.business_status}
-                      </p>
-                    )}
-                    {locationDetails.rating && (
-                      <p>
-                        <strong>Rating:</strong> {locationDetails.rating} ({locationDetails.user_ratings_total} reviews)
-                      </p>
-                    )}
-                    {locationDetails.price_level && (
-                      <p>
-                        <strong>Price Level:</strong> {"$".repeat(locationDetails.price_level)}
-                      </p>
-                    )}
+                  <div className="space-y-4 text-gray-700 dark:text-gray-300">
+                    <div>
+                      <h4 className="font-semibold mb-2">Business Information</h4>
+                      {locationDetails.opening_hours && (
+                        <div>
+                          <p className="font-medium">Working Hours:</p>
+                          <ul className="list-disc list-inside ml-2">
+                            {locationDetails.opening_hours.weekday_text.map((day: string, index: number) => (
+                              <li key={index} className="text-sm">
+                                {day}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {locationDetails.business_status && (
+                        <p>
+                          <strong>Business Status:</strong> {locationDetails.business_status}
+                        </p>
+                      )}
+                      {locationDetails.rating && (
+                        <p>
+                          <strong>Rating:</strong> {locationDetails.rating} ({locationDetails.user_ratings_total}{" "}
+                          reviews)
+                        </p>
+                      )}
+                      {locationDetails.price_level && (
+                        <p>
+                          <strong>Price Level:</strong> {"$".repeat(locationDetails.price_level)}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ) : (
-                  <div>
+                  <div className="space-y-2 text-gray-700 dark:text-gray-300">
                     {locationDetails.public_records ? (
                       <>
-                        <p>
-                          <strong>Zoning:</strong> {locationDetails.zoning_info?.zoning_code || "N/A"}
-                        </p>
-                        <p>
-                          <strong>Property Size:</strong> {locationDetails.property_data?.lot_size || "N/A"}
-                        </p>
-                        <p>
-                          <strong>Year Built:</strong> {locationDetails.property_data?.year_built || "N/A"}
-                        </p>
-                        <p>
-                          <strong>Last Sale Date:</strong> {locationDetails.property_data?.last_sale_date || "N/A"}
-                        </p>
-                        <p>
-                          <strong>Last Sale Price:</strong> {locationDetails.property_data?.last_sale_price || "N/A"}
-                        </p>
+                        {locationDetails.zoning_info?.zoning_code && (
+                          <p>
+                            <strong>Zoning:</strong> {locationDetails.zoning_info.zoning_code}
+                          </p>
+                        )}
+                        {locationDetails.property_data?.lot_size && (
+                          <p>
+                            <strong>Property Size:</strong> {locationDetails.property_data.lot_size} sq ft
+                          </p>
+                        )}
+                        {locationDetails.property_data?.year_built && (
+                          <p>
+                            <strong>Year Built:</strong> {locationDetails.property_data.year_built}
+                          </p>
+                        )}
+                        {locationDetails.property_data?.last_sale_date && (
+                          <p>
+                            <strong>Last Sale Date:</strong>{" "}
+                            {new Date(locationDetails.property_data.last_sale_date).toLocaleDateString()}
+                          </p>
+                        )}
+                        {locationDetails.property_data?.last_sale_price && (
+                          <p>
+                            <strong>Last Sale Price:</strong> $
+                            {locationDetails.property_data.last_sale_price.toLocaleString()}
+                          </p>
+                        )}
                       </>
                     ) : (
                       <p>No public records available for this location.</p>
                     )}
                   </div>
                 )}
-              </div>
-            </div>
-            <div className="mt-4">
-              <h3 className="text-lg font-semibold mb-2">Additional Information</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {[
-                  "nearby_places",
-                  "demographic_data",
-                  "local_government_data",
-                  "weather_data",
-                  "accessibility_data",
-                ].map((dataType) => (
-                  <div key={dataType} className="p-2 bg-gray-100 dark:bg-gray-700 rounded">
-                    <p className="text-sm font-medium">
-                      {dataType.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                    </p>
-                    {locationDetails[dataType as keyof LocationDetails] ? (
-                      <p className="text-xs text-green-600 dark:text-green-400">Available</p>
-                    ) : (
-                      <p className="text-xs text-red-600 dark:text-red-400">Not Available</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="mt-4">
-              <Button
-                as={Link}
-                href={`https://www.google.com/maps/search/?api=1&query=${locationDetails.geometry.location.lat},${locationDetails.geometry.location.lng}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center"
-              >
-                <Map className="w-4 h-4 mr-2" />
-                View in Map
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </motion.div>
+              </Tabs.Content>
+              <Tabs.Content value="additional" className="p-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <DemographicsCard data={locationDetails.demographic_data} />
+                  <WeatherCard data={locationDetails.weather_data} />
+                </div>
+              </Tabs.Content>
+              <Tabs.Content value="map" className="p-4">
+                <div className="aspect-video relative">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${locationDetails.geometry.location.lat},${locationDetails.geometry.location.lng}`}
+                  ></iframe>
+                </div>
+              </Tabs.Content>
+            </Tabs.Root>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 

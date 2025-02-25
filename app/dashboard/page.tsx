@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DashboardHeader from "./components/DashboardHeader";
 import BuildingDetector from "./components/BuildingDetector";
@@ -9,6 +9,7 @@ import BuildingInfoCard from "./components/BuildingInfoCard";
 import ActivityChart from "./components/ActivityChart";
 import RecentDetectionsCard from "./components/RecentDetectionsCard";
 import LocationSearch from "./components/LocationSearch";
+import { Bell, Settings, Search } from "lucide-react";
 import { fetchUserData, fetchStats, fetchRecentDetections } from "./utils/api";
 import {
   updateStats,
@@ -39,7 +40,6 @@ interface LocationDetails {
 }
 
 export default function Dashboard() {
-  const router = useRouter();
   const [userName, setUserName] = useState("");
   const [showResult, setShowResult] = useState(false);
   const [detectionResult, setDetectionResult] = useState(null);
@@ -61,6 +61,7 @@ export default function Dashboard() {
     { day: "Sat", detections: 30 },
     { day: "Sun", detections: 22 },
   ]);
+  const router = useRouter();
   const [theme, setTheme] = useState("system");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [fetchState, setFetchState] = useState({ loading: true, error: null });
@@ -227,58 +228,67 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200">
-      <DashboardHeader
-        onLogout={handleLogout}
-        onNavigate={(path) => router.push(path)}
-        currentLocation={currentLocation}
-        onLocationUpdate={handleLocationUpdate}
-      />
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Fixed Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-7xl mx-auto">
+          <DashboardHeader
+            onLogout={handleLogout}
+            onNavigate={(path) => router.push(path)}
+            currentLocation={currentLocation}
+            onLocationUpdate={handleLocationUpdate}
+          />
+        </div>
+      </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 lg:py-20">
-        <div className="space-y-6 sm:space-y-8">
+      {/* Main Content with Proper Spacing */}
+      <main className="flex-1 mt-16 pt-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Welcome Section */}
-          <div className="text-center sm:text-left">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               {userName ? `Welcome back, ${userName}! 👋` : "Welcome! 👋"}
             </h1>
-            <p className="mt-2 text-base sm:text-lg">
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
               Ready to explore cities far and near you? 🌍
             </p>
           </div>
 
-          {/* Location Search */}
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
-            <LocationSearch onSelectLocation={handleLocationUpdate} />
-          </div>
-
-          {/* Building Detector */}
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
-            <BuildingDetector
-              onDetectionComplete={handleDetectionComplete}
-              currentLocation={currentLocation}
-            />
-          </div>
-
-          {/* Detection Result */}
-          {showResult && detectionResult && (
-            <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
-              <BuildingInfoCard detectionResult={detectionResult} />
+          {/* Content Grid */}
+          <div className="space-y-6">
+            {/* Location Search */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+              <LocationSearch onSelectLocation={handleLocationUpdate} />
             </div>
-          )}
 
-          {/* Stats Grid */}
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
-            <StatsGrid stats={stats} />
-          </div>
-
-          {/* Charts and Recent Detections */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-            <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
-              <ActivityChart data={usageData} />
+            {/* Building Detector */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+              <BuildingDetector
+                onDetectionComplete={handleDetectionComplete}
+                currentLocation={currentLocation}
+              />
             </div>
-            <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md">
-              <RecentDetectionsCard detections={recentDetections} />
+
+            {/* Detection Result */}
+            {showResult && detectionResult && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+                <BuildingInfoCard detectionResult={detectionResult} />
+              </div>
+            )}
+
+            {/* Stats Grid */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+              <StatsGrid stats={stats} />
+            </div>
+
+            {/* Charts and Recent Detections */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+                <ActivityChart data={usageData} />
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+                <RecentDetectionsCard detections={recentDetections} />
+              </div>
             </div>
           </div>
         </div>
