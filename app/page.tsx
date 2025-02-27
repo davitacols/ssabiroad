@@ -3,84 +3,146 @@
 import React, { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { motion, useAnimation } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import * as LucideIcons from "lucide-react"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Separator } from "@/components/ui/separator"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
-// GitHub-style code preview component
+// Modern code preview component with syntax highlighting
 const CodePreview = () => {
   return (
-    <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-950">
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+    <div className="rounded-xl overflow-hidden border border-border shadow-lg bg-card">
+      <div className="flex items-center justify-between px-4 py-3 bg-muted/50">
         <div className="flex items-center">
-          <LucideIcons.File className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">building-recognition.py</span>
+          <div className="flex space-x-2 mr-3">
+            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+          </div>
+          <div className="flex items-center">
+            <LucideIcons.FileCode className="w-4 h-4 mr-2 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">building-recognition.py</span>
+          </div>
         </div>
         <div className="flex space-x-2">
-          <Button variant="ghost" size="sm" className="h-8 px-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8">
             <LucideIcons.Copy className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 px-2">
-            <LucideIcons.Code className="w-4 h-4" />
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <LucideIcons.Download className="w-4 h-4" />
           </Button>
         </div>
       </div>
-      <div className="p-4 bg-gray-50 dark:bg-gray-950 overflow-x-auto">
+      <ScrollArea className="bg-card p-4 max-h-[400px]">
         <pre className="text-sm font-mono">
           <code className="language-python">
-            <span className="text-purple-600 dark:text-purple-400">import</span>{" "}
-            <span className="text-blue-600 dark:text-blue-400">tensorflow</span>{" "}
-            <span className="text-purple-600 dark:text-purple-400">as</span>{" "}
-            <span className="text-blue-600 dark:text-blue-400">tf</span>
+            <span className="text-purple-500">import</span> <span className="text-blue-500">tensorflow</span>{" "}
+            <span className="text-purple-500">as</span> <span className="text-blue-500">tf</span>
             <br />
-            <span className="text-purple-600 dark:text-purple-400">from</span>{" "}
-            <span className="text-blue-600 dark:text-blue-400">tensorflow.keras.applications</span>{" "}
-            <span className="text-purple-600 dark:text-purple-400">import</span>{" "}
-            <span className="text-blue-600 dark:text-blue-400">ResNet50</span>
+            <span className="text-purple-500">from</span>{" "}
+            <span className="text-blue-500">tensorflow.keras.applications</span>{" "}
+            <span className="text-purple-500">import</span> <span className="text-blue-500">ResNet50</span>
+            <br />
+            <span className="text-purple-500">from</span>{" "}
+            <span className="text-blue-500">tensorflow.keras.preprocessing</span>{" "}
+            <span className="text-purple-500">import</span> <span className="text-blue-500">image</span>
+            <br />
+            <span className="text-purple-500">import</span> <span className="text-blue-500">numpy</span>{" "}
+            <span className="text-purple-500">as</span> <span className="text-blue-500">np</span>
             <br />
             <br />
-            <span className="text-green-600 dark:text-green-400"># Building recognition model</span>
+            <span className="text-green-500"># Building recognition model with advanced feature detection</span>
             <br />
-            <span className="text-purple-600 dark:text-purple-400">def</span>{" "}
-            <span className="text-yellow-600 dark:text-yellow-400">recognize_building</span>(image):
-            <br />
-            {"    "}model = ResNet50(weights=<span className="text-orange-600 dark:text-orange-400">'imagenet'</span>)
-            <br />
-            {"    "}preprocessed = preprocess_image(image)
-            <br />
-            {"    "}predictions = model.predict(preprocessed)
+            <span className="text-purple-500">def</span> <span className="text-yellow-500">recognize_building</span>
+            (image_path, confidence_threshold=0.85):
             <br />
             {"    "}
-            <span className="text-purple-600 dark:text-purple-400">return</span> analyze_results(predictions)
+            <span className="text-green-500"># Load pre-trained model</span>
+            <br />
+            {"    "}model = ResNet50(weights=<span className="text-orange-500">'imagenet'</span>, include_top=
+            <span className="text-blue-500">True</span>)
+            <br />
+            <br />
+            {"    "}
+            <span className="text-green-500"># Preprocess the image</span>
+            <br />
+            {"    "}img = image.load_img(image_path, target_size=(224, 224))
+            <br />
+            {"    "}x = image.img_to_array(img)
+            <br />
+            {"    "}x = np.expand_dims(x, axis=0)
+            <br />
+            {"    "}x = tf.keras.applications.resnet50.preprocess_input(x)
+            <br />
+            <br />
+            {"    "}
+            <span className="text-green-500"># Make prediction</span>
+            <br />
+            {"    "}predictions = model.predict(x)
+            <br />
+            {"    "}results = tf.keras.applications.resnet50.decode_predictions(predictions, top=5)[0]
+            <br />
+            <br />
+            {"    "}
+            <span className="text-green-500"># Filter building-related classes</span>
+            <br />
+            {"    "}building_classes = [<span className="text-orange-500">'palace'</span>,{" "}
+            <span className="text-orange-500">'monastery'</span>, <span className="text-orange-500">'church'</span>,{" "}
+            <span className="text-orange-500">'mosque'</span>, <span className="text-orange-500">'library'</span>,{" "}
+            <span className="text-orange-500">'hospital'</span>]
+            <br />
+            {"    "}building_results = [(label, score) <span className="text-purple-500">for</span> (_, label, score){" "}
+            <span className="text-purple-500">in</span> results <span className="text-purple-500">if</span> label{" "}
+            <span className="text-purple-500">in</span> building_classes <span className="text-purple-500">and</span>{" "}
+            score >= confidence_threshold]
+            <br />
+            <br />
+            {"    "}
+            <span className="text-purple-500">return</span> building_results
+            <br />
+            <br />
+            <span className="text-purple-500">def</span> <span className="text-yellow-500">get_building_details</span>
+            (building_type, location=<span className="text-blue-500">None</span>):
+            <br />
+            {"    "}
+            <span className="text-green-500"># Connect to architectural database</span>
+            <br />
+            {"    "}db = ArchitecturalDatabase()
+            <br />
+            {"    "}
+            <span className="text-purple-500">return</span> db.query(building_type=building_type, location=location)
           </code>
         </pre>
-      </div>
-      <div className="px-4 py-2 bg-gray-100 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+      </ScrollArea>
+      <div className="px-4 py-3 bg-muted/50 border-t border-border flex justify-between items-center">
         <div className="flex items-center space-x-4">
           <div className="flex items-center">
-            <LucideIcons.Star className="w-4 h-4 text-gray-500 dark:text-gray-400 mr-1" />
-            <span className="text-xs text-gray-600 dark:text-gray-400">234</span>
+            <LucideIcons.Star className="w-4 h-4 text-yellow-500 mr-1" />
+            <span className="text-xs text-muted-foreground">234</span>
           </div>
           <div className="flex items-center">
-            <LucideIcons.GitFork className="w-4 h-4 text-gray-500 dark:text-gray-400 mr-1" />
-            <span className="text-xs text-gray-600 dark:text-gray-400">45</span>
+            <LucideIcons.GitFork className="w-4 h-4 text-muted-foreground mr-1" />
+            <span className="text-xs text-muted-foreground">45</span>
           </div>
         </div>
-        <Badge variant="outline" className="text-xs">Python</Badge>
+        <Badge variant="secondary" className="text-xs">
+          Python
+        </Badge>
       </div>
     </div>
   )
 }
 
-// GitHub-style activity graph
+// Modern activity graph with hover effects
 const ActivityGraph = () => {
   const days = 30
   const data = Array.from({ length: days }, () => Math.floor(Math.random() * 5))
@@ -88,18 +150,31 @@ const ActivityGraph = () => {
   return (
     <div className="flex items-end h-24 gap-1">
       {data.map((value, index) => {
-        const height = value === 0 ? 'h-2' : `h-${value * 4}`
-        const intensity = value === 0 ? 100 : 100 - value * 15
-        const color = `bg-green-${intensity} dark:bg-green-${intensity + 200}`
-        
+        const height = value === 0 ? "h-2" : `h-${value * 5}`
+        const color =
+          value === 0
+            ? "bg-muted"
+            : value === 1
+              ? "bg-emerald-200 dark:bg-emerald-900/40"
+              : value === 2
+                ? "bg-emerald-300 dark:bg-emerald-800/60"
+                : value === 3
+                  ? "bg-emerald-400 dark:bg-emerald-700/80"
+                  : "bg-emerald-500 dark:bg-emerald-600"
+
         return (
           <TooltipProvider key={index}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className={`w-2 ${height} rounded-sm ${value === 0 ? 'bg-gray-200 dark:bg-gray-700' : color} hover:opacity-80`}></div>
+                <div
+                  className={`w-2 ${height} rounded-sm ${color} hover:opacity-80 transition-all duration-200`}
+                  style={{ height: `${value === 0 ? 8 : value * 12}px` }}
+                ></div>
               </TooltipTrigger>
               <TooltipContent>
-                <p className="text-xs">{value} activities on day {days - index}</p>
+                <p className="text-xs">
+                  {value} activities on day {days - index}
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -109,69 +184,73 @@ const ActivityGraph = () => {
   )
 }
 
+// Interactive map component with modern styling
 const InteractiveMap = () => {
   return (
-    <div className="w-full h-[400px] bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700"></div>
-      
+    <div className="w-full h-[300px] sm:h-[400px] bg-muted rounded-xl overflow-hidden border border-border shadow-lg relative">
+      <div className="absolute inset-0 bg-gradient-to-br from-background/80 to-background/30"></div>
+
       {/* Map Grid */}
       <div className="absolute inset-0 grid grid-cols-12 grid-rows-12">
         {Array.from({ length: 144 }).map((_, i) => (
-          <div key={i} className="border-[0.5px] border-gray-300/30 dark:border-gray-600/30"></div>
+          <div key={i} className="border-[0.5px] border-border/20"></div>
         ))}
       </div>
-      
-      {/* Buildings and landmarks */}
-      <div className="absolute top-1/4 left-1/4 w-12 h-16 bg-blue-500/80 dark:bg-blue-600/80 rounded-sm"></div>
-      <div className="absolute top-1/3 left-1/2 w-10 h-14 bg-purple-500/80 dark:bg-purple-600/80 rounded-sm"></div>
-      <div className="absolute top-1/2 left-1/3 w-16 h-20 bg-gray-500/80 dark:bg-gray-600/80 rounded-sm"></div>
-      
+
+      {/* Buildings and landmarks with glow effects */}
+      <div className="absolute top-1/4 left-1/4 w-12 h-16 bg-primary/70 rounded-sm shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]"></div>
+      <div className="absolute top-1/3 left-1/2 w-10 h-14 bg-purple-500/70 dark:bg-purple-600/70 rounded-sm shadow-[0_0_15px_rgba(139,92,246,0.5)]"></div>
+      <div className="absolute top-1/2 left-1/3 w-16 h-20 bg-muted-foreground/50 rounded-sm"></div>
+
       {/* Map Controls */}
-      <div className="absolute top-4 left-4 right-4 bg-white dark:bg-gray-900 rounded-md shadow-md p-2">
+      <div className="absolute top-4 left-4 right-4 bg-background/90 backdrop-blur-md rounded-lg shadow-lg p-2 border border-border">
         <div className="flex items-center">
-          <LucideIcons.Search className="w-4 h-4 text-gray-500 dark:text-gray-400 mr-2" />
-          <Input 
-            placeholder="Search buildings..." 
+          <LucideIcons.Search className="w-4 h-4 text-muted-foreground mr-2" />
+          <Input
+            placeholder="Search buildings..."
             className="h-8 text-sm border-none focus-visible:ring-0 bg-transparent"
           />
           <Button variant="ghost" size="sm" className="ml-2 h-8 w-8 p-0">
-            <LucideIcons.Filter className="w-4 h-4" />
+            <LucideIcons.SlidersHorizontal className="w-4 h-4" />
           </Button>
         </div>
       </div>
-      
+
       <div className="absolute bottom-4 right-4 flex flex-col space-y-2">
-        <Button variant="outline" size="icon" className="bg-white dark:bg-gray-900 h-8 w-8">
+        <Button variant="secondary" size="icon" className="h-8 w-8 bg-background/90 backdrop-blur-md shadow-lg">
           <LucideIcons.Plus className="w-4 h-4" />
         </Button>
-        <Button variant="outline" size="icon" className="bg-white dark:bg-gray-900 h-8 w-8">
+        <Button variant="secondary" size="icon" className="h-8 w-8 bg-background/90 backdrop-blur-md shadow-lg">
           <LucideIcons.Minus className="w-4 h-4" />
         </Button>
-        <Button variant="outline" size="icon" className="bg-white dark:bg-gray-900 h-8 w-8">
+        <Button variant="secondary" size="icon" className="h-8 w-8 bg-background/90 backdrop-blur-md shadow-lg">
           <LucideIcons.Layers className="w-4 h-4" />
         </Button>
       </div>
-      
-      {/* Building Info Popup */}
-      <div className="absolute bottom-20 left-1/4 bg-white dark:bg-gray-900 rounded-md shadow-md p-3 w-64 border border-gray-200 dark:border-gray-700">
+
+      {/* Building Info Popup with glass morphism effect */}
+      <div className="absolute bottom-20 left-1/4 bg-background/80 backdrop-blur-md rounded-lg shadow-lg p-4 w-64 border border-border">
         <div className="flex justify-between items-start">
           <div>
             <h3 className="font-semibold text-sm">Central Tower</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Modern Office Building</p>
+            <p className="text-xs text-muted-foreground">Modern Office Building</p>
           </div>
-          <Badge className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Verified</Badge>
+          <Badge variant="secondary" className="text-xs">
+            Verified
+          </Badge>
         </div>
-        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+        <Separator className="my-2" />
+        <div className="grid gap-1.5">
           <div className="flex justify-between text-xs">
-            <span className="text-gray-500 dark:text-gray-400">Built:</span>
+            <span className="text-muted-foreground">Built:</span>
             <span>2018</span>
           </div>
-          <div className="flex justify-between text-xs mt-1">
-            <span className="text-gray-500 dark:text-gray-400">Height:</span>
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Height:</span>
             <span>185m</span>
           </div>
-          <div className="flex justify-between text-xs mt-1">
-            <span className="text-gray-500 dark:text-gray-400">Architect:</span>
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Architect:</span>
             <span>Foster & Partners</span>
           </div>
         </div>
@@ -180,89 +259,92 @@ const InteractiveMap = () => {
   )
 }
 
+// Feature data with improved descriptions
 const features = [
   {
     icon: "Zap",
     title: "Instant Recognition",
-    desc: "Identify buildings in real-time with high accuracy.",
-    badge: "Fast"
+    desc: "Identify buildings in real-time with 98.7% accuracy using our advanced AI model.",
+    badge: "Fast",
   },
   {
     icon: "Database",
     title: "Rich Information",
-    desc: "Access detailed architectural and historical data.",
-    badge: "Comprehensive"
+    desc: "Access detailed architectural, historical, and cultural data from our comprehensive database.",
+    badge: "Comprehensive",
   },
   {
     icon: "Globe",
     title: "Global Coverage",
-    desc: "Supports buildings worldwide with local context.",
-    badge: "International"
+    desc: "Explore buildings worldwide with localized context and information in 42 languages.",
+    badge: "International",
   },
   {
-    icon: "Layers",
+    icon: "Cube",
     title: "3D Modeling",
-    desc: "Generate 3D models from 2D images.",
-    badge: "Advanced"
+    desc: "Generate detailed 3D models from 2D images with accurate proportions and textures.",
+    badge: "Advanced",
   },
 ]
 
+// Pricing plans with improved features
 const plans = [
   {
     icon: "Home",
     title: "Free",
     price: "$0",
     period: "forever",
-    features: [
-      "Building Recognition", 
-      "Basic Information", 
-      "5 Scans/Day",
-      "Community Support"
-    ],
+    features: ["Building Recognition", "Basic Information", "10 Scans/Day", "Community Support", "Mobile App Access"],
     popular: false,
-    buttonText: "Get Started"
+    buttonText: "Get Started",
+    buttonVariant: "outline",
   },
   {
-    icon: "Building",
+    icon: "Building2",
     title: "Pro",
     price: "$29",
     period: "per month",
     features: [
-      "Advanced Analytics", 
-      "Historical Data", 
+      "Advanced Analytics",
+      "Historical Data",
       "Unlimited Scans",
-      "API Access (100 req/day)",
-      "Priority Support"
+      "API Access (500 req/day)",
+      "Priority Support",
+      "Offline Mode",
     ],
     popular: true,
-    buttonText: "Try Pro"
+    buttonText: "Try Pro",
+    buttonVariant: "default",
   },
   {
-    icon: "City",
+    icon: "Buildings",
     title: "Enterprise",
     price: "Custom",
     period: "per organization",
     features: [
-      "Dedicated Instance", 
-      "Custom Integration", 
+      "Dedicated Instance",
+      "Custom Integration",
       "Unlimited Everything",
       "Full API Access",
       "24/7 Support",
-      "SLA Guarantee"
+      "SLA Guarantee",
+      "On-premises Option",
     ],
     popular: false,
-    buttonText: "Contact Sales"
+    buttonText: "Contact Sales",
+    buttonVariant: "outline",
   },
 ]
 
+// Testimonials with improved content
 const testimonials = [
   {
     name: "Sarah Johnson",
-    role: "Architect",
+    role: "Senior Architect",
     company: "DesignWorks Studio",
     avatar: "/placeholder.svg?height=40&width=40",
     content:
-      "SabiRoad has revolutionized how we approach urban design projects. The instant building recognition and detailed information have become indispensable in our workflow.",
+      "SabiRoad has revolutionized how we approach urban design projects. The instant building recognition and detailed information have become indispensable in our workflow. The 3D modeling feature saves us countless hours.",
   },
   {
     name: "Michael Chen",
@@ -270,7 +352,7 @@ const testimonials = [
     company: "CityScape Solutions",
     avatar: "/placeholder.svg?height=40&width=40",
     content:
-      "As an urban planner, SabiRoad has been a game-changer. It's like having a comprehensive city database right in my pocket. Absolutely essential for modern city planning.",
+      "As an urban planner, SabiRoad has been a game-changer. It's like having a comprehensive city database right in my pocket. The API integration with our existing tools made adoption seamless across our entire team.",
   },
   {
     name: "Emily Rodriguez",
@@ -278,26 +360,28 @@ const testimonials = [
     company: "Horizon Properties",
     avatar: "/placeholder.svg?height=40&width=40",
     content:
-      "SabiRoad's detailed building information and 3D modeling capabilities have significantly streamlined our property assessment process. It's an invaluable tool for our industry.",
+      "SabiRoad's detailed building information and 3D modeling capabilities have significantly streamlined our property assessment process. The Pro plan's unlimited scans feature has paid for itself many times over.",
   },
 ]
 
-const SabiRoadGitHubStyle = () => {
+// Main component with modern UI
+const SabiRoadModern = () => {
   const [isScrolled, setIsScrolled] = useState(false)
   const [activeFeature, setActiveFeature] = useState(0)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [activeTab, setActiveTab] = useState("features")
   const router = useRouter()
   const { data: session, status } = useSession()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  const testimonialControls = useAnimation()
-
+  // Handle scroll effect for navbar
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20)
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
+  // Handle dark mode toggle
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add("dark")
@@ -306,6 +390,15 @@ const SabiRoadGitHubStyle = () => {
     }
   }, [isDarkMode])
 
+  // Auto-rotate features
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveFeature((prev) => (prev + 1) % features.length)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Handle authentication flow
   const handleGetStarted = useCallback(
     (plan?: string) => {
       if (status === "authenticated" && session) {
@@ -318,53 +411,47 @@ const SabiRoadGitHubStyle = () => {
     [router, session, status],
   )
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveFeature((prev) => (prev + 1) % features.length)
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [])
-
+  // Toggle theme
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode)
   }
 
   return (
-    <div className={`min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 ${isDarkMode ? "dark" : ""}`}>
-      {/* NavBar - GitHub Style */}
+    <div className={`min-h-screen bg-background text-foreground ${isDarkMode ? "dark" : ""}`}>
+      {/* Modern Navbar with glass morphism effect */}
       <motion.header
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ type: "spring", stiffness: 100 }}
         className={`fixed w-full z-50 transition-all duration-300 ${
-          isScrolled ? "bg-white/90 dark:bg-gray-950/90 backdrop-blur-lg shadow-sm" : "bg-white dark:bg-gray-950"
-        } border-b border-gray-200 dark:border-gray-800`}
+          isScrolled ? "bg-background/80 backdrop-blur-lg shadow-sm" : "bg-background"
+        } border-b border-border`}
       >
-        <div className="container mx-auto">
-          <div className="flex items-center justify-between h-16 px-4">
-            <div className="flex items-center space-x-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center space-x-4 sm:space-x-8">
               <Link href="/" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-md flex items-center justify-center">
-                  <LucideIcons.Building className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 bg-gradient-to-r from-primary to-purple-600 rounded-lg flex items-center justify-center">
+                  <LucideIcons.Building2 className="w-5 h-5 text-primary-foreground" />
                 </div>
-                <span className="text-xl font-semibold text-gray-900 dark:text-white">SabiRoad</span>
+                <span className="text-xl font-semibold">SabiRoad</span>
               </Link>
-              
+
               <div className="hidden md:flex items-center space-x-1">
                 <Link href="/api-doc">
                   <Button variant="ghost" className="text-sm font-medium">
-                    <LucideIcons.Code className="w-4 h-4 mr-2" />
+                    <LucideIcons.Code2 className="w-4 h-4 mr-2" />
                     API
                   </Button>
                 </Link>
                 <Link href="/docs">
                   <Button variant="ghost" className="text-sm font-medium">
-                    <LucideIcons.Code className="w-4 h-4 mr-2" />
-                    docs
+                    <LucideIcons.FileText className="w-4 h-4 mr-2" />
+                    Docs
                   </Button>
                 </Link>
                 <Button variant="ghost" className="text-sm font-medium">
-                  <LucideIcons.PieChart className="w-4 h-4 mr-2" />
+                  <LucideIcons.LayoutDashboard className="w-4 h-4 mr-2" />
                   Examples
                 </Button>
                 <Button variant="ghost" className="text-sm font-medium">
@@ -373,34 +460,38 @@ const SabiRoadGitHubStyle = () => {
                 </Button>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <div className="hidden md:block relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <LucideIcons.Search className="w-4 h-4 text-gray-400" />
+                  <LucideIcons.Search className="w-4 h-4 text-muted-foreground" />
                 </div>
-                <Input
-                  type="search"
-                  placeholder="Search..." 
-                  className="pl-10 h-9 w-64 bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-sm"
-                />
+                <Input type="search" placeholder="Search..." className="pl-10 h-9 w-64 bg-muted/50 text-sm" />
               </div>
-              
+
               <div className="flex items-center space-x-3">
-                <Switch checked={isDarkMode} onCheckedChange={toggleTheme} />
-                
+                <div className="flex items-center space-x-2">
+                  <LucideIcons.Moon className="h-4 w-4 text-muted-foreground" />
+                  <Switch checked={isDarkMode} onCheckedChange={toggleTheme} />
+                  <LucideIcons.Sun className="h-4 w-4 text-muted-foreground" />
+                </div>
+
                 {status === "authenticated" ? (
-                  <Avatar className="h-8 w-8">
+                  <Avatar className="h-8 w-8 border-2 border-primary/20">
                     <AvatarImage src={session?.user?.image || ""} alt={session?.user?.name || ""} />
-                    <AvatarFallback>{session?.user?.name?.[0] || "U"}</AvatarFallback>
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      {session?.user?.name?.[0] || "U"}
+                    </AvatarFallback>
                   </Avatar>
                 ) : (
                   <>
                     <Button variant="ghost" size="sm" onClick={() => router.push("/login")}>
                       Sign in
                     </Button>
-                    <Button variant="default" size="sm" onClick={() => router.push("/signup")}
-                      className="bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
+                    <Button
+                      size="sm"
+                      onClick={() => router.push("/signup")}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90"
                     >
                       Sign up
                     </Button>
@@ -408,68 +499,101 @@ const SabiRoadGitHubStyle = () => {
                 )}
               </div>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              <LucideIcons.Menu className="h-6 w-6" />
+            </Button>
           </div>
         </div>
       </motion.header>
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-background border-b border-border">
+          <div className="px-4 py-2 space-y-1">
+            <Link href="/api-doc">
+              <Button variant="ghost" className="w-full justify-start text-sm font-medium">
+                <LucideIcons.Code2 className="w-4 h-4 mr-2" />
+                API
+              </Button>
+            </Link>
+            <Link href="/docs">
+              <Button variant="ghost" className="w-full justify-start text-sm font-medium">
+                <LucideIcons.FileText className="w-4 h-4 mr-2" />
+                Docs
+              </Button>
+            </Link>
+            <Button variant="ghost" className="w-full justify-start text-sm font-medium">
+              <LucideIcons.LayoutDashboard className="w-4 h-4 mr-2" />
+              Examples
+            </Button>
+            <Button variant="ghost" className="w-full justify-start text-sm font-medium">
+              <LucideIcons.Users className="w-4 h-4 mr-2" />
+              Community
+            </Button>
+          </div>
+        </div>
+      )}
 
       <main className="pt-20">
-        {/* Hero Section - GitHub Style */}
-        <section className="py-16 md:py-24 border-b border-gray-200 dark:border-gray-800">
-          <div className="container mx-auto px-4">
-            <div className="grid md:grid-cols-2 gap-16 items-center">
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }} 
-                animate={{ opacity: 1, y: 0 }} 
+        {/* Hero Section with improved layout and animations */}
+        <section className="py-12 sm:py-16 md:py-24 border-b border-border">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
                 className="max-w-xl"
               >
                 <div className="flex items-center space-x-2 mb-6">
-                  <Badge className="px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-medium">
-                    <LucideIcons.Rocket className="w-3 h-3 mr-1" />
+                  <Badge variant="secondary" className="px-3 py-1 bg-primary/10 text-primary font-medium">
+                    <LucideIcons.Sparkles className="w-3 h-3 mr-1" />
                     New
                   </Badge>
-                  <Badge className="px-3 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 font-medium">
+                  <Badge variant="outline" className="px-3 py-1 font-medium">
                     v2.1.0
                   </Badge>
                 </div>
 
-                <h1 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 tracking-tight leading-tight">
                   Discover and analyze buildings with unmatched precision
                 </h1>
 
-                <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
-                  SabiRoad combines AI, geospatial data, and architectural expertise to identify buildings and provide comprehensive information in seconds.
+                <p className="text-base sm:text-lg text-muted-foreground mb-8 leading-relaxed">
+                  SabiRoad combines AI, geospatial data, and architectural expertise to identify buildings and provide
+                  comprehensive information in seconds.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center gap-4">
-                  <Button 
-                    size="lg" 
-                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                  <Button
+                    size="lg"
+                    className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
                     onClick={() => handleGetStarted()}
                   >
                     <LucideIcons.Search className="mr-2 h-5 w-5" />
                     Start Exploring
                   </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="lg"
-                    className="w-full sm:w-auto border-gray-300 dark:border-gray-700"
-                  >
+
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
                     <LucideIcons.PlayCircle className="mr-2 h-5 w-5" />
                     Watch Demo
                   </Button>
                 </div>
 
-                <div className="mt-8 flex items-center text-sm text-gray-500 dark:text-gray-400">
+                <div className="mt-8 flex items-center text-sm text-muted-foreground">
                   <div className="flex -space-x-2 mr-3">
                     {[1, 2, 3, 4].map((i) => (
-                      <Avatar key={i} className="h-6 w-6 border-2 border-white dark:border-gray-900">
-                        <AvatarFallback className="text-xs">U{i}</AvatarFallback>
+                      <Avatar key={i} className="h-6 w-6 border-2 border-background">
+                        <AvatarFallback className="text-xs bg-primary/10 text-primary">U{i}</AvatarFallback>
                       </Avatar>
                     ))}
                   </div>
-                  <span>Used by <span className="font-semibold text-gray-900 dark:text-gray-100">2,583</span> architects and developers</span>
+                  <span>
+                    Used by <span className="font-semibold text-foreground">2,583</span> architects and developers
+                  </span>
                 </div>
               </motion.div>
 
@@ -483,77 +607,88 @@ const SabiRoadGitHubStyle = () => {
               </motion.div>
             </div>
 
-            {/* Activity & Stats */}
-            <div className="mt-16 border-t border-gray-200 dark:border-gray-800 pt-8">
-              <div className="grid md:grid-cols-3 gap-8">
-                <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
+            {/* Activity & Stats with improved cards */}
+            <div className="mt-16 border-t border-border pt-8">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <Card className="bg-card border-border overflow-hidden">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium flex items-center justify-between">
-                      <span>Recognition Activity</span>
-                      <Badge variant="outline" className="text-xs font-normal">Last 30 days</Badge>
+                      <span className="flex items-center">
+                        <LucideIcons.Activity className="w-4 h-4 mr-2 text-primary" />
+                        Recognition Activity
+                      </span>
+                      <Badge variant="outline" className="text-xs font-normal">
+                        Last 30 days
+                      </Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ActivityGraph />
                   </CardContent>
                 </Card>
-                
-                <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
+
+                <Card className="bg-card border-border overflow-hidden">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Global Coverage Stats</CardTitle>
+                    <CardTitle className="text-sm font-medium flex items-center">
+                      <LucideIcons.Globe className="w-4 h-4 mr-2 text-primary" />
+                      Global Coverage Stats
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center">
-                        <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">138</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Countries</div>
+                      <div className="text-center p-3 rounded-lg bg-muted/50">
+                        <div className="text-3xl font-bold text-primary">138</div>
+                        <div className="text-xs text-muted-foreground">Countries</div>
                       </div>
-                      <div className="text-center">
+                      <div className="text-center p-3 rounded-lg bg-muted/50">
                         <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">2.6M</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Buildings</div>
+                        <div className="text-xs text-muted-foreground">Buildings</div>
                       </div>
-                      <div className="text-center">
-                        <div className="text-3xl font-bold text-green-600 dark:text-green-400">98.7%</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Accuracy</div>
+                      <div className="text-center p-3 rounded-lg bg-muted/50">
+                        <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">98.7%</div>
+                        <div className="text-xs text-muted-foreground">Accuracy</div>
                       </div>
-                      <div className="text-center">
-                        <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">875K</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Daily Scans</div>
+                      <div className="text-center p-3 rounded-lg bg-muted/50">
+                        <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">875K</div>
+                        <div className="text-xs text-muted-foreground">Daily Scans</div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-                
-                <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
+
+                <Card className="bg-card border-border overflow-hidden sm:col-span-2 lg:col-span-1">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Latest Updates</CardTitle>
+                    <CardTitle className="text-sm font-medium flex items-center">
+                      <LucideIcons.Bell className="w-4 h-4 mr-2 text-primary" />
+                      Latest Updates
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <div className="border-b border-gray-100 dark:border-gray-800 py-3 px-6 flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mr-3">
-                        <LucideIcons.Plus className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <div className="border-b border-border py-3 px-6 flex items-center">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mr-3">
+                        <LucideIcons.Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                       </div>
                       <div className="text-sm">
                         <p className="font-medium">New 3D modeling feature released</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">2 days ago</p>
+                        <p className="text-xs text-muted-foreground">2 days ago</p>
                       </div>
                     </div>
-                    <div className="border-b border-gray-100 dark:border-gray-800 py-3 px-6 flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center mr-3">
+                    <div className="border-b border-border py-3 px-6 flex items-center">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-3">
                         <LucideIcons.RefreshCw className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div className="text-sm">
                         <p className="font-medium">API v2.1 documentation updated</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">1 week ago</p>
+                        <p className="text-xs text-muted-foreground">1 week ago</p>
                       </div>
                     </div>
                     <div className="py-3 px-6 flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center mr-3">
-                        <LucideIcons.Trophy className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                      <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mr-3">
+                        <LucideIcons.Trophy className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                       </div>
                       <div className="text-sm">
                         <p className="font-medium">SabiRoad wins Tech Innovation Award</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">2 weeks ago</p>
+                        <p className="text-xs text-muted-foreground">2 weeks ago</p>
                       </div>
                     </div>
                   </CardContent>
@@ -563,14 +698,17 @@ const SabiRoadGitHubStyle = () => {
           </div>
         </section>
 
-        {/* Features Section */}
-        <section className="py-16 md:py-24 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-          <div className="container mx-auto px-4">
+        {/* Features Section with improved layout */}
+        <section className="py-12 sm:py-16 md:py-24 border-b border-border bg-muted/30">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl mx-auto text-center mb-16">
-              <Badge className="mb-4 px-3 py-1">Features</Badge>
+              <Badge className="mb-4 px-3 py-1" variant="outline">
+                Features
+              </Badge>
               <h2 className="text-3xl md:text-4xl font-bold mb-6">Powerful tools for building exploration</h2>
-              <p className="text-lg text-gray-600 dark:text-gray-300">
-                Our platform combines cutting-edge AI with comprehensive architectural data to deliver a seamless experience.
+              <p className="text-lg text-muted-foreground">
+                Our platform combines cutting-edge AI with comprehensive architectural data to deliver a seamless
+                experience.
               </p>
             </div>
 
@@ -580,95 +718,128 @@ const SabiRoadGitHubStyle = () => {
               </motion.div>
 
               <div className="space-y-8">
-                <Tabs defaultValue={features[activeFeature].title.toLowerCase().replace(/\s+/g, '-')} onValueChange={(value) => {
-                  const index = features.findIndex(f => f.title.toLowerCase().replace(/\s+/g, '-') === value);
-                  if (index !== -1) setActiveFeature(index);
-                }}>
-                  <TabsList className="grid grid-cols-2 md:grid-cols-4 mb-8">
+                <Tabs
+                  defaultValue={features[activeFeature].title.toLowerCase().replace(/\s+/g, "-")}
+                  onValueChange={(value) => {
+                    const index = features.findIndex((f) => f.title.toLowerCase().replace(/\s+/g, "-") === value)
+                    if (index !== -1) setActiveFeature(index)
+                  }}
+                >
+                  <TabsList className="grid grid-cols-2 sm:grid-cols-4 mb-8">
                     {features.map((feature) => (
-                      <TabsTrigger 
-                        key={feature.title} 
-                        value={feature.title.toLowerCase().replace(/\s+/g, '-')}
+                      <TabsTrigger
+                        key={feature.title}
+                        value={feature.title.toLowerCase().replace(/\s+/g, "-")}
                         className="text-xs"
                       >
                         {feature.title}
                       </TabsTrigger>
                     ))}
                   </TabsList>
-                  
-                  {features.map((feature) => (
-                    <TabsContent 
-                      key={feature.title} 
-                      value={feature.title.toLowerCase().replace(/\s+/g, '-')}
-                      className="space-y-4"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                          {LucideIcons[feature.icon] &&
-                            React.createElement(LucideIcons[feature.icon], {
-                              className: "w-6 h-6 text-blue-600 dark:text-blue-400",
-                            })}
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold">{feature.title}</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{feature.desc}</p>
-                        </div>
-                        <Badge className="text-xs">{feature.badge}</Badge>
-                      </div>
-                    </TabsContent>
-                  ))}
+
+                  <AnimatePresence mode="wait">
+                    {features.map((feature) => (
+                      <TabsContent key={feature.title} value={feature.title.toLowerCase().replace(/\s+/g, "-")}>
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.2 }}
+                          className="space-y-4"
+                        >
+                          <div className="flex items-start gap-4 p-6 rounded-xl bg-card border border-border">
+                            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                              {LucideIcons[feature.icon] &&
+                                React.createElement(LucideIcons[feature.icon], {
+                                  className: "w-6 h-6 text-primary",
+                                })}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-lg font-semibold">{feature.title}</h3>
+                                <Badge variant="secondary" className="text-xs">
+                                  {feature.badge}
+                                </Badge>
+                              </div>
+                              <p className="text-muted-foreground">{feature.desc}</p>
+                            </div>
+                          </div>
+                        </motion.div>
+                      </TabsContent>
+                    ))}
+                  </AnimatePresence>
                 </Tabs>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Pricing Section */}
-        <section className="py-16 md:py-24 border-b border-gray-200 dark:border-gray-800">
-          <div className="container mx-auto px-4">
+        {/* Pricing Section with improved cards */}
+        <section className="py-12 sm:py-16 md:py-24 border-b border-border">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl mx-auto text-center mb-16">
-              <Badge className="mb-4 px-3 py-1">Pricing</Badge>
+              <Badge className="mb-4 px-3 py-1" variant="outline">
+                Pricing
+              </Badge>
               <h2 className="text-3xl md:text-4xl font-bold mb-6">Choose the plan that fits your needs</h2>
-              <p className="text-lg text-gray-600 dark:text-gray-300">
+              <p className="text-lg text-muted-foreground">
                 We offer flexible pricing plans to suit individual users, professionals, and enterprises.
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-16">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {plans.map((plan) => (
-                <Card key={plan.title} className={`border-gray-200 dark:border-gray-800 ${plan.popular ? "border-2 border-blue-600 dark:border-blue-400" : ""}`}>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
+                <Card
+                  key={plan.title}
+                  className={`border-border relative overflow-hidden ${
+                    plan.popular ? "border-primary shadow-lg shadow-primary/10" : ""
+                  }`}
+                >
+                  {plan.popular && (
+                    <div className="absolute top-0 right-0 -mt-2 -mr-2">
+                      <div className="bg-primary text-primary-foreground text-xs font-medium py-1 px-3 rounded-bl-lg rounded-tr-lg shadow-sm">
+                        Popular
+                      </div>
+                    </div>
+                  )}
+                  <CardHeader>
+                    <div className="flex items-center mb-2">
+                      <div
+                        className={`w-10 h-10 rounded-lg ${plan.popular ? "bg-primary/10" : "bg-muted"} flex items-center justify-center mr-3`}
+                      >
                         {LucideIcons[plan.icon] &&
                           React.createElement(LucideIcons[plan.icon], {
-                            className: "w-8 h-8 text-blue-600 dark:text-blue-400",
+                            className: `w-5 h-5 ${plan.popular ? "text-primary" : "text-muted-foreground"}`,
                           })}
-                        <CardTitle className="text-lg font-medium ml-3">{plan.title}</CardTitle>
                       </div>
-                      {plan.popular && (
-                        <Badge className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Popular</Badge>
-                      )}
+                      <CardTitle className="text-lg font-medium">{plan.title}</CardTitle>
                     </div>
-                  </CardHeader>
-                  <CardContent className="mt-2">
-                    <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                    <div className="text-3xl font-bold">
                       {plan.price}
-                      <span className="text-sm font-normal text-gray-600 dark:text-gray-400">/{plan.period}</span>
+                      <span className="text-sm font-normal text-muted-foreground ml-1">/{plan.period}</span>
                     </div>
-                    <ul className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                    <CardDescription>
+                      {plan.title === "Free"
+                        ? "Perfect for getting started"
+                        : plan.title === "Pro"
+                          ? "Ideal for professionals"
+                          : "For organizations with advanced needs"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2 text-sm">
                       {plan.features.map((feature, idx) => (
                         <li key={idx} className="flex items-center">
-                          <LucideIcons.Check className="w-4 h-4 text-green-600 dark:text-green-400 mr-2" />
-                          {feature}
+                          <LucideIcons.Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0" />
+                          <span>{feature}</span>
                         </li>
                       ))}
                     </ul>
                   </CardContent>
-                  <CardFooter className="mt-6">
-                    <Button 
-                      variant={plan.popular ? "default" : "outline"} 
-                      className="w-full" 
+                  <CardFooter>
+                    <Button
+                      variant={plan.buttonVariant as "default" | "outline"}
+                      className={`w-full sm:w-auto ${plan.popular ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
                       onClick={() => handleGetStarted(plan.title)}
                     >
                       {plan.buttonText}
@@ -680,47 +851,207 @@ const SabiRoadGitHubStyle = () => {
           </div>
         </section>
 
-        {/* Testimonials Section */}
-        <section className="py-16 md:py-24 bg-gray-50 dark:bg-gray-950">
-          <div className="container mx-auto px-4">
+        {/* Testimonials Section with improved cards */}
+        <section className="py-12 sm:py-16 md:py-24 bg-muted/30">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl mx-auto text-center mb-16">
-              <Badge className="mb-4 px-3 py-1">Testimonials</Badge>
+              <Badge className="mb-4 px-3 py-1" variant="outline">
+                Testimonials
+              </Badge>
               <h2 className="text-3xl md:text-4xl font-bold mb-6">What our users are saying</h2>
-              <p className="text-lg text-gray-600 dark:text-gray-300">
+              <p className="text-lg text-muted-foreground">
                 Hear from architects, urban planners, and real estate developers who use SabiRoad.
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-16">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {testimonials.map((testimonial, idx) => (
-                <Card key={idx} className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
-                  <CardHeader className="pb-2 flex items-center">
-                    <Avatar className="h-10 w-10">
+                <Card key={idx} className="bg-card border-border h-full">
+                  <CardHeader className="pb-2 flex items-start space-x-4">
+                    <Avatar className="h-10 w-10 border-2 border-primary/10">
                       <AvatarImage src={testimonial.avatar} alt={testimonial.name} />
-                      <AvatarFallback>{testimonial.name[0]}</AvatarFallback>
+                      <AvatarFallback className="bg-primary/10 text-primary">{testimonial.name[0]}</AvatarFallback>
                     </Avatar>
-                    <div className="ml-3">
+                    <div>
                       <CardTitle className="text-sm font-medium">{testimonial.name}</CardTitle>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-xs text-muted-foreground">
                         {testimonial.role} at {testimonial.company}
                       </p>
                     </div>
                   </CardHeader>
-                  <CardContent className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                    {testimonial.content}
+                  <CardContent className="pt-4">
+                    <div className="relative">
+                      <LucideIcons.Quote className="absolute -top-1 -left-1 w-5 h-5 text-muted-foreground/20" />
+                      <p className="text-sm text-muted-foreground pl-4">{testimonial.content}</p>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           </div>
         </section>
+
+        {/* CTA Section - New addition */}
+        <section className="py-12 sm:py-16 md:py-24 bg-primary/5 border-y border-border">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-4xl mx-auto text-center">
+              <Badge className="mb-4 px-3 py-1 bg-primary/10 text-primary">Get Started Today</Badge>
+              <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to explore buildings like never before?</h2>
+              <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+                Join thousands of architects, urban planners, and developers who are already using SabiRoad to transform
+                their work.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                  onClick={() => handleGetStarted()}
+                >
+                  <LucideIcons.Rocket className="mr-2 h-5 w-5" />
+                  Start Free Trial
+                </Button>
+                <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                  <LucideIcons.CalendarClock className="mr-2 h-5 w-5" />
+                  Schedule Demo
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
-      <footer className="py-12 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
-        <div className="container mx-auto px-4 text-center">
-          <Link href="/" className="text-xl font-semibold text-gray-900 dark:text-white">SabiRoad</Link>
-          <div className="mt-4 text-sm text-gray-600 dark:text-gray-300">
-            &copy; {new Date().getFullYear()} SabiRoad. All rights reserved.
+      <footer className="py-12 border-t border-border bg-card">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
+            <div>
+              <Link href="/" className="flex items-center space-x-2 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-r from-primary to-purple-600 rounded-lg flex items-center justify-center">
+                  <LucideIcons.Building2 className="w-5 h-5 text-primary-foreground" />
+                </div>
+                <span className="text-xl font-semibold">SabiRoad</span>
+              </Link>
+              <p className="text-sm text-muted-foreground mb-4">
+                Revolutionizing how we discover and analyze buildings with AI and comprehensive data.
+              </p>
+              <div className="flex space-x-4">
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <LucideIcons.Twitter className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <LucideIcons.Github className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <LucideIcons.Linkedin className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-medium mb-4">Product</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <Link href="#" className="hover:text-foreground transition-colors">
+                    Features
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition-colors">
+                    Pricing
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition-colors">
+                    API
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition-colors">
+                    Documentation
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition-colors">
+                    Release Notes
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="font-medium mb-4">Company</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <Link href="#" className="hover:text-foreground transition-colors">
+                    About Us
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition-colors">
+                    Careers
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition-colors">
+                    Blog
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition-colors">
+                    Press
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition-colors">
+                    Contact
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="font-medium mb-4">Legal</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <Link href="#" className="hover:text-foreground transition-colors">
+                    Terms of Service
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition-colors">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition-colors">
+                    Cookie Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition-colors">
+                    GDPR
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <Separator className="my-8" />
+
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="text-sm text-muted-foreground">
+              &copy; {new Date().getFullYear()} SabiRoad. All rights reserved.
+            </div>
+            <div className="flex items-center space-x-4 mt-4 md:mt-0">
+              <select className="text-sm bg-transparent border border-border rounded-md px-2 py-1">
+                <option value="en">English</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+                <option value="de">Deutsch</option>
+              </select>
+              <Badge variant="outline" className="text-xs">
+                v2.1.0
+              </Badge>
+            </div>
           </div>
         </div>
       </footer>
@@ -728,4 +1059,5 @@ const SabiRoadGitHubStyle = () => {
   )
 }
 
-export default SabiRoadGitHubStyle
+export default SabiRoadModern
+
