@@ -52,7 +52,7 @@
     "install": "^0.13.0",
     "jose": "^5.9.6",
     "jsonwebtoken": "^9.0.2",
-    "lucide-react": "^0.469.0",
+    "lucide-react": "^0.476.0",
     "next": "^15.1.4",
     "next-auth": "^4.24.11",
     "next-navigation": "^1.0.6",
