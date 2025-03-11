@@ -1,977 +1,992 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import React from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import * as LucideIcons from "lucide-react"
-import { useSession } from "next-auth/react"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card"
-import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PlacesAutocomplete } from "@/components/places-autocomplete"
+import { AppNavbar } from "@/components/app-navbar"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Separator } from "@/components/ui/separator"
-import { ScrollArea } from "@/components/ui/scroll-area"
 
-// Modern code preview component with syntax highlighting
-const CodePreview = () => {
-  return (
-    <div className="rounded-xl overflow-hidden border border-border shadow-lg bg-card">
-      <div className="flex items-center justify-between px-4 py-3 bg-muted/50">
-        <div className="flex items-center">
-          <div className="flex space-x-2 mr-3">
-            <div className="w-3 h-3 rounded-full bg-red-500"></div>
-            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-          </div>
-          <div className="flex items-center">
-            <LucideIcons.FileCode className="w-4 h-4 mr-2 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">building-recognition.py</span>
-          </div>
-        </div>
-        <div className="flex space-x-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <LucideIcons.Copy className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <LucideIcons.Download className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-      <ScrollArea className="bg-card p-4 max-h-[400px]">
-        <pre className="text-sm font-mono">
-          <code className="language-python">
-            <span className="text-purple-500">import</span> <span className="text-blue-500">tensorflow</span>{" "}
-            <span className="text-purple-500">as</span> <span className="text-blue-500">tf</span>
-            <br />
-            <span className="text-purple-500">from</span>{" "}
-            <span className="text-blue-500">tensorflow.keras.applications</span>{" "}
-            <span className="text-purple-500">import</span> <span className="text-blue-500">ResNet50</span>
-            <br />
-            <span className="text-purple-500">from</span>{" "}
-            <span className="text-blue-500">tensorflow.keras.preprocessing</span>{" "}
-            <span className="text-purple-500">import</span> <span className="text-blue-500">image</span>
-            <br />
-            <span className="text-purple-500">import</span> <span className="text-blue-500">numpy</span>{" "}
-            <span className="text-purple-500">as</span> <span className="text-blue-500">np</span>
-            <br />
-            <br />
-            <span className="text-green-500"># Building recognition model with advanced feature detection</span>
-            <br />
-            <span className="text-purple-500">def</span> <span className="text-yellow-500">recognize_building</span>
-            (image_path, confidence_threshold=0.85):
-            <br />
-            {"    "}
-            <span className="text-green-500"># Load pre-trained model</span>
-            <br />
-            {"    "}model = ResNet50(weights=<span className="text-orange-500">'imagenet'</span>, include_top=
-            <span className="text-blue-500">True</span>)
-            <br />
-            <br />
-            {"    "}
-            <span className="text-green-500"># Preprocess the image</span>
-            <br />
-            {"    "}img = image.load_img(image_path, target_size=(224, 224))
-            <br />
-            {"    "}x = image.img_to_array(img)
-            <br />
-            {"    "}x = np.expand_dims(x, axis=0)
-            <br />
-            {"    "}x = tf.keras.applications.resnet50.preprocess_input(x)
-            <br />
-            <br />
-            {"    "}
-            <span className="text-green-500"># Make prediction</span>
-            <br />
-            {"    "}predictions = model.predict(x)
-            <br />
-            {"    "}results = tf.keras.applications.resnet50.decode_predictions(predictions, top=5)[0]
-            <br />
-            <br />
-            {"    "}
-            <span className="text-green-500"># Filter building-related classes</span>
-            <br />
-            {"    "}building_classes = [<span className="text-orange-500">'palace'</span>,{" "}
-            <span className="text-orange-500">'monastery'</span>, <span className="text-orange-500">'church'</span>,{" "}
-            <span className="text-orange-500">'mosque'</span>, <span className="text-orange-500">'library'</span>,{" "}
-            <span className="text-orange-500">'hospital'</span>]
-            <br />
-            {"    "}building_results = [(label, score) <span className="text-purple-500">for</span> (_, label, score){" "}
-            <span className="text-purple-500">in</span> results <span className="text-purple-500">if</span> label{" "}
-            <span className="text-purple-500">in</span> building_classes <span className="text-purple-500">and</span>{" "}
-            score >= confidence_threshold]
-            <br />
-            <br />
-            {"    "}
-            <span className="text-purple-500">return</span> building_results
-            <br />
-            <br />
-            <span className="text-purple-500">def</span> <span className="text-yellow-500">get_building_details</span>
-            (building_type, location=<span className="text-blue-500">None</span>):
-            <br />
-            {"    "}
-            <span className="text-green-500"># Connect to architectural database</span>
-            <br />
-            {"    "}db = ArchitecturalDatabase()
-            <br />
-            {"    "}
-            <span className="text-purple-500">return</span> db.query(building_type=building_type, location=location)
-          </code>
-        </pre>
-      </ScrollArea>
-      <div className="px-4 py-3 bg-muted/50 border-t border-border flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center">
-            <LucideIcons.Star className="w-4 h-4 text-yellow-500 mr-1" />
-            <span className="text-xs text-muted-foreground">234</span>
-          </div>
-          <div className="flex items-center">
-            <LucideIcons.GitFork className="w-4 h-4 text-muted-foreground mr-1" />
-            <span className="text-xs text-muted-foreground">45</span>
-          </div>
-        </div>
-        <Badge variant="secondary" className="text-xs">
-          Python
-        </Badge>
-      </div>
-    </div>
-  )
-}
-
-// Modern activity graph with hover effects
-const ActivityGraph = () => {
-  const days = 30
-  const data = Array.from({ length: days }, () => Math.floor(Math.random() * 5))
-
-  return (
-    <div className="flex items-end h-24 gap-1">
-      {data.map((value, index) => {
-        const height = value === 0 ? "h-2" : `h-${value * 5}`
-        const color =
-          value === 0
-            ? "bg-muted"
-            : value === 1
-              ? "bg-emerald-200 dark:bg-emerald-900/40"
-              : value === 2
-                ? "bg-emerald-300 dark:bg-emerald-800/60"
-                : value === 3
-                  ? "bg-emerald-400 dark:bg-emerald-700/80"
-                  : "bg-emerald-500 dark:bg-emerald-600"
-
-        return (
-          <TooltipProvider key={index}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div
-                  className={`w-2 ${height} rounded-sm ${color} hover:opacity-80 transition-all duration-200`}
-                  style={{ height: `${value === 0 ? 8 : value * 12}px` }}
-                ></div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">
-                  {value} activities on day {days - index}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )
-      })}
-    </div>
-  )
-}
-
-// Interactive map component with modern styling
-const InteractiveMap = () => {
-  return (
-    <div className="w-full h-[300px] sm:h-[400px] bg-muted rounded-xl overflow-hidden border border-border shadow-lg relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-background/80 to-background/30"></div>
-
-      {/* Map Grid */}
-      <div className="absolute inset-0 grid grid-cols-12 grid-rows-12">
-        {Array.from({ length: 144 }).map((_, i) => (
-          <div key={i} className="border-[0.5px] border-border/20"></div>
-        ))}
-      </div>
-
-      {/* Buildings and landmarks with glow effects */}
-      <div className="absolute top-1/4 left-1/4 w-12 h-16 bg-primary/70 rounded-sm shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]"></div>
-      <div className="absolute top-1/3 left-1/2 w-10 h-14 bg-purple-500/70 dark:bg-purple-600/70 rounded-sm shadow-[0_0_15px_rgba(139,92,246,0.5)]"></div>
-      <div className="absolute top-1/2 left-1/3 w-16 h-20 bg-muted-foreground/50 rounded-sm"></div>
-
-      {/* Map Controls */}
-      <div className="absolute top-4 left-4 right-4 bg-background/90 backdrop-blur-md rounded-lg shadow-lg p-2 border border-border">
-        <div className="flex items-center">
-          <LucideIcons.Search className="w-4 h-4 text-muted-foreground mr-2" />
-          <Input
-            placeholder="Search buildings..."
-            className="h-8 text-sm border-none focus-visible:ring-0 bg-transparent"
-          />
-          <Button variant="ghost" size="sm" className="ml-2 h-8 w-8 p-0">
-            <LucideIcons.SlidersHorizontal className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-
-      <div className="absolute bottom-4 right-4 flex flex-col space-y-2">
-        <Button variant="secondary" size="icon" className="h-8 w-8 bg-background/90 backdrop-blur-md shadow-lg">
-          <LucideIcons.Plus className="w-4 h-4" />
-        </Button>
-        <Button variant="secondary" size="icon" className="h-8 w-8 bg-background/90 backdrop-blur-md shadow-lg">
-          <LucideIcons.Minus className="w-4 h-4" />
-        </Button>
-        <Button variant="secondary" size="icon" className="h-8 w-8 bg-background/90 backdrop-blur-md shadow-lg">
-          <LucideIcons.Layers className="w-4 h-4" />
-        </Button>
-      </div>
-
-      {/* Building Info Popup with glass morphism effect */}
-      <div className="absolute bottom-20 left-1/4 bg-background/80 backdrop-blur-md rounded-lg shadow-lg p-4 w-64 border border-border">
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="font-semibold text-sm">Central Tower</h3>
-            <p className="text-xs text-muted-foreground">Modern Office Building</p>
-          </div>
-          <Badge variant="secondary" className="text-xs">
-            Verified
-          </Badge>
-        </div>
-        <Separator className="my-2" />
-        <div className="grid gap-1.5">
-          <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">Built:</span>
-            <span>2018</span>
-          </div>
-          <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">Height:</span>
-            <span>185m</span>
-          </div>
-          <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">Architect:</span>
-            <span>Foster & Partners</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Feature data with improved descriptions
-const features = [
-  {
-    icon: "Zap",
-    title: "Instant Recognition",
-    desc: "Identify buildings in real-time with 98.7% accuracy using our advanced AI model.",
-    badge: "Fast",
-  },
-  {
-    icon: "Database",
-    title: "Rich Information",
-    desc: "Access detailed architectural, historical, and cultural data from our comprehensive database.",
-    badge: "Comprehensive",
-  },
-  {
-    icon: "Globe",
-    title: "Global Coverage",
-    desc: "Explore buildings worldwide with localized context and information in 42 languages.",
-    badge: "International",
-  },
-  {
-    icon: "Cube",
-    title: "3D Modeling",
-    desc: "Generate detailed 3D models from 2D images with accurate proportions and textures.",
-    badge: "Advanced",
-  },
-]
-
-// Pricing plans with improved features
-const plans = [
-  {
-    icon: "Home",
-    title: "Free",
-    price: "$0",
-    period: "forever",
-    features: ["Building Recognition", "Basic Information", "10 Scans/Day", "Community Support", "Mobile App Access"],
-    popular: false,
-    buttonText: "Get Started",
-    buttonVariant: "outline",
-  },
-  {
-    icon: "Building2",
-    title: "Pro",
-    price: "$29",
-    period: "per month",
-    features: [
-      "Advanced Analytics",
-      "Historical Data",
-      "Unlimited Scans",
-      "API Access (500 req/day)",
-      "Priority Support",
-      "Offline Mode",
-    ],
-    popular: true,
-    buttonText: "Try Pro",
-    buttonVariant: "default",
-  },
-  {
-    icon: "Buildings",
-    title: "Enterprise",
-    price: "Custom",
-    period: "per organization",
-    features: [
-      "Dedicated Instance",
-      "Custom Integration",
-      "Unlimited Everything",
-      "Full API Access",
-      "24/7 Support",
-      "SLA Guarantee",
-      "On-premises Option",
-    ],
-    popular: false,
-    buttonText: "Contact Sales",
-    buttonVariant: "outline",
-  },
-]
-
-// Testimonials with improved content
-const testimonials = [
-  {
-    name: "Sarah Johnson",
-    role: "Senior Architect",
-    company: "DesignWorks Studio",
-    avatar: "/placeholder.svg?height=40&width=40",
-    content:
-      "SabiRoad has revolutionized how we approach urban design projects. The instant building recognition and detailed information have become indispensable in our workflow. The 3D modeling feature saves us countless hours.",
-  },
-  {
-    name: "Michael Chen",
-    role: "Urban Planner",
-    company: "CityScape Solutions",
-    avatar: "/placeholder.svg?height=40&width=40",
-    content:
-      "As an urban planner, SabiRoad has been a game-changer. It's like having a comprehensive city database right in my pocket. The API integration with our existing tools made adoption seamless across our entire team.",
-  },
-  {
-    name: "Emily Rodriguez",
-    role: "Real Estate Developer",
-    company: "Horizon Properties",
-    avatar: "/placeholder.svg?height=40&width=40",
-    content:
-      "SabiRoad's detailed building information and 3D modeling capabilities have significantly streamlined our property assessment process. The Pro plan's unlimited scans feature has paid for itself many times over.",
-  },
-]
-
-// Main component with modern UI
-const SabiRoadModern = () => {
-  const [isScrolled, setIsScrolled] = useState(false)
+export default function HomePage() {
   const [activeFeature, setActiveFeature] = useState(0)
-  const [isDarkMode, setIsDarkMode] = useState(false)
-  const [activeTab, setActiveTab] = useState("features")
-  const router = useRouter()
-  const { data: session, status } = useSession()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isLoaded, setIsLoaded] = useState(false)
 
-  // Handle scroll effect for navbar
+  // Simulate loading state
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20)
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
+    const timer = setTimeout(() => {
+      setIsLoaded(true)
+    }, 500)
+
+    return () => clearTimeout(timer)
   }, [])
 
-  // Handle dark mode toggle
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark")
-    } else {
-      document.documentElement.classList.remove("dark")
-    }
-  }, [isDarkMode])
-
-  // Auto-rotate features
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveFeature((prev) => (prev + 1) % features.length)
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [])
-
-  // Handle authentication flow
-  const handleGetStarted = useCallback(
-    (plan?: string) => {
-      if (status === "authenticated" && session) {
-        router.push("/dashboard")
-      } else {
-        const authPath = plan === "Pro" ? "/signup" : "/login"
-        router.push(authPath)
-      }
+  const featuredServices = [
+    {
+      id: 1,
+      name: "Google Lens",
+      provider: "Google",
+      category: "Mobile & Web",
+      image: "/placeholder.svg?height=600&width=800&text=Google+Lens",
+      rating: 4.8,
+      reviewCount: 1243,
+      description:
+        "Identify landmarks, storefronts, and places from photos and live camera view, then navigate with Google Maps.",
+      tags: ["AI-Powered", "Global Coverage", "Free"],
     },
-    [router, session, status],
-  )
+    {
+      id: 2,
+      name: "Visual Look Up",
+      provider: "Apple",
+      category: "iOS/iPadOS",
+      image: "/placeholder.svg?height=600&width=800&text=Apple+Visual+Look+Up",
+      rating: 4.7,
+      reviewCount: 987,
+      description:
+        "Built into Photos app, recognizes landmarks and provides directions via Apple Maps with a single tap.",
+      tags: ["On-Device AI", "Privacy-Focused", "Integrated"],
+    },
+    {
+      id: 3,
+      name: "Drive to a Photo",
+      provider: "TomTom GO",
+      category: "Mobile App",
+      image: "/placeholder.svg?height=600&width=800&text=TomTom+GO",
+      rating: 4.6,
+      reviewCount: 756,
+      description: "Navigate to locations from your photos by extracting GPS coordinates from image metadata.",
+      tags: ["Subscription", "Offline Maps", "CarPlay/Android Auto"],
+    },
+  ]
 
-  // Toggle theme
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode)
-  }
+  const keyFeatures = [
+    {
+      icon: "Camera",
+      title: "Image Recognition",
+      description:
+        "Upload or take a photo of any landmark, building, or location and get instant identification with detailed information.",
+    },
+    {
+      icon: "Navigation",
+      title: "Turn-by-Turn Directions",
+      description:
+        "After identifying a location from your image, get precise navigation instructions to reach your destination.",
+    },
+    {
+      icon: "MapPin",
+      title: "Location Intelligence",
+      description:
+        "Access comprehensive data about identified places including historical context, opening hours, and crowd levels.",
+    },
+    {
+      icon: "Compass",
+      title: "AR Navigation",
+      description:
+        "Use augmented reality to overlay directional guidance on your camera view for intuitive on-foot navigation.",
+    },
+    {
+      icon: "Database",
+      title: "Offline Capabilities",
+      description:
+        "Download maps and visual recognition data for areas you plan to visit, enabling navigation without internet connection.",
+    },
+    {
+      icon: "Globe",
+      title: "Global Coverage",
+      description:
+        "Identify and navigate to locations worldwide, with best performance for well-known landmarks and points of interest.",
+    },
+  ]
+
+  const partnerLogos = [
+    { name: "Google", logo: "/logos/google.png" },
+    { name: "Apple", logo: "/logos/apple.png" },
+    { name: "Microsoft Bing", logo: "/logos/microsoft.png" },
+    { name: "TomTom", logo: "/logos/tomtom.png" },
+    { name: "Garmin", logo: "/logos/garmin.png" },
+  ];
+  
+
 
   return (
-    <div className={`min-h-screen bg-background text-foreground ${isDarkMode ? "dark" : ""}`}>
-      {/* Modern Navbar with glass morphism effect */}
-      <motion.header
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ type: "spring", stiffness: 100 }}
-        className={`fixed w-full z-50 transition-all duration-300 ${
-          isScrolled ? "bg-background/80 backdrop-blur-lg shadow-sm" : "bg-background"
-        } border-b border-border`}
-      >
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center space-x-4 sm:space-x-8">
-              <Link href="/" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-primary to-purple-600 rounded-lg flex items-center justify-center">
-                  <LucideIcons.Building2 className="w-5 h-5 text-primary-foreground" />
-                </div>
-                <span className="text-xl font-semibold">SabiRoad</span>
-              </Link>
+    <div className="min-h-screen flex flex-col">
+      <AppNavbar />
 
-              <div className="hidden md:flex items-center space-x-1">
-                <Link href="/api-doc">
-                  <Button variant="ghost" className="text-sm font-medium">
-                    <LucideIcons.Code2 className="w-4 h-4 mr-2" />
-                    API
-                  </Button>
-                </Link>
-                <Link href="/docs">
-                  <Button variant="ghost" className="text-sm font-medium">
-                    <LucideIcons.FileText className="w-4 h-4 mr-2" />
-                    Docs
-                  </Button>
-                </Link>
-                <Button variant="ghost" className="text-sm font-medium">
-                  <LucideIcons.LayoutDashboard className="w-4 h-4 mr-2" />
-                  Examples
-                </Button>
-                <Button variant="ghost" className="text-sm font-medium">
-                  <LucideIcons.Users className="w-4 h-4 mr-2" />
-                  Community
-                </Button>
-              </div>
-            </div>
+      {/* Hero Section with Animated Illustration */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-background to-muted/30 pt-24 md:pt-32 pb-16 md:pb-20">
+        <div className="container px-4 md:px-6">
+          <div className="grid gap-6 md:grid-cols-2 md:gap-10 items-center">
+            <div className="flex flex-col gap-4">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+                <Badge className="mb-4 px-3 py-1 bg-primary/10 text-primary font-medium">
+                  <LucideIcons.Sparkles className="w-3 h-3 mr-1" />
+                  Image-Based Navigation
+                </Badge>
+              </motion.div>
 
-            <div className="flex items-center space-x-4">
-              <div className="hidden md:block relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <LucideIcons.Search className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <Input type="search" placeholder="Search..." className="pl-10 h-9 w-64 bg-muted/50 text-sm" />
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2">
-                  <LucideIcons.Moon className="h-4 w-4 text-muted-foreground" />
-                  <Switch checked={isDarkMode} onCheckedChange={toggleTheme} />
-                  <LucideIcons.Sun className="h-4 w-4 text-muted-foreground" />
-                </div>
-
-                {status === "authenticated" ? (
-                  <Avatar className="h-8 w-8 border-2 border-primary/20">
-                    <AvatarImage src={session?.user?.image || ""} alt={session?.user?.name || ""} />
-                    <AvatarFallback className="bg-primary/10 text-primary">
-                      {session?.user?.name?.[0] || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                ) : (
-                  <>
-                    <Button variant="ghost" size="sm" onClick={() => router.push("/login")}>
-                      Sign in
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => router.push("/signup")}
-                      className="bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
-                      Sign up
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              <LucideIcons.Menu className="h-6 w-6" />
-            </Button>
-          </div>
-        </div>
-      </motion.header>
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-background border-b border-border">
-          <div className="px-4 py-2 space-y-1">
-            <Link href="/api-doc">
-              <Button variant="ghost" className="w-full justify-start text-sm font-medium">
-                <LucideIcons.Code2 className="w-4 h-4 mr-2" />
-                API
-              </Button>
-            </Link>
-            <Link href="/docs">
-              <Button variant="ghost" className="w-full justify-start text-sm font-medium">
-                <LucideIcons.FileText className="w-4 h-4 mr-2" />
-                Docs
-              </Button>
-            </Link>
-            <Button variant="ghost" className="w-full justify-start text-sm font-medium">
-              <LucideIcons.LayoutDashboard className="w-4 h-4 mr-2" />
-              Examples
-            </Button>
-            <Button variant="ghost" className="w-full justify-start text-sm font-medium">
-              <LucideIcons.Users className="w-4 h-4 mr-2" />
-              Community
-            </Button>
-          </div>
-        </div>
-      )}
-
-      <main className="pt-20">
-        {/* Hero Section with improved layout and animations */}
-        <section className="py-12 sm:py-16 md:py-24 border-b border-border">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-              <motion.div
+              <motion.h1
+                className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="max-w-xl"
+                transition={{ duration: 0.5, delay: 0.1 }}
               >
-                <div className="flex items-center space-x-2 mb-6">
-                  <Badge variant="secondary" className="px-3 py-1 bg-primary/10 text-primary font-medium">
-                    <LucideIcons.Sparkles className="w-3 h-3 mr-1" />
-                    New
-                  </Badge>
-                  <Badge variant="outline" className="px-3 py-1 font-medium">
-                    v2.1.0
-                  </Badge>
-                </div>
+                Navigate to <span className="text-primary">any place</span> from a photo
+              </motion.h1>
 
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 tracking-tight leading-tight">
-                  Discover and analyze buildings with unmatched precision
-                </h1>
+              <motion.p
+                className="text-xl text-muted-foreground md:text-2xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                SABIROAD helps you identify and navigate to any location using just a photo of a landmark, storefront,
+                or building.
+              </motion.p>
 
-                <p className="text-base sm:text-lg text-muted-foreground mb-8 leading-relaxed">
-                  SabiRoad combines AI, geospatial data, and architectural expertise to identify buildings and provide
-                  comprehensive information in seconds.
-                </p>
-
-                <div className="flex flex-col sm:flex-row items-center gap-4">
-                  <Button
-                    size="lg"
-                    className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
-                    onClick={() => handleGetStarted()}
-                  >
-                    <LucideIcons.Search className="mr-2 h-5 w-5" />
-                    Start Exploring
-                  </Button>
-
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                    <LucideIcons.PlayCircle className="mr-2 h-5 w-5" />
-                    Watch Demo
-                  </Button>
-                </div>
-
-                <div className="mt-8 flex items-center text-sm text-muted-foreground">
-                  <div className="flex -space-x-2 mr-3">
-                    {[1, 2, 3, 4].map((i) => (
-                      <Avatar key={i} className="h-6 w-6 border-2 border-background">
-                        <AvatarFallback className="text-xs bg-primary/10 text-primary">U{i}</AvatarFallback>
-                      </Avatar>
-                    ))}
-                  </div>
-                  <span>
-                    Used by <span className="font-semibold text-foreground">2,583</span> architects and developers
-                  </span>
-                </div>
+              <motion.div
+                className="flex flex-col sm:flex-row gap-3 mt-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+              >
+                <Button size="lg" className="bg-primary text-primary-foreground">
+                  <LucideIcons.Upload className="mr-2 h-5 w-5" />
+                  Upload a Photo
+                </Button>
+                <Button size="lg" variant="outline">
+                  <LucideIcons.Play className="mr-2 h-5 w-5" />
+                  See How It Works
+                </Button>
               </motion.div>
 
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.4, duration: 0.6 }}
-                className="relative order-first md:order-last"
+                className="mt-6 flex items-center space-x-3 text-sm text-muted-foreground"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
               >
-                <InteractiveMap />
-              </motion.div>
-            </div>
-
-            {/* Activity & Stats with improved cards */}
-            <div className="mt-16 border-t border-border pt-8">
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                <Card className="bg-card border-border overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium flex items-center justify-between">
-                      <span className="flex items-center">
-                        <LucideIcons.Activity className="w-4 h-4 mr-2 text-primary" />
-                        Recognition Activity
-                      </span>
-                      <Badge variant="outline" className="text-xs font-normal">
-                        Last 30 days
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ActivityGraph />
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-card border-border overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium flex items-center">
-                      <LucideIcons.Globe className="w-4 h-4 mr-2 text-primary" />
-                      Global Coverage Stats
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-3 rounded-lg bg-muted/50">
-                        <div className="text-3xl font-bold text-primary">138</div>
-                        <div className="text-xs text-muted-foreground">Countries</div>
-                      </div>
-                      <div className="text-center p-3 rounded-lg bg-muted/50">
-                        <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">2.6M</div>
-                        <div className="text-xs text-muted-foreground">Buildings</div>
-                      </div>
-                      <div className="text-center p-3 rounded-lg bg-muted/50">
-                        <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">98.7%</div>
-                        <div className="text-xs text-muted-foreground">Accuracy</div>
-                      </div>
-                      <div className="text-center p-3 rounded-lg bg-muted/50">
-                        <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">875K</div>
-                        <div className="text-xs text-muted-foreground">Daily Scans</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-card border-border overflow-hidden sm:col-span-2 lg:col-span-1">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium flex items-center">
-                      <LucideIcons.Bell className="w-4 h-4 mr-2 text-primary" />
-                      Latest Updates
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="border-b border-border py-3 px-6 flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mr-3">
-                        <LucideIcons.Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                      </div>
-                      <div className="text-sm">
-                        <p className="font-medium">New 3D modeling feature released</p>
-                        <p className="text-xs text-muted-foreground">2 days ago</p>
-                      </div>
-                    </div>
-                    <div className="border-b border-border py-3 px-6 flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-3">
-                        <LucideIcons.RefreshCw className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div className="text-sm">
-                        <p className="font-medium">API v2.1 documentation updated</p>
-                        <p className="text-xs text-muted-foreground">1 week ago</p>
-                      </div>
-                    </div>
-                    <div className="py-3 px-6 flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mr-3">
-                        <LucideIcons.Trophy className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                      </div>
-                      <div className="text-sm">
-                        <p className="font-medium">SabiRoad wins Tech Innovation Award</p>
-                        <p className="text-xs text-muted-foreground">2 weeks ago</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Features Section with improved layout */}
-        <section className="py-12 sm:py-16 md:py-24 border-b border-border bg-muted/30">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl mx-auto text-center mb-16">
-              <Badge className="mb-4 px-3 py-1" variant="outline">
-                Features
-              </Badge>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">Powerful tools for building exploration</h2>
-              <p className="text-lg text-muted-foreground">
-                Our platform combines cutting-edge AI with comprehensive architectural data to deliver a seamless
-                experience.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-16 items-center">
-              <motion.div className="order-last md:order-first">
-                <CodePreview />
-              </motion.div>
-
-              <div className="space-y-8">
-                <Tabs
-                  defaultValue={features[activeFeature].title.toLowerCase().replace(/\s+/g, "-")}
-                  onValueChange={(value) => {
-                    const index = features.findIndex((f) => f.title.toLowerCase().replace(/\s+/g, "-") === value)
-                    if (index !== -1) setActiveFeature(index)
-                  }}
-                >
-                  <TabsList className="grid grid-cols-2 sm:grid-cols-4 mb-8">
-                    {features.map((feature) => (
-                      <TabsTrigger
-                        key={feature.title}
-                        value={feature.title.toLowerCase().replace(/\s+/g, "-")}
-                        className="text-xs"
-                      >
-                        {feature.title}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-
-                  <AnimatePresence mode="wait">
-                    {features.map((feature) => (
-                      <TabsContent key={feature.title} value={feature.title.toLowerCase().replace(/\s+/g, "-")}>
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          transition={{ duration: 0.2 }}
-                          className="space-y-4"
-                        >
-                          <div className="flex items-start gap-4 p-6 rounded-xl bg-card border border-border">
-                            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                              {LucideIcons[feature.icon] &&
-                                React.createElement(LucideIcons[feature.icon], {
-                                  className: "w-6 h-6 text-primary",
-                                })}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-lg font-semibold">{feature.title}</h3>
-                                <Badge variant="secondary" className="text-xs">
-                                  {feature.badge}
-                                </Badge>
-                              </div>
-                              <p className="text-muted-foreground">{feature.desc}</p>
-                            </div>
-                          </div>
-                        </motion.div>
-                      </TabsContent>
-                    ))}
-                  </AnimatePresence>
-                </Tabs>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Pricing Section with improved cards */}
-        <section className="py-12 sm:py-16 md:py-24 border-b border-border">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl mx-auto text-center mb-16">
-              <Badge className="mb-4 px-3 py-1" variant="outline">
-                Pricing
-              </Badge>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">Choose the plan that fits your needs</h2>
-              <p className="text-lg text-muted-foreground">
-                We offer flexible pricing plans to suit individual users, professionals, and enterprises.
-              </p>
-            </div>
-
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {plans.map((plan) => (
-                <Card
-                  key={plan.title}
-                  className={`border-border relative overflow-hidden ${
-                    plan.popular ? "border-primary shadow-lg shadow-primary/10" : ""
-                  }`}
-                >
-                  {plan.popular && (
-                    <div className="absolute top-0 right-0 -mt-2 -mr-2">
-                      <div className="bg-primary text-primary-foreground text-xs font-medium py-1 px-3 rounded-bl-lg rounded-tr-lg shadow-sm">
-                        Popular
-                      </div>
-                    </div>
-                  )}
-                  <CardHeader>
-                    <div className="flex items-center mb-2">
-                      <div
-                        className={`w-10 h-10 rounded-lg ${plan.popular ? "bg-primary/10" : "bg-muted"} flex items-center justify-center mr-3`}
-                      >
-                        {LucideIcons[plan.icon] &&
-                          React.createElement(LucideIcons[plan.icon], {
-                            className: `w-5 h-5 ${plan.popular ? "text-primary" : "text-muted-foreground"}`,
-                          })}
-                      </div>
-                      <CardTitle className="text-lg font-medium">{plan.title}</CardTitle>
-                    </div>
-                    <div className="text-3xl font-bold">
-                      {plan.price}
-                      <span className="text-sm font-normal text-muted-foreground ml-1">/{plan.period}</span>
-                    </div>
-                    <CardDescription>
-                      {plan.title === "Free"
-                        ? "Perfect for getting started"
-                        : plan.title === "Pro"
-                          ? "Ideal for professionals"
-                          : "For organizations with advanced needs"}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2 text-sm">
-                      {plan.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-center">
-                          <LucideIcons.Check className="w-4 h-4 text-emerald-500 mr-2 shrink-0" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                  <CardFooter>
-                    <Button
-                      variant={plan.buttonVariant as "default" | "outline"}
-                      className={`w-full sm:w-auto ${plan.popular ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
-                      onClick={() => handleGetStarted(plan.title)}
+                <div className="flex -space-x-1.5">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div
+                      key={i}
+                      className="h-7 w-7 rounded-full border-2 border-background bg-muted flex items-center justify-center text-xs font-medium"
                     >
-                      {plan.buttonText}
+                      {i}
+                    </div>
+                  ))}
+                </div>
+                <div>Trusted by 500K+ travelers worldwide</div>
+              </motion.div>
+            </div>
+
+            <motion.div
+              className="relative z-10"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-muted/50 border border-border shadow-2xl">
+                <div className="absolute inset-0">
+                  {/* This would be a dynamic illustration in production */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/10"></div>
+                  <div className="absolute inset-0 grid grid-cols-6 grid-rows-6 gap-px opacity-20">
+                    {Array.from({ length: 36 }).map((_, i) => (
+                      <div key={i} className="bg-white/20"></div>
+                    ))}
+                  </div>
+
+                  {/* AR Overlay Elements */}
+                  <div className="absolute top-1/4 left-1/4 h-12 w-12 rounded-full bg-primary/30 animate-pulse shadow-[0_0_20px_rgba(var(--primary-rgb),0.5)]"></div>
+                  <div className="absolute top-1/2 right-1/3 h-8 w-8 rounded-full bg-amber-500/40 animate-pulse shadow-[0_0_15px_rgba(245,158,11,0.6)]"></div>
+                  <div className="absolute bottom-1/3 right-1/4 h-10 w-10 rounded-full bg-emerald-500/30 animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
+
+                  {/* Information Cards */}
+                  <div className="absolute top-[15%] left-[20%] w-48 p-2 bg-background/90 backdrop-blur-sm rounded-lg shadow-lg border border-border text-xs">
+                    <div className="flex items-center gap-2">
+                      <LucideIcons.Building className="h-4 w-4 text-primary" />
+                      <span className="font-bold">Eiffel Tower</span>
+                    </div>
+                    <div className="mt-1 text-muted-foreground">Identified with 98% confidence</div>
+                    <div className="mt-1 text-xs">Tap to navigate</div>
+                  </div>
+
+                  <div className="absolute bottom-[20%] right-[15%] w-40 p-2 bg-background/90 backdrop-blur-sm rounded-lg shadow-lg border border-border text-xs">
+                    <div className="flex items-center gap-2">
+                      <LucideIcons.Navigation className="h-4 w-4 text-amber-500" />
+                      <span className="font-bold">Route Ready</span>
+                    </div>
+                    <div className="mt-1 text-muted-foreground">2.7 km away</div>
+                    <div className="mt-1 text-xs">15 min by car</div>
+                  </div>
+
+                  {/* Path Indicators */}
+                  <div className="absolute left-[40%] top-[30%] right-[30%] bottom-[40%] border-2 border-dashed border-primary/50 rounded-lg"></div>
+
+                  {/* AR Icons */}
+                  <div className="absolute top-[45%] left-[35%] p-1.5 bg-primary rounded-full">
+                    <LucideIcons.Info className="h-3 w-3 text-white" />
+                  </div>
+                  <div className="absolute top-[30%] right-[25%] p-1.5 bg-amber-500 rounded-full">
+                    <LucideIcons.Camera className="h-3 w-3 text-white" />
+                  </div>
+                  <div className="absolute bottom-[35%] left-[30%] p-1.5 bg-emerald-500 rounded-full">
+                    <LucideIcons.MapPin className="h-3 w-3 text-white" />
+                  </div>
+                </div>
+
+                <div className="absolute bottom-0 left-0 right-0 p-3 bg-background/80 backdrop-blur-md border-t border-border">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <LucideIcons.Camera className="h-4 w-4 text-primary" />
+                      <span className="font-medium text-sm">Photo Recognition Active</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <LucideIcons.CheckCircle className="h-4 w-4 text-emerald-500" />
+                      <span className="text-xs text-muted-foreground">Landmark identified</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating Search Bar */}
+              <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 w-5/6 md:w-2/3 transition-all duration-300">
+                <div className="relative rounded-full bg-background border border-border shadow-lg p-1.5 hover:shadow-xl focus-within:shadow-xl transition-shadow">
+                  
+                  {/* Search Icon */}
+                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                    <LucideIcons.Search className="h-4 w-4 text-muted-foreground" />
+                  </div>
+
+                  {/* Search Input (Google Maps Redirect on Selection or Enter) */}
+                  <PlacesAutocomplete
+                    placeholder="Search or upload a photo of a place..."
+                    className="pl-10 pr-20 h-11 w-full rounded-full bg-transparent text-sm border-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-all duration-300"
+                    onPlaceSelect={(place) => {
+                      if (place) {
+                        const encodedPlace = encodeURIComponent(place);
+                        window.open(`https://www.google.com/maps/search/?api=1&query=${encodedPlace}`, "_blank");
+                      }
+                    }}
+                    renderInput={(props) => (
+                      <input
+                        {...props}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && props.value.trim()) {
+                            const encodedPlace = encodeURIComponent(props.value.trim());
+                            window.open(`https://www.google.com/maps/search/?api=1&query=${encodedPlace}`, "_blank");
+                          }
+                        }}
+                      />
+                    )}
+                  />
+
+                  {/* Upload Button */}
+                  <div className="absolute inset-y-0 right-1.5 flex items-center">
+                    <Button
+                      size="sm"
+                      className="h-8 rounded-full transition-all duration-200 hover:bg-primary/90"
+                      onClick={() => console.log("Upload button clicked!")}
+                    >
+                      <LucideIcons.Camera className="h-4 w-4 mr-1" />
+                      <span className="sr-only md:not-sr-only md:inline-block">Upload</span>
                     </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+                  </div>
+                </div>
+              </div>
+
+
+            </motion.div>
+          </div>
+        </div>
+
+        {/* Background decorative elements */}
+        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/10 blur-3xl"></div>
+        <div className="absolute top-1/2 -left-40 h-80 w-80 rounded-full bg-purple-500/10 blur-3xl"></div>
+      </section>
+
+      {/* Featured Navigation Services */}
+      <section className="py-12 md:py-20 bg-background">
+        <div className="container px-4 md:px-6">
+          <div className="flex flex-col items-center text-center space-y-4 mb-12">
+            <Badge className="mb-2" variant="outline">
+              Featured Services
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Top Image Navigation Tools</h2>
+            <p className="text-muted-foreground text-lg md:text-xl max-w-[800px]">
+              Discover the best platforms for identifying and navigating to places from photos
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {featuredServices.map((service) => (
+              <Card key={service.id} className="bg-gradient-to-b from-background to-muted/20 backdrop-blur-sm">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <LucideIcons.Star className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">{service.rating}</span>
+                      <span className="text-xs text-muted-foreground">({service.reviewCount} reviews)</span>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {service.category}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2 mb-2">
+                    <LucideIcons.Camera className="h-5 w-5 text-primary" />
+                    <span className="font-medium">{
+                      service.name
+                    }</span>
+                  </div>
+                  <p className="text-muted-foreground">{service.description}</p>
+                </CardContent>
+                <CardFooter>
+                  <div className="flex items-center gap-2">
+                    {service.tags.map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-12 md:py-20 bg-muted/30">
+        <div className="container px-4 md:px-6">
+          <div className="flex flex-col items-center text-center space-y-4 mb-12">
+            <Badge className="mb-2" variant="outline">
+              Process
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">How Image Navigation Works</h2>
+            <p className="text-muted-foreground text-lg md:text-xl max-w-[800px]">
+              From photo to destination in three simple steps
+            </p>
+          </div>
+
+          <div className="grid gap-10 md:grid-cols-3 max-w-5xl mx-auto">
+            {[
+              {
+                step: 1,
+                title: "Upload or Take a Photo",
+                description:
+                  "Capture or select an image of a landmark, building, storefront, or any location you want to visit.",
+                icon: "Camera",
+              },
+              {
+                step: 2,
+                title: "AI Identifies the Location",
+                description:
+                  "Our technology recognizes the place in your image, even without GPS data, providing details about it.",
+                icon: "Cpu",
+              },
+              {
+                step: 3,
+                title: "Get Turn-by-Turn Directions",
+                description:
+                  "Navigate to the identified location with precise directions via your preferred maps service.",
+                icon: "Navigation",
+              },
+            ].map((item) => (
+              <div key={item.step} className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 relative">
+                  {LucideIcons[item.icon] &&
+                    React.createElement(LucideIcons[item.icon], {
+                      className: "h-8 w-8 text-primary",
+                    })}
+                  <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center font-medium">
+                    {item.step}
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold mb-2">{item.title}</h3>
+                <p className="text-muted-foreground">{item.description}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="relative mt-16 max-w-4xl mx-auto">
+            <div className="h-0.5 bg-border absolute top-1/2 left-0 right-0 -z-10"></div>
+            <div className="flex justify-between">
+              {["Upload Photo", "Processing", "Location Identified", "Navigation Options", "Start Journey"].map(
+                (step, idx) => (
+                  <div key={idx} className="flex flex-col items-center">
+                    <div
+                      className={`w-4 h-4 rounded-full ${idx <= 3 ? "bg-primary" : "bg-muted-foreground"} mb-2`}
+                    ></div>
+                    <span className="text-xs text-muted-foreground text-center max-w-[80px]">{step}</span>
+                  </div>
+                ),
+              )}
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Testimonials Section with improved cards */}
-        <section className="py-12 sm:py-16 md:py-24 bg-muted/30">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl mx-auto text-center mb-16">
-              <Badge className="mb-4 px-3 py-1" variant="outline">
-                Testimonials
-              </Badge>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">What our users are saying</h2>
-              <p className="text-lg text-muted-foreground">
-                Hear from architects, urban planners, and real estate developers who use SabiRoad.
-              </p>
-            </div>
-
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {testimonials.map((testimonial, idx) => (
-                <Card key={idx} className="bg-card border-border h-full">
-                  <CardHeader className="pb-2 flex items-start space-x-4">
-                    <Avatar className="h-10 w-10 border-2 border-primary/10">
-                      <AvatarImage src={testimonial.avatar} alt={testimonial.name} />
-                      <AvatarFallback className="bg-primary/10 text-primary">{testimonial.name[0]}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <CardTitle className="text-sm font-medium">{testimonial.name}</CardTitle>
-                      <p className="text-xs text-muted-foreground">
-                        {testimonial.role} at {testimonial.company}
-                      </p>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-4">
-                    <div className="relative">
-                      <LucideIcons.Quote className="absolute -top-1 -left-1 w-5 h-5 text-muted-foreground/20" />
-                      <p className="text-sm text-muted-foreground pl-4">{testimonial.content}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+      {/* Key Features */}
+      <section className="py-12 md:py-20 bg-background">
+        <div className="container px-4 md:px-6">
+          <div className="flex flex-col items-center text-center space-y-4 mb-12">
+            <Badge className="mb-2" variant="outline">
+              Key Features
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Advanced Navigation Capabilities</h2>
+            <p className="text-muted-foreground text-lg md:text-xl max-w-[800px]">
+              Combining AI image recognition with precise navigation technology
+            </p>
           </div>
-        </section>
 
-        {/* CTA Section - New addition */}
-        <section className="py-12 sm:py-16 md:py-24 bg-primary/5 border-y border-border">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-4xl mx-auto text-center">
-              <Badge className="mb-4 px-3 py-1 bg-primary/10 text-primary">Get Started Today</Badge>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to explore buildings like never before?</h2>
-              <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-                Join thousands of architects, urban planners, and developers who are already using SabiRoad to transform
-                their work.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Button
-                  size="lg"
-                  className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
-                  onClick={() => handleGetStarted()}
+          <Tabs defaultValue="tab1" className="max-w-5xl mx-auto">
+            <TabsList className="grid grid-cols-3 mb-8">
+              <TabsTrigger value="tab1">Recognition</TabsTrigger>
+              <TabsTrigger value="tab2">Navigation</TabsTrigger>
+              <TabsTrigger value="tab3">Experience</TabsTrigger>
+            </TabsList>
+            <AnimatePresence mode="wait">
+              <TabsContent value="tab1">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
                 >
-                  <LucideIcons.Rocket className="mr-2 h-5 w-5" />
-                  Start Free Trial
+                  {keyFeatures.slice(0, 3).map((feature) => (
+                    <Card key={feature.title} className="bg-gradient-to-b from-background to-muted/20 backdrop-blur-sm">
+                      <CardHeader>
+                        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                          {LucideIcons[feature.icon] &&
+                            React.createElement(LucideIcons[feature.icon], {
+                              className: "h-6 w-6 text-primary",
+                            })}
+                        </div>
+                        <CardTitle>{feature.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-muted-foreground">{feature.description}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </motion.div>
+              </TabsContent>
+              <TabsContent value="tab2">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+                >
+                  {keyFeatures.slice(1, 4).map((feature) => (
+                    <Card key={feature.title} className="bg-gradient-to-b from-background to-muted/20 backdrop-blur-sm">
+                      <CardHeader>
+                        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                          {LucideIcons[feature.icon] &&
+                            React.createElement(LucideIcons[feature.icon], {
+                              className: "h-6 w-6 text-primary",
+                            })}
+                        </div>
+                        <CardTitle>{feature.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-muted-foreground">{feature.description}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </motion.div>
+              </TabsContent>
+              <TabsContent value="tab3">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+                >
+                  {keyFeatures.slice(3, 6).map((feature) => (
+                    <Card key={feature.title} className="bg-gradient-to-b from-background to-muted/20 backdrop-blur-sm">
+                      <CardHeader>
+                        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                          {LucideIcons[feature.icon] &&
+                            React.createElement(LucideIcons[feature.icon], {
+                              className: "h-6 w-6 text-primary",
+                            })}
+                        </div>
+                        <CardTitle>{feature.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-muted-foreground">{feature.description}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </motion.div>
+              </TabsContent>
+            </AnimatePresence>
+          </Tabs>
+        </div>
+      </section>
+
+      {/* Service Comparison */}
+      <section className="py-12 md:py-20 bg-muted/30">
+        <div className="container px-4 md:px-6">
+          <div className="flex flex-col items-center text-center space-y-4 mb-12">
+            <Badge className="mb-2" variant="outline">
+              Comparison
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Navigation Services Compared</h2>
+            <p className="text-muted-foreground text-lg md:text-xl max-w-[800px]">
+              See how different image-based navigation solutions stack up
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse min-w-[800px]">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left p-4">Service</th>
+                  <th className="text-left p-4">Platform</th>
+                  <th className="text-left p-4">Recognition Method</th>
+                  <th className="text-left p-4">Best For</th>
+                  <th className="text-left p-4">Limitations</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-border">
+                  <td className="p-4 font-medium">Google Lens</td>
+                  <td className="p-4">Android, iOS, Web</td>
+                  <td className="p-4">AI visual recognition</td>
+                  <td className="p-4">Famous landmarks, businesses</td>
+                  <td className="p-4">Requires internet, less effective for generic places</td>
+                </tr>
+                <tr className="border-b border-border">
+                  <td className="p-4 font-medium">Apple Visual Look Up</td>
+                  <td className="p-4">iOS/iPadOS</td>
+                  <td className="p-4">On-device AI + Siri Knowledge</td>
+                  <td className="p-4">Privacy-focused users, seamless Apple Maps integration</td>
+                  <td className="p-4">Apple devices only, focuses on notable landmarks</td>
+                </tr>
+                <tr className="border-b border-border">
+                  <td className="p-4 font-medium">TomTom GO</td>
+                  <td className="p-4">Android, iOS</td>
+                  <td className="p-4">GPS metadata from photos</td>
+                  <td className="p-4">Navigating to your own photos' locations</td>
+                  <td className="p-4">Requires geotagged photos, subscription-based</td>
+                </tr>
+                <tr className="border-b border-border">
+                  <td className="p-4 font-medium">Microsoft Bing Visual Search</td>
+                  <td className="p-4">Web, Mobile apps</td>
+                  <td className="p-4">AI visual recognition</td>
+                  <td className="p-4">Cross-platform users, integrated with Microsoft products</td>
+                  <td className="p-4">Best for known landmarks, requires manual navigation after identification</td>
+                </tr>
+                <tr>
+                  <td className="p-4 font-medium">FindPicLocation/Picarta</td>
+                  <td className="p-4">Web-based</td>
+                  <td className="p-4">AI image analysis</td>
+                  <td className="p-4">Finding locations of photos without metadata</td>
+                  <td className="p-4">Limited free searches, accuracy varies with image uniqueness</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-8 text-center">
+            <p className="text-sm text-muted-foreground mb-4">
+              SABIROAD integrates with multiple services to provide the best possible image-based navigation experience
+            </p>
+            <Button variant="outline" size="lg" className="gap-2">
+              <LucideIcons.FileText className="h-4 w-4" />
+              View Full Comparison Report
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* App Screenshots */}
+      <section className="py-12 md:py-20 bg-background">
+        <div className="container px-4 md:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col items-center text-center space-y-4 mb-12"
+          >
+            <Badge className="mb-2" variant="outline">
+              Screenshots
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">In-App Experience</h2>
+            <p className="text-muted-foreground text-lg md:text-xl max-w-[800px]">
+              A glimpse of the SABIROAD app interface and its key features
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0, scale: 0.8 },
+              visible: {
+                opacity: 1,
+                scale: 1,
+                transition: {
+                  delayChildren: 0.3,
+                  staggerChildren: 0.2,
+                },
+              },
+            }}
+            className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+          >
+            {[
+              "/screenshots/screenshot1.png",
+              "/screenshots/screenshot2.png",
+              "/screenshots/screenshot3.png",
+              "/screenshots/screenshot4.png",
+              "/screenshots/screenshot5.png",
+              "/screenshots/screenshot6.png",
+            ].map((screenshot, idx) => (
+              <motion.div
+                key={idx}
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0 },
+                }}
+                className="relative rounded-lg overflow-hidden shadow-lg"
+              >
+                <img src={screenshot} alt={`Screenshot ${idx + 1}`} className="w-full h-full object-cover" />
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+        <div className="mt-8 text-center">
+          <Button variant="outline" size="lg" className="gap-2">
+            <LucideIcons.Globe className="h-4 w-4" />
+            View Full App Screenshots
+          </Button>
+        </div>
+      </section>
+
+      {/* Partners & Integrations */}
+      <section className="py-12 md:py-16 bg-muted/20">
+        <div className="container px-4 md:px-6">
+          <div className="text-center mb-10">
+            <p className="text-muted-foreground">Powered by leading navigation and image recognition technologies</p>
+          </div>
+
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
+            {partnerLogos.map((partner) => (
+              <div
+                key={partner.name}
+                className="grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all duration-300"
+              >
+                <img src={partner.logo || "/placeholder.svg"} alt={partner.name} className="h-10 w-auto" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-12 md:py-20 bg-background">
+        <div className="container px-4 md:px-6">
+          <div className="flex flex-col items-center text-center space-y-4 mb-12">
+            <Badge className="mb-2" variant="outline">
+              Testimonials
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">What Our Users Say</h2>
+            <p className="text-muted-foreground text-lg md:text-xl max-w-[800px]">
+              Real stories from travelers who found their way with SABIROAD
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
+            {[
+              {
+                name: "Alice M.",
+                location: "New York, USA",
+                avatar: "/avatars/avatar1.jpg",
+                rating: 5,
+                review:
+                  "I've been using SABIROAD for a few months now and it's been a game-changer for my travel photography. I can easily find the locations of my shots and navigate back to them later.",
+              },
+              {
+                name: "John D.",
+                location: "London, UK",
+                avatar: "/avatars/avatar3.jpg",
+                rating: 4,
+                review:
+                  "The app is very intuitive and the recognition is surprisingly accurate. I've used it to find hidden gems around the city and it's been spot on every time.",
+              },
+              {
+                name: "Maria S.",
+                location: "Barcelona, Spain",
+                avatar: "/avatars/avatar2.jpg",
+                rating: 5,
+                review:
+                  "I travel a lot for work and SABIROAD has made it so much easier to navigate new cities. I can take a photo of my hotel and find my way back from anywhere.",
+              },
+            ].map((testimonial, idx) => (
+              <Card key={idx} className="bg-gradient-to-b from-background to-muted/20 backdrop-blur-sm">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <img src={testimonial.avatar} alt={testimonial.name} className="h-8 w-8 rounded-full" />
+                    <div>
+                      <div className="font-medium">{testimonial.name}</div>
+                      <div className="text-muted-foreground">{testimonial.location}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <LucideIcons.Star className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">{testimonial.rating}</span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">{testimonial.review}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="py-12 md:py-20 bg-muted/30">
+        <div className="container px-4 md:px-6">
+          <div className="flex flex-col items-center text-center space-y-4 mb-12">
+            <Badge className="mb-2" variant="outline">
+              Pricing
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Choose Your Plan</h2>
+            <p className="text-muted-foreground text-lg md:text-xl max-w-[800px]">
+              Flexible options for every type of traveler
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
+            {[
+              {
+                name: "Basic",
+                price: "Free",
+                description: "Essential image navigation features",
+                features: [
+                  "5 image recognitions per day",
+                  "Basic landmark identification",
+                  "Standard navigation options",
+                  "Ad-supported experience",
+                ],
+                cta: "Get Started",
+                popular: false,
+              },
+              {
+                name: "Premium",
+                price: "$4.99/mo",
+                description: "Enhanced recognition and navigation",
+                features: [
+                  "Unlimited image recognitions",
+                  "Advanced location intelligence",
+                  "Multiple navigation providers",
+                  "Offline maps for 10 regions",
+                  "Ad-free experience",
+                ],
+                cta: "Start Free Trial",
+                popular: true,
+              },
+              {
+                name: "Professional",
+                price: "$9.99/mo",
+                description: "Complete solution for frequent travelers",
+                features: [
+                  "Everything in Premium",
+                  "Highest priority recognition",
+                  "Global offline maps",
+                  "Historical image analysis",
+                  "Commercial usage rights",
+                ],
+                cta: "Contact Sales",
+                popular: false,
+              },
+            ].map((plan, idx) => (
+              <Card
+                key={idx}
+                className={cn("relative flex flex-col", plan.popular && "border-primary shadow-lg shadow-primary/10")}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <Badge className="bg-primary text-primary-foreground px-3 py-1">Most Popular</Badge>
+                  </div>
+                )}
+                <CardHeader>
+                  <CardTitle>{plan.name}</CardTitle>
+                  <div className="flex items-baseline mt-2">
+                    <span className="text-3xl font-bold">{plan.price}</span>
+                    {plan.price !== "Free" && <span className="text-muted-foreground ml-1">/month</span>}
+                  </div>
+                  <CardDescription className="mt-2">{plan.description}</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1">
+                  <ul className="space-y-2 mb-6">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-center">
+                        <LucideIcons.Check className="h-4 w-4 text-primary mr-2" />
+                        <span className="text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                  <Button className={cn("w-full", plan.popular ? "bg-primary text-primary-foreground" : "")}>
+                    {plan.cta}
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Call to Action */}
+      <section className="py-12 md:py-20 bg-primary/5">
+        <div className="container px-4 md:px-6">
+          <div className="grid gap-6 lg:grid-cols-2 items-center">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Ready to Navigate by Image?</h2>
+              <p className="text-lg text-muted-foreground mb-6">
+                Download SABIROAD today and discover how easy it is to find your way to any place from just a photo.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button size="lg" className="bg-primary text-primary-foreground">
+                  <LucideIcons.Upload className="mr-2 h-5 w-5" />
+                  Try It Now
                 </Button>
-                <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                  <LucideIcons.CalendarClock className="mr-2 h-5 w-5" />
-                  Schedule Demo
+                <Button size="lg" variant="outline">
+                  <LucideIcons.Download className="mr-2 h-5 w-5" />
+                  Download App
                 </Button>
               </div>
             </div>
+            <div className="relative pl-6 hidden lg:block">
+              <div className="absolute top-0 left-0 w-px h-full bg-gradient-to-b from-transparent via-border to-transparent"></div>
+              <div className="space-y-6">
+                {[
+                  {
+                    icon: "Camera",
+                    title: "Works with any photo",
+                    description: "From famous landmarks to local storefronts and buildings",
+                  },
+                  {
+                    icon: "Globe",
+                    title: "Global coverage",
+                    description: "Identify locations across 150+ countries worldwide",
+                  },
+                  {
+                    icon: "Shield",
+                    title: "Privacy focused",
+                    description: "Your photos are processed securely and not stored without permission",
+                  },
+                ].map((item, idx) => (
+                  <div key={idx} className="flex gap-4">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      {LucideIcons[item.icon] &&
+                        React.createElement(LucideIcons[item.icon], {
+                          className: "h-5 w-5 text-primary",
+                        })}
+                    </div>
+                    <div>
+                      <h3 className="font-medium">{item.title}</h3>
+                      <p className="text-sm text-muted-foreground">{item.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
 
-      <footer className="py-12 border-t border-border bg-card">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
+      <footer className="bg-muted py-12 border-t border-border">
+        <div className="container px-4 md:px-6">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             <div>
-              <Link href="/" className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-r from-primary to-purple-600 rounded-lg flex items-center justify-center">
-                  <LucideIcons.Building2 className="w-5 h-5 text-primary-foreground" />
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                  <LucideIcons.Navigation className="h-5 w-5 text-primary-foreground" />
                 </div>
-                <span className="text-xl font-semibold">SabiRoad</span>
-              </Link>
-              <p className="text-sm text-muted-foreground mb-4">
-                Revolutionizing how we discover and analyze buildings with AI and comprehensive data.
+                <span className="font-bold text-xl">SABIROAD</span>
+              </div>
+              <p className="text-muted-foreground mb-4">
+                Transforming navigation with image recognition technology. Find your way to any place from just a photo.
               </p>
-              <div className="flex space-x-4">
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <LucideIcons.Twitter className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <LucideIcons.Github className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <LucideIcons.Linkedin className="h-4 w-4" />
-                </Button>
+              <div className="flex gap-4">
+                <a href="#" className="text-muted-foreground hover:text-foreground">
+                  <LucideIcons.Twitter className="h-5 w-5" />
+                </a>
+                <a href="#" className="text-muted-foreground hover:text-foreground">
+                  <LucideIcons.Instagram className="h-5 w-5" />
+                </a>
+                <a href="#" className="text-muted-foreground hover:text-foreground">
+                  <LucideIcons.Facebook className="h-5 w-5" />
+                </a>
+                <a href="#" className="text-muted-foreground hover:text-foreground">
+                  <LucideIcons.Youtube className="h-5 w-5" />
+                </a>
               </div>
             </div>
 
             <div>
               <h3 className="font-medium mb-4">Product</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-2">
                 <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
+                  <Link href="#" className="text-muted-foreground hover:text-foreground">
                     Features
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
+                  <Link href="#" className="text-muted-foreground hover:text-foreground">
+                    Supported Services
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-muted-foreground hover:text-foreground">
+                    Testimonials
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-muted-foreground hover:text-foreground">
                     Pricing
                   </Link>
                 </li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="font-medium mb-4">Resources</h3>
+              <ul className="space-y-2">
                 <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
-                    API
+                  <Link href="#" className="text-muted-foreground hover:text-foreground">
+                    Blog
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
+                  <Link href="#" className="text-muted-foreground hover:text-foreground">
                     Documentation
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
-                    Release Notes
+                  <Link href="#" className="text-muted-foreground hover:text-foreground">
+                    Research
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="text-muted-foreground hover:text-foreground">
+                    API
                   </Link>
                 </li>
               </ul>
@@ -979,78 +994,45 @@ const SabiRoadModern = () => {
 
             <div>
               <h3 className="font-medium mb-4">Company</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-2">
                 <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
+                  <Link href="#" className="text-muted-foreground hover:text-foreground">
                     About Us
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
+                  <Link href="#" className="text-muted-foreground hover:text-foreground">
                     Careers
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
-                    Blog
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
+                  <Link href="#" className="text-muted-foreground hover:text-foreground">
                     Press
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
+                  <Link href="#" className="text-muted-foreground hover:text-foreground">
                     Contact
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-medium mb-4">Legal</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
-                    Terms of Service
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
-                    Privacy Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
-                    Cookie Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
-                    GDPR
                   </Link>
                 </li>
               </ul>
             </div>
           </div>
 
-          <Separator className="my-8" />
-
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} SabiRoad. All rights reserved.
-            </div>
-            <div className="flex items-center space-x-4 mt-4 md:mt-0">
-              <select className="text-sm bg-transparent border border-border rounded-md px-2 py-1">
-                <option value="en">English</option>
-                <option value="fr">Français</option>
-                <option value="es">Español</option>
-                <option value="de">Deutsch</option>
-              </select>
-              <Badge variant="outline" className="text-xs">
-                v2.1.0
-              </Badge>
+          <div className="border-t border-border mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
+            <p className="text-sm text-muted-foreground mb-4 md:mb-0">
+              © {new Date().getFullYear()} SABIROAD. All rights reserved.
+            </p>
+            <div className="flex gap-6">
+              <Link href="#" className="text-sm text-muted-foreground hover:text-foreground">
+                Privacy Policy
+              </Link>
+              <Link href="#" className="text-sm text-muted-foreground hover:text-foreground">
+                Terms of Service
+              </Link>
+              <Link href="#" className="text-sm text-muted-foreground hover:text-foreground">
+                Cookie Policy
+              </Link>
             </div>
           </div>
         </div>
@@ -1058,6 +1040,4 @@ const SabiRoadModern = () => {
     </div>
   )
 }
-
-export default SabiRoadModern
 

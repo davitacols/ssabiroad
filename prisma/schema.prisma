@@ -25,6 +25,7 @@ model User {
   detections     Detection[]
   savedLocations SavedLocation[]
   buildings      Building[]
+  locations      Location[]
 }
 
 model Building {
@@ -39,14 +40,14 @@ model Building {
   latitude       Float?
   longitude      Float?
   confidence     Float?
-  type           String    // detection type (text-detection, landmark, visual-detection, etc.)
-  
+  type           String    // detection type (text-detection, landmark, etc.)
+
   // Building features
   architecture   String[]
   materials      String[]
   style          String[]
   condition      String?
-  
+
   // Image properties
   dominantColors String[]
   brightness     Float?
@@ -58,10 +59,10 @@ model Building {
   similarTo       BuildingSimilarity[] @relation("SimilarFrom")
   images          BuildingImage[]
   detections      Detection[]
-  
+
   // User who first discovered/analyzed the building
   userId          String
-  user            User     @relation(fields: [userId], references: [id])
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([latitude, longitude])
 }
@@ -130,4 +131,22 @@ model BuildingSimilarity {
   @@unique([buildingId, similarToId])
   @@index([buildingId])
   @@index([similarToId])
+}
+
+model Location {
+  id               String   @id @default(uuid())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  latitude         Float
+  longitude        Float
+  name            String?
+  address         String?
+  confidence      Float?
+  recognitionType String   // Added this field to fix your issue
+  
+  // Relation to User (optional)
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([latitude, longitude])
 }
