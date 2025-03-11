@@ -985,7 +985,7 @@ export default function Dashboard() {
       localStorage.removeItem("token")
 
       // Redirect to login page
-      router.push("/login")
+      router.push("/")
     } catch (error) {
       console.error("Error during logout:", error)
     }
