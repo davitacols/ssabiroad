@@ -611,66 +611,103 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* App Screenshots */}
-      <section className="py-12 md:py-20 bg-background">
+      <section className="py-12 md:py-20 bg-background overflow-hidden">
         <div className="container px-4 md:px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex flex-col items-center text-center space-y-4 mb-12"
-          >
+          <div className="flex flex-col items-center text-center space-y-4 mb-12">
             <Badge className="mb-2" variant="outline">
-              Screenshots
+              App Experience
             </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">In-App Experience</h2>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">See It in Action</h2>
             <p className="text-muted-foreground text-lg md:text-xl max-w-[800px]">
-              A glimpse of the SABIROAD app interface and its key features
+              A seamless experience across devices with powerful image recognition
             </p>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: { opacity: 0, scale: 0.8 },
-              visible: {
-                opacity: 1,
-                scale: 1,
-                transition: {
-                  delayChildren: 0.3,
-                  staggerChildren: 0.2,
+          <div className="relative">
+            <div className="flex justify-center items-center gap-6 lg:gap-8 overflow-x-hidden py-10">
+              {[
+                {
+                  text: "Take a photo of landmark",
+                  image: "/images/app-screenshot-3.jpg",
                 },
-              },
-            }}
-            className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
-          >
-            {[
-              "/screenshots/screenshot1.png",
-              "/screenshots/screenshot2.png",
-              "/screenshots/screenshot3.png",
-              "/screenshots/screenshot4.png",
-              "/screenshots/screenshot5.png",
-              "/screenshots/screenshot6.png",
-            ].map((screenshot, idx) => (
-              <motion.div
-                key={idx}
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  visible: { opacity: 1, y: 0 },
-                }}
-                className="relative rounded-lg overflow-hidden shadow-lg"
-              >
-                <img src={screenshot} alt={`Screenshot ${idx + 1}`} className="w-full h-full object-cover" />
-              </motion.div>
-            ))}
-          </motion.div>
+                {
+                  text: "AI identifies location",
+                  image: "/images/app-screenshot-4.jpg",
+                },
+                {
+                  text: "View place details",
+                  image: "/images/app-screenshot-5.jpg",
+                },
+                {
+                  text: "Choose navigation method",
+                  image: "/images/app-screenshot-6.jpg",
+                },
+                {
+                  text: "Follow turn-by-turn directions",
+                  image: "/images/app-screenshot-7.jpg",
+                },
+              ].map((item, i) => (
+                <motion.div
+                  key={i}
+                  className={cn(
+                    "relative rounded-xl overflow-hidden shadow-xl border border-border",
+                    i === 2 ? "w-64 md:w-72 h-[500px] z-10" : "w-48 md:w-56 h-[400px] opacity-80",
+                  )}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1, duration: 0.5 }}
+                >
+                  <img
+                    src={item.image}
+                    alt={`App screenshot: ${item.text}`}
+                    className="object-cover w-full h-full"
+                  />
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Background glow effects */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/20 rounded-full blur-3xl -z-10"></div>
+          </div>
+
+          <div className="flex justify-center mt-8">
+            <div className="flex items-center gap-6">
+              <div className="flex flex-col items-center">
+                <LucideIcons.Apple className="h-8 w-8 mb-2" />
+                <span className="text-sm font-medium">iOS App</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <LucideIcons.Smartphone className="h-8 w-8 mb-2" />
+                <span className="text-sm font-medium">Android App</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <LucideIcons.Globe className="h-8 w-8 mb-2" />
+                <span className="text-sm font-medium">Web Version</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="mt-8 text-center">
-          <Button variant="outline" size="lg" className="gap-2">
-            <LucideIcons.Globe className="h-4 w-4" />
-            View Full App Screenshots
-          </Button>
+      </section>
+
+
+
+      {/* Partners & Integrations */}
+      <section className="py-12 md:py-16 bg-muted/20">
+        <div className="container px-4 md:px-6">
+          <div className="text-center mb-10">
+            <p className="text-muted-foreground">Powered by leading navigation and image recognition technologies</p>
+          </div>
+
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
+            {partnerLogos.map((partner) => (
+              <div
+                key={partner.name}
+                className="grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all duration-300"
+              >
+                <img src={partner.logo || "/placeholder.svg"} alt={partner.name} className="h-10 w-auto" />
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

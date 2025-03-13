@@ -14,18 +14,23 @@ import {
   LogOut,
   Settings,
   AlertCircle,
-  Layers,
   History,
   Search,
   Compass,
   Sparkles,
-  Bookmark,
   Clock,
   Loader2,
   Database,
+  Trash2,
+  Heart,
+  Plus,
+  ArrowUpDown,
+  Info,
 } from "lucide-react"
+import * as LucideIcons from "lucide-react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
+import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -40,12 +45,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Progress } from "@/components/ui/progress"
-import { Separator } from "@/components/ui/separator"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from '@/hooks/use-toast'
 
 // Sidebar Provider and Components
 import {
@@ -86,6 +100,46 @@ interface LocationRecognitionResponse {
   openingHours?: string
   formattedAddress?: string
   placeId?: string
+  phoneNumber?: string
+  website?: string
+  buildingType?: string
+  historicalInfo?: string
+  geoData?: {
+    country?: string
+    countryCode?: string
+    administrativeArea?: string
+    locality?: string
+    subLocality?: string
+    postalCode?: string
+    streetName?: string
+    streetNumber?: string
+    formattedAddress?: string
+    timezone?: string
+    elevation?: number
+  }
+  nearbyPlaces?: {
+    name: string
+    type: string
+    distance: number
+    location: Location
+  }[]
+}
+
+// Define a type for saved locations
+interface SavedLocation extends LocationRecognitionResponse {
+  id: string
+  createdAt: string
+  isBookmarked?: boolean
+}
+
+// Define a type for bookmarks
+interface Bookmark {
+  id: string
+  locationId: string
+  name: string
+  address: string
+  category: string
+  createdAt: string
 }
 
 // Camera Recognition Component with API Integration
@@ -314,19 +368,61 @@ const CameraRecognition = () => {
                       <p className="text-sm text-muted-foreground mb-3">{recognitionResult.address}</p>
                     )}
 
-                    {recognitionResult.type && (
-                      <Badge variant="outline" className="mb-4">
-                        {recognitionResult.type}
-                      </Badge>
-                    )}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {recognitionResult.type && <Badge variant="outline">{recognitionResult.type}</Badge>}
 
-                    {recognitionResult.category && recognitionResult.type !== recognitionResult.category && (
-                      <Badge variant="secondary" className="ml-2 mb-4">
-                        {recognitionResult.category}
-                      </Badge>
-                    )}
+                      {recognitionResult.category && recognitionResult.type !== recognitionResult.category && (
+                        <Badge variant="secondary">{recognitionResult.category}</Badge>
+                      )}
+
+                      {recognitionResult.buildingType && (
+                        <Badge variant="outline">{recognitionResult.buildingType}</Badge>
+                      )}
+                    </div>
 
                     {recognitionResult.description && <p className="text-sm mb-4">{recognitionResult.description}</p>}
+
+                    {/* Display contact information if available */}
+                    {(recognitionResult.phoneNumber || recognitionResult.website) && (
+                      <div className="mb-4 space-y-1">
+                        {recognitionResult.phoneNumber && (
+                          <p className="text-sm flex items-center">
+                            <LucideIcons.Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                            {recognitionResult.phoneNumber}
+                          </p>
+                        )}
+                        {recognitionResult.website && (
+                          <p className="text-sm flex items-center">
+                            <LucideIcons.Globe className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                            <a
+                              href={recognitionResult.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline truncate"
+                            >
+                              {recognitionResult.website}
+                            </a>
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Display opening hours if available */}
+                    {recognitionResult.openingHours && recognitionResult.openingHours.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-sm font-medium mb-1 flex items-center">
+                          <LucideIcons.Clock className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                          Opening Hours
+                        </p>
+                        <div className="text-xs text-muted-foreground space-y-0.5 ml-5">
+                          {Array.isArray(recognitionResult.openingHours) ? (
+                            recognitionResult.openingHours.map((hours, index) => <p key={index}>{hours}</p>)
+                          ) : (
+                            <p>{recognitionResult.openingHours}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Display photos if available */}
                     {recognitionResult.photos && recognitionResult.photos.length > 0 && (
@@ -368,6 +464,14 @@ const CameraRecognition = () => {
                             ))}
                           </div>
                         </div>
+                      </div>
+                    )}
+
+                    {/* Display historical information if available */}
+                    {recognitionResult.historicalInfo && (
+                      <div className="mb-4">
+                        <p className="text-sm font-medium mb-1">Historical Information:</p>
+                        <p className="text-xs text-muted-foreground">{recognitionResult.historicalInfo}</p>
                       </div>
                     )}
 
@@ -570,344 +674,1745 @@ const CameraRecognition = () => {
   )
 }
 
-// Location Recognition Dialog with API Integration
-const LocationRecognitionDialog = ({ open, onOpenChange }) => {
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [selectedFile, setSelectedFile] = useState(null)
-  const [previewUrl, setPreviewUrl] = useState(null)
-  const [recognitionResult, setRecognitionResult] = useState(null)
-  const [error, setError] = useState(null)
-  const fileInputRef = useRef(null)
-  const videoRef = useRef(null)
-  const canvasRef = useRef(null)
-  const [isCameraActive, setIsCameraActive] = useState(false)
-  const streamRef = useRef(null)
+// Implement the Locations feature
+const LocationsFeature = () => {
+  const [locations, setLocations] = useState<SavedLocation[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedLocation, setSelectedLocation] = useState<SavedLocation | null>(null)
+  const [showLocationDetails, setShowLocationDetails] = useState(false)
+  const [sortField, setSortField] = useState<string>("createdAt")
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
+  const [filterCategory, setFilterCategory] = useState<string>("all")
+  const [searchQuery, setSearchQuery] = useState<string>("")
 
-  useEffect(() => {
-    // Clean up camera stream when dialog closes
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop())
-        streamRef.current = null
-      }
-    }
-  }, [])
-
-  const handleFileChange = (e) => {
-    setError(null)
-    setRecognitionResult(null)
-
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0]
-      setSelectedFile(file)
-
-      // Create preview URL
-      const fileUrl = URL.createObjectURL(file)
-      setPreviewUrl(fileUrl)
-
-      // Process the image if not using camera
-      if (!isCameraActive) {
-        handleImageRecognition(file)
-      }
-    }
-  }
-
-  const startCamera = async () => {
+  // Fetch locations from the API
+  const fetchLocations = async () => {
     try {
-      setIsCameraActive(true)
-      setError(null)
-      setRecognitionResult(null)
-      setPreviewUrl(null)
-
-      if (!videoRef.current) return
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      })
-
-      videoRef.current.srcObject = stream
-      streamRef.current = stream
-    } catch (err) {
-      console.error("Camera access error:", err)
-      setError("Could not access camera")
-      setIsCameraActive(false)
-    }
-  }
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop())
-      streamRef.current = null
-    }
-    setIsCameraActive(false)
-  }
-
-  const captureImage = () => {
-    if (!videoRef.current || !canvasRef.current) return
-
-    const video = videoRef.current
-    const canvas = canvasRef.current
-
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-
-    // Draw video frame to canvas
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
-
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-    // Convert canvas to blob
-    canvas.toBlob(
-      async (blob) => {
-        if (!blob) return
-
-        const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" })
-        setSelectedFile(file)
-
-        // Create preview URL
-        const fileUrl = URL.createObjectURL(blob)
-        setPreviewUrl(fileUrl)
-
-        // Stop camera
-        stopCamera()
-
-        // Process the image
-        await handleImageRecognition(file)
-      },
-      "image/jpeg",
-      0.95,
-    )
-  }
-
-  const handleImageRecognition = async (file) => {
-    try {
-      setIsProcessing(true)
-      setProgress(0)
+      setIsLoading(true)
       setError(null)
 
-      const progressInterval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval)
-            return 90
-          }
-          return prev + 5
-        })
-      }, 150)
-
-      // Create form data for API request
-      const formData = new FormData()
-      formData.append("image", file)
-
-      // Get current location if available
-      if (navigator.geolocation) {
-        try {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 5000,
-              maximumAge: 0,
-            })
-          })
-
-          formData.append("lat", position.coords.latitude.toString())
-          formData.append("lng", position.coords.longitude.toString())
-        } catch (err) {
-          console.log("Geolocation error:", err)
-          // Continue without location
-        }
-      }
-
-      // Call the API
-      const response = await fetch("/api/location-recognition", {
-        method: "POST",
-        body: formData,
-      })
-
-      clearInterval(progressInterval)
-      setProgress(100)
+      const response = await fetch("/api/location-recognition?operation=all")
 
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`)
       }
 
-      const result = await response.json()
+      const data = await response.json()
 
-      setIsProcessing(false)
-      setRecognitionResult(result)
+      if (data.success && data.locations) {
+        // Transform the data to match our SavedLocation type
+        const transformedLocations = data.locations.map((loc: any) => ({
+          ...loc,
+          createdAt: new Date(loc.createdAt).toISOString(),
+          isBookmarked: false, // We'll update this later
+        }))
+
+        // Fetch bookmarks to mark bookmarked locations
+        const bookmarksResponse = await fetch("/api/bookmarks")
+        if (bookmarksResponse.ok) {
+          const bookmarksData = await bookmarksResponse.json()
+          if (bookmarksData.success && bookmarksData.bookmarks) {
+            const bookmarkedLocationIds = bookmarksData.bookmarks.map((b: Bookmark) => b.locationId)
+
+            // Mark bookmarked locations
+            transformedLocations.forEach((loc: SavedLocation) => {
+              loc.isBookmarked = bookmarkedLocationIds.includes(loc.id)
+            })
+          }
+        }
+
+        setLocations(transformedLocations)
+      } else {
+        setLocations([])
+      }
     } catch (err) {
-      console.error("Recognition failed:", err)
-      setIsProcessing(false)
-      setError(err instanceof Error ? err.message : "Recognition failed")
+      console.error("Failed to fetch locations:", err)
+      setError(err instanceof Error ? err.message : "Failed to fetch locations")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Fetch locations on component mount
+  useEffect(() => {
+    fetchLocations()
+  }, [])
+
+  // Handle location deletion
+  const handleDeleteLocation = async (id: string) => {
+    try {
+      const response = await fetch(`/api/location-recognition/${id}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      // Remove the location from the state
+      setLocations(locations.filter((loc) => loc.id !== id))
+      toast({
+        title: "Location deleted",
+        description: "The location has been successfully deleted.",
+      })
+    } catch (err) {
+      console.error("Failed to delete location:", err)
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to delete location",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Handle bookmark toggle
+  const handleToggleBookmark = async (location: SavedLocation) => {
+    try {
+      if (location.isBookmarked) {
+        // Remove bookmark
+        const response = await fetch(`/api/bookmarks/${location.id}`, {
+          method: "DELETE",
+        })
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`)
+        }
+
+        // Update state
+        setLocations(locations.map((loc) => (loc.id === location.id ? { ...loc, isBookmarked: false } : loc)))
+
+        toast({
+          title: "Bookmark removed",
+          description: `${location.name} has been removed from bookmarks.`,
+        })
+      } else {
+        // Add bookmark
+        const response = await fetch("/api/bookmarks", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            locationId: location.id,
+            name: location.name,
+            address: location.address,
+            category: location.category || "Unknown",
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`)
+        }
+
+        // Update state
+        setLocations(locations.map((loc) => (loc.id === location.id ? { ...loc, isBookmarked: true } : loc)))
+
+        toast({
+          title: "Bookmark added",
+          description: `${location.name} has been added to bookmarks.`,
+        })
+      }
+    } catch (err) {
+      console.error("Failed to toggle bookmark:", err)
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to update bookmark",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // View location details
+  const handleViewDetails = (location: SavedLocation) => {
+    setSelectedLocation(location)
+    setShowLocationDetails(true)
+  }
+
+  // Filter and sort locations
+  const filteredAndSortedLocations = locations
+    .filter((loc) => {
+      // Apply category filter
+      if (filterCategory !== "all" && loc.category !== filterCategory) {
+        return false
+      }
+
+      // Apply search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase()
+        return (
+          loc.name?.toLowerCase().includes(query) ||
+          false ||
+          loc.address?.toLowerCase().includes(query) ||
+          false ||
+          loc.description?.toLowerCase().includes(query) ||
+          false
+        )
+      }
+
+      return true
+    })
+    .sort((a, b) => {
+      // Apply sorting
+      let comparison = 0
+
+      switch (sortField) {
+        case "name":
+          comparison = (a.name || "").localeCompare(b.name || "")
+          break
+        case "category":
+          comparison = (a.category || "").localeCompare(b.category || "")
+          break
+        case "confidence":
+          comparison = (a.confidence || 0) - (b.confidence || 0)
+          break
+        case "createdAt":
+        default:
+          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          break
+      }
+
+      return sortDirection === "asc" ? comparison : -comparison
+    })
+
+  // Toggle sort direction
+  const toggleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setSortField(field)
+      setSortDirection("asc")
+    }
+  }
+
+  // Get unique categories for filter
+  const categories = ["all", ...new Set(locations.map((loc) => loc.category || "Unknown"))]
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold">Saved Locations</h2>
+          <p className="text-muted-foreground">Manage your saved locations and bookmarks</p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+          <Input
+            placeholder="Search locations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full md:w-64"
+          />
+
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="w-full md:w-40">
+              <SelectValue placeholder="Filter by category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category === "all" ? "All Categories" : category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : error ? (
+        <Card>
+          <CardContent className="py-10">
+            <div className="flex flex-col items-center justify-center text-center">
+              <AlertCircle className="h-10 w-10 text-destructive mb-4" />
+              <h3 className="text-lg font-medium mb-2">Error Loading Locations</h3>
+              <p className="text-muted-foreground">{error}</p>
+              <Button onClick={fetchLocations} className="mt-4">
+                Try Again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : filteredAndSortedLocations.length === 0 ? (
+        <Card>
+          <CardContent className="py-10">
+            <div className="flex flex-col items-center justify-center text-center">
+              <Database className="h-10 w-10 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No Locations Found</h3>
+              <p className="text-muted-foreground">
+                {searchQuery || filterCategory !== "all"
+                  ? "No locations match your search criteria. Try adjusting your filters."
+                  : "You haven't saved any locations yet. Use the camera recognition feature to identify and save locations."}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[250px]">
+                  <Button variant="ghost" className="p-0 font-medium" onClick={() => toggleSort("name")}>
+                    Name
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button variant="ghost" className="p-0 font-medium" onClick={() => toggleSort("category")}>
+                    Category
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
+                <TableHead className="hidden md:table-cell">Address</TableHead>
+                <TableHead className="hidden md:table-cell">
+                  <Button variant="ghost" className="p-0 font-medium" onClick={() => toggleSort("confidence")}>
+                    Confidence
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
+                <TableHead className="hidden md:table-cell">
+                  <Button variant="ghost" className="p-0 font-medium" onClick={() => toggleSort("createdAt")}>
+                    Date Added
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredAndSortedLocations.map((location) => (
+                <TableRow key={location.id}>
+                  <TableCell className="font-medium">{location.name || "Unknown"}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{location.category || "Unknown"}</Badge>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell truncate max-w-[200px]">
+                    {location.address || "No address"}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {location.confidence ? `${Math.round(location.confidence * 100)}%` : "N/A"}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {new Date(location.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleToggleBookmark(location)}
+                        title={location.isBookmarked ? "Remove bookmark" : "Add bookmark"}
+                      >
+                        {location.isBookmarked ? (
+                          <Heart className="h-4 w-4 fill-primary text-primary" />
+                        ) : (
+                          <Heart className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleViewDetails(location)}
+                        title="View details"
+                      >
+                        <Info className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteLocation(location.id)}
+                        title="Delete location"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+
+      {/* Location Details Dialog */}
+      <Dialog open={showLocationDetails} onOpenChange={setShowLocationDetails}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {selectedLocation && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {selectedLocation.name || "Unknown Location"}
+                  {selectedLocation.confidence && (
+                    <Badge variant={selectedLocation.confidence > 0.8 ? "default" : "outline"} className="ml-2">
+                      {Math.round(selectedLocation.confidence * 100)}% confidence
+                    </Badge>
+                  )}
+                </DialogTitle>
+                <DialogDescription>{selectedLocation.address || "No address available"}</DialogDescription>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  {selectedLocation.photos && selectedLocation.photos.length > 0 ? (
+                    <div className="rounded-lg overflow-hidden border h-48">
+                      <img
+                        src={selectedLocation.photos[0] || "/placeholder.svg"}
+                        alt={selectedLocation.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="rounded-lg overflow-hidden border h-48 bg-muted flex items-center justify-center">
+                      <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                  )}
+
+                  {selectedLocation.location && (
+                    <div className="rounded-lg overflow-hidden border h-48">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${selectedLocation.location.latitude},${selectedLocation.location.longitude}&zoom=15`}
+                        allowFullScreen
+                      ></iframe>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-1">Category</h4>
+                    <Badge variant="outline">{selectedLocation.category || "Unknown"}</Badge>
+                    {selectedLocation.buildingType && (
+                      <Badge variant="outline" className="ml-2">
+                        {selectedLocation.buildingType}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {selectedLocation.description && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Description</h4>
+                      <p className="text-sm text-muted-foreground">{selectedLocation.description}</p>
+                    </div>
+                  )}
+
+                  {selectedLocation.location && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Coordinates</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedLocation.location.latitude.toFixed(6)},{" "}
+                        {selectedLocation.location.longitude.toFixed(6)}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedLocation.geoData && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Location Details</h4>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        {selectedLocation.geoData.country && (
+                          <div>
+                            <span className="text-muted-foreground">Country:</span> {selectedLocation.geoData.country} (
+                            {selectedLocation.geoData.countryCode})
+                          </div>
+                        )}
+                        {selectedLocation.geoData.administrativeArea && (
+                          <div>
+                            <span className="text-muted-foreground">State/Province:</span>{" "}
+                            {selectedLocation.geoData.administrativeArea}
+                          </div>
+                        )}
+                        {selectedLocation.geoData.locality && (
+                          <div>
+                            <span className="text-muted-foreground">City:</span> {selectedLocation.geoData.locality}
+                          </div>
+                        )}
+                        {selectedLocation.geoData.postalCode && (
+                          <div>
+                            <span className="text-muted-foreground">Postal Code:</span>{" "}
+                            {selectedLocation.geoData.postalCode}
+                          </div>
+                        )}
+                        {selectedLocation.geoData.elevation && (
+                          <div>
+                            <span className="text-muted-foreground">Elevation:</span>{" "}
+                            {selectedLocation.geoData.elevation.toFixed(1)} meters
+                          </div>
+                        )}
+                        {selectedLocation.geoData.timezone && (
+                          <div>
+                            <span className="text-muted-foreground">Timezone:</span> {selectedLocation.geoData.timezone}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedLocation.nearbyPlaces && selectedLocation.nearbyPlaces.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Nearby Places</h4>
+                      <div className="space-y-2">
+                        {selectedLocation.nearbyPlaces.slice(0, 3).map((place, idx) => (
+                          <div key={idx} className="flex justify-between text-sm">
+                            <span>{place.name}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {place.distance < 1000
+                                ? `${Math.round(place.distance)}m`
+                                : `${(place.distance / 1000).toFixed(1)}km`}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedLocation.phoneNumber && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Contact</h4>
+                      <p className="text-sm text-muted-foreground">{selectedLocation.phoneNumber}</p>
+                    </div>
+                  )}
+
+                  {selectedLocation.website && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Website</h4>
+                      <a
+                        href={selectedLocation.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-primary hover:underline"
+                      >
+                        {selectedLocation.website}
+                      </a>
+                    </div>
+                  )}
+
+                  {selectedLocation.historicalInfo && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Historical Information</h4>
+                      <p className="text-sm text-muted-foreground">{selectedLocation.historicalInfo}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <DialogFooter className="flex justify-between">
+                <Button variant="outline" onClick={() => handleToggleBookmark(selectedLocation)}>
+                  {selectedLocation.isBookmarked ? (
+                    <>
+                      <Heart className="mr-2 h-4 w-4 fill-primary text-primary" />
+                      Remove Bookmark
+                    </>
+                  ) : (
+                    <>
+                      <Heart className="mr-2 h-4 w-4" />
+                      Add Bookmark
+                    </>
+                  )}
+                </Button>
+
+                {selectedLocation.mapUrl && (
+                  <Button asChild>
+                    <a href={selectedLocation.mapUrl} target="_blank" rel="noopener noreferrer">
+                      <MapPin className="mr-2 h-4 w-4" />
+                      View on Map
+                    </a>
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+// Implement the Map feature
+const MapFeature = () => {
+  const [locations, setLocations] = useState<SavedLocation[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedLocation, setSelectedLocation] = useState<SavedLocation | null>(null)
+  const [mapCenter, setMapCenter] = useState<Location>({ latitude: 0, longitude: 0 })
+  const [userLocation, setUserLocation] = useState<Location | null>(null)
+  const [mapLoaded, setMapLoaded] = useState(false)
+  const [showInfoWindow, setShowInfoWindow] = useState(false)
+
+  // Load Google Maps API
+  const { isLoaded: isGoogleMapsLoaded } = useJsApiLoader({
+    id: "google-map-script",
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+  })
+
+  // Get user's current location
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userLoc = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          }
+          setUserLocation(userLoc)
+          setMapCenter(userLoc)
+        },
+        (error) => {
+          console.error("Error getting user location:", error)
+          // Default to a central location if user location is not available
+          setMapCenter({ latitude: 40.7128, longitude: -74.006 }) // New York
+        },
+      )
+    } else {
+      // Default to a central location if geolocation is not supported
+      setMapCenter({ latitude: 40.7128, longitude: -74.006 }) // New York
+    }
+  }, [])
+
+  // Fetch locations from the API
+  const fetchLocations = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      const response = await fetch("/api/location-recognition?operation=all")
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success && data.locations) {
+        // Transform the data to match our SavedLocation type
+        const transformedLocations = data.locations
+          .filter((loc: any) => loc.latitude && loc.longitude) // Only include locations with coordinates
+          .map((loc: any) => ({
+            ...loc,
+            createdAt: new Date(loc.createdAt).toISOString(),
+            location: {
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+            },
+          }))
+
+        setLocations(transformedLocations)
+      } else {
+        setLocations([])
+      }
+    } catch (err) {
+      console.error("Failed to fetch locations:", err)
+      setError(err instanceof Error ? err.message : "Failed to fetch locations")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Fetch locations on component mount
+  useEffect(() => {
+    fetchLocations()
+  }, [])
+
+  // Handle marker click
+  const handleMarkerClick = (location: SavedLocation) => {
+    setSelectedLocation(location)
+    setShowInfoWindow(true)
+
+    // Center map on the selected location
+    if (location.location) {
+      setMapCenter(location.location)
+    }
+  }
+
+  // Close info window
+  const handleInfoWindowClose = () => {
+    setShowInfoWindow(false)
+  }
+
+  // Navigate to location
+  const handleNavigate = (location: SavedLocation) => {
+    if (location.mapUrl) {
+      window.open(location.mapUrl, "_blank")
+    } else if (location.location) {
+      window.open(
+        `https://www.google.com/maps/dir/?api=1&destination=${location.location.latitude},${location.location.longitude}`,
+        "_blank",
+      )
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Identify Any Location</h3>
-            <Badge variant="outline">AI Powered</Badge>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">Map View</h2>
+          <p className="text-muted-foreground">View all your saved locations on a map</p>
+        </div>
+
+        <Button onClick={fetchLocations} variant="outline">
+          <Loader2 className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : "hidden"}`} />
+          Refresh Map
+        </Button>
+      </div>
+
+      {!isGoogleMapsLoaded ? (
+        <Card className="h-[600px] flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+            <h3 className="text-lg font-medium">Loading Google Maps</h3>
+            <p className="text-muted-foreground">Please wait while we load the map...</p>
           </div>
-
-          <p className="text-sm text-muted-foreground">
-            Upload an image or use your camera to instantly identify landmarks, businesses, streets, and more.
-          </p>
-
-          <div className="relative h-72 bg-muted rounded-lg overflow-hidden border border-border">
-            {/* Preview image */}
-            {previewUrl && !isProcessing && !recognitionResult && (
-              <img
-                src={previewUrl || "/placeholder.svg"}
-                alt="Preview"
-                className="absolute inset-0 w-full h-full object-cover"
+        </Card>
+      ) : error ? (
+        <Card className="h-[600px] flex items-center justify-center">
+          <div className="text-center">
+            <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">Error Loading Map</h3>
+            <p className="text-muted-foreground">{error}</p>
+            <Button onClick={fetchLocations} className="mt-4">
+              Try Again
+            </Button>
+          </div>
+        </Card>
+      ) : (
+        <Card className="h-[600px] overflow-hidden">
+          <GoogleMap
+            mapContainerStyle={{ width: "100%", height: "100%" }}
+            center={{ lat: mapCenter.latitude, lng: mapCenter.longitude }}
+            zoom={12}
+            onLoad={() => setMapLoaded(true)}
+          >
+            {/* User location marker */}
+            {userLocation && (
+              <Marker
+                position={{ lat: userLocation.latitude, lng: userLocation.longitude }}
+                icon={{
+                  path: window.google.maps.SymbolPath.CIRCLE,
+                  scale: 8,
+                  fillColor: "#4285F4",
+                  fillOpacity: 1,
+                  strokeColor: "#FFFFFF",
+                  strokeWeight: 2,
+                }}
+                title="Your Location"
               />
             )}
 
-            {/* Camera view */}
-            {isCameraActive && (
-              <>
-                <video ref={videoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover" />
-                <canvas ref={canvasRef} className="hidden" />
-                <div className="absolute bottom-4 left-0 right-0 flex justify-center">
-                  <Button className="bg-primary/90 hover:bg-primary" onClick={captureImage}>
-                    <Camera className="mr-2 h-4 w-4" />
-                    Capture Photo
-                  </Button>
+            {/* Location markers */}
+            {locations.map(
+              (location) =>
+                location.location && (
+                  <Marker
+                    key={location.id}
+                    position={{ lat: location.location.latitude, lng: location.location.longitude }}
+                    onClick={() => handleMarkerClick(location)}
+                    icon={{
+                      url: `https://maps.google.com/mapfiles/ms/icons/${location.category === "Landmark" ? "blue" : location.category === "Business" ? "green" : "red"}-dot.png`,
+                    }}
+                  />
+                ),
+            )}
+
+            {/* Info window for selected location */}
+            {selectedLocation && selectedLocation.location && showInfoWindow && (
+              <InfoWindow
+                position={{ lat: selectedLocation.location.latitude, lng: selectedLocation.location.longitude }}
+                onCloseClick={handleInfoWindowClose}
+              >
+                <div className="p-2 max-w-[250px]">
+                  <h3 className="font-medium text-sm">{selectedLocation.name}</h3>
+                  <p className="text-xs text-gray-600 mt-1 mb-2">{selectedLocation.address}</p>
+                  {selectedLocation.category && (
+                    <div className="mb-2">
+                      <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">
+                        {selectedLocation.category}
+                      </span>
+                    </div>
+                  )}
+                  <button
+                    className="bg-blue-500 hover:bg-blue-600 text-white text-xs py-1 px-2 rounded w-full"
+                    onClick={() => handleNavigate(selectedLocation)}
+                  >
+                    Navigate
+                  </button>
                 </div>
-              </>
+              </InfoWindow>
             )}
+          </GoogleMap>
+        </Card>
+      )}
 
-            {/* Processing indicator */}
-            {isProcessing && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-10">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Location Stats</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Locations:</span>
+                <span className="font-medium">{locations.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Landmarks:</span>
+                <span className="font-medium">{locations.filter((loc) => loc.category === "Landmark").length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Businesses:</span>
+                <span className="font-medium">{locations.filter((loc) => loc.category === "Business").length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Other:</span>
+                <span className="font-medium">
+                  {locations.filter((loc) => loc.category !== "Landmark" && loc.category !== "Business").length}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Map Legend</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <div className="w-4 h-4 rounded-full bg-[#4285F4] mr-2"></div>
+                <span>Your Current Location</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
+                <span>Landmarks</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
+                <span>Businesses</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
+                <span>Other Locations</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => setMapCenter(userLocation || mapCenter)}
+              >
+                <MapPin className="mr-2 h-4 w-4" />
+                Center on My Location
+              </Button>
+              <Button variant="outline" className="w-full justify-start" onClick={fetchLocations}>
+                <Loader2 className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                Refresh Locations
+              </Button>
+              {selectedLocation && (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => handleNavigate(selectedLocation)}
                 >
-                  <Loader2 className="w-12 h-12 text-primary" />
-                </motion.div>
-                <div className="text-sm font-medium mt-4 mb-2">Analyzing image...</div>
-                <Progress value={progress} className="w-48 h-2" />
-              </div>
-            )}
+                  <Navigation className="mr-2 h-4 w-4" />
+                  Navigate to Selected
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
 
-            {/* Recognition results */}
-            {recognitionResult && (
-              <div className="absolute inset-0 flex flex-col p-4 overflow-auto">
-                {recognitionResult.success ? (
-                  <div className="bg-background/90 backdrop-blur-sm p-4 rounded-lg border border-border">
-                    <div className="flex items-center gap-2 mb-3">
-                      <MapPin className="h-5 w-5 text-primary" />
-                      <h3 className="font-medium text-lg">{recognitionResult.name || "Unknown Location"}</h3>
-                    </div>
-                    {recognitionResult.address && (
-                      <p className="text-sm text-muted-foreground mb-2">{recognitionResult.address}</p>
-                    )}
-                    {recognitionResult.category && (
-                      <Badge variant="outline" className="mb-3">
-                        {recognitionResult.category}
-                      </Badge>
-                    )}
-                    {recognitionResult.description && <p className="text-sm mb-3">{recognitionResult.description}</p>}
-                    <div className="flex justify-between mt-3">
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={recognitionResult.mapUrl} target="_blank" rel="noopener noreferrer">
-                          <Map className="w-4 h-4 mr-1" />
-                          View on Map
-                        </a>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setRecognitionResult(null)
-                          setPreviewUrl(null)
-                          setSelectedFile(null)
-                        }}
-                      >
-                        <ImageIcon className="w-4 h-4 mr-1" />
-                        New Scan
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-background/90 backdrop-blur-sm p-4 rounded-lg border border-border">
-                    <div className="flex items-center gap-2 mb-3">
-                      <AlertCircle className="h-5 w-5 text-destructive" />
-                      <h3 className="font-medium">Recognition Failed</h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      {recognitionResult.error || "Could not identify the location in this image."}
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => {
-                        setRecognitionResult(null)
-                        setPreviewUrl(null)
-                        setSelectedFile(null)
-                      }}
-                    >
-                      <ImageIcon className="w-4 h-4 mr-1" />
-                      Try Again
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
+// Implement the Search feature
+const SearchFeature = () => {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<SavedLocation[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedLocation, setSelectedLocation] = useState<SavedLocation | null>(null)
+  const [showLocationDetails, setShowLocationDetails] = useState(false)
+  const [searchType, setSearchType] = useState<"text" | "address" | "nearby">("text")
+  const [userLocation, setUserLocation] = useState<Location | null>(null)
+  const [searchRadius, setSearchRadius] = useState<number>(5) // in km
 
-            {/* Default state */}
-            {!previewUrl && !isCameraActive && !isProcessing && !recognitionResult && (
-              <div className="flex flex-col items-center justify-center h-full p-4">
-                <Camera className="h-16 w-16 mb-4 text-primary/70" />
-                <p className="text-base mb-2 text-center">Capture or upload an image</p>
-                <p className="text-sm text-muted-foreground text-center">
-                  Works with landmarks, storefronts, street signs, and more
+  // Get user's current location
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          })
+        },
+        (error) => {
+          console.error("Error getting user location:", error)
+        },
+      )
+    }
+  }, [])
+
+  // Handle search
+  const handleSearch = async () => {
+    if (!searchQuery.trim() && searchType !== "nearby") {
+      setError("Please enter a search query")
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      setError(null)
+      setSearchResults([])
+
+      let endpoint = ""
+      let params = {}
+
+      switch (searchType) {
+        case "text":
+          endpoint = "/api/location-recognition?operation=search"
+          params = { query: searchQuery }
+          break
+        case "address":
+          endpoint = "/api/location-recognition?operation=geocode"
+          params = { address: searchQuery }
+          break
+        case "nearby":
+          if (!userLocation) {
+            throw new Error("User location is not available")
+          }
+          endpoint = "/api/location-recognition?operation=nearby"
+          params = {
+            lat: userLocation.latitude,
+            lng: userLocation.longitude,
+            radius: searchRadius,
+          }
+          break
+      }
+
+      const queryString = new URLSearchParams(params).toString()
+      const response = await fetch(`${endpoint}&${queryString}`)
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        if (searchType === "address" && data.location) {
+          // Single location result from geocoding
+          setSearchResults([
+            {
+              ...data.location,
+              id: "temp-" + Date.now(),
+              createdAt: new Date().toISOString(),
+            },
+          ])
+        } else if (data.locations) {
+          // Multiple location results
+          const transformedLocations = data.locations.map((loc: any) => ({
+            ...loc,
+            createdAt: new Date(loc.createdAt).toISOString(),
+            location: {
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+            },
+          }))
+          setSearchResults(transformedLocations)
+        } else {
+          setSearchResults([])
+        }
+      } else {
+        setSearchResults([])
+        if (data.error) {
+          setError(data.error)
+        }
+      }
+    } catch (err) {
+      console.error("Search failed:", err)
+      setError(err instanceof Error ? err.message : "Search failed")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // View location details
+  const handleViewDetails = (location: SavedLocation) => {
+    setSelectedLocation(location)
+    setShowLocationDetails(true)
+  }
+
+  // Save search result to database
+  const handleSaveLocation = async (location: SavedLocation) => {
+    try {
+      // Check if this is a temporary location (from geocoding)
+      if (location.id.startsWith("temp-")) {
+        // This is a new location, save it to the database
+        const response = await fetch("/api/location-recognition", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: location.name,
+            address: location.address,
+            latitude: location.location?.latitude,
+            longitude: location.location?.longitude,
+            category: location.category,
+            type: location.type,
+            confidence: location.confidence,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        if (data.success) {
+          toast({
+            title: "Location saved",
+            description: `${location.name} has been saved to your locations.`,
+          })
+
+          // Update the location in search results with the saved ID
+          setSearchResults(
+            searchResults.map((loc) => (loc.id === location.id ? { ...loc, id: data.id, isSaved: true } : loc)),
+          )
+        } else {
+          throw new Error(data.error || "Failed to save location")
+        }
+      } else {
+        // This location is already in the database
+        toast({
+          title: "Location already saved",
+          description: `${location.name} is already in your saved locations.`,
+        })
+      }
+    } catch (err) {
+      console.error("Failed to save location:", err)
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to save location",
+        variant: "destructive",
+      })
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold">Search Locations</h2>
+        <p className="text-muted-foreground">Find locations by name, address, or nearby your current location</p>
+      </div>
+
+      <Card>
+        <CardContent className="pt-6">
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <Input
+                  placeholder={
+                    searchType === "text"
+                      ? "Search for a location by name..."
+                      : searchType === "address"
+                        ? "Enter an address to geocode..."
+                        : "Search for locations near you..."
+                  }
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  disabled={isLoading || searchType === "nearby"}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Select value={searchType} onValueChange={(value) => setSearchType(value as any)}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Search type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="text">By Name</SelectItem>
+                    <SelectItem value="address">By Address</SelectItem>
+                    <SelectItem value="nearby">Nearby</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button onClick={handleSearch} disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Searching
+                    </>
+                  ) : (
+                    <>
+                      <Search className="mr-2 h-4 w-4" />
+                      Search
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {searchType === "nearby" && (
+              <div className="flex items-center gap-4">
+                <Label htmlFor="radius" className="min-w-[80px]">
+                  Radius (km):
+                </Label>
+                <Input
+                  id="radius"
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={searchRadius}
+                  onChange={(e) => setSearchRadius(Number(e.target.value))}
+                  className="max-w-[100px]"
+                />
+                <p className="text-sm text-muted-foreground">
+                  {userLocation ? "Using your current location" : "Waiting for your location..."}
                 </p>
               </div>
             )}
-
-            {/* Error message */}
-            {error && !isProcessing && (
-              <div className="absolute bottom-2 left-2 right-2 bg-destructive/10 text-destructive text-xs p-2 rounded">
-                {error}
-              </div>
-            )}
           </div>
+        </CardContent>
+      </Card>
 
-          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-
-          <div className="grid grid-cols-2 gap-4">
-            {isCameraActive ? (
-              <Button onClick={stopCamera} variant="outline" className="w-full">
-                <X className="mr-2 h-4 w-4" />
-                Cancel Camera
-              </Button>
-            ) : (
-              <Button onClick={startCamera} disabled={isProcessing} className="w-full" variant="secondary">
-                <Camera className="mr-2 h-4 w-4" />
-                Use Camera
-              </Button>
-            )}
-
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isProcessing || isCameraActive}
-              className="w-full"
-            >
-              <ImageIcon className="mr-2 h-4 w-4" />
-              Upload Image
-            </Button>
+      {error && (
+        <div className="bg-destructive/10 p-4 rounded-lg flex items-start">
+          <AlertCircle className="h-5 w-5 text-destructive mr-2 mt-0.5" />
+          <div>
+            <p className="font-medium text-destructive">Error</p>
+            <p className="text-sm">{error}</p>
           </div>
         </div>
+      )}
+
+      {isLoading ? (
+        <Card>
+          <CardContent className="py-10">
+            <div className="flex flex-col items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+              <p className="text-muted-foreground">Searching for locations...</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : searchResults.length > 0 ? (
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Search Results ({searchResults.length})</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {searchResults.map((location) => (
+              <Card key={location.id} className="overflow-hidden">
+                <div className="h-32 bg-muted relative">
+                  {location.photos && location.photos.length > 0 ? (
+                    <img
+                      src={location.photos[0] || "/placeholder.svg"}
+                      alt={location.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <MapPin className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  )}
+
+                  {location.category && <Badge className="absolute top-2 right-2">{location.category}</Badge>}
+                </div>
+
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">{location.name || "Unknown Location"}</CardTitle>
+                  <CardDescription className="line-clamp-1">
+                    {location.address || "No address available"}
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="pb-2">
+                  <div className="flex items-center text-sm">
+                    <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
+                    {location.location ? (
+                      <span className="text-muted-foreground">
+                        {location.location.latitude.toFixed(4)}, {location.location.longitude.toFixed(4)}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">No coordinates</span>
+                    )}
+                  </div>
+
+                  {location.confidence && (
+                    <div className="mt-2">
+                      <Badge variant={location.confidence > 0.8 ? "default" : "outline"}>
+                        {Math.round(location.confidence * 100)}% confidence
+                      </Badge>
+                    </div>
+                  )}
+                </CardContent>
+
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" size="sm" onClick={() => handleViewDetails(location)}>
+                    <Info className="h-4 w-4 mr-2" />
+                    Details
+                  </Button>
+
+                  {location.id.startsWith("temp-") ? (
+                    <Button size="sm" onClick={() => handleSaveLocation(location)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Save
+                    </Button>
+                  ) : (
+                    <Button variant="secondary" size="sm" disabled>
+                      <Database className="h-4 w-4 mr-2" />
+                      Saved
+                    </Button>
+                  )}
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        </div>
+      ) : searchQuery || searchType === "nearby" ? (
+        <Card>
+          <CardContent className="py-10">
+            <div className="flex flex-col items-center justify-center text-center">
+              <Search className="h-10 w-10 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No Results Found</h3>
+              <p className="text-muted-foreground max-w-md">
+                {searchType === "text"
+                  ? "No locations match your search query. Try different keywords or search terms."
+                  : searchType === "address"
+                    ? "Could not find this address. Try a different format or more specific address."
+                    : "No locations found near you. Try increasing the search radius."}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* Location Details Dialog */}
+      <Dialog open={showLocationDetails} onOpenChange={setShowLocationDetails}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {selectedLocation && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {selectedLocation.name || "Unknown Location"}
+                  {selectedLocation.confidence && (
+                    <Badge variant={selectedLocation.confidence > 0.8 ? "default" : "outline"} className="ml-2">
+                      {Math.round(selectedLocation.confidence * 100)}% confidence
+                    </Badge>
+                  )}
+                </DialogTitle>
+                <DialogDescription>{selectedLocation.address || "No address available"}</DialogDescription>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  {selectedLocation.photos && selectedLocation.photos.length > 0 ? (
+                    <div className="rounded-lg overflow-hidden border h-48">
+                      <img
+                        src={selectedLocation.photos[0] || "/placeholder.svg"}
+                        alt={selectedLocation.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="rounded-lg overflow-hidden border h-48 bg-muted flex items-center justify-center">
+                      <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                  )}
+
+                  {selectedLocation.location && (
+                    <div className="rounded-lg overflow-hidden border h-48">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${selectedLocation.location.latitude},${selectedLocation.location.longitude}&zoom=15`}
+                        allowFullScreen
+                      ></iframe>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-1">Category</h4>
+                    <Badge variant="outline">{selectedLocation.category || "Unknown"}</Badge>
+                    {selectedLocation.buildingType && (
+                      <Badge variant="outline" className="ml-2">
+                        {selectedLocation.buildingType}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {selectedLocation.description && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Description</h4>
+                      <p className="text-sm text-muted-foreground">{selectedLocation.description}</p>
+                    </div>
+                  )}
+
+                  {selectedLocation.location && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Coordinates</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedLocation.location.latitude.toFixed(6)},{" "}
+                        {selectedLocation.location.longitude.toFixed(6)}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedLocation.geoData && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Location Details</h4>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        {selectedLocation.geoData.country && (
+                          <div>
+                            <span className="text-muted-foreground">Country:</span> {selectedLocation.geoData.country} (
+                            {selectedLocation.geoData.countryCode})
+                          </div>
+                        )}
+                        {selectedLocation.geoData.administrativeArea && (
+                          <div>
+                            <span className="text-muted-foreground">State/Province:</span>{" "}
+                            {selectedLocation.geoData.administrativeArea}
+                          </div>
+                        )}
+                        {selectedLocation.geoData.locality && (
+                          <div>
+                            <span className="text-muted-foreground">City:</span> {selectedLocation.geoData.locality}
+                          </div>
+                        )}
+                        {selectedLocation.geoData.postalCode && (
+                          <div>
+                            <span className="text-muted-foreground">Postal Code:</span>{" "}
+                            {selectedLocation.geoData.postalCode}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedLocation.nearbyPlaces && selectedLocation.nearbyPlaces.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Nearby Places</h4>
+                      <div className="space-y-2">
+                        {selectedLocation.nearbyPlaces.slice(0, 3).map((place, idx) => (
+                          <div key={idx} className="flex justify-between text-sm">
+                            <span>{place.name}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {place.distance < 1000
+                                ? `${Math.round(place.distance)}m`
+                                : `${(place.distance / 1000).toFixed(1)}km`}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <DialogFooter className="flex justify-between">
+                {selectedLocation.id.startsWith("temp-") ? (
+                  <Button onClick={() => handleSaveLocation(selectedLocation)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Save Location
+                  </Button>
+                ) : (
+                  <Button variant="outline" disabled>
+                    <Database className="mr-2 h-4 w-4" />
+                    Already Saved
+                  </Button>
+                )}
+
+                {selectedLocation.mapUrl && (
+                  <Button asChild>
+                    <a href={selectedLocation.mapUrl} target="_blank" rel="noopener noreferrer">
+                      <MapPin className="mr-2 h-4 w-4" />
+                      View on Map
+                    </a>
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+// Implement the Bookmarks feature
+const BookmarksFeature = () => {
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedBookmark, setSelectedBookmark] = useState<Bookmark | null>(null)
+  const [locationDetails, setLocationDetails] = useState<SavedLocation | null>(null)
+  const [showLocationDetails, setShowLocationDetails] = useState(false)
+
+  // Fetch bookmarks from the API
+  const fetchBookmarks = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      const response = await fetch("/api/bookmarks")
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success && data.bookmarks) {
+        setBookmarks(data.bookmarks)
+      } else {
+        setBookmarks([])
+      }
+    } catch (err) {
+      console.error("Failed to fetch bookmarks:", err)
+      setError(err instanceof Error ? err.message : "Failed to fetch bookmarks")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Fetch bookmarks on component mount
+  useEffect(() => {
+    fetchBookmarks()
+  }, [])
+
+  // Handle bookmark deletion
+  const handleDeleteBookmark = async (id: string) => {
+    try {
+      const response = await fetch(`/api/bookmarks/${id}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      // Remove the bookmark from the state
+      setBookmarks(bookmarks.filter((bookmark) => bookmark.id !== id))
+      toast({
+        title: "Bookmark removed",
+        description: "The bookmark has been successfully removed.",
+      })
+    } catch (err) {
+      console.error("Failed to delete bookmark:", err)
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to delete bookmark",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // View location details
+  const handleViewDetails = async (bookmark: Bookmark) => {
+    try {
+      setSelectedBookmark(bookmark)
+
+      // Fetch the full location details
+      const response = await fetch(`/api/location-recognition?operation=getById&id=${bookmark.locationId}`)
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        setLocationDetails({
+          ...data,
+          location: {
+            latitude: data.latitude,
+            longitude: data.longitude,
+          },
+          createdAt: new Date(data.createdAt).toISOString(),
+        })
+        setShowLocationDetails(true)
+      } else {
+        throw new Error(data.error || "Failed to fetch location details")
+      }
+    } catch (err) {
+      console.error("Failed to fetch location details:", err)
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to fetch location details",
+        variant: "destructive",
+      })
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">Bookmarks</h2>
+          <p className="text-muted-foreground">Your favorite and frequently visited locations</p>
+        </div>
+
+        <Button onClick={fetchBookmarks} variant="outline">
+          <Loader2 className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : "hidden"}`} />
+          Refresh
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : error ? (
+        <Card>
+          <CardContent className="py-10">
+            <div className="flex flex-col items-center justify-center text-center">
+              <AlertCircle className="h-10 w-10 text-destructive mb-4" />
+              <h3 className="text-lg font-medium mb-2">Error Loading Bookmarks</h3>
+              <p className="text-muted-foreground">{error}</p>
+              <Button onClick={fetchBookmarks} className="mt-4">
+                Try Again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : bookmarks.length === 0 ? (
+        <Card>
+          <CardContent className="py-10">
+            <div className="flex flex-col items-center justify-center text-center">
+              <Heart className="h-10 w-10 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No Bookmarks Found</h3>
+              <p className="text-muted-foreground">
+                You haven't bookmarked any locations yet. Add bookmarks from your saved locations.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {bookmarks.map((bookmark) => (
+            <Card key={bookmark.id} className="overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">{bookmark.name || "Unknown Location"}</CardTitle>
+                <CardDescription className="line-clamp-1">{bookmark.address || "No address available"}</CardDescription>
+              </CardHeader>
+
+              <CardContent className="pb-2">
+                <Badge variant="outline">{bookmark.category || "Unknown"}</Badge>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Added on {new Date(bookmark.createdAt).toLocaleDateString()}
+                </p>
+              </CardContent>
+
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" size="sm" onClick={() => handleViewDetails(bookmark)}>
+                  <Info className="h-4 w-4 mr-2" />
+                  Details
+                </Button>
+
+                <Button variant="ghost" size="sm" onClick={() => handleDeleteBookmark(bookmark.id)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Location Details Dialog */}
+      <Dialog open={showLocationDetails} onOpenChange={setShowLocationDetails}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {locationDetails && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {locationDetails.name || "Unknown Location"}
+                  {locationDetails.confidence && (
+                    <Badge variant={locationDetails.confidence > 0.8 ? "default" : "outline"} className="ml-2">
+                      {Math.round(locationDetails.confidence * 100)}% confidence
+                    </Badge>
+                  )}
+                </DialogTitle>
+                <DialogDescription>{locationDetails.address || "No address available"}</DialogDescription>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  {locationDetails.photos && locationDetails.photos.length > 0 ? (
+                    <div className="rounded-lg overflow-hidden border h-48">
+                      <img
+                        src={locationDetails.photos[0] || "/placeholder.svg"}
+                        alt={locationDetails.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="rounded-lg overflow-hidden border h-48 bg-muted flex items-center justify-center">
+                      <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                  )}
+
+                  {locationDetails.location && (
+                    <div className="rounded-lg overflow-hidden border h-48">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${locationDetails.location.latitude},${locationDetails.location.longitude}&zoom=15`}
+                        allowFullScreen
+                      ></iframe>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-1">Category</h4>
+                    <Badge variant="outline">{locationDetails.category || "Unknown"}</Badge>
+                    {locationDetails.buildingType && (
+                      <Badge variant="outline" className="ml-2">
+                        {locationDetails.buildingType}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {locationDetails.description && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Description</h4>
+                      <p className="text-sm text-muted-foreground">{locationDetails.description}</p>
+                    </div>
+                  )}
+
+                  {locationDetails.location && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Coordinates</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {locationDetails.location.latitude.toFixed(6)}, {locationDetails.location.longitude.toFixed(6)}
+                      </p>
+                    </div>
+                  )}
+
+                  {locationDetails.geoData && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Location Details</h4>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        {locationDetails.geoData.country && (
+                          <div>
+                            <span className="text-muted-foreground">Country:</span> {locationDetails.geoData.country} (
+                            {locationDetails.geoData.countryCode})
+                          </div>
+                        )}
+                        {locationDetails.geoData.administrativeArea && (
+                          <div>
+                            <span className="text-muted-foreground">State/Province:</span>{" "}
+                            {locationDetails.geoData.administrativeArea}
+                          </div>
+                        )}
+                        {locationDetails.geoData.locality && (
+                          <div>
+                            <span className="text-muted-foreground">City:</span> {locationDetails.geoData.locality}
+                          </div>
+                        )}
+                        {locationDetails.geoData.postalCode && (
+                          <div>
+                            <span className="text-muted-foreground">Postal Code:</span>{" "}
+                            {locationDetails.geoData.postalCode}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {locationDetails.nearbyPlaces && locationDetails.nearbyPlaces.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Nearby Places</h4>
+                      <div className="space-y-2">
+                        {locationDetails.nearbyPlaces.slice(0, 3).map((place, idx) => (
+                          <div key={idx} className="flex justify-between text-sm">
+                            <span>{place.name}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {place.distance < 1000
+                                ? `${Math.round(place.distance)}m`
+                                : `${(place.distance / 1000).toFixed(1)}km`}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <DialogFooter>
+                {locationDetails.mapUrl && (
+                  <Button asChild>
+                    <a href={locationDetails.mapUrl} target="_blank" rel="noopener noreferrer">
+                      <MapPin className="mr-2 h-4 w-4" />
+                      View on Map
+                    </a>
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+// Location Recognition Dialog Component
+const LocationRecognitionDialog = ({ open, onOpenChange }) => {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Quick Location Scan</DialogTitle>
+          <DialogDescription>Quickly identify a location using your camera or by uploading an image.</DialogDescription>
+        </DialogHeader>
+        <CameraRecognition />
       </DialogContent>
     </Dialog>
+  )
+}
+
+// Dashboard Skeleton Component
+const DashboardSkeleton = () => {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-background">
+      <Card className="w-full max-w-md animate-pulse">
+        <CardHeader>
+          <CardTitle className="h-6 bg-muted/50 rounded-md w-3/4"></CardTitle>
+          <CardDescription className="h-4 bg-muted/50 rounded-md w-1/2"></CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="h-4 bg-muted/50 rounded-md"></div>
+          <div className="h-4 bg-muted/50 rounded-md"></div>
+          <div className="h-4 bg-muted/50 rounded-md"></div>
+        </CardContent>
+        <CardFooter>
+          <Button className="w-full bg-muted/50 text-muted-foreground pointer-events-none">Loading...</Button>
+        </CardFooter>
+      </Card>
+    </div>
   )
 }
 
@@ -985,7 +2490,7 @@ export default function Dashboard() {
       localStorage.removeItem("token")
 
       // Redirect to login page
-      router.push("/")
+      router.push("/login")
     } catch (error) {
       console.error("Error during logout:", error)
     }
@@ -1088,7 +2593,7 @@ export default function Dashboard() {
                       onClick={() => setActiveTab("bookmarks")}
                     >
                       <button>
-                        <Bookmark className="h-4 w-4" />
+                        <Heart className="h-4 w-4" />
                         <span>Bookmarks</span>
                       </button>
                     </SidebarMenuButton>
@@ -1214,6 +2719,10 @@ export default function Dashboard() {
                   <Search className="h-4 w-4 mr-2" />
                   Search
                 </TabsTrigger>
+                <TabsTrigger value="bookmarks">
+                  <Heart className="h-4 w-4 mr-2" />
+                  Bookmarks
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="recognition" className="mt-0">
@@ -1221,144 +2730,30 @@ export default function Dashboard() {
               </TabsContent>
 
               <TabsContent value="locations" className="mt-0">
-                <div className="grid gap-6">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold">Saved Locations</h2>
-                    <Input
-                      placeholder="Search locations..."
-                      className="max-w-xs"
-                      prefix={<Search className="h-4 w-4 text-muted-foreground" />}
-                    />
-                  </div>
-
-                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    <Card className="bg-muted/40">
-                      <CardHeader className="pb-2">
-                        <CardTitle>Connect to Database</CardTitle>
-                        <CardDescription>View your saved locations from the database</CardDescription>
-                      </CardHeader>
-                      <CardContent className="flex flex-col items-center justify-center py-6">
-                        <Database className="h-12 w-12 text-primary/70 mb-4" />
-                        <p className="text-center text-sm text-muted-foreground mb-4">
-                          Connect to your database to view and manage your saved locations
-                        </p>
-                        <Button>
-                          <Layers className="h-4 w-4 mr-2" />
-                          Connect Database
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
+                <LocationsFeature />
               </TabsContent>
 
               <TabsContent value="map" className="mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Map View</CardTitle>
-                    <CardDescription>View all your identified locations on a map</CardDescription>
-                  </CardHeader>
-                  <CardContent className="h-[500px] flex items-center justify-center bg-muted/40">
-                    <div className="text-center">
-                      <Map className="h-16 w-16 text-primary/70 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mb-2">Map Coming Soon</h3>
-                      <p className="text-sm text-muted-foreground max-w-md">
-                        We're working on integrating an interactive map to visualize all your identified locations.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <MapFeature />
               </TabsContent>
 
               <TabsContent value="search" className="mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Search Locations</CardTitle>
-                    <CardDescription>Search for locations by name, address, or category</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex gap-4 mb-6">
-                      <Input placeholder="Search for a location..." className="flex-1" />
-                      <Button>
-                        <Search className="h-4 w-4 mr-2" />
-                        Search
-                      </Button>
-                    </div>
+                <SearchFeature />
+              </TabsContent>
 
-                    <div className="flex items-center justify-center py-12 bg-muted/40 rounded-lg">
-                      <div className="text-center">
-                        <Search className="h-16 w-16 text-primary/70 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium mb-2">No Search Results</h3>
-                        <p className="text-sm text-muted-foreground max-w-md">
-                          Try searching for a location by name, address, or category
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              <TabsContent value="bookmarks" className="mt-0">
+                <BookmarksFeature />
               </TabsContent>
             </Tabs>
           </main>
 
-          {/* Footer */}
-          <footer className="border-t border-border p-4 text-center text-xs text-muted-foreground">
-            <div className="flex items-center justify-center gap-1">
-              <span>© 2025 SabiRoad, Inc.</span>
-              <Separator orientation="vertical" className="h-3 mx-2" />
-              <a href="#" className="hover:underline">
-                Terms
-              </a>
-              <Separator orientation="vertical" className="h-3 mx-2" />
-              <a href="#" className="hover:underline">
-                Privacy
-              </a>
-            </div>
-          </footer>
+          {/* Location Recognition Dialog */}
+          <LocationRecognitionDialog
+            open={showLocationRecognitionDialog}
+            onOpenChange={setShowLocationRecognitionDialog}
+          />
         </div>
       </div>
-
-      {/* Location Recognition Dialog */}
-      <LocationRecognitionDialog open={showLocationRecognitionDialog} onOpenChange={setShowLocationRecognitionDialog} />
     </SidebarProvider>
   )
 }
-
-const DashboardSkeleton = () => (
-  <div className="flex min-h-screen bg-background">
-    {/* Sidebar Skeleton */}
-    <aside className="w-64 border-r border-border hidden md:block">
-      <div className="p-4">
-        <div className="h-8 bg-muted rounded-md mb-4"></div>
-        <div className="h-6 bg-muted rounded-md mb-2"></div>
-        <div className="h-6 bg-muted rounded-md mb-2"></div>
-        <div className="h-6 bg-muted rounded-md mb-2"></div>
-      </div>
-    </aside>
-
-    {/* Main Content Skeleton */}
-    <div className="flex-1 flex flex-col">
-      {/* Header Skeleton */}
-      <header className="h-16 border-b border-border p-4 flex justify-between items-center">
-        <div className="h-8 bg-muted rounded-md w-48"></div>
-        <div className="h-8 bg-muted rounded-md w-24"></div>
-      </header>
-
-      {/* Main Area Skeleton */}
-      <main className="flex-1 p-4 space-y-4">
-        <div className="h-8 bg-muted rounded-md w-64 mb-6"></div>
-        <div className="h-[400px] bg-muted rounded-md mb-6"></div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="h-32 bg-muted rounded-md"></div>
-          <div className="h-32 bg-muted rounded-md"></div>
-          <div className="h-32 bg-muted rounded-md"></div>
-        </div>
-      </main>
-
-      {/* Footer Skeleton */}
-      <footer className="h-12 border-t border-border p-4">
-        <div className="h-4 bg-muted rounded-md w-32 mx-auto"></div>
-      </footer>
-    </div>
-  </div>
-)
-

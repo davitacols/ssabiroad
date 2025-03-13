@@ -14,6 +14,7 @@ interface Location {
   longitude: number
 }
 
+// Enhance the LocationRecognitionResponse interface to include more detailed address and geolocation data
 interface LocationRecognitionResponse {
   success: boolean
   type: string
@@ -33,6 +34,36 @@ interface LocationRecognitionResponse {
   photos?: string[] // URLs to photos of the location
   rating?: number // Rating of the location if available
   openingHours?: any // Opening hours if available
+  website?: string // Website URL
+  phoneNumber?: string // Phone number
+  priceLevel?: number // Price level (1-4)
+  reviews?: any[] // User reviews
+  buildingType?: string // Type of building (commercial, residential, etc.)
+  yearBuilt?: string // Year the building was constructed
+  architecturalStyle?: string // Architectural style of the building
+  historicalInfo?: string // Historical information about the building
+  amenities?: string[] // Available amenities
+  accessibility?: string[] // Accessibility features
+  // Add new fields for enhanced geotagging
+  geoData?: {
+    country?: string
+    countryCode?: string
+    administrativeArea?: string
+    locality?: string
+    subLocality?: string
+    postalCode?: string
+    streetName?: string
+    streetNumber?: string
+    formattedAddress?: string
+    timezone?: string
+    elevation?: number
+  }
+  nearbyPlaces?: {
+    name: string
+    type: string
+    distance: number
+    location: Location
+  }[]
 }
 
 // Known landmarks for quick recognition - expanded with more details
@@ -231,125 +262,125 @@ async function extractExifLocation(buffer: Buffer): Promise<Location | null> {
   return null
 }
 
-// Search for a place using Google Places API
-async function searchPlaceWithGoogleMaps(
-  query: string,
-  currentLocation?: Location,
-): Promise<LocationRecognitionResponse | null> {
+// Add a new function to extract detailed address components from Google's geocoding response
+function extractDetailedAddressComponents(addressComponents: any[]): any {
+  if (!addressComponents || !Array.isArray(addressComponents)) {
+    return {}
+  }
+
+  const result: any = {
+    country: "",
+    countryCode: "",
+    administrativeArea: "",
+    locality: "",
+    subLocality: "",
+    postalCode: "",
+    streetName: "",
+    streetNumber: "",
+  }
+
+  for (const component of addressComponents) {
+    if (!component.types || !Array.isArray(component.types)) continue
+
+    if (component.types.includes("country")) {
+      result.country = component.long_name
+      result.countryCode = component.short_name
+    } else if (component.types.includes("administrative_area_level_1")) {
+      result.administrativeArea = component.long_name
+    } else if (component.types.includes("locality")) {
+      result.locality = component.long_name
+    } else if (component.types.includes("sublocality") || component.types.includes("sublocality_level_1")) {
+      result.subLocality = component.long_name
+    } else if (component.types.includes("postal_code")) {
+      result.postalCode = component.long_name
+    } else if (component.types.includes("route")) {
+      result.streetName = component.long_name
+    } else if (component.types.includes("street_number")) {
+      result.streetNumber = component.long_name
+    }
+  }
+
+  return result
+}
+
+// Add a function to get nearby places for enhanced geotagging
+async function getNearbyPlaces(location: Location): Promise<any[]> {
   try {
-    console.log(`Searching for place: "${query}" with Google Places API`)
-
-    // Clean the query
-    const cleanedQuery = query.replace(/\n+/g, " ").replace(/\s+/g, " ").trim()
-
-    if (cleanedQuery.length < 3) {
-      console.log("Query too short, skipping place search")
-      return null
-    }
-
-    // Prepare search parameters
-    const params: any = {
-      query: cleanedQuery,
-      key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
-      fields: "formatted_address,name,geometry,place_id,types,photos,rating,opening_hours",
-    }
-
-    // Add location bias if current location is available
-    if (currentLocation) {
-      params.locationbias = `circle:50000@${currentLocation.latitude},${currentLocation.longitude}`
-    }
-
-    // Make the Places API request
-    const response = await axios.get("https://maps.googleapis.com/maps/api/place/findplacefromtext/json", { params })
-
-    console.log(`Places API response status: ${response.data.status}`)
-
-    if (response.data.status !== "OK" || !response.data.candidates || response.data.candidates.length === 0) {
-      console.log("No places found")
-      return null
-    }
-
-    // Get the first (best) result
-    const place = response.data.candidates[0]
-
-    // Get place details for more information
-    const detailsResponse = await axios.get("https://maps.googleapis.com/maps/api/place/details/json", {
+    const response = await axios.get("https://maps.googleapis.com/maps/api/place/nearbysearch/json", {
       params: {
-        place_id: place.place_id,
-        fields: "name,formatted_address,geometry,address_component,type,photo,vicinity,rating,opening_hours,url",
+        location: `${location.latitude},${location.longitude}`,
+        radius: 500, // 500 meters radius
         key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
       },
     })
 
-    const details = detailsResponse.data.result
-
-    // Determine category based on types
-    let category = "Unknown"
-    if (details.types) {
-      if (details.types.includes("lodging") || details.types.includes("hotel")) {
-        category = "Hotel"
-      } else if (details.types.includes("restaurant") || details.types.includes("food")) {
-        category = "Restaurant"
-      } else if (details.types.includes("store") || details.types.includes("shopping_mall")) {
-        category = "Shopping"
-      } else if (details.types.includes("point_of_interest") || details.types.includes("establishment")) {
-        category = "Point of Interest"
-      }
+    if (response.data.status === "OK" && response.data.results) {
+      return response.data.results.slice(0, 5).map((place: any) => ({
+        name: place.name,
+        type: place.types?.[0] || "unknown",
+        distance:
+          calculateDistance(
+            location.latitude,
+            location.longitude,
+            place.geometry.location.lat,
+            place.geometry.location.lng,
+          ) * 1000, // Convert to meters
+        location: {
+          latitude: place.geometry.location.lat,
+          longitude: place.geometry.location.lng,
+        },
+      }))
     }
-
-    // Calculate confidence based on how well the query matches the result
-    // This is a simple heuristic - in a real app, you might use more sophisticated methods
-    let confidence = 0.8 // Default confidence for Places API results
-
-    // If the query is contained in the name, increase confidence
-    if (
-      details.name.toLowerCase().includes(cleanedQuery.toLowerCase()) ||
-      cleanedQuery.toLowerCase().includes(details.name.toLowerCase())
-    ) {
-      confidence = 0.9
-    }
-
-    // Create photo URLs if available
-    const photoUrls: string[] = []
-    if (details.photos && details.photos.length > 0) {
-      details.photos.slice(0, 3).forEach((photo) => {
-        photoUrls.push(
-          `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`,
-        )
-      })
-    }
-
-    // Create map URL
-    const mapUrl = `https://www.google.com/maps/place/?q=place_id:${details.place_id}`
-
-    // Create the response object
-    return {
-      success: true,
-      type: "place-search",
-      name: details.name,
-      address: details.formatted_address || details.vicinity,
-      formattedAddress: details.formatted_address,
-      location: {
-        latitude: details.geometry.location.lat,
-        longitude: details.geometry.location.lng,
-      },
-      description: `${category} located at ${details.vicinity || details.formatted_address}`,
-      confidence,
-      category,
-      mapUrl,
-      placeId: details.place_id,
-      addressComponents: details.address_components,
-      photos: photoUrls,
-      rating: details.rating,
-      openingHours: details.opening_hours,
-    }
+    return []
   } catch (error) {
-    console.warn(`Place search failed for: ${query}`, error)
+    console.warn("Error fetching nearby places:", error)
+    return []
+  }
+}
+
+// Add a function to get elevation data
+async function getElevationData(location: Location): Promise<number | null> {
+  try {
+    const response = await axios.get("https://maps.googleapis.com/maps/api/elevation/json", {
+      params: {
+        locations: `${location.latitude},${location.longitude}`,
+        key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+      },
+    })
+
+    if (response.data.status === "OK" && response.data.results && response.data.results.length > 0) {
+      return response.data.results[0].elevation
+    }
+    return null
+  } catch (error) {
+    console.warn("Error fetching elevation data:", error)
     return null
   }
 }
 
-// Enhanced geocoding function with more detailed address information
+// Add a function to get timezone data
+async function getTimezoneData(location: Location): Promise<string | null> {
+  try {
+    const timestamp = Math.floor(Date.now() / 1000)
+    const response = await axios.get("https://maps.googleapis.com/maps/api/timezone/json", {
+      params: {
+        location: `${location.latitude},${location.longitude}`,
+        timestamp: timestamp,
+        key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+      },
+    })
+
+    if (response.data.status === "OK") {
+      return response.data.timeZoneId
+    }
+    return null
+  } catch (error) {
+    console.warn("Error fetching timezone data:", error)
+    return null
+  }
+}
+
+// Enhance the geocodeAddress function to include more detailed address information
 async function geocodeAddress(
   address: string,
   currentLocation?: Location,
@@ -394,6 +425,7 @@ async function geocodeAddress(
 
     // Extract address components
     const addressComponents = result.address_components || []
+    const detailedAddress = extractDetailedAddressComponents(addressComponents)
 
     // Extract the name from the first part of the formatted address
     const nameParts = result.formatted_address.split(",")
@@ -433,6 +465,19 @@ async function geocodeAddress(
     // Create map URL
     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${result.geometry.location.lat},${result.geometry.location.lng}&query_place_id=${result.place_id}`
 
+    // Get location for enhanced geotagging
+    const location = {
+      latitude: result.geometry.location.lat,
+      longitude: result.geometry.location.lng,
+    }
+
+    // Get additional geotagging data
+    const [nearbyPlaces, elevation, timezone] = await Promise.all([
+      getNearbyPlaces(location),
+      getElevationData(location),
+      getTimezoneData(location),
+    ])
+
     // Create the response object with enhanced information
     return {
       success: true,
@@ -440,16 +485,21 @@ async function geocodeAddress(
       name: name,
       address: result.formatted_address,
       formattedAddress: result.formatted_address,
-      location: {
-        latitude: result.geometry.location.lat,
-        longitude: result.geometry.location.lng,
-      },
+      location: location,
       description: `Location in ${result.formatted_address}`,
       confidence: confidence,
       category: category,
       mapUrl: mapUrl,
       placeId: result.place_id,
       addressComponents: addressComponents,
+      // Add enhanced geotagging data
+      geoData: {
+        ...detailedAddress,
+        formattedAddress: result.formatted_address,
+        timezone: timezone || undefined,
+        elevation: elevation || undefined,
+      },
+      nearbyPlaces: nearbyPlaces,
     }
   } catch (error) {
     console.warn(`Geocoding failed for: ${address}`, error)
@@ -568,52 +618,7 @@ async function extractLocationsFromText(
   return results
 }
 
-// Enhanced function to detect text in images and extract locations
-async function detectTextAndExtractLocations(
-  imageBuffer: Buffer,
-  currentLocation?: Location,
-): Promise<LocationRecognitionResponse[]> {
-  try {
-    // Initialize Vision client with credentials from the environment
-    const base64Credentials = process.env.GCLOUD_CREDENTIALS
-    if (!base64Credentials) {
-      throw new Error("GCLOUD_CREDENTIALS environment variable is not set.")
-    }
-
-    const credentialsBuffer = Buffer.from(base64Credentials, "base64")
-    const credentialsJson = credentialsBuffer.toString("utf8")
-    const serviceAccount = JSON.parse(credentialsJson)
-
-    const client = new vision.ImageAnnotatorClient({
-      credentials: {
-        client_email: serviceAccount.client_email,
-        private_key: serviceAccount.private_key,
-      },
-      projectId: serviceAccount.project_id,
-    })
-
-    // Perform text detection
-    const [textResult] = await client.textDetection({ image: { content: imageBuffer } })
-    const detections = textResult.textAnnotations
-
-    if (!detections || detections.length === 0) {
-      console.log("No text detected in image")
-      return []
-    }
-
-    // Get the full text from the first annotation
-    const fullText = detections[0].description || ""
-    console.log("Detected text:", fullText)
-
-    // Extract locations from the detected text
-    return await extractLocationsFromText(fullText, currentLocation)
-  } catch (error) {
-    console.error("Text detection failed:", error)
-    return []
-  }
-}
-
-// Main location recognition function
+// Enhance the recognizeLocation function to include detailed address and geotagging
 async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location): Promise<LocationRecognitionResponse> {
   try {
     console.log("Starting image analysis...")
@@ -662,17 +667,46 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
         console.log(`Matched known landmark: ${knownLandmarkName}`)
         const knownInfo = KNOWN_LANDMARKS[knownLandmarkName]
 
+        // Get enhanced geotagging data for known landmarks
+        const locationToUse = detectedLocation || knownInfo.location
+        const [nearbyPlaces, elevation, timezone] = await Promise.all([
+          getNearbyPlaces(locationToUse),
+          getElevationData(locationToUse),
+          getTimezoneData(locationToUse),
+        ])
+
+        // Get detailed address components
+        const geocodeResponse = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
+          params: {
+            latlng: `${locationToUse.latitude},${locationToUse.longitude}`,
+            key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+          },
+        })
+
+        let detailedAddress = {}
+        if (geocodeResponse.data.results && geocodeResponse.data.results.length > 0) {
+          detailedAddress = extractDetailedAddressComponents(geocodeResponse.data.results[0].address_components)
+        }
+
         return {
           success: true,
           type: "landmark-detection",
           name: landmark.description || knownLandmarkName,
-          location: detectedLocation || knownInfo.location,
+          location: locationToUse,
           confidence,
           address: knownInfo.address,
           description: knownInfo.description,
           category: knownInfo.category,
-          mapUrl: `https://www.google.com/maps/search/?api=1&query=${knownInfo.location.latitude},${knownInfo.location.longitude}`,
+          mapUrl: `https://www.google.com/maps/search/?api=1&query=${locationToUse.latitude},${locationToUse.longitude}`,
           pointsOfInterest: knownInfo.pointsOfInterest,
+          // Add enhanced geotagging data
+          geoData: {
+            ...detailedAddress,
+            formattedAddress: knownInfo.address,
+            timezone: timezone || undefined,
+            elevation: elevation || undefined,
+          },
+          nearbyPlaces: nearbyPlaces,
         }
       }
 
@@ -688,6 +722,14 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
 
           if (geocodeResponse.data.results && geocodeResponse.data.results.length > 0) {
             const addressResult = geocodeResponse.data.results[0]
+            const detailedAddress = extractDetailedAddressComponents(addressResult.address_components)
+
+            // Get enhanced geotagging data
+            const [nearbyPlaces, elevation, timezone] = await Promise.all([
+              getNearbyPlaces(detectedLocation),
+              getElevationData(detectedLocation),
+              getTimezoneData(detectedLocation),
+            ])
 
             return {
               success: true,
@@ -701,6 +743,14 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
               mapUrl: `https://www.google.com/maps/search/?api=1&query=${detectedLocation.latitude},${detectedLocation.longitude}`,
               placeId: addressResult.place_id,
               addressComponents: addressResult.address_components,
+              // Add enhanced geotagging data
+              geoData: {
+                ...detailedAddress,
+                formattedAddress: addressResult.formatted_address,
+                timezone: timezone || undefined,
+                elevation: elevation || undefined,
+              },
+              nearbyPlaces: nearbyPlaces,
             }
           }
         } catch (error) {
@@ -723,7 +773,7 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
     }
 
     // If landmark detection fails, try text detection and location extraction
-    const textLocations = await detectTextAndExtractLocations(imageBuffer, currentLocation)
+    const textLocations = await detectTextAndExtractLocationsUpdated(imageBuffer, currentLocation)
 
     if (textLocations.length > 0) {
       // Return the highest confidence result
@@ -761,6 +811,28 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
         cleanedText.toLowerCase().includes(keyword.toLowerCase()),
       )
 
+      // Get enhanced geotagging data for current location
+      const [nearbyPlaces, elevation, timezone] = await Promise.all([
+        getNearbyPlaces(currentLocation),
+        getElevationData(currentLocation),
+        getTimezoneData(currentLocation),
+      ])
+
+      // Get detailed address for current location
+      const geocodeResponse = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
+        params: {
+          latlng: `${currentLocation.latitude},${currentLocation.longitude}`,
+          key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+        },
+      })
+
+      let detailedAddress = {}
+      let formattedAddress = ""
+      if (geocodeResponse.data.results && geocodeResponse.data.results.length > 0) {
+        detailedAddress = extractDetailedAddressComponents(geocodeResponse.data.results[0].address_components)
+        formattedAddress = geocodeResponse.data.results[0].formatted_address
+      }
+
       if (isBusinessName || cleanedText.toUpperCase() === cleanedText) {
         // All caps is likely a business name
         return {
@@ -772,6 +844,15 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
           description: `Business detected from image: ${cleanedText}`,
           category: "Business",
           mapUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleanedText)}&ll=${currentLocation.latitude},${currentLocation.longitude}`,
+          address: formattedAddress,
+          // Add enhanced geotagging data
+          geoData: {
+            ...detailedAddress,
+            formattedAddress: formattedAddress,
+            timezone: timezone || undefined,
+            elevation: elevation || undefined,
+          },
+          nearbyPlaces: nearbyPlaces,
         }
       }
 
@@ -784,6 +865,15 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
         description: `Text detected: ${cleanedText}`,
         category: "Unknown",
         mapUrl: `https://www.google.com/maps/search/?api=1&query=${currentLocation.latitude},${currentLocation.longitude}`,
+        address: formattedAddress,
+        // Add enhanced geotagging data
+        geoData: {
+          ...detailedAddress,
+          formattedAddress: formattedAddress,
+          timezone: timezone || undefined,
+          elevation: elevation || undefined,
+        },
+        nearbyPlaces: nearbyPlaces,
       }
     }
 
@@ -803,16 +893,19 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
   }
 }
 
-// Add this new function to better handle business names
+// Modify the searchBusinessLocation function to retrieve more detailed information
 async function searchBusinessLocation(
   text: string,
   currentLocation?: Location,
 ): Promise<LocationRecognitionResponse | null> {
+  let businessName = ""
+  let cleanedText = ""
+
   try {
     console.log(`Searching for business: "${text}"`)
 
     // Clean and normalize the text
-    const cleanedText = text.replace(/\n+/g, " ").replace(/\s+/g, " ").trim()
+    cleanedText = text.replace(/\n+/g, " ").replace(/\s+/g, " ").trim()
 
     // Extract potential business names
     const businessTypes = [
@@ -838,10 +931,22 @@ async function searchBusinessLocation(
       "Suites",
       "Inn",
       "Resort",
+      "Library",
+      "Museum",
+      "Theater",
+      "Cinema",
+      "Stadium",
+      "Arena",
+      "Gallery",
+      "Market",
+      "Supermarket",
+      "Pharmacy",
+      "Clinic",
+      "Factory",
+      "Warehouse",
     ]
 
     // Look for business names in the text
-    let businessName = ""
 
     // First, check if there's a known business type in the text
     for (const type of businessTypes) {
@@ -862,335 +967,446 @@ async function searchBusinessLocation(
     }
 
     // If no business name with type was found, look for capitalized words that might be a business name
-    if (!businessName) {
-      // Look for words that are all caps or start with capital letters
-      const words = cleanedText.split(/\s+/)
-      const potentialNames = []
+    // Look for words that are all caps or start with capital letters
+    const words = cleanedText.split(/\s+/)
+    const potentialNames = []
 
-      for (let i = 0; i < words.length; i++) {
-        const word = words[i]
-        // Check if word is all caps or starts with capital letter
-        if (word === word.toUpperCase() || (word[0] === word[0].toUpperCase() && word[0] !== word[0].toLowerCase())) {
-          let name = word
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i]
+      // Check if word is all caps or starts with capital letter
+      if (word === word.toUpperCase() || (word[0] === word[0].toUpperCase() && word[0] !== word[0].toLowerCase())) {
+        let name = word
 
-          // Try to include adjacent capitalized words
-          let j = i + 1
-          while (
-            j < words.length &&
-            (words[j] === words[j].toUpperCase() ||
-              (words[j][0] === words[j][0].toUpperCase() && words[j][0] !== words[j][0].toLowerCase()))
-          ) {
-            name += " " + words[j]
-            j++
-          }
-
-          potentialNames.push(name)
-          i = j - 1 // Skip the words we've included
+        // Try to include adjacent capitalized words
+        let j = i + 1
+        while (
+          j < words.length &&
+          (words[j] === words[j].toUpperCase() ||
+            (words[j][0] === words[j][0].toUpperCase() && words[j][0] !== words[j][0].toLowerCase()))
+        ) {
+          name += " " + words[j]
+          j++
         }
-      }
 
-      // Use the longest potential name as it's likely to be the most complete
-      if (potentialNames.length > 0) {
-        businessName = potentialNames.reduce((a, b) => (a.length > b.length ? a : b))
+        potentialNames.push(name)
+        i = j - 1 // Skip the words we've included
       }
     }
 
-    // If we still don't have a business name, use the whole text
-    if (!businessName) {
-      businessName = cleanedText
+    // Use the longest potential name as it's likely to be the most complete
+    if (potentialNames.length > 0) {
+      businessName = potentialNames.reduce((a, b) => (a.length > b.length ? a : b))
+    }
+  } catch (error) {
+    console.warn(`Error extracting business name: ${error}`)
+  }
+
+  // If we still don't have a business name, use the whole text
+  if (!businessName) {
+    businessName = cleanedText
+  }
+
+  console.log(`Extracted business name: "${businessName}"`)
+
+  // Try to identify if this is a bank
+  const isBankLikely = /bank|credit union|financial|finance|capital/i.test(businessName)
+
+  // Remove any trailing numbers that might be addresses
+  let searchQuery = businessName.replace(/\s+\d+$/, "").trim()
+
+  // Prepare search query - add "bank" if it seems like a bank but doesn't have "bank" in the name
+  if (isBankLikely && !/bank/i.test(searchQuery)) {
+    searchQuery = `${searchQuery} Bank`
+  }
+
+  console.log(`Using search query: "${searchQuery}"`)
+
+  // Try multiple search approaches
+  const searchQueries = [
+    searchQuery,
+    // Add variations without numbers
+    searchQuery
+      .replace(/\d+/g, "")
+      .trim(),
+    // Add variation with just the main words (first 3-4 words)
+    searchQuery
+      .split(/\s+/)
+      .slice(0, 3)
+      .join(" "),
+  ]
+
+  // Remove duplicates
+  const uniqueQueries = [...new Set(searchQueries)].filter((q) => q.length > 2)
+  console.log("Trying search queries:", uniqueQueries)
+
+  // Try each query
+  for (const query of uniqueQueries) {
+    // Search for the business using Google Places API
+    const params: any = {
+      input: query,
+      inputtype: "textquery",
+      fields: "formatted_address,name,geometry,place_id,types,photos,rating,opening_hours",
+      key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
     }
 
-    console.log(`Extracted business name: "${businessName}"`)
-
-    // Try to identify if this is a bank
-    const isBankLikely = /bank|credit union|financial|finance|capital/i.test(businessName)
-
-    // Remove any trailing numbers that might be addresses
-    let searchQuery = businessName.replace(/\s+\d+$/, "").trim()
-
-    // Prepare search query - add "bank" if it seems like a bank but doesn't have "bank" in the name
-    if (isBankLikely && !/bank/i.test(searchQuery)) {
-      searchQuery = `${searchQuery} Bank`
+    // Add location bias if current location is available
+    if (currentLocation) {
+      params.locationbias = `circle:50000@${currentLocation.latitude},${currentLocation.longitude}`
     }
 
-    console.log(`Using search query: "${searchQuery}"`)
+    // Make the Places API request
+    const response = await axios.get("https://maps.googleapis.com/maps/api/place/findplacefromtext/json", { params })
 
-    // Try multiple search approaches
-    const searchQueries = [
-      searchQuery,
-      // Add variations without numbers
-      searchQuery
-        .replace(/\d+/g, "")
-        .trim(),
-      // Add variation with just the main words (first 3-4 words)
-      searchQuery
-        .split(/\s+/)
-        .slice(0, 3)
-        .join(" "),
-    ]
+    console.log(`Places API response status for query "${query}": ${response.data.status}`)
 
-    // Remove duplicates
-    const uniqueQueries = [...new Set(searchQueries)].filter((q) => q.length > 2)
-    console.log("Trying search queries:", uniqueQueries)
+    if (response.data.status === "OK" && response.data.candidates && response.data.candidates.length > 0) {
+      // Get the first (best) result
+      const place = response.data.candidates[0]
 
-    // Try each query
-    for (const query of uniqueQueries) {
-      // Search for the business using Google Places API
-      const params: any = {
-        input: query,
-        inputtype: "textquery",
-        fields: "formatted_address,name,geometry,place_id,types,photos,rating,opening_hours",
-        key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
-      }
-
-      // Add location bias if current location is available
-      if (currentLocation) {
-        params.locationbias = `circle:50000@${currentLocation.latitude},${currentLocation.longitude}`
-      }
-
-      // Make the Places API request
-      const response = await axios.get("https://maps.googleapis.com/maps/api/place/findplacefromtext/json", { params })
-
-      console.log(`Places API response status for query "${query}": ${response.data.status}`)
-
-      if (response.data.status === "OK" && response.data.candidates && response.data.candidates.length > 0) {
-        // Get the first (best) result
-        const place = response.data.candidates[0]
-
-        // Get place details for more information
-        const detailsResponse = await axios.get("https://maps.googleapis.com/maps/api/place/details/json", {
-          params: {
-            place_id: place.place_id,
-            fields: "name,formatted_address,geometry,address_component,type,photo,vicinity,rating,opening_hours,url",
-            key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
-          },
-        })
-
-        const details = detailsResponse.data.result
-
-        // Determine category based on types
-        let category = "Business"
-        if (details.types) {
-          if (details.types.includes("bank") || details.types.includes("finance")) {
-            category = "Bank"
-          } else if (details.types.includes("lodging") || details.types.includes("hotel")) {
-            category = "Hotel"
-          } else if (details.types.includes("restaurant") || details.types.includes("food")) {
-            category = "Restaurant"
-          } else if (details.types.includes("store") || details.types.includes("shopping_mall")) {
-            category = "Shopping"
-          }
-        }
-
-        // Create photo URLs if available
-        const photoUrls: string[] = []
-        if (details.photos && details.photos.length > 0) {
-          details.photos.slice(0, 3).forEach((photo) => {
-            photoUrls.push(
-              `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`,
-            )
-          })
-        }
-
-        // Create map URL
-        const mapUrl = `https://www.google.com/maps/place/?q=place_id:${details.place_id}`
-
-        return {
-          success: true,
-          type: "business-search",
-          name: details.name,
-          address: details.formatted_address || details.vicinity,
-          formattedAddress: details.formatted_address,
-          location: {
-            latitude: details.geometry.location.lat,
-            longitude: details.geometry.location.lng,
-          },
-          description: `${category} located at ${details.vicinity || details.formatted_address}`,
-          confidence: 0.9, // High confidence for successful business search
-          category,
-          mapUrl,
-          placeId: details.place_id,
-          addressComponents: details.address_components,
-          photos: photoUrls,
-          rating: details.rating,
-          openingHours: details.opening_hours,
-        }
-      }
-    }
-
-    // If all direct searches fail, try a more general approach with the Google Places API Text Search
-    try {
-      const textSearchParams = {
-        query: searchQuery,
-        key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
-      }
-
-      if (currentLocation) {
-        textSearchParams.location = `${currentLocation.latitude},${currentLocation.longitude}`
-        textSearchParams.radius = "50000" // 50km radius
-      }
-
-      const textSearchResponse = await axios.get("https://maps.googleapis.com/maps/api/place/textsearch/json", {
-        params: textSearchParams,
+      // Get place details for more information
+      const detailsResponse = await axios.get("https://maps.googleapis.com/maps/api/place/details/json", {
+        params: {
+          place_id: place.place_id,
+          fields:
+            "name,formatted_address,geometry,address_component,type,photo,vicinity,rating,opening_hours,url,website,formatted_phone_number,international_phone_number,price_level,review,utc_offset",
+          key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+        },
       })
 
-      console.log(`Places Text Search API response status: ${textSearchResponse.data.status}`)
+      const details = detailsResponse.data.result
 
-      if (
-        textSearchResponse.data.status === "OK" &&
-        textSearchResponse.data.results &&
-        textSearchResponse.data.results.length > 0
-      ) {
-        const place = textSearchResponse.data.results[0]
+      // Determine category based on types
+      let category = "Business"
+      let buildingType = "Commercial"
 
-        // Determine category based on types
-        let category = "Business"
-        if (place.types) {
-          if (place.types.includes("bank") || place.types.includes("finance")) {
-            category = "Bank"
-          } else if (place.types.includes("lodging") || place.types.includes("hotel")) {
-            category = "Hotel"
-          } else if (place.types.includes("restaurant") || place.types.includes("food")) {
-            category = "Restaurant"
-          } else if (place.types.includes("store") || place.types.includes("shopping_mall")) {
-            category = "Shopping"
-          }
-        }
-
-        // Create photo URLs if available
-        const photoUrls: string[] = []
-        if (place.photos && place.photos.length > 0) {
-          place.photos.slice(0, 3).forEach((photo) => {
-            photoUrls.push(
-              `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`,
-            )
-          })
-        }
-
-        // Create map URL
-        const mapUrl = `https://www.google.com/maps/search/?api=1&query=${place.geometry.location.lat},${place.geometry.location.lng}`
-
-        return {
-          success: true,
-          type: "business-search",
-          name: place.name,
-          address: place.formatted_address,
-          formattedAddress: place.formatted_address,
-          location: {
-            latitude: place.geometry.location.lat,
-            longitude: place.geometry.location.lng,
-          },
-          description: `${category} located at ${place.formatted_address}`,
-          confidence: 0.85,
-          category,
-          mapUrl,
-          photos: photoUrls,
-          rating: place.rating,
+      if (details.types) {
+        if (details.types.includes("bank") || details.types.includes("finance")) {
+          category = "Bank"
+        } else if (details.types.includes("lodging") || details.types.includes("hotel")) {
+          category = "Hotel"
+        } else if (details.types.includes("restaurant") || details.types.includes("food")) {
+          category = "Restaurant"
+        } else if (details.types.includes("store") || details.types.includes("shopping_mall")) {
+          category = "Shopping"
+        } else if (details.types.includes("school") || details.types.includes("university")) {
+          category = "Education"
+          buildingType = "Educational"
+        } else if (details.types.includes("hospital") || details.types.includes("health")) {
+          category = "Healthcare"
+        } else if (details.types.includes("government") || details.types.includes("city_hall")) {
+          category = "Government"
+          buildingType = "Government"
+        } else if (details.types.includes("place_of_worship")) {
+          category = "Religious"
+          buildingType = "Religious"
         }
       }
-    } catch (error) {
-      console.warn("Text search failed:", error)
-    }
 
-    // If we still haven't found anything, create a custom bank search for common banks
-    if (isBankLikely) {
-      // List of common banks to try
-      const commonBanks = [
-        "Pacific National Bank",
-        "First National Bank",
-        "Bank of America",
-        "Wells Fargo",
-        "Chase Bank",
-        "Citibank",
-        "TD Bank",
-        "PNC Bank",
-        "Capital One",
-        "US Bank",
-        "Regions Bank",
-        "SunTrust Bank",
-        "BB&T",
-        "Fifth Third Bank",
-        "KeyBank",
-        "Citizens Bank",
-        "Santander Bank",
-        "HSBC Bank",
-        "Union Bank",
-        "BMO Harris Bank",
-      ]
-
-      // Find the closest match to our business name
-      const bankMatches = commonBanks.filter(
-        (bank) =>
-          searchQuery.toLowerCase().includes(bank.toLowerCase().replace(" bank", "")) ||
-          bank.toLowerCase().includes(searchQuery.toLowerCase().replace(" bank", "")),
-      )
-
-      if (bankMatches.length > 0) {
-        // Try to search for the best matching bank near the current location
-        const bestMatch = bankMatches[0]
-
-        if (currentLocation) {
-          const nearbySearchParams = {
-            location: `${currentLocation.latitude},${currentLocation.longitude}`,
-            radius: "10000", // 10km radius
-            keyword: bestMatch,
-            key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
-          }
-
-          const nearbySearchResponse = await axios.get("https://maps.googleapis.com/maps/api/place/nearbysearch/json", {
-            params: nearbySearchParams,
-          })
-
-          if (
-            nearbySearchResponse.data.status === "OK" &&
-            nearbySearchResponse.data.results &&
-            nearbySearchResponse.data.results.length > 0
-          ) {
-            const place = nearbySearchResponse.data.results[0]
-
-            return {
-              success: true,
-              type: "bank-search",
-              name: place.name,
-              address: place.vicinity,
-              location: {
-                latitude: place.geometry.location.lat,
-                longitude: place.geometry.location.lng,
-              },
-              description: `Bank located at ${place.vicinity}`,
-              confidence: 0.8,
-              category: "Bank",
-              mapUrl: `https://www.google.com/maps/search/?api=1&query=${place.geometry.location.lat},${place.geometry.location.lng}&query_place_id=${place.place_id}`,
-              rating: place.rating,
-            }
-          }
-        }
+      // Create photo URLs if available
+      const photoUrls: string[] = []
+      if (details.photos && details.photos.length > 0) {
+        details.photos.slice(0, 3).forEach((photo) => {
+          photoUrls.push(
+            `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`,
+          )
+        })
       }
-    }
 
-    // If all searches fail, create a fallback response
-    if (currentLocation) {
+      // Try to get additional building information from Wikipedia
+      let historicalInfo = ""
+      try {
+        const wikiResponse = await axios.get(
+          "https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(details.name),
+        )
+        if (wikiResponse.data && wikiResponse.data.extract) {
+          historicalInfo = wikiResponse.data.extract
+        }
+      } catch (error) {
+        console.log("No Wikipedia information found for this building")
+      }
+
+      // Create map URL
+      const mapUrl = `https://www.google.com/maps/place/?q=place_id:${details.place_id}`
+
       return {
         success: true,
-        type: "business-name-fallback",
-        name: businessName,
-        location: currentLocation,
-        confidence: 0.6,
-        description: `Business identified from text: ${businessName}`,
-        category: isBankLikely ? "Bank" : "Business",
-        mapUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(businessName)}&ll=${currentLocation.latitude},${currentLocation.longitude}`,
-        address: "Location approximate - search for more details",
+        type: "business-search",
+        name: details.name,
+        address: details.formatted_address || details.vicinity,
+        formattedAddress: details.formatted_address,
+        location: {
+          latitude: details.geometry.location.lat,
+          longitude: details.geometry.location.lng,
+        },
+        description: `${category} located at ${details.vicinity || details.formatted_address}`,
+        confidence: 0.9, // High confidence for successful business search
+        category,
+        mapUrl,
+        placeId: details.place_id,
+        addressComponents: details.address_components,
+        photos: photoUrls,
+        rating: details.rating,
+        openingHours: details.opening_hours,
+        website: details.website,
+        phoneNumber: details.formatted_phone_number || details.international_phone_number,
+        priceLevel: details.price_level,
+        reviews: details.reviews,
+        buildingType: buildingType,
+        historicalInfo: historicalInfo,
       }
     }
-
-    return null
-  } catch (error) {
-    console.warn(`Business search failed for: ${text}`, error)
-    return null
   }
+
+  // If all direct searches fail, try a more general approach with the Google Places API Text Search
+  try {
+    const textSearchParams = {
+      query: searchQuery,
+      key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+    }
+
+    if (currentLocation) {
+      textSearchParams.location = `${currentLocation.latitude},${currentLocation.longitude}`
+      textSearchParams.radius = "50000" // 50km radius
+    }
+
+    const textSearchResponse = await axios.get("https://maps.googleapis.com/maps/api/place/textsearch/json", {
+      params: textSearchParams,
+    })
+
+    console.log(`Places Text Search API response status: ${textSearchResponse.data.status}`)
+
+    if (
+      textSearchResponse.data.status === "OK" &&
+      textSearchResponse.data.results &&
+      textSearchResponse.data.results.length > 0
+    ) {
+      const place = textSearchResponse.data.results[0]
+
+      // Get more details about the place
+      const detailsResponse = await axios.get("https://maps.googleapis.com/maps/api/place/details/json", {
+        params: {
+          place_id: place.place_id,
+          fields:
+            "name,formatted_address,geometry,address_component,type,photo,vicinity,rating,opening_hours,url,website,formatted_phone_number,international_phone_number,price_level,review,utc_offset",
+          key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+        },
+      })
+
+      const details = detailsResponse.data.result || place
+
+      // Determine category based on types
+      let category = "Business"
+      let buildingType = "Commercial"
+
+      if (place.types) {
+        if (place.types.includes("bank") || place.types.includes("finance")) {
+          category = "Bank"
+        } else if (place.types.includes("lodging") || place.types.includes("hotel")) {
+          category = "Hotel"
+        } else if (place.types.includes("restaurant") || place.types.includes("food")) {
+          category = "Restaurant"
+        } else if (place.types.includes("store") || place.types.includes("shopping_mall")) {
+          category = "Shopping"
+        } else if (place.types.includes("school") || place.types.includes("university")) {
+          category = "Education"
+          buildingType = "Educational"
+        } else if (place.types.includes("hospital") || place.types.includes("health")) {
+          category = "Healthcare"
+        } else if (place.types.includes("government") || place.types.includes("city_hall")) {
+          category = "Government"
+          buildingType = "Government"
+        } else if (place.types.includes("place_of_worship")) {
+          category = "Religious"
+          buildingType = "Religious"
+        }
+      }
+
+      // Create photo URLs if available
+      const photoUrls: string[] = []
+      if (details.photos && details.photos.length > 0) {
+        details.photos.slice(0, 5).forEach((photo) => {
+          photoUrls.push(
+            `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${photo.photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`,
+          )
+        })
+      }
+
+      // Format opening hours if available
+      let formattedOpeningHours = null
+      if (details.opening_hours && details.opening_hours.weekday_text) {
+        formattedOpeningHours = details.opening_hours.weekday_text
+      }
+
+      // Extract reviews if available
+      const reviews = details.reviews ? details.reviews.slice(0, 3) : []
+
+      // Create map URL
+      const mapUrl = `https://www.google.com/maps/search/?api=1&query=${place.geometry.location.lat},${place.geometry.location.lng}&query_place_id=${place.place_id}`
+
+      return {
+        success: true,
+        type: "business-search",
+        name: details.name || place.name,
+        address: details.formatted_address || place.formatted_address,
+        formattedAddress: details.formatted_address || place.formatted_address,
+        location: {
+          latitude: place.geometry.location.lat,
+          longitude: place.geometry.location.lng,
+        },
+        description: `${category} located at ${details.vicinity || details.formatted_address || place.formatted_address}`,
+        confidence: 0.85,
+        category,
+        mapUrl,
+        placeId: place.place_id,
+        addressComponents: details.address_components,
+        photos: photoUrls,
+        rating: details.rating || place.rating,
+        openingHours: formattedOpeningHours,
+        website: details.website,
+        phoneNumber: details.formatted_phone_number || details.international_phone_number,
+        priceLevel: details.price_level || place.price_level,
+        reviews: reviews,
+        buildingType: buildingType,
+      }
+    }
+  } catch (error) {
+    console.warn("Text search failed:", error)
+  }
+
+  // If we still haven't found anything, create a custom bank search for common banks
+  if (isBankLikely) {
+    // List of common banks to try
+    const commonBanks = [
+      "Pacific National Bank",
+      "First National Bank",
+      "Bank of America",
+      "Wells Fargo",
+      "Chase Bank",
+      "Citibank",
+      "TD Bank",
+      "PNC Bank",
+      "Capital One",
+      "US Bank",
+      "Regions Bank",
+      "SunTrust Bank",
+      "BB&T",
+      "Fifth Third Bank",
+      "KeyBank",
+      "Citizens Bank",
+      "Santander Bank",
+      "HSBC Bank",
+      "Union Bank",
+      "BMO Harris Bank",
+    ]
+
+    // Find the closest match to our business name
+    const bankMatches = commonBanks.filter(
+      (bank) =>
+        searchQuery.toLowerCase().includes(bank.toLowerCase().replace(" bank", "")) ||
+        bank.toLowerCase().includes(searchQuery.toLowerCase().replace(" bank", "")),
+    )
+
+    if (bankMatches.length > 0) {
+      // Try to search for the best matching bank near the current location
+      const bestMatch = bankMatches[0]
+
+      if (currentLocation) {
+        const nearbySearchParams = {
+          location: `${currentLocation.latitude},${currentLocation.longitude}`,
+          radius: "10000", // 10km radius
+          keyword: bestMatch,
+          key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+        }
+
+        const nearbySearchResponse = await axios.get("https://maps.googleapis.com/maps/api/place/nearbysearch/json", {
+          params: nearbySearchParams,
+        })
+
+        if (
+          nearbySearchResponse.data.status === "OK" &&
+          nearbySearchResponse.data.results &&
+          nearbySearchResponse.data.results.length > 0
+        ) {
+          const place = nearbySearchResponse.data.results[0]
+
+          // Get more details about the place
+          const detailsResponse = await axios.get("https://maps.googleapis.com/maps/api/place/details/json", {
+            params: {
+              place_id: place.place_id,
+              fields:
+                "name,formatted_address,geometry,address_component,type,photo,vicinity,rating,opening_hours,url,website,formatted_phone_number,international_phone_number,price_level,review,utc_offset",
+              key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+            },
+          })
+
+          const details = detailsResponse.data.result || place
+
+          // Create photo URLs if available
+          const photoUrls: string[] = []
+          if (details.photos && details.photos.length > 0) {
+            details.photos.slice(0, 5).forEach((photo) => {
+              photoUrls.push(
+                `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${photo.photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`,
+              )
+            })
+          }
+
+          // Format opening hours if available
+          let formattedOpeningHours = null
+          if (details.opening_hours && details.opening_hours.weekday_text) {
+            formattedOpeningHours = details.opening_hours.weekday_text
+          }
+
+          // Extract reviews if available
+          const reviews = details.reviews ? details.reviews.slice(0, 3) : []
+
+          return {
+            success: true,
+            type: "bank-search",
+            name: details.name || place.name,
+            address: details.formatted_address || place.vicinity,
+            location: {
+              latitude: place.geometry.location.lat,
+              longitude: place.geometry.location.lng,
+            },
+            description: `Bank located at ${details.vicinity || place.vicinity}`,
+            confidence: 0.8,
+            category: "Bank",
+            buildingType: "Commercial",
+            mapUrl: `https://www.google.com/maps/search/?api=1&query=${place.geometry.location.lat},${place.geometry.location.lng}&query_place_id=${place.place_id}`,
+            placeId: place.place_id,
+            photos: photoUrls,
+            rating: details.rating || place.rating,
+            openingHours: formattedOpeningHours,
+            website: details.website,
+            phoneNumber: details.formatted_phone_number || details.international_phone_number,
+            priceLevel: details.price_level,
+          }
+        }
+      }
+    }
+  }
+
+  // If all searches fail, create a fallback response
+  if (currentLocation) {
+    return {
+      success: true,
+      type: "business-name-fallback",
+      name: businessName,
+      location: currentLocation,
+      confidence: 0.6,
+      description: `Business identified from text: ${businessName}`,
+      category: isBankLikely ? "Bank" : "Business",
+      buildingType: isBankLikely ? "Commercial" : "Unknown",
+      mapUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(businessName)}&ll=${currentLocation.latitude},${currentLocation.longitude}`,
+      address: "Location approximate - search for more details",
+    }
+  }
+
+  return null
 }
 
-// Update the detectTextAndExtractLocations function to better handle business text
+// Update the detectTextAndExtractLocationsUpdated function to better handle building text
 async function detectTextAndExtractLocationsUpdated(
   imageBuffer: Buffer,
   currentLocation?: Location,
@@ -1252,6 +1468,19 @@ async function detectTextAndExtractLocationsUpdated(
       "financial",
       "services",
       "credit union",
+      "library",
+      "museum",
+      "theater",
+      "cinema",
+      "stadium",
+      "arena",
+      "gallery",
+      "market",
+      "supermarket",
+      "pharmacy",
+      "clinic",
+      "factory",
+      "warehouse",
     ]
 
     const isLikelyBusiness = businessIndicators.some((indicator) =>
@@ -1275,6 +1504,42 @@ async function detectTextAndExtractLocationsUpdated(
       }
     }
 
+    // Look for address patterns in the text
+    const addressPatterns = [
+      /\b\d+\s+[A-Za-z0-9\s,]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Way|Court|Ct|Plaza|Square|Sq|Highway|Hwy|Freeway|Parkway|Pkwy)\b/gi,
+      /\b\d+\s+[A-Za-z]+\s+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Way|Court|Ct|Plaza|Square|Sq|Highway|Hwy|Freeway|Parkway|Pkwy)\b/gi,
+    ]
+
+    let addressText = ""
+    for (const pattern of addressPatterns) {
+      const match = fullText.match(pattern)
+      if (match && match.length > 0) {
+        addressText = match[0]
+        break
+      }
+    }
+
+    // If we found an address, try to geocode it
+    if (addressText) {
+      const geocodeResult = await geocodeAddress(addressText, currentLocation)
+      if (geocodeResult) {
+        // If we have a business name, combine it with the address information
+        if (isLikelyBusiness) {
+          const lines = fullText.split("\n").filter((line) => line.trim().length > 0)
+          const businessLine = lines.find((line) =>
+            businessIndicators.some((indicator) => line.toLowerCase().includes(indicator.toLowerCase())),
+          )
+
+          if (businessLine && businessLine !== addressText) {
+            geocodeResult.name = businessLine.trim()
+            geocodeResult.description = `${businessLine.trim()} located at ${geocodeResult.address}`
+          }
+        }
+
+        return [geocodeResult]
+      }
+    }
+
     // If bank-specific search fails, try with the full text
     if (isLikelyBusiness) {
       // Try specialized business search first
@@ -1292,6 +1557,107 @@ async function detectTextAndExtractLocationsUpdated(
   }
 }
 
+// Helper function to search for a place using Google Maps API
+async function searchPlaceWithGoogleMaps(
+  query: string,
+  currentLocation?: Location,
+): Promise<LocationRecognitionResponse | null> {
+  try {
+    console.log(`Searching for place: "${query}"`)
+
+    // Prepare search parameters
+    const params: any = {
+      query: query,
+      key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+    }
+
+    // Add location bias if current location is available
+    if (currentLocation) {
+      params.locationbias = `circle:2000@${currentLocation.latitude},${currentLocation.longitude}` // Bias towards the current location
+    }
+
+    // Make the Places API request
+    const response = await axios.get("https://maps.googleapis.com/maps/api/place/findplacefromtext/json", { params })
+
+    console.log(`Places API response status: ${response.data.status}`)
+
+    if (response.data.status === "OK" && response.data.candidates && response.data.candidates.length > 0) {
+      // Get the first (best) result
+      const place = response.data.candidates[0]
+
+      // Get place details for more information
+      const detailsResponse = await axios.get("https://maps.googleapis.com/maps/api/place/details/json", {
+        params: {
+          place_id: place.place_id,
+          fields:
+            "name,formatted_address,geometry,address_component,type,photo,vicinity,rating,opening_hours,url,website,formatted_phone_number,international_phone_number,price_level,review,utc_offset",
+          key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+        },
+      })
+
+      const details = detailsResponse.data.result
+
+      // Determine category based on types
+      let category = "Unknown"
+      if (details.types) {
+        if (details.types.includes("point_of_interest") || details.types.includes("establishment")) {
+          category = "Point of Interest"
+        } else if (details.types.includes("street_address") || details.types.includes("route")) {
+          category = "Street"
+        } else if (details.types.includes("locality") || details.types.includes("administrative_area_level_1")) {
+          category = "City/Region"
+        } else if (details.types.includes("country")) {
+          category = "Country"
+        }
+      }
+
+      // Create photo URLs if available
+      const photoUrls: string[] = []
+      if (details.photos && details.photos.length > 0) {
+        details.photos.slice(0, 3).forEach((photo) => {
+          photoUrls.push(
+            `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`,
+          )
+        })
+      }
+
+      // Create map URL
+      const mapUrl = `https://www.google.com/maps/place/?q=place_id:${details.place_id}`
+
+      return {
+        success: true,
+        type: "place-search",
+        name: details.name,
+        address: details.formatted_address || details.vicinity,
+        formattedAddress: details.formatted_address,
+        location: {
+          latitude: details.geometry.location.lat,
+          longitude: details.geometry.location.lng,
+        },
+        description: `Place located at ${details.vicinity || details.formatted_address}`,
+        confidence: 0.9, // High confidence for successful place search
+        category,
+        mapUrl,
+        placeId: details.place_id,
+        addressComponents: details.address_components,
+        photos: photoUrls,
+        rating: details.rating,
+        openingHours: details.opening_hours,
+        website: details.website,
+        phoneNumber: details.formatted_phone_number || details.international_phone_number,
+        priceLevel: details.price_level,
+        reviews: details.reviews,
+      }
+    }
+
+    return null
+  } catch (error) {
+    console.warn(`Place search failed for: ${query}`, error)
+    return null
+  }
+}
+
+// Modify the POST handler to include the saveToDb parameter
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     console.log("Received POST request to location recognition API")
@@ -1386,7 +1752,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             Number.parseFloat(lng.toString()),
             radius ? Number.parseFloat(radius.toString()) : undefined,
           )
-
           return NextResponse.json({ success: true, locations }, { status: 200 })
         }
 
@@ -1394,190 +1759,131 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           const locations = await LocationDB.getAllLocations()
           return NextResponse.json({ success: true, locations }, { status: 200 })
         }
+
+        default:
+          return NextResponse.json({ success: false, error: "Invalid operation" }, { status: 400 })
       }
     }
 
-    // Check for text-based location recognition
-    const text = formData.get("text")
-    if (text && typeof text === "string") {
-      console.log("Processing text-based location recognition:", text)
-
-      // Get current location if available
-      let currentLocation: Location | undefined
-      const lat = formData.get("lat")
-      const lng = formData.get("lng")
-
-      if (lat && lng) {
-        currentLocation = {
-          latitude: Number.parseFloat(lat.toString()),
-          longitude: Number.parseFloat(lng.toString()),
-        }
-      }
-
-      // Extract locations from text
-      const locations = await extractLocationsFromText(text, currentLocation)
-
-      if (locations.length === 0) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "No locations found in text",
-          },
-          { status: 404 },
-        )
-      }
-
-      // Return the highest confidence result
-      locations.sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
-      const bestMatch = locations[0]
-
-      // Save the location to the database if requested
-      const saveToDb = formData.get("saveToDb") !== "false" // Default to true
-      let locationId = null
-
-      if (saveToDb) {
-        try {
-          locationId = await LocationDB.saveLocation(bestMatch)
-          bestMatch.id = locationId
-        } catch (error) {
-          console.error("Error saving recognized location:", error)
-          // Continue without saving to DB
-        }
-      }
-
-      return NextResponse.json(bestMatch, { status: 200 })
+    // Get the image file from the form data
+    const imageFile = formData.get("image") as File
+    if (!imageFile) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No image file provided",
+        },
+        { status: 400 },
+      )
     }
 
-    // Check for address input
-    const address = formData.get("address")
-    if (address && typeof address === "string") {
-      console.log("Processing address-based lookup:", address)
-
-      // Get current location if available for better geocoding
-      let currentLocation: Location | undefined
-      const lat = formData.get("lat")
-      const lng = formData.get("lng")
-
-      if (lat && lng) {
-        currentLocation = {
-          latitude: Number.parseFloat(lat.toString()),
-          longitude: Number.parseFloat(lng.toString()),
-        }
-      }
-
-      const geocodeResult = await geocodeAddress(address, currentLocation)
-
-      if (!geocodeResult) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Address not found",
-          },
-          { status: 404 },
-        )
-      }
-
-      // Save the location to the database if requested
-      const saveToDb = formData.get("saveToDb") !== "false" // Default to true
-      let locationId = null
-
-      if (saveToDb) {
-        try {
-          locationId = await LocationDB.saveLocation(geocodeResult)
-          geocodeResult.id = locationId
-        } catch (error) {
-          console.error("Error saving recognized location:", error)
-          // Continue without saving to DB
-        }
-      }
-
-      return NextResponse.json(geocodeResult, { status: 200 })
-    }
-
-    // Handle image upload
-    const image = formData.get("image") as File | null
+    // Get the current location from the form data
     const lat = formData.get("lat")
     const lng = formData.get("lng")
-    const saveToDb = formData.get("saveToDb") !== "false" // Default to true
 
-    if (!image) {
-      console.error("Invalid request: No image provided")
+    if (!lat || !lng) {
       return NextResponse.json(
         {
           success: false,
-          error: "Must provide an image, text, or address",
+          error: "Missing current location coordinates",
         },
         { status: 400 },
       )
     }
 
-    // Process the image
-    let imageBuffer: Buffer
-    try {
-      const arrayBuffer = await image.arrayBuffer()
-      imageBuffer = Buffer.from(arrayBuffer)
-      console.log("Image buffer created successfully, size:", imageBuffer.length)
-    } catch (error) {
-      console.error("Error processing image:", error)
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Failed to process image",
-        },
-        { status: 400 },
-      )
+    const currentLocation: Location = {
+      latitude: Number.parseFloat(lat.toString()),
+      longitude: Number.parseFloat(lng.toString()),
     }
 
-    // Get location from coordinates or EXIF data
-    let location: Location | null = null
-    if (lat && lng) {
-      location = {
-        latitude: Number.parseFloat(lat.toString()),
-        longitude: Number.parseFloat(lng.toString()),
-      }
-      console.log("Using provided location:", location)
-    } else {
+    // Check if we should save to database
+    const saveToDb = formData.get("saveToDb") !== "false" // Default to true if not specified
+
+    // Convert the image file to a buffer
+    const imageBuffer = Buffer.from(await imageFile.arrayBuffer())
+
+    // Try to extract location from EXIF data first
+    const exifLocation = await extractExifLocation(imageBuffer)
+    if (exifLocation) {
+      console.log("Location extracted from EXIF data:", exifLocation)
+
+      // Get address information for the EXIF location
       try {
-        location = await extractExifLocation(imageBuffer)
-        console.log("Extracted EXIF location:", location)
-      } catch (error) {
-        console.error("Error extracting EXIF location:", error)
-      }
-    }
+        const response = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
+          params: {
+            latlng: `${exifLocation.latitude},${exifLocation.longitude}`,
+            key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+          },
+        })
 
-    if (!location) {
-      console.log("No location provided or extracted, using default location")
-      // Use a default location if no location is provided
-      location = {
-        latitude: 40.7128,
-        longitude: -74.006,
-      }
-    }
+        if (response.data.results && response.data.results.length > 0) {
+          const result = response.data.results[0]
+          const detailedAddress = extractDetailedAddressComponents(result.address_components)
 
-    // Recognize location from image
-    console.log("Calling recognizeLocation with location:", location)
-    const result = await recognizeLocation(imageBuffer, location)
-    console.log("Recognition result success:", result.success)
+          // Get enhanced geotagging data
+          const [nearbyPlaces, elevation, timezone] = await Promise.all([
+            getNearbyPlaces(exifLocation),
+            getElevationData(exifLocation),
+            getTimezoneData(exifLocation),
+          ])
 
-    // Save the location to the database if requested and recognition was successful
-    if (saveToDb && result.success) {
-      try {
-        // Check for required fields
-        if (!result.name || !result.address) {
-          console.warn("⚠️ Warning: Location name or address is missing.")
+          // Create the response object
+          const locationResponse: LocationRecognitionResponse = {
+            success: true,
+            type: "exif-data",
+            name: result.formatted_address.split(",")[0],
+            address: result.formatted_address,
+            formattedAddress: result.formatted_address,
+            location: exifLocation,
+            description: `Location extracted from image EXIF data: ${result.formatted_address}`,
+            confidence: 0.95, // High confidence for EXIF data
+            category: "EXIF Location",
+            mapUrl: `https://www.google.com/maps/search/?api=1&query=${exifLocation.latitude},${exifLocation.longitude}`,
+            placeId: result.place_id,
+            addressComponents: result.address_components,
+            // Add enhanced geotagging data
+            geoData: {
+              ...detailedAddress,
+              formattedAddress: result.formatted_address,
+              timezone: timezone || undefined,
+              elevation: elevation || undefined,
+            },
+            nearbyPlaces: nearbyPlaces,
+          }
+
+          // Save the location to the database if requested
+          if (saveToDb) {
+            try {
+              const locationId = await LocationDB.saveLocation(locationResponse)
+              locationResponse.id = locationId
+            } catch (error) {
+              console.error("Failed to save location to database:", error)
+            }
+          }
+
+          return NextResponse.json(locationResponse, { status: 200 })
         }
-
-        const locationId = await LocationDB.saveLocation(result)
-        result.id = locationId
       } catch (error) {
-        console.error("Error saving recognized location:", error)
-        // Continue without saving to DB
+        console.error("Error getting address for EXIF location:", error)
       }
     }
 
-    return NextResponse.json(result, { status: result.success ? 200 : 404 })
+    // If EXIF data is not available or geocoding failed, perform image analysis
+    const recognitionResult = await recognizeLocation(imageBuffer, currentLocation)
+
+    // Save the location to the database if recognition was successful and saveToDb is true
+    if (recognitionResult.success && saveToDb) {
+      try {
+        const locationId = await LocationDB.saveLocation(recognitionResult)
+        recognitionResult.id = locationId
+      } catch (error) {
+        console.error("Failed to save location to database:", error)
+      }
+    }
+
+    return NextResponse.json(recognitionResult, { status: 200 })
   } catch (error) {
-    console.error("Request failed:", error)
+    console.error("Server error:", error)
     return NextResponse.json(
       {
         success: false,
@@ -1590,94 +1896,89 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    console.log("Received GET request to location recognition API")
+
+    // Get parameters from the URL
     const { searchParams } = new URL(request.url)
     const operation = searchParams.get("operation")
+    const id = searchParams.get("id")
+    const query = searchParams.get("query")
+    const lat = searchParams.get("lat")
+    const lng = searchParams.get("lng")
+    const radius = searchParams.get("radius")
+    const address = searchParams.get("address")
 
-    if (!operation) {
-      return NextResponse.json({ success: false, error: "Missing operation parameter" }, { status: 400 })
-    }
-
-    switch (operation) {
-      case "getById": {
-        const id = searchParams.get("id")
-        if (!id) {
-          return NextResponse.json({ success: false, error: "Missing location ID" }, { status: 400 })
-        }
-
-        const location = await LocationDB.getLocationById(id)
-        if (!location) {
-          return NextResponse.json({ success: false, error: "Location not found" }, { status: 404 })
-        }
-
-        return NextResponse.json(
-          {
-            success: true,
-            ...location,
-            mapUrl: `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`,
-          },
-          { status: 200 },
-        )
-      }
-
-      case "search": {
-        const query = searchParams.get("query")
-        if (!query) {
-          return NextResponse.json({ success: false, error: "Missing search query" }, { status: 400 })
-        }
-
-        const locations = await LocationDB.searchLocations(query)
-        return NextResponse.json({ success: true, locations }, { status: 200 })
-      }
-
-      case "nearby": {
-        const lat = searchParams.get("lat")
-        const lng = searchParams.get("lng")
-        const radius = searchParams.get("radius")
-
-        if (!lat || !lng) {
-          return NextResponse.json({ success: false, error: "Missing coordinates" }, { status: 400 })
-        }
-
-        const locations = await LocationDB.getNearbyLocations(
-          Number.parseFloat(lat),
-          Number.parseFloat(lng),
-          radius ? Number.parseFloat(radius) : undefined,
-        )
-
-        return NextResponse.json({ success: true, locations }, { status: 200 })
-      }
-
-      case "all": {
-        const locations = await LocationDB.getAllLocations()
-        return NextResponse.json({ success: true, locations }, { status: 200 })
-      }
-
-      case "textRecognition": {
-        const text = searchParams.get("text")
-        if (!text) {
-          return NextResponse.json({ success: false, error: "Missing text parameter" }, { status: 400 })
-        }
-
-        const lat = searchParams.get("lat")
-        const lng = searchParams.get("lng")
-        let currentLocation: Location | undefined
-
-        if (lat && lng) {
-          currentLocation = {
-            latitude: Number.parseFloat(lat),
-            longitude: Number.parseFloat(lng),
+    // Handle database operations
+    if (operation) {
+      switch (operation) {
+        case "getById": {
+          if (!id) {
+            return NextResponse.json({ success: false, error: "Missing location ID" }, { status: 400 })
           }
+
+          const location = await LocationDB.getLocationById(id.toString())
+          if (!location) {
+            return NextResponse.json({ success: false, error: "Location not found" }, { status: 404 })
+          }
+
+          return NextResponse.json(
+            {
+              success: true,
+              ...location,
+              mapUrl: `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`,
+            },
+            { status: 200 },
+          )
         }
 
-        const locations = await extractLocationsFromText(text, currentLocation)
-        return NextResponse.json({ success: true, locations }, { status: 200 })
-      }
+        case "search": {
+          if (!query) {
+            return NextResponse.json({ success: false, error: "Missing search query" }, { status: 400 })
+          }
 
-      default:
-        return NextResponse.json({ success: false, error: "Invalid operation" }, { status: 400 })
+          const locations = await LocationDB.searchLocations(query.toString())
+          return NextResponse.json({ success: true, locations }, { status: 200 })
+        }
+
+        case "nearby": {
+          if (!lat || !lng) {
+            return NextResponse.json({ success: false, error: "Missing coordinates" }, { status: 400 })
+          }
+
+          const locations = await LocationDB.getNearbyLocations(
+            Number.parseFloat(lat.toString()),
+            Number.parseFloat(lng.toString()),
+            radius ? Number.parseFloat(radius.toString()) : undefined,
+          )
+          return NextResponse.json({ success: true, locations }, { status: 200 })
+        }
+
+        case "all": {
+          const locations = await LocationDB.getAllLocations()
+          return NextResponse.json({ success: true, locations }, { status: 200 })
+        }
+
+        case "geocode": {
+          if (!address) {
+            return NextResponse.json({ success: false, error: "Missing address" }, { status: 400 })
+          }
+
+          const geocodeResult = await geocodeAddress(address.toString())
+          if (!geocodeResult) {
+            return NextResponse.json({ success: false, error: "Geocoding failed" }, { status: 500 })
+          }
+
+          return NextResponse.json({ success: true, location: geocodeResult }, { status: 200 })
+        }
+
+        default:
+          return NextResponse.json({ success: false, error: "Invalid operation" }, { status: 400 })
+      }
+    } else {
+      return NextResponse.json({ success: false, error: "No operation specified" }, { status: 400 })
     }
   } catch (error) {
-    console.error("GET request failed:", error)
+    console.error("Server error:", error)
     return NextResponse.json(
       {
         success: false,
@@ -1688,14 +1989,22 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-export async function OPTIONS(request: NextRequest) {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    },
-  })
+export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
+  // Handle preflight requests
+  if (request.method === "OPTIONS") {
+    const response = new NextResponse(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Max-Age": "86400",
+      },
+    })
+
+    return response
+  } else {
+    return NextResponse.json({ success: false, error: "Method not allowed" }, { status: 405 })
+  }
 }
 
