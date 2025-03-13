@@ -28,6 +28,16 @@ model User {
   locations      Location[]
 }
 
+model Bookmark {
+  id         String   @id @default(cuid())
+  locationId String
+  name       String
+  address    String
+  category   String
+  createdAt  DateTime @default(now())
+  // other fields...
+}
+
 model Building {
   id             String    @id @default(uuid())
   createdAt      DateTime  @default(now())
