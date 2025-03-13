@@ -57,7 +57,7 @@ export default function LocationTestPage() {
         }
       }
 
-      const response = await fetch("/api/location-recognizer", {
+      const response = await fetch("/api/location-recognition", {
         method: "POST",
         body: formData,
       })
@@ -107,7 +107,7 @@ export default function LocationTestPage() {
         }
       }
 
-      const response = await fetch("/api/location-recognizer", {
+      const response = await fetch("/api/location-recognition", {
         method: "POST",
         body: formData,
       })
@@ -157,7 +157,7 @@ export default function LocationTestPage() {
         }
       }
 
-      const response = await fetch("/api/location-recognizer", {
+      const response = await fetch("/api/location-recognition", {
         method: "POST",
         body: formData,
       })
