@@ -26,11 +26,22 @@ import {
   Plus,
   ArrowUpDown,
   Info,
+  Phone,
+  Sun,
+  Moon,
+  Building,
+  Trees,
+  Cloud,
+  Wind,
+  Droplets,
 } from "lucide-react"
+import * as THREE from 'three';
 import * as LucideIcons from "lucide-react"
 import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api"
+import { Canvas } from "@react-three/fiber"
+import { Environment, OrbitControls, useGLTF, Text, Float, PerspectiveCamera } from "@react-three/drei"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -59,7 +70,9 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from "@/hooks/use-toast"
+import { toast } from "@/components/ui/use-toast"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 // Sidebar Provider and Components
 import {
@@ -75,7 +88,7 @@ import {
   SidebarMenuButton,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar" // Import from shadcn sidebar [^1]
 
 // Location Recognition API Types
 interface Location {
@@ -104,6 +117,15 @@ interface LocationRecognitionResponse {
   website?: string
   buildingType?: string
   historicalInfo?: string
+  materialType?: string
+  weatherConditions?: string
+  airQuality?: string
+  urbanDensity?: string
+  vegetationDensity?: string
+  crowdDensity?: string
+  timeOfDay?: string
+  significantColors?: string[]
+  waterProximity?: string
   geoData?: {
     country?: string
     countryCode?: string
@@ -142,6 +164,58 @@ interface Bookmark {
   createdAt: string
 }
 
+// 3D Models for the dashboard
+const LocationModel = ({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0] }) => {
+  const { scene } = useGLTF("/assets/3d/duck.glb")
+
+  return <primitive object={scene} position={position} scale={[scale, scale, scale]} rotation={rotation} />
+}
+
+// 3D Globe Component
+const Globe = ({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0] }) => {
+  const globeRef = useRef()
+
+  useEffect(() => {
+    if (!globeRef.current) return
+
+    const interval = setInterval(() => {
+      if (globeRef.current) {
+        globeRef.current.rotation.y += 0.005
+      }
+    }, 16)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <group position={position} scale={[scale, scale, scale]} rotation={rotation} ref={globeRef}>
+      <mesh>
+        <sphereGeometry args={[1, 32, 32]} />
+        <meshStandardMaterial map={new THREE.TextureLoader().load("/assets/3d/texture_earth.jpg")} />
+      </mesh>
+    </group>
+  )
+}
+
+// 3D Scene for the dashboard
+const DashboardScene = () => {
+  return (
+    <Canvas>
+      <PerspectiveCamera makeDefault position={[0, 0, 5]} />
+      <ambientLight intensity={0.5} />
+      <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
+      <pointLight position={[-10, -10, -10]} />
+
+      <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.5}>
+        <Globe position={[0, 0, 0]} scale={1.5} />
+      </Float>
+
+      <Environment preset="city" />
+      <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.5} />
+    </Canvas>
+  )
+}
+
 // Camera Recognition Component with API Integration
 const CameraRecognition = () => {
   const [isProcessing, setIsProcessing] = useState(false)
@@ -153,6 +227,10 @@ const CameraRecognition = () => {
   const [recentLocations, setRecentLocations] = useState<LocationRecognitionResponse[]>([])
   const fileInputRef = useRef(null)
   const [saveToDb, setSaveToDb] = useState(true)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [cameraActive, setCameraActive] = useState(false)
+  const isMobile = useIsMobile()
 
   // Load recent locations from localStorage on component mount
   useEffect(() => {
@@ -240,7 +318,7 @@ const CameraRecognition = () => {
       }
 
       const result = await response.json()
-      console.log("Recognition result:", result) // Add logging
+      console.log("Recognition result:", result)
 
       if (!result) {
         throw new Error("No response from recognition API")
@@ -290,10 +368,92 @@ const CameraRecognition = () => {
     }
   }
 
-  const handleCameraCapture = () => {
-    // In a real implementation, this would access the device camera
-    // For now, we'll just trigger the file input
-    fileInputRef.current?.click()
+  const handleCameraCapture = async () => {
+    try {
+      if (!cameraActive) {
+        // Start the camera
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "environment", // Use back camera if available
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+          audio: false,
+        })
+
+        // Set the stream to the video element
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          videoRef.current.play()
+          setCameraActive(true)
+        }
+      } else {
+        // Capture the current frame
+        if (videoRef.current && canvasRef.current) {
+          const video = videoRef.current
+          const canvas = canvasRef.current
+
+          // Set canvas dimensions to match video
+          canvas.width = video.videoWidth
+          canvas.height = video.videoHeight
+
+          // Draw the current video frame to the canvas
+          const context = canvas.getContext("2d")
+          if (context) {
+            context.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+            // Convert the canvas to a Blob
+            canvas.toBlob(
+              async (blob) => {
+                if (blob) {
+                  // Create a File object from the Blob
+                  const file = new File([blob], `camera-capture-${Date.now()}.jpg`, {
+                    type: "image/jpeg",
+                    lastModified: Date.now(),
+                  })
+
+                  // Process the file
+                  setSelectedFile(file)
+                  const fileUrl = URL.createObjectURL(file)
+                  setPreviewUrl(fileUrl)
+                  await handleImageRecognition(file)
+
+                  // Stop the camera
+                  stopCamera()
+                }
+              },
+              "image/jpeg",
+              0.8,
+            ) // JPEG at 80% quality
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error accessing camera:", error)
+      toast({
+        title: "Camera Error",
+        description: "Could not access the camera. Please check permissions.",
+        variant: "destructive",
+      })
+
+      // Fall back to file input if camera fails
+      fileInputRef.current?.click()
+    }
+  }
+
+  // Helper function to stop the camera
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream
+      const tracks = stream.getTracks()
+
+      tracks.forEach((track) => {
+        track.stop()
+      })
+
+      videoRef.current.srcObject = null
+      setCameraActive(false)
+    }
   }
 
   const handleReset = () => {
@@ -302,6 +462,7 @@ const CameraRecognition = () => {
     setSelectedFile(null)
     setIsProcessing(false)
     setError(null)
+    stopCamera()
   }
 
   const handleRecentLocationSelect = (location) => {
@@ -312,13 +473,77 @@ const CameraRecognition = () => {
     setError(null)
   }
 
+  // Render environmental data
+  const renderEnvironmentalData = (data) => {
+    if (!data) return null
+
+    return (
+      <div className="grid grid-cols-2 gap-2 mt-4">
+        {data.weatherConditions && (
+          <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
+            <Cloud className="h-4 w-4 text-primary" />
+            <span className="text-xs">{data.weatherConditions}</span>
+          </div>
+        )}
+
+        {data.airQuality && (
+          <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
+            <Wind className="h-4 w-4 text-primary" />
+            <span className="text-xs">Air: {data.airQuality}</span>
+          </div>
+        )}
+
+        {data.urbanDensity && (
+          <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
+            <Building className="h-4 w-4 text-primary" />
+            <span className="text-xs">{data.urbanDensity}</span>
+          </div>
+        )}
+
+        {data.vegetationDensity && (
+          <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
+            <Trees className="h-4 w-4 text-primary" />
+            <span className="text-xs">{data.vegetationDensity}</span>
+          </div>
+        )}
+
+        {data.waterProximity && (
+          <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
+            <Droplets className="h-4 w-4 text-primary" />
+            <span className="text-xs">{data.waterProximity}</span>
+          </div>
+        )}
+
+        {data.materialType && (
+          <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
+            <LucideIcons.Layers className="h-4 w-4 text-primary" />
+            <span className="text-xs">Material: {data.materialType}</span>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-6">
+      <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
         <div className="flex-1">
           <div className="relative h-[400px] bg-muted rounded-lg overflow-hidden border border-border flex items-center justify-center">
+            {/* Camera video feed */}
+            <video
+              ref={videoRef}
+              className={`absolute inset-0 w-full h-full object-cover ${cameraActive ? "block" : "hidden"}`}
+              autoPlay
+              playsInline
+              muted
+            />
+            <canvas ref={canvasRef} className="hidden" />
+
             {previewUrl && !isProcessing && !recognitionResult && (
-              <img
+              <motion.img
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
                 src={previewUrl || "/placeholder.svg"}
                 alt="Preview"
                 className="absolute inset-0 w-full h-full object-cover"
@@ -326,7 +551,11 @@ const CameraRecognition = () => {
             )}
 
             {isProcessing && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-10">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-10"
+              >
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
@@ -335,7 +564,7 @@ const CameraRecognition = () => {
                 </motion.div>
                 <div className="text-sm font-medium mt-4 mb-2">Analyzing image...</div>
                 <Progress value={progress} className="w-48 h-2" />
-              </div>
+              </motion.div>
             )}
 
             {recognitionResult && (
@@ -387,13 +616,13 @@ const CameraRecognition = () => {
                       <div className="mb-4 space-y-1">
                         {recognitionResult.phoneNumber && (
                           <p className="text-sm flex items-center">
-                            <LucideIcons.Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                            <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                             {recognitionResult.phoneNumber}
                           </p>
                         )}
                         {recognitionResult.website && (
                           <p className="text-sm flex items-center">
-                            <LucideIcons.Globe className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                            <Globe className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                             <a
                               href={recognitionResult.website}
                               target="_blank"
@@ -407,11 +636,14 @@ const CameraRecognition = () => {
                       </div>
                     )}
 
+                    {/* Environmental data */}
+                    {renderEnvironmentalData(recognitionResult)}
+
                     {/* Display opening hours if available */}
                     {recognitionResult.openingHours && recognitionResult.openingHours.length > 0 && (
                       <div className="mb-4">
                         <p className="text-sm font-medium mb-1 flex items-center">
-                          <LucideIcons.Clock className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                          <Clock className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                           Opening Hours
                         </p>
                         <div className="text-xs text-muted-foreground space-y-0.5 ml-5">
@@ -430,8 +662,11 @@ const CameraRecognition = () => {
                         <p className="text-sm font-medium mb-2">Photos:</p>
                         <div className="flex gap-2 overflow-x-auto pb-2">
                           {recognitionResult.photos.map((photo, index) => (
-                            <img
+                            <motion.img
                               key={index}
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: index * 0.1 }}
                               src={photo || "/placeholder.svg"}
                               alt={`${recognitionResult.name} photo ${index + 1}`}
                               className="h-20 w-auto rounded-md object-cover"
@@ -514,8 +749,12 @@ const CameraRecognition = () => {
               </div>
             )}
 
-            {!previewUrl && !isProcessing && !recognitionResult && (
-              <div className="flex flex-col items-center justify-center text-center p-6">
+            {!previewUrl && !isProcessing && !recognitionResult && !cameraActive && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex flex-col items-center justify-center text-center p-6"
+              >
                 <motion.div
                   initial={{ scale: 0.9, opacity: 0.5 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -531,7 +770,7 @@ const CameraRecognition = () => {
                 <p className="text-muted-foreground mb-6 max-w-md">
                   Upload a photo or use your camera to instantly recognize landmarks, businesses, and navigate to them
                 </p>
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                   <Button size="lg" onClick={() => fileInputRef.current?.click()}>
                     <Upload className="mr-2 h-5 w-5" />
                     Upload Image
@@ -541,20 +780,24 @@ const CameraRecognition = () => {
                     Use Camera
                   </Button>
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {error && !isProcessing && (
-              <div className="absolute bottom-4 left-4 right-4 bg-destructive/10 text-destructive p-3 rounded">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="absolute bottom-4 left-4 right-4 bg-destructive/10 text-destructive p-3 rounded"
+              >
                 {error}
-              </div>
+              </motion.div>
             )}
           </div>
 
           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
 
           <div className="flex justify-between items-center mt-4">
-            {(previewUrl || recognitionResult) && (
+            {(previewUrl || recognitionResult || cameraActive) && (
               <Button variant="outline" onClick={handleReset}>
                 <X className="mr-2 h-4 w-4" />
                 Start Over
@@ -569,7 +812,7 @@ const CameraRecognition = () => {
         </div>
 
         {/* Recent Locations Panel */}
-        <div className="w-full md:w-80 shrink-0">
+        <div className="w-full lg:w-80 shrink-0">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center">
@@ -582,8 +825,11 @@ const CameraRecognition = () => {
               {recentLocations.length > 0 ? (
                 <div className="space-y-3">
                   {recentLocations.map((location, index) => (
-                    <div
+                    <motion.div
                       key={index}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
                       className="p-3 rounded-md border border-border hover:bg-muted/50 cursor-pointer transition-colors"
                       onClick={() => handleRecentLocationSelect(location)}
                     >
@@ -606,7 +852,7 @@ const CameraRecognition = () => {
                           {location.date || new Date().toLocaleDateString()}
                         </span>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               ) : (
@@ -628,8 +874,13 @@ const CameraRecognition = () => {
           <CardDescription>Three simple steps to navigate to any place using just a photo</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="flex flex-col items-center text-center">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="flex flex-col items-center text-center"
+            >
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 relative">
                 <Camera className="h-6 w-6 text-primary" />
                 <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center font-medium">
@@ -640,9 +891,14 @@ const CameraRecognition = () => {
               <p className="text-muted-foreground">
                 Capture or select an image of any landmark, building, or location you want to visit
               </p>
-            </div>
+            </motion.div>
 
-            <div className="flex flex-col items-center text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex flex-col items-center text-center"
+            >
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 relative">
                 <Sparkles className="h-6 w-6 text-primary" />
                 <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center font-medium">
@@ -653,9 +909,14 @@ const CameraRecognition = () => {
               <p className="text-muted-foreground">
                 Our technology recognizes the place in your image and provides details about it
               </p>
-            </div>
+            </motion.div>
 
-            <div className="flex flex-col items-center text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="flex flex-col items-center text-center"
+            >
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 relative">
                 <Compass className="h-6 w-6 text-primary" />
                 <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center font-medium">
@@ -666,7 +927,7 @@ const CameraRecognition = () => {
               <p className="text-muted-foreground">
                 Navigate to the identified location with precise turn-by-turn directions
               </p>
-            </div>
+            </motion.div>
           </div>
         </CardContent>
       </Card>
@@ -890,22 +1151,22 @@ const LocationsFeature = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold">Saved Locations</h2>
           <p className="text-muted-foreground">Manage your saved locations and bookmarks</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Input
             placeholder="Search locations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full md:w-64"
+            className="w-full sm:w-48 md:w-64"
           />
 
           <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-full md:w-40">
+            <SelectTrigger className="w-full sm:w-36 md:w-40">
               <SelectValue placeholder="Filter by category" />
             </SelectTrigger>
             <SelectContent>
@@ -984,55 +1245,67 @@ const LocationsFeature = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredAndSortedLocations.map((location) => (
-                <TableRow key={location.id}>
-                  <TableCell className="font-medium">{location.name || "Unknown"}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{location.category || "Unknown"}</Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell truncate max-w-[200px]">
-                    {location.address || "No address"}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {location.confidence ? `${Math.round(location.confidence * 100)}%` : "N/A"}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {new Date(location.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleToggleBookmark(location)}
-                        title={location.isBookmarked ? "Remove bookmark" : "Add bookmark"}
-                      >
-                        {location.isBookmarked ? (
-                          <Heart className="h-4 w-4 fill-primary text-primary" />
-                        ) : (
-                          <Heart className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleViewDetails(location)}
-                        title="View details"
-                      >
-                        <Info className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteLocation(location.id)}
-                        title="Delete location"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              <AnimatePresence>
+                {filteredAndSortedLocations.map((location, index) => (
+                  <motion.tr
+                    key={location.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ delay: index * 0.03 }}
+                    className="group"
+                  >
+                    <TableCell className="font-medium">{location.name || "Unknown"}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{location.category || "Unknown"}</Badge>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell truncate max-w-[200px]">
+                      {location.address || "No address"}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {location.confidence ? `${Math.round(location.confidence * 100)}%` : "N/A"}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {new Date(location.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleToggleBookmark(location)}
+                          title={location.isBookmarked ? "Remove bookmark" : "Add bookmark"}
+                          className="opacity-70 group-hover:opacity-100 transition-opacity"
+                        >
+                          {location.isBookmarked ? (
+                            <Heart className="h-4 w-4 fill-primary text-primary" />
+                          ) : (
+                            <Heart className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleViewDetails(location)}
+                          title="View details"
+                          className="opacity-70 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Info className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteLocation(location.id)}
+                          title="Delete location"
+                          className="opacity-70 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
             </TableBody>
           </Table>
         </Card>
@@ -1055,16 +1328,20 @@ const LocationsFeature = () => {
                 <DialogDescription>{selectedLocation.address || "No address available"}</DialogDescription>
               </DialogHeader>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-4">
                   {selectedLocation.photos && selectedLocation.photos.length > 0 ? (
-                    <div className="rounded-lg overflow-hidden border h-48">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="rounded-lg overflow-hidden border h-48"
+                    >
                       <img
                         src={selectedLocation.photos[0] || "/placeholder.svg"}
                         alt={selectedLocation.name}
                         className="w-full h-full object-cover"
                       />
-                    </div>
+                    </motion.div>
                   ) : (
                     <div className="rounded-lg overflow-hidden border h-48 bg-muted flex items-center justify-center">
                       <ImageIcon className="h-12 w-12 text-muted-foreground" />
@@ -1072,7 +1349,12 @@ const LocationsFeature = () => {
                   )}
 
                   {selectedLocation.location && (
-                    <div className="rounded-lg overflow-hidden border h-48">
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                      className="rounded-lg overflow-hidden border h-48"
+                    >
                       <iframe
                         width="100%"
                         height="100%"
@@ -1080,19 +1362,22 @@ const LocationsFeature = () => {
                         src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${selectedLocation.location.latitude},${selectedLocation.location.longitude}&zoom=15`}
                         allowFullScreen
                       ></iframe>
-                    </div>
+                    </motion.div>
                   )}
                 </div>
 
                 <div className="space-y-4">
                   <div>
                     <h4 className="text-sm font-medium mb-1">Category</h4>
-                    <Badge variant="outline">{selectedLocation.category || "Unknown"}</Badge>
-                    {selectedLocation.buildingType && (
-                      <Badge variant="outline" className="ml-2">
-                        {selectedLocation.buildingType}
-                      </Badge>
-                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline">{selectedLocation.category || "Unknown"}</Badge>
+                      {selectedLocation.buildingType && (
+                        <Badge variant="outline">{selectedLocation.buildingType}</Badge>
+                      )}
+                      {selectedLocation.materialType && (
+                        <Badge variant="outline">{selectedLocation.materialType}</Badge>
+                      )}
+                    </div>
                   </div>
 
                   {selectedLocation.description && (
@@ -1111,6 +1396,37 @@ const LocationsFeature = () => {
                       </p>
                     </div>
                   )}
+
+                  {/* Environmental data */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {selectedLocation.weatherConditions && (
+                      <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
+                        <Cloud className="h-4 w-4 text-primary" />
+                        <span className="text-xs">{selectedLocation.weatherConditions}</span>
+                      </div>
+                    )}
+
+                    {selectedLocation.airQuality && (
+                      <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
+                        <Wind className="h-4 w-4 text-primary" />
+                        <span className="text-xs">Air: {selectedLocation.airQuality}</span>
+                      </div>
+                    )}
+
+                    {selectedLocation.urbanDensity && (
+                      <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
+                        <Building className="h-4 w-4 text-primary" />
+                        <span className="text-xs">{selectedLocation.urbanDensity}</span>
+                      </div>
+                    )}
+
+                    {selectedLocation.vegetationDensity && (
+                      <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
+                        <Trees className="h-4 w-4 text-primary" />
+                        <span className="text-xs">{selectedLocation.vegetationDensity}</span>
+                      </div>
+                    )}
+                  </div>
 
                   {selectedLocation.geoData && (
                     <div>
@@ -1240,10 +1556,13 @@ const MapFeature = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedLocation, setSelectedLocation] = useState<SavedLocation | null>(null)
+  const [showInfoWindow, setShowInfoWindow] = useState(false)
   const [mapCenter, setMapCenter] = useState<Location>({ latitude: 0, longitude: 0 })
   const [userLocation, setUserLocation] = useState<Location | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
-  const [showInfoWindow, setShowInfoWindow] = useState(false)
+  const [mapZoom, setMapZoom] = useState(12)
+  const [is3DMode, setIs3DMode] = useState(false)
+  const isMobile = useIsMobile()
 
   // Load Google Maps API
   const { isLoaded: isGoogleMapsLoaded } = useJsApiLoader({
@@ -1327,6 +1646,7 @@ const MapFeature = () => {
     // Center map on the selected location
     if (location.location) {
       setMapCenter(location.location)
+      setMapZoom(15) // Zoom in when selecting a location
     }
   }
 
@@ -1347,6 +1667,25 @@ const MapFeature = () => {
     }
   }
 
+  // Toggle 3D mode
+  const toggle3DMode = () => {
+    setIs3DMode(!is3DMode)
+  }
+
+  // Get marker color based on category
+  const getMarkerColor = (category: string | undefined) => {
+    switch (category) {
+      case "Landmark":
+        return "blue"
+      case "Business":
+        return "green"
+      case "Point of Interest":
+        return "purple"
+      default:
+        return "red"
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -1355,10 +1694,15 @@ const MapFeature = () => {
           <p className="text-muted-foreground">View all your saved locations on a map</p>
         </div>
 
-        <Button onClick={fetchLocations} variant="outline">
-          <Loader2 className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : "hidden"}`} />
-          Refresh Map
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={toggle3DMode} variant="outline">
+            {is3DMode ? "2D Map" : "3D View"}
+          </Button>
+          <Button onClick={fetchLocations} variant="outline">
+            <Loader2 className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : "hidden"}`} />
+            Refresh Map
+          </Button>
+        </div>
       </div>
 
       {!isGoogleMapsLoaded ? (
@@ -1380,13 +1724,82 @@ const MapFeature = () => {
             </Button>
           </div>
         </Card>
+      ) : is3DMode ? (
+        <Card className="h-[600px] overflow-hidden">
+          <div className="w-full h-full">
+            <Canvas>
+              <PerspectiveCamera makeDefault position={[0, 5, 10]} />
+              <ambientLight intensity={0.5} />
+              <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
+              <pointLight position={[-10, -10, -10]} />
+
+              {/* Earth globe */}
+              <Globe position={[0, 0, 0]} scale={3} />
+
+              {/* Location markers */}
+              {locations.map(
+                (location) =>
+                  location.location && (
+                    <Float
+                      key={location.id}
+                      speed={1}
+                      rotationIntensity={0.5}
+                      floatIntensity={0.5}
+                      position={[(location.location.longitude / 180) * 3, (location.location.latitude / 90) * 1.5, 3.1]}
+                    >
+                      <mesh onClick={() => handleMarkerClick(location)} scale={0.1}>
+                        <sphereGeometry args={[1, 16, 16]} />
+                        <meshStandardMaterial
+                          color={getMarkerColor(location.category)}
+                          emissive={getMarkerColor(location.category)}
+                          emissiveIntensity={0.5}
+                        />
+                      </mesh>
+
+                      {/* Location name */}
+                      <Text position={[0, 0.2, 0]} fontSize={0.1} color="white" anchorX="center" anchorY="middle">
+                        {location.name || "Unknown"}
+                      </Text>
+                    </Float>
+                  ),
+              )}
+
+              {/* User location marker */}
+              {userLocation && (
+                <Float
+                  speed={1.5}
+                  rotationIntensity={0.5}
+                  floatIntensity={0.5}
+                  position={[(userLocation.longitude / 180) * 3, (userLocation.latitude / 90) * 1.5, 3.1]}
+                >
+                  <mesh scale={0.15}>
+                    <sphereGeometry args={[1, 16, 16]} />
+                    <meshStandardMaterial color="#4285F4" emissive="#4285F4" emissiveIntensity={0.8} />
+                  </mesh>
+                  <Text position={[0, 0.3, 0]} fontSize={0.12} color="white" anchorX="center" anchorY="middle">
+                    You are here
+                  </Text>
+                </Float>
+              )}
+
+              <Environment preset="city" />
+              <OrbitControls enableZoom={true} autoRotate autoRotateSpeed={0.5} />
+            </Canvas>
+          </div>
+        </Card>
       ) : (
         <Card className="h-[600px] overflow-hidden">
           <GoogleMap
             mapContainerStyle={{ width: "100%", height: "100%" }}
             center={{ lat: mapCenter.latitude, lng: mapCenter.longitude }}
-            zoom={12}
+            zoom={mapZoom}
             onLoad={() => setMapLoaded(true)}
+            options={{
+              mapTypeControl: true,
+              streetViewControl: true,
+              fullscreenControl: true,
+              mapTypeId: "hybrid",
+            }}
           >
             {/* User location marker */}
             {userLocation && (
@@ -1412,8 +1825,9 @@ const MapFeature = () => {
                     key={location.id}
                     position={{ lat: location.location.latitude, lng: location.location.longitude }}
                     onClick={() => handleMarkerClick(location)}
+                    animation={window.google.maps.Animation.DROP}
                     icon={{
-                      url: `https://maps.google.com/mapfiles/ms/icons/${location.category === "Landmark" ? "blue" : location.category === "Business" ? "green" : "red"}-dot.png`,
+                      url: `https://maps.google.com/mapfiles/ms/icons/${getMarkerColor(location.category)}-dot.png`,
                     }}
                   />
                 ),
@@ -1448,98 +1862,125 @@ const MapFeature = () => {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Location Stats</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Locations:</span>
-                <span className="font-medium">{locations.length}</span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Location Stats</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Locations:</span>
+                  <span className="font-medium">{locations.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Landmarks:</span>
+                  <span className="font-medium">{locations.filter((loc) => loc.category === "Landmark").length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Businesses:</span>
+                  <span className="font-medium">{locations.filter((loc) => loc.category === "Business").length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Other:</span>
+                  <span className="font-medium">
+                    {locations.filter((loc) => loc.category !== "Landmark" && loc.category !== "Business").length}
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Landmarks:</span>
-                <span className="font-medium">{locations.filter((loc) => loc.category === "Landmark").length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Businesses:</span>
-                <span className="font-medium">{locations.filter((loc) => loc.category === "Business").length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Other:</span>
-                <span className="font-medium">
-                  {locations.filter((loc) => loc.category !== "Landmark" && loc.category !== "Business").length}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Map Legend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <div className="w-4 h-4 rounded-full bg-[#4285F4] mr-2"></div>
-                <span>Your Current Location</span>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Map Legend</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex items-center">
+                  <div className="w-4 h-4 rounded-full bg-[#4285F4] mr-2"></div>
+                  <span>Your Current Location</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
+                  <span>Landmarks</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
+                  <span>Businesses</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-4 h-4 rounded-full bg-purple-500 mr-2"></div>
+                  <span>Points of Interest</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
+                  <span>Other Locations</span>
+                </div>
               </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
-                <span>Landmarks</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
-                <span>Businesses</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
-                <span>Other Locations</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => setMapCenter(userLocation || mapCenter)}
-              >
-                <MapPin className="mr-2 h-4 w-4" />
-                Center on My Location
-              </Button>
-              <Button variant="outline" className="w-full justify-start" onClick={fetchLocations}>
-                <Loader2 className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-                Refresh Locations
-              </Button>
-              {selectedLocation && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
                 <Button
                   variant="outline"
                   className="w-full justify-start"
-                  onClick={() => handleNavigate(selectedLocation)}
+                  onClick={() => {
+                    if (userLocation) {
+                      setMapCenter(userLocation)
+                      setMapZoom(15)
+                    }
+                  }}
                 >
-                  <Navigation className="mr-2 h-4 w-4" />
-                  Navigate to Selected
+                  <MapPin className="mr-2 h-4 w-4" />
+                  Center on My Location
                 </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                <Button variant="outline" className="w-full justify-start" onClick={fetchLocations}>
+                  <Loader2 className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                  Refresh Locations
+                </Button>
+                {selectedLocation && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => handleNavigate(selectedLocation)}
+                  >
+                    <Navigation className="mr-2 h-4 w-4" />
+                    Navigate to Selected
+                  </Button>
+                )}
+                <Button variant="outline" className="w-full justify-start" onClick={toggle3DMode}>
+                  {is3DMode ? (
+                    <>
+                      <Map className="mr-2 h-4 w-4" />
+                      Switch to 2D Map
+                    </>
+                  ) : (
+                    <>
+                      <LucideIcons.Globe className="mr-2 h-4 w-4" />
+                      Switch to 3D View
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </div>
   )
 }
 
-// Implement the Search feature
 const SearchFeature = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<SavedLocation[]>([])
@@ -1581,7 +2022,7 @@ const SearchFeature = () => {
       setSearchResults([])
 
       let endpoint = ""
-      let params = {}
+      let params: any = {}
 
       switch (searchType) {
         case "text":
@@ -1794,13 +2235,17 @@ const SearchFeature = () => {
       </Card>
 
       {error && (
-        <div className="bg-destructive/10 p-4 rounded-lg flex items-start">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-destructive/10 p-4 rounded-lg flex items-start"
+        >
           <AlertCircle className="h-5 w-5 text-destructive mr-2 mt-0.5" />
           <div>
             <p className="font-medium text-destructive">Error</p>
             <p className="text-sm">{error}</p>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {isLoading ? (
@@ -1816,73 +2261,101 @@ const SearchFeature = () => {
         <div className="space-y-4">
           <h3 className="text-lg font-medium">Search Results ({searchResults.length})</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {searchResults.map((location) => (
-              <Card key={location.id} className="overflow-hidden">
-                <div className="h-32 bg-muted relative">
-                  {location.photos && location.photos.length > 0 ? (
-                    <img
-                      src={location.photos[0] || "/placeholder.svg"}
-                      alt={location.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <MapPin className="h-8 w-8 text-muted-foreground" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <AnimatePresence>
+              {searchResults.map((location, index) => (
+                <motion.div
+                  key={location.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Card className="overflow-hidden h-full flex flex-col">
+                    <div className="h-32 bg-muted relative">
+                      {location.photos && location.photos.length > 0 ? (
+                        <img
+                          src={location.photos[0] || "/placeholder.svg"}
+                          alt={location.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <MapPin className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                      )}
+
+                      {location.category && <Badge className="absolute top-2 right-2">{location.category}</Badge>}
                     </div>
-                  )}
 
-                  {location.category && <Badge className="absolute top-2 right-2">{location.category}</Badge>}
-                </div>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">{location.name || "Unknown Location"}</CardTitle>
+                      <CardDescription className="line-clamp-1">
+                        {location.address || "No address available"}
+                      </CardDescription>
+                    </CardHeader>
 
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">{location.name || "Unknown Location"}</CardTitle>
-                  <CardDescription className="line-clamp-1">
-                    {location.address || "No address available"}
-                  </CardDescription>
-                </CardHeader>
+                    <CardContent className="pb-2 flex-grow">
+                      <div className="flex items-center text-sm">
+                        <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
+                        {location.location ? (
+                          <span className="text-muted-foreground">
+                            {location.location.latitude.toFixed(4)}, {location.location.longitude.toFixed(4)}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">No coordinates</span>
+                        )}
+                      </div>
 
-                <CardContent className="pb-2">
-                  <div className="flex items-center text-sm">
-                    <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
-                    {location.location ? (
-                      <span className="text-muted-foreground">
-                        {location.location.latitude.toFixed(4)}, {location.location.longitude.toFixed(4)}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">No coordinates</span>
-                    )}
-                  </div>
+                      {location.confidence && (
+                        <div className="mt-2">
+                          <Badge variant={location.confidence > 0.8 ? "default" : "outline"}>
+                            {Math.round(location.confidence * 100)}% confidence
+                          </Badge>
+                        </div>
+                      )}
 
-                  {location.confidence && (
-                    <div className="mt-2">
-                      <Badge variant={location.confidence > 0.8 ? "default" : "outline"}>
-                        {Math.round(location.confidence * 100)}% confidence
-                      </Badge>
-                    </div>
-                  )}
-                </CardContent>
+                      {/* Environmental data */}
+                      {(location.weatherConditions || location.urbanDensity) && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {location.weatherConditions && (
+                            <Badge variant="outline" className="text-xs">
+                              <Cloud className="h-3 w-3 mr-1" />
+                              {location.weatherConditions.split(",")[0]}
+                            </Badge>
+                          )}
+                          {location.urbanDensity && (
+                            <Badge variant="outline" className="text-xs">
+                              <Building className="h-3 w-3 mr-1" />
+                              {location.urbanDensity}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
 
-                <CardFooter className="flex justify-between">
-                  <Button variant="outline" size="sm" onClick={() => handleViewDetails(location)}>
-                    <Info className="h-4 w-4 mr-2" />
-                    Details
-                  </Button>
+                    <CardFooter className="flex justify-between">
+                      <Button variant="outline" size="sm" onClick={() => handleViewDetails(location)}>
+                        <Info className="h-4 w-4 mr-2" />
+                        Details
+                      </Button>
 
-                  {location.id.startsWith("temp-") ? (
-                    <Button size="sm" onClick={() => handleSaveLocation(location)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Save
-                    </Button>
-                  ) : (
-                    <Button variant="secondary" size="sm" disabled>
-                      <Database className="h-4 w-4 mr-2" />
-                      Saved
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
-            ))}
+                      {location.id.startsWith("temp-") ? (
+                        <Button size="sm" onClick={() => handleSaveLocation(location)}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Save
+                        </Button>
+                      ) : (
+                        <Button variant="secondary" size="sm" disabled>
+                          <Database className="h-4 w-4 mr-2" />
+                          Saved
+                        </Button>
+                      )}
+                    </CardFooter>
+                  </Card>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         </div>
       ) : searchQuery || searchType === "nearby" ? (
@@ -2058,7 +2531,6 @@ const SearchFeature = () => {
   )
 }
 
-// Implement the Bookmarks feature
 const BookmarksFeature = () => {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -2066,13 +2538,14 @@ const BookmarksFeature = () => {
   const [selectedBookmark, setSelectedBookmark] = useState<Bookmark | null>(null)
   const [locationDetails, setLocationDetails] = useState<SavedLocation | null>(null)
   const [showLocationDetails, setShowLocationDetails] = useState(false)
+  const { toast } = useToast()
 
   // Fetch bookmarks from the API
   const fetchBookmarks = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
+    setIsLoading(true)
+    setError(null)
 
+    try {
       const response = await fetch("/api/bookmarks")
 
       if (!response.ok) {
@@ -2081,11 +2554,7 @@ const BookmarksFeature = () => {
 
       const data = await response.json()
 
-      if (data.success && data.bookmarks) {
-        setBookmarks(data.bookmarks)
-      } else {
-        setBookmarks([])
-      }
+      setBookmarks(data.success && data.bookmarks ? data.bookmarks : [])
     } catch (err) {
       console.error("Failed to fetch bookmarks:", err)
       setError(err instanceof Error ? err.message : "Failed to fetch bookmarks")
@@ -2102,6 +2571,8 @@ const BookmarksFeature = () => {
   // Handle bookmark deletion
   const handleDeleteBookmark = async (id: string) => {
     try {
+      console.log("Deleting bookmark with id:", id) // Add logging
+
       const response = await fetch(`/api/bookmarks/${id}`, {
         method: "DELETE",
       })
@@ -2111,7 +2582,7 @@ const BookmarksFeature = () => {
       }
 
       // Remove the bookmark from the state
-      setBookmarks(bookmarks.filter((bookmark) => bookmark.id !== id))
+      setBookmarks((prevBookmarks) => prevBookmarks.filter((bookmark) => bookmark.id !== id))
       toast({
         title: "Bookmark removed",
         description: "The bookmark has been successfully removed.",
@@ -2207,33 +2678,50 @@ const BookmarksFeature = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {bookmarks.map((bookmark) => (
-            <Card key={bookmark.id} className="overflow-hidden">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">{bookmark.name || "Unknown Location"}</CardTitle>
-                <CardDescription className="line-clamp-1">{bookmark.address || "No address available"}</CardDescription>
-              </CardHeader>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <AnimatePresence>
+            {bookmarks.map((bookmark, index) => (
+              <motion.div
+                key={bookmark.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Card className="overflow-hidden h-full flex flex-col">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">{bookmark.name || "Unknown Location"}</CardTitle>
+                    <CardDescription className="line-clamp-1">
+                      {bookmark.address || "No address available"}
+                    </CardDescription>
+                  </CardHeader>
 
-              <CardContent className="pb-2">
-                <Badge variant="outline">{bookmark.category || "Unknown"}</Badge>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Added on {new Date(bookmark.createdAt).toLocaleDateString()}
-                </p>
-              </CardContent>
+                  <CardContent className="pb-2 flex-grow">
+                    <Badge variant="outline">{bookmark.category || "Unknown"}</Badge>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Added on {new Date(bookmark.createdAt).toLocaleDateString()}
+                    </p>
+                  </CardContent>
 
-              <CardFooter className="flex justify-between">
-                <Button variant="outline" size="sm" onClick={() => handleViewDetails(bookmark)}>
-                  <Info className="h-4 w-4 mr-2" />
-                  Details
-                </Button>
+                  <CardFooter className="flex justify-between">
+                    <Button variant="outline" size="sm" onClick={() => handleViewDetails(bookmark)}>
+                      <Info className="h-4 w-4 mr-2" />
+                      Details
+                    </Button>
 
-                <Button variant="ghost" size="sm" onClick={() => handleDeleteBookmark(bookmark.id)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteBookmark(bookmark.id)}
+                      className="hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
 
@@ -2422,19 +2910,18 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("recognition")
   const [isDarkMode, setIsDarkMode] = useState(false)
 
-  const [user, setUser] = useState({ username: "John Doe", plan: "Free" })
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState({ username: "Demo User", plan: "Pro" })
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const router = useRouter()
+  const isMobile = useIsMobile()
 
-  // Add this effect to handle dark mode toggle
+  // Handle dark mode toggle
   useEffect(() => {
-    // Check if user preference is stored in localStorage
     const storedTheme = localStorage.getItem("theme")
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
 
-    // Set initial state based on localStorage or system preference
     if (storedTheme === "dark" || (!storedTheme && prefersDark)) {
       setIsDarkMode(true)
       document.documentElement.classList.add("dark")
@@ -2442,11 +2929,6 @@ export default function Dashboard() {
       setIsDarkMode(false)
       document.documentElement.classList.remove("dark")
     }
-
-    // Simulate loading state
-    setTimeout(() => {
-      setLoading(false)
-    }, 1000)
   }, [])
 
   // Function to toggle dark mode
@@ -2525,7 +3007,7 @@ export default function Dashboard() {
 
   return (
     <SidebarProvider defaultOpen={sidebarOpen}>
-      <div className="flex min-h-screen bg-background">
+      <div className="flex flex-col md:flex-row min-h-screen bg-background">
         {/* Sidebar */}
         <Sidebar className="border-r border-border">
           <SidebarHeader>
@@ -2547,6 +3029,7 @@ export default function Dashboard() {
                       asChild
                       isActive={activeTab === "recognition"}
                       onClick={() => setActiveTab("recognition")}
+                      tooltip="Image Recognition"
                     >
                       <button>
                         <Camera className="h-4 w-4" />
@@ -2560,6 +3043,7 @@ export default function Dashboard() {
                       asChild
                       isActive={activeTab === "locations"}
                       onClick={() => setActiveTab("locations")}
+                      tooltip="Saved Locations"
                     >
                       <button>
                         <MapPin className="h-4 w-4" />
@@ -2569,7 +3053,12 @@ export default function Dashboard() {
                   </SidebarMenuItem>
 
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={activeTab === "map"} onClick={() => setActiveTab("map")}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={activeTab === "map"}
+                      onClick={() => setActiveTab("map")}
+                      tooltip="Map View"
+                    >
                       <button>
                         <Map className="h-4 w-4" />
                         <span>Map View</span>
@@ -2578,7 +3067,12 @@ export default function Dashboard() {
                   </SidebarMenuItem>
 
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={activeTab === "search"} onClick={() => setActiveTab("search")}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={activeTab === "search"}
+                      onClick={() => setActiveTab("search")}
+                      tooltip="Search"
+                    >
                       <button>
                         <Search className="h-4 w-4" />
                         <span>Search</span>
@@ -2591,6 +3085,7 @@ export default function Dashboard() {
                       asChild
                       isActive={activeTab === "bookmarks"}
                       onClick={() => setActiveTab("bookmarks")}
+                      tooltip="Bookmarks"
                     >
                       <button>
                         <Heart className="h-4 w-4" />
@@ -2641,55 +3136,17 @@ export default function Dashboard() {
         </Sidebar>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col min-h-screen max-h-screen overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-screen md:max-h-screen overflow-hidden">
           {/* Header */}
-          <header className="border-b border-border h-16 flex items-center justify-between px-4 sm:px-6 bg-background">
+          <header className="border-b border-border h-16 flex items-center justify-between px-2 sm:px-6 bg-background">
             <div className="flex items-center">
-              <SidebarTrigger className="mr-4" />
-              <h1 className="text-xl font-bold">Image-Based Navigation</h1>
+              <SidebarTrigger className="mr-2 sm:mr-4" />
+              <h1 className="text-lg sm:text-xl font-bold truncate">Image-Based Navigation</h1>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 sm:space-x-2">
               <Button variant="ghost" size="icon" onClick={toggleDarkMode}>
-                {isDarkMode ? (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="lucide lucide-sun"
-                  >
-                    <circle cx="12" cy="12" r="4" />
-                    <path d="M12 2v2" />
-                    <path d="M12 20v2" />
-                    <path d="m4.93 4.93 1.41 1.41" />
-                    <path d="m17.66 17.66 1.41 1.41" />
-                    <path d="M2 12h2" />
-                    <path d="M20 12h2" />
-                    <path d="m6.34 17.66-1.41 1.41" />
-                    <path d="m19.07 4.93-1.41 1.41" />
-                  </svg>
-                ) : (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="lucide lucide-moon"
-                  >
-                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-                  </svg>
-                )}
+                {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </Button>
 
               <Button variant="outline" size="sm" onClick={() => setShowLocationRecognitionDialog(true)}>
@@ -2701,27 +3158,32 @@ export default function Dashboard() {
 
           {/* Main Dashboard Content */}
           <main className="flex-1 p-4 sm:p-6 overflow-auto">
+            <div className="mb-4">
+              <h2 className="text-xl sm:text-2xl font-bold">Welcome, {user.username}!</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">Let's analyze a location for you today.</p>
+            </div>
+
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="mb-4">
-                <TabsTrigger value="recognition">
-                  <Camera className="h-4 w-4 mr-2" />
-                  Recognition
+              <TabsList className="mb-4 flex flex-wrap gap-1 sm:gap-0">
+                <TabsTrigger value="recognition" className="px-2 sm:px-3">
+                  <Camera className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Recognition</span>
                 </TabsTrigger>
-                <TabsTrigger value="locations">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Locations
+                <TabsTrigger value="locations" className="px-2 sm:px-3">
+                  <MapPin className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Locations</span>
                 </TabsTrigger>
-                <TabsTrigger value="map">
-                  <Map className="h-4 w-4 mr-2" />
-                  Map
+                <TabsTrigger value="map" className="px-2 sm:px-3">
+                  <Map className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Map</span>
                 </TabsTrigger>
-                <TabsTrigger value="search">
-                  <Search className="h-4 w-4 mr-2" />
-                  Search
+                <TabsTrigger value="search" className="px-2 sm:px-3">
+                  <Search className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Search</span>
                 </TabsTrigger>
-                <TabsTrigger value="bookmarks">
-                  <Heart className="h-4 w-4 mr-2" />
-                  Bookmarks
+                <TabsTrigger value="bookmarks" className="px-2 sm:px-3">
+                  <Heart className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Bookmarks</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -2757,3 +3219,4 @@ export default function Dashboard() {
     </SidebarProvider>
   )
 }
+

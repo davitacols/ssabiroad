@@ -153,6 +153,13 @@ model Location {
   address         String?
   confidence      Float?
   recognitionType String   // Added this field to fix your issue
+
+  // Add these new fields
+  category             String?
+  architecturalStyle   String?
+  yearBuilt            String?
+  materialType         String?
+  culturalSignificance String?
   
   // Relation to User (optional)
   userId          String?
