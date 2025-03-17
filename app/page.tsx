@@ -690,27 +690,6 @@ export default function HomePage() {
       </section>
 
 
-
-      {/* Partners & Integrations */}
-      <section className="py-12 md:py-16 bg-muted/20">
-        <div className="container px-4 md:px-6">
-          <div className="text-center mb-10">
-            <p className="text-muted-foreground">Powered by leading navigation and image recognition technologies</p>
-          </div>
-
-          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
-            {partnerLogos.map((partner) => (
-              <div
-                key={partner.name}
-                className="grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all duration-300"
-              >
-                <img src={partner.logo || "/placeholder.svg"} alt={partner.name} className="h-10 w-auto" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Partners & Integrations */}
       <section className="py-12 md:py-16 bg-muted/20">
         <div className="container px-4 md:px-6">
@@ -803,7 +782,7 @@ export default function HomePage() {
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Choose Your Plan</h2>
             <p className="text-muted-foreground text-lg md:text-xl max-w-[800px]">
-              Flexible options for every type of traveler
+              Currently, only the Basic plan is available. More options coming soon!
             </p>
           </div>
 
@@ -820,12 +799,12 @@ export default function HomePage() {
                   "Ad-supported experience",
                 ],
                 cta: "Get Started",
-                popular: false,
+                available: true,
               },
               {
                 name: "Premium",
                 price: "$4.99/mo",
-                description: "Enhanced recognition and navigation",
+                description: "Enhanced recognition and navigation (Coming Soon)",
                 features: [
                   "Unlimited image recognitions",
                   "Advanced location intelligence",
@@ -833,13 +812,13 @@ export default function HomePage() {
                   "Offline maps for 10 regions",
                   "Ad-free experience",
                 ],
-                cta: "Start Free Trial",
-                popular: true,
+                cta: "Unavailable",
+                available: false,
               },
               {
                 name: "Professional",
                 price: "$9.99/mo",
-                description: "Complete solution for frequent travelers",
+                description: "Complete solution for frequent travelers (Coming Soon)",
                 features: [
                   "Everything in Premium",
                   "Highest priority recognition",
@@ -847,19 +826,14 @@ export default function HomePage() {
                   "Historical image analysis",
                   "Commercial usage rights",
                 ],
-                cta: "Contact Sales",
-                popular: false,
+                cta: "Unavailable",
+                available: false,
               },
             ].map((plan, idx) => (
               <Card
                 key={idx}
-                className={cn("relative flex flex-col", plan.popular && "border-primary shadow-lg shadow-primary/10")}
+                className={cn("relative flex flex-col", !plan.available && "opacity-50 pointer-events-none")}
               >
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-primary text-primary-foreground px-3 py-1">Most Popular</Badge>
-                  </div>
-                )}
                 <CardHeader>
                   <CardTitle>{plan.name}</CardTitle>
                   <div className="flex items-baseline mt-2">
@@ -879,7 +853,7 @@ export default function HomePage() {
                   </ul>
                 </CardContent>
                 <CardFooter>
-                  <Button className={cn("w-full", plan.popular ? "bg-primary text-primary-foreground" : "")}>
+                  <Button className="w-full" disabled={!plan.available}>
                     {plan.cta}
                   </Button>
                 </CardFooter>
@@ -888,6 +862,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
 
       {/* Call to Action */}
       <section className="py-12 md:py-20 bg-primary/5">
