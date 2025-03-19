@@ -1,11 +1,11 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { FaGoogle } from "react-icons/fa"
-import { Building2, LockIcon, MailIcon } from "lucide-react"
+import { Navigation, LockIcon, MailIcon } from "lucide-react"
 
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -48,7 +48,7 @@ export default function Login() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       })
-      
+
       if (!response.ok) {
         const data = await response.json()
         throw new Error(data.error || "Login failed")
@@ -93,54 +93,56 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <motion.div 
+    <div className="min-h-screen w-full bg-gradient-to-br from-teal-50 via-white to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center p-4">
+      <motion.div
         className="w-full max-w-md"
-        initial={{ opacity: 0, y: 20 }} 
-        animate={{ opacity: 1, y: 0 }} 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
         <div className="text-center mb-8">
-          <motion.div 
-            initial={{ scale: 0.8 }} 
-            animate={{ scale: 1 }} 
+          <motion.div
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
             transition={{ duration: 0.5 }}
             className="inline-block"
           >
-            <div className="w-16 h-16 mx-auto mb-4 rounded-xl shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center">
-              <Building2 className="h-8 w-8 text-white" />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-xl shadow-lg bg-gradient-to-r from-teal-500 to-cyan-500 flex items-center justify-center">
+              <Navigation className="h-8 w-8 text-white" />
             </div>
           </motion.div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Welcome to SabiRoad
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 dark:from-teal-400 dark:to-cyan-400 bg-clip-text text-transparent">
+            Welcome to Pic2Nav
           </h1>
-          <p className="text-gray-500 mt-2">Sign in to continue to your dashboard</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">Sign in to continue to your dashboard</p>
         </div>
 
-        <Card className="p-8 bg-white/80 backdrop-blur-lg border border-gray-100 rounded-2xl shadow-xl">
+        <Card className="p-8 bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl">
           {error && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }} 
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg"
+              className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
             >
-              <p className="text-sm text-red-600 text-center" role="alert">{error}</p>
+              <p className="text-sm text-red-600 dark:text-red-400 text-center" role="alert">
+                {error}
+              </p>
             </motion.div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Email</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                  <MailIcon className="h-5 w-5 text-gray-400" />
+                  <MailIcon className="h-5 w-5 text-slate-400" />
                 </div>
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="pl-10 h-12 bg-white border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 rounded-xl"
+                  className="pl-10 h-12 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus:border-teal-500 focus:ring-teal-500 rounded-xl"
                   placeholder="Enter your email"
                   disabled={loading}
                 />
@@ -149,21 +151,24 @@ export default function Login() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700">Password</label>
-                <Link href="/forgot-password" className="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-medium text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 transition-colors"
+                >
                   Forgot password?
                 </Link>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                  <LockIcon className="h-5 w-5 text-gray-400" />
+                  <LockIcon className="h-5 w-5 text-slate-400" />
                 </div>
                 <Input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="pl-10 h-12 bg-white border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 rounded-xl"
+                  className="pl-10 h-12 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus:border-teal-500 focus:ring-teal-500 rounded-xl"
                   placeholder="Enter your password"
                   disabled={loading}
                 />
@@ -174,7 +179,7 @@ export default function Login() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+                className="w-full h-12 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg border-0"
               >
                 {loading ? (
                   <div className="flex items-center justify-center gap-2">
@@ -190,10 +195,12 @@ export default function Login() {
 
           <div className="mt-8 relative">
             <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
+              <Separator className="w-full bg-slate-200 dark:bg-slate-700" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              <span className="px-2 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                Or continue with
+              </span>
             </div>
           </div>
 
@@ -204,17 +211,23 @@ export default function Login() {
                 disabled={loading}
                 onClick={handleGoogleSignIn}
                 variant="outline"
-                className="w-full h-12 flex items-center justify-center gap-3 rounded-xl border-gray-300 hover:bg-gray-50 transition-colors"
+                className="w-full h-12 flex items-center justify-center gap-3 rounded-xl border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
-                <FaGoogle className="w-5 h-5 text-red-500" /> 
-                <span>Sign in with Google</span>
+                <FaGoogle className="w-5 h-5 text-red-500" />
+                <span className="text-slate-700 dark:text-slate-300">Sign in with Google</span>
               </Button>
             </motion.div>
           </div>
 
           <div className="mt-8 text-center">
-            <p className="text-sm text-gray-600">
-              Don't have an account? <Link href="/signup" className="font-medium text-indigo-600 hover:text-indigo-700 transition-colors">Create one</Link>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Don't have an account?{" "}
+              <Link
+                href="/signup"
+                className="font-medium text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 transition-colors"
+              >
+                Create one
+              </Link>
             </p>
           </div>
         </Card>
@@ -222,3 +235,4 @@ export default function Login() {
     </div>
   )
 }
+

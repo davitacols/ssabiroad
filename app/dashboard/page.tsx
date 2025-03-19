@@ -34,9 +34,12 @@ import {
   Cloud,
   Wind,
   Droplets,
+  PlusCircle,
+  FileText,
 } from "lucide-react"
-import * as THREE from 'three';
+import * as THREE from "three"
 import * as LucideIcons from "lucide-react"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api"
@@ -55,6 +58,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+
+// Import the new components
+import { LocationSuggestions } from "@/components/location-suggestions"
+import { ImageCaptionGenerator } from "@/components/image-caption-generator"
+import { AIContentGenerator } from "@/components/ai-content-generator"
+
 import { Progress } from "@/components/ui/progress"
 import {
   Dialog,
@@ -154,6 +163,13 @@ interface SavedLocation extends LocationRecognitionResponse {
   isBookmarked?: boolean
 }
 
+interface LocationModel {
+  name: string
+  address?: string
+  latitude: number
+  longitude: number
+}
+
 // Define a type for bookmarks
 interface Bookmark {
   id: string
@@ -165,10 +181,9 @@ interface Bookmark {
 }
 
 // 3D Models for the dashboard
-const LocationModel = ({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0] }) => {
-  const { scene } = useGLTF("/assets/3d/duck.glb")
-
-  return <primitive object={scene} position={position} scale={[scale, scale, scale]} rotation={rotation} />
+const LocationModel = () => {
+  const gltf = useGLTF("/assets/3d/location.glb")
+  return <primitive object={gltf.scene} />
 }
 
 // 3D Globe Component
@@ -813,7 +828,7 @@ const CameraRecognition = () => {
 
         {/* Recent Locations Panel */}
         <div className="w-full lg:w-80 shrink-0">
-          <Card>
+          <Card className="border border-border/40 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center">
                 <Clock className="mr-2 h-4 w-4" />
@@ -830,7 +845,7 @@ const CameraRecognition = () => {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      className="p-3 rounded-md border border-border hover:bg-muted/50 cursor-pointer transition-colors"
+                      className="p-3 rounded-md border border-border/50 hover:bg-muted/50 cursor-pointer transition-colors"
                       onClick={() => handleRecentLocationSelect(location)}
                     >
                       <div className="flex items-center justify-between">
@@ -868,7 +883,7 @@ const CameraRecognition = () => {
       </div>
 
       {/* How It Works Section */}
-      <Card>
+      <Card className="border border-border/40 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle>How It Works</CardTitle>
           <CardDescription>Three simple steps to navigate to any place using just a photo</CardDescription>
@@ -946,6 +961,12 @@ const LocationsFeature = () => {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
   const [filterCategory, setFilterCategory] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState<string>("")
+  const [isBookmarked, setIsBookmarked] = useState<boolean>(false)
+  const [cameraActive, setCameraActive] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [recognitionResult, setRecognitionResult] = useState<LocationRecognitionResponse | null>(null)
+
+  const [recentLocations, setRecentLocations] = useState<LocationRecognitionResponse[]>([])
 
   // Fetch locations from the API
   const fetchLocations = async () => {
@@ -1059,6 +1080,14 @@ const LocationsFeature = () => {
             name: location.name,
             address: location.address,
             category: location.category || "Unknown",
+            mapUrl: location.mapUrl,
+            imageUrl: location.imageUrl,
+            latitude: location.latitude,
+            longitude: location.longitude,
+            confidence: location.confidence,
+            createdAt: location.createdAt,
+            updatedAt: location.updatedAt,
+            description: location.description,
           }),
         })
 
@@ -1212,7 +1241,7 @@ const LocationsFeature = () => {
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="border border-border/40 shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
@@ -1657,13 +1686,39 @@ const MapFeature = () => {
 
   // Navigate to location
   const handleNavigate = (location: SavedLocation) => {
-    if (location.mapUrl) {
-      window.open(location.mapUrl, "_blank")
-    } else if (location.location) {
-      window.open(
-        `https://www.google.com/maps/dir/?api=1&destination=${location.location.latitude},${location.location.longitude}`,
-        "_blank",
-      )
+    if (location.location) {
+      setMapCenter(location.location)
+      setMapZoom(15) // Zoom in when navigating to a location
+    }
+  }
+
+  const handleToggleBookmark = async (location: SavedLocation) => {
+    try {
+      const response = await fetch("/api/location-recognition", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          operation: "bookmark",
+          locationId: location.id,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        // Update the location in the state
+        setLocations((prevLocations) =>
+          prevLocations.map((loc) => (loc.id === location.id ? { ...loc, isBookmarked: !loc.isBookmarked } : loc)),
+        )
+      }
+    } catch (err) {
+      console.error("Failed to toggle bookmark:", err)
     }
   }
 
@@ -1706,7 +1761,7 @@ const MapFeature = () => {
       </div>
 
       {!isGoogleMapsLoaded ? (
-        <Card className="h-[600px] flex items-center justify-center">
+        <Card className="h-[600px] flex items-center justify-center border border-border/40 shadow-sm">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
             <h3 className="text-lg font-medium">Loading Google Maps</h3>
@@ -1714,7 +1769,7 @@ const MapFeature = () => {
           </div>
         </Card>
       ) : error ? (
-        <Card className="h-[600px] flex items-center justify-center">
+        <Card className="h-[600px] flex items-center justify-center border border-border/40 shadow-sm">
           <div className="text-center">
             <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">Error Loading Map</h3>
@@ -1725,7 +1780,7 @@ const MapFeature = () => {
           </div>
         </Card>
       ) : is3DMode ? (
-        <Card className="h-[600px] overflow-hidden">
+        <Card className="h-[600px] overflow-hidden border border-border/40 shadow-sm">
           <div className="w-full h-full">
             <Canvas>
               <PerspectiveCamera makeDefault position={[0, 5, 10]} />
@@ -1788,7 +1843,7 @@ const MapFeature = () => {
           </div>
         </Card>
       ) : (
-        <Card className="h-[600px] overflow-hidden">
+        <Card className="h-[600px] overflow-hidden border border-border/40 shadow-sm">
           <GoogleMap
             mapContainerStyle={{ width: "100%", height: "100%" }}
             center={{ lat: mapCenter.latitude, lng: mapCenter.longitude }}
@@ -1864,7 +1919,7 @@ const MapFeature = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <Card>
+          <Card className="border border-border/40 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Location Stats</CardTitle>
             </CardHeader>
@@ -1894,7 +1949,7 @@ const MapFeature = () => {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card>
+          <Card className="border border-border/40 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Map Legend</CardTitle>
             </CardHeader>
@@ -1926,7 +1981,7 @@ const MapFeature = () => {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card>
+          <Card className="border border-border/40 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Quick Actions</CardTitle>
             </CardHeader>
@@ -2164,7 +2219,7 @@ const SearchFeature = () => {
         <p className="text-muted-foreground">Find locations by name, address, or nearby your current location</p>
       </div>
 
-      <Card>
+      <Card className="border border-border/40 shadow-sm">
         <CardContent className="pt-6">
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-4">
@@ -2249,7 +2304,7 @@ const SearchFeature = () => {
       )}
 
       {isLoading ? (
-        <Card>
+        <Card className="border border-border/40 shadow-sm">
           <CardContent className="py-10">
             <div className="flex flex-col items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
@@ -2271,7 +2326,7 @@ const SearchFeature = () => {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <Card className="overflow-hidden h-full flex flex-col">
+                  <Card className="overflow-hidden h-full flex flex-col border border-border/40 shadow-sm">
                     <div className="h-32 bg-muted relative">
                       {location.photos && location.photos.length > 0 ? (
                         <img
@@ -2359,7 +2414,7 @@ const SearchFeature = () => {
           </div>
         </div>
       ) : searchQuery || searchType === "nearby" ? (
-        <Card>
+        <Card className="border border-border/40 shadow-sm">
           <CardContent className="py-10">
             <div className="flex flex-col items-center justify-center text-center">
               <Search className="h-10 w-10 text-muted-foreground mb-4" />
@@ -2653,7 +2708,7 @@ const BookmarksFeature = () => {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : error ? (
-        <Card>
+        <Card className="border border-border/40 shadow-sm">
           <CardContent className="py-10">
             <div className="flex flex-col items-center justify-center text-center">
               <AlertCircle className="h-10 w-10 text-destructive mb-4" />
@@ -2666,7 +2721,7 @@ const BookmarksFeature = () => {
           </CardContent>
         </Card>
       ) : bookmarks.length === 0 ? (
-        <Card>
+        <Card className="border border-border/40 shadow-sm">
           <CardContent className="py-10">
             <div className="flex flex-col items-center justify-center text-center">
               <Heart className="h-10 w-10 text-muted-foreground mb-4" />
@@ -2688,7 +2743,7 @@ const BookmarksFeature = () => {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Card className="overflow-hidden h-full flex flex-col">
+                <Card className="overflow-hidden h-full flex flex-col border border-border/40 shadow-sm">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg">{bookmark.name || "Unknown Location"}</CardTitle>
                     <CardDescription className="line-clamp-1">
@@ -2987,16 +3042,19 @@ export default function Dashboard() {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Error Loading Dashboard</CardTitle>
+        <Card className="w-full max-w-md border-none shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-red-500/10 to-orange-500/10 rounded-t-lg">
+            <CardTitle className="text-red-500">Error Loading Dashboard</CardTitle>
             <CardDescription>We encountered an issue while loading your data</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <p className="text-muted-foreground">{error}</p>
           </CardContent>
-          <CardFooter>
-            <Button onClick={() => window.location.reload()} className="w-full">
+          <CardFooter className="bg-gray-50 dark:bg-gray-900/30 rounded-b-lg">
+            <Button
+              onClick={() => window.location.reload()}
+              className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
+            >
               Try Again
             </Button>
           </CardFooter>
@@ -3009,19 +3067,23 @@ export default function Dashboard() {
     <SidebarProvider defaultOpen={sidebarOpen}>
       <div className="flex flex-col md:flex-row min-h-screen bg-background">
         {/* Sidebar */}
-        <Sidebar className="border-r border-border">
+        <Sidebar className="border-r border-border bg-gray-50 dark:bg-gray-900/30">
           <SidebarHeader>
-            <div className="flex items-center px-2 py-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-primary to-purple-600 rounded-lg flex items-center justify-center mr-2">
+            <div className="flex items-center px-4 py-4">
+              <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-teal-500 rounded-xl flex items-center justify-center mr-3 shadow-md">
                 <MapPin className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-semibold">SabiRoad</span>
+              <span className="text-xl font-bold bg-gradient-to-r from-cyan-500 to-teal-500 text-transparent bg-clip-text">
+                Pic2Nav
+              </span>
             </div>
           </SidebarHeader>
 
           <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-4 mb-2">
+                Navigation
+              </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -3030,10 +3092,11 @@ export default function Dashboard() {
                       isActive={activeTab === "recognition"}
                       onClick={() => setActiveTab("recognition")}
                       tooltip="Image Recognition"
+                      className="px-4 py-3 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
                       <button>
-                        <Camera className="h-4 w-4" />
-                        <span>Image Recognition</span>
+                        <Camera className="h-5 w-5" />
+                        <span className="ml-3">Image Recognition</span>
                       </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -3044,10 +3107,11 @@ export default function Dashboard() {
                       isActive={activeTab === "locations"}
                       onClick={() => setActiveTab("locations")}
                       tooltip="Saved Locations"
+                      className="px-4 py-3 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
                       <button>
-                        <MapPin className="h-4 w-4" />
-                        <span>Saved Locations</span>
+                        <MapPin className="h-5 w-5" />
+                        <span className="ml-3">Saved Locations</span>
                       </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -3058,10 +3122,11 @@ export default function Dashboard() {
                       isActive={activeTab === "map"}
                       onClick={() => setActiveTab("map")}
                       tooltip="Map View"
+                      className="px-4 py-3 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
                       <button>
-                        <Map className="h-4 w-4" />
-                        <span>Map View</span>
+                        <Map className="h-5 w-5" />
+                        <span className="ml-3">Map View</span>
                       </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -3072,10 +3137,11 @@ export default function Dashboard() {
                       isActive={activeTab === "search"}
                       onClick={() => setActiveTab("search")}
                       tooltip="Search"
+                      className="px-4 py-3 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
                       <button>
-                        <Search className="h-4 w-4" />
-                        <span>Search</span>
+                        <Search className="h-5 w-5" />
+                        <span className="ml-3">Search</span>
                       </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -3086,10 +3152,56 @@ export default function Dashboard() {
                       isActive={activeTab === "bookmarks"}
                       onClick={() => setActiveTab("bookmarks")}
                       tooltip="Bookmarks"
+                      className="px-4 py-3 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
                       <button>
-                        <Heart className="h-4 w-4" />
-                        <span>Bookmarks</span>
+                        <Heart className="h-5 w-5" />
+                        <span className="ml-3">Bookmarks</span>
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={activeTab === "location-suggestions"}
+                      onClick={() => setActiveTab("location-suggestions")}
+                      tooltip="Location Suggestions"
+                      className="px-4 py-3 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                    >
+                      <button>
+                        <PlusCircle className="h-5 w-5" />
+                        <span className="ml-3">Suggestions</span>
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={activeTab === "image-caption"}
+                      onClick={() => setActiveTab("image-caption")}
+                      tooltip="Image Captions"
+                      className="px-4 py-3 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                    >
+                      <button>
+                        <Image className="h-5 w-5" />
+                        <span className="ml-3">Image Captions</span>
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={activeTab === "ai-content-generator"}
+                      onClick={() => setActiveTab("ai-content-generator")}
+                      tooltip="AI Content Generator"
+                      className="px-4 py-3 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                    >
+                      <button>
+                        <FileText className="h-5 w-5" />
+                        <span className="ml-3">AI Content</span>
                       </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -3099,33 +3211,49 @@ export default function Dashboard() {
           </SidebarContent>
 
           <SidebarFooter>
-            <div className="p-4">
+            <div className="p-4 mt-4">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-start px-2">
-                    <Avatar className="h-8 w-8 mr-2 border-2 border-primary/20">
-                      <AvatarFallback className="bg-primary/10 text-primary">{user?.username?.[0]}</AvatarFallback>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start px-3 py-6 rounded-lg bg-gray-100/50 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                  >
+                    <Avatar className="h-10 w-10 mr-3 border-2 border-cyan-500/20 shadow-sm">
+                      <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-teal-500 text-white font-medium">
+                        {user?.username?.[0]}
+                      </AvatarFallback>
                     </Avatar>
-                    <div className="flex flex-col items-start text-sm">
-                      <span className="font-medium">{user?.username}</span>
-                      <span className="text-xs text-muted-foreground">{user?.plan} Plan</span>
+                    <div className="flex flex-col items-start">
+                      <span className="font-semibold">{user?.username}</span>
+                      <span className="text-xs text-muted-foreground flex items-center">
+                        <span className="h-2 w-2 rounded-full bg-green-500 mr-1"></span>
+                        {user?.plan}
+                      </span>
                     </div>
                     <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuContent align="end" className="w-56 border-none shadow-lg">
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium">My Account</p>
+                      <p className="text-xs text-muted-foreground">Manage your account settings</p>
+                    </div>
+                  </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="cursor-pointer text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>
@@ -3138,18 +3266,32 @@ export default function Dashboard() {
         {/* Main Content */}
         <div className="flex-1 flex flex-col min-h-screen md:max-h-screen overflow-hidden">
           {/* Header */}
-          <header className="border-b border-border h-16 flex items-center justify-between px-2 sm:px-6 bg-background">
+          <header className="border-b border-border h-16 flex items-center justify-between px-4 sm:px-6 bg-background backdrop-blur-md bg-opacity-90">
             <div className="flex items-center">
-              <SidebarTrigger className="mr-2 sm:mr-4" />
-              <h1 className="text-lg sm:text-xl font-bold truncate">Image-Based Navigation</h1>
+              <SidebarTrigger className="mr-4 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg p-2 transition-all" />
+              <h1 className="text-lg sm:text-xl font-bold truncate">
+                <span className="bg-gradient-to-r from-cyan-500 to-teal-500 text-transparent bg-clip-text">
+                  Image-Based Navigation
+                </span>
+              </h1>
             </div>
 
-            <div className="flex items-center space-x-1 sm:space-x-2">
-              <Button variant="ghost" size="icon" onClick={toggleDarkMode}>
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleDarkMode}
+                className="rounded-full w-10 h-10 bg-gray-100 dark:bg-gray-800 transition-all"
+              >
                 {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </Button>
 
-              <Button variant="outline" size="sm" onClick={() => setShowLocationRecognitionDialog(true)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowLocationRecognitionDialog(true)}
+                className="bg-gradient-to-r from-cyan-500/10 to-teal-500/10 border-cyan-200 dark:border-cyan-900 hover:bg-gradient-to-r hover:from-cyan-500/20 hover:to-teal-500/20 transition-all rounded-lg px-4 py-2"
+              >
                 <Camera className="h-4 w-4 mr-2" />
                 Quick Scan
               </Button>
@@ -3157,55 +3299,119 @@ export default function Dashboard() {
           </header>
 
           {/* Main Dashboard Content */}
-          <main className="flex-1 p-4 sm:p-6 overflow-auto">
-            <div className="mb-4">
-              <h2 className="text-xl sm:text-2xl font-bold">Welcome, {user.username}!</h2>
+          <main className="flex-1 p-6 sm:p-8 overflow-auto bg-gray-50/50 dark:bg-gray-900/10">
+            <div className="mb-6">
+              <div className="flex items-center space-x-2 mb-1">
+                <h2 className="text-xl sm:text-2xl font-bold">
+                  Welcome back,{" "}
+                  <span className="bg-gradient-to-r from-cyan-500 to-teal-500 text-transparent bg-clip-text">
+                    {user.username}
+                  </span>
+                  !
+                </h2>
+                <div className="flex-shrink-0 w-8 h-8 bg-cyan-500/10 rounded-full flex items-center justify-center">
+                  <span className="text-cyan-500 text-xs">👋</span>
+                </div>
+              </div>
               <p className="text-sm sm:text-base text-muted-foreground">Let's analyze a location for you today.</p>
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="mb-4 flex flex-wrap gap-1 sm:gap-0">
-                <TabsTrigger value="recognition" className="px-2 sm:px-3">
-                  <Camera className="h-4 w-4 sm:mr-2" />
+              <TabsList className="mb-6 flex flex-wrap gap-1 sm:gap-0 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                <TabsTrigger
+                  value="recognition"
+                  className="rounded-lg px-3 sm:px-4 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all"
+                >
+                  <Camera className="h-4 w-4 sm:mr-2 text-cyan-500" />
                   <span className="hidden sm:inline">Recognition</span>
                 </TabsTrigger>
-                <TabsTrigger value="locations" className="px-2 sm:px-3">
-                  <MapPin className="h-4 w-4 sm:mr-2" />
+                <TabsTrigger
+                  value="locations"
+                  className="rounded-lg px-3 sm:px-4 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all"
+                >
+                  <MapPin className="h-4 w-4 sm:mr-2 text-green-500" />
                   <span className="hidden sm:inline">Locations</span>
                 </TabsTrigger>
-                <TabsTrigger value="map" className="px-2 sm:px-3">
-                  <Map className="h-4 w-4 sm:mr-2" />
+                <TabsTrigger
+                  value="map"
+                  className="rounded-lg px-3 sm:px-4 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all"
+                >
+                  <Map className="h-4 w-4 sm:mr-2 text-indigo-500" />
                   <span className="hidden sm:inline">Map</span>
                 </TabsTrigger>
-                <TabsTrigger value="search" className="px-2 sm:px-3">
-                  <Search className="h-4 w-4 sm:mr-2" />
+                <TabsTrigger
+                  value="search"
+                  className="rounded-lg px-3 sm:px-4 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all"
+                >
+                  <Search className="h-4 w-4 sm:mr-2 text-amber-500" />
                   <span className="hidden sm:inline">Search</span>
                 </TabsTrigger>
-                <TabsTrigger value="bookmarks" className="px-2 sm:px-3">
-                  <Heart className="h-4 w-4 sm:mr-2" />
+                <TabsTrigger
+                  value="bookmarks"
+                  className="rounded-lg px-3 sm:px-4 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all"
+                >
+                  <Heart className="h-4 w-4 sm:mr-2 text-red-500" />
                   <span className="hidden sm:inline">Bookmarks</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="location-suggestions"
+                  className="rounded-lg px-3 sm:px-4 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all"
+                >
+                  <PlusCircle className="h-4 w-4 sm:mr-2 text-purple-500" />
+                  <span className="hidden sm:inline">Suggestions</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="image-caption"
+                  className="rounded-lg px-3 sm:px-4 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all"
+                >
+                  <Image className="h-4 w-4 sm:mr-2 text-cyan-500" />
+                  <span className="hidden sm:inline">Captions</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="ai-content-generator"
+                  className="rounded-lg px-3 sm:px-4 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all"
+                >
+                  <FileText className="h-4 w-4 sm:mr-2 text-orange-500" />
+                  <span className="hidden sm:inline">AI Content</span>
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="recognition" className="mt-0">
-                <CameraRecognition />
-              </TabsContent>
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                <TabsContent value="recognition" className="mt-0">
+                  <CameraRecognition />
+                </TabsContent>
 
-              <TabsContent value="locations" className="mt-0">
-                <LocationsFeature />
-              </TabsContent>
+                <TabsContent value="locations" className="mt-0">
+                  <LocationsFeature />
+                </TabsContent>
 
-              <TabsContent value="map" className="mt-0">
-                <MapFeature />
-              </TabsContent>
+                <TabsContent value="map" className="mt-0">
+                  <MapFeature />
+                </TabsContent>
 
-              <TabsContent value="search" className="mt-0">
-                <SearchFeature />
-              </TabsContent>
+                <TabsContent value="search" className="mt-0">
+                  <SearchFeature />
+                </TabsContent>
 
-              <TabsContent value="bookmarks" className="mt-0">
-                <BookmarksFeature />
-              </TabsContent>
+                <TabsContent value="bookmarks" className="mt-0">
+                  <BookmarksFeature />
+                </TabsContent>
+
+                <TabsContent value="location-suggestions" className="mt-0">
+                  <LocationSuggestions
+                    location={{ lat: 0, lng: 0, name: "Default Location" }}
+                    currentLocation={{ lat: 0, lng: 0 }}
+                  />
+                </TabsContent>
+
+                <TabsContent value="image-caption" className="mt-0">
+                  <ImageCaptionGenerator />
+                </TabsContent>
+
+                <TabsContent value="ai-content-generator" className="mt-0">
+                  <AIContentGenerator />
+                </TabsContent>
+              </div>
             </Tabs>
           </main>
 

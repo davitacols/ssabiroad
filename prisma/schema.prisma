@@ -153,6 +153,7 @@ model Location {
   address         String?
   confidence      Float?
   recognitionType String   // Added this field to fix your issue
+  description     String?   // Added missing description field
 
   // Add these new fields
   category             String?
