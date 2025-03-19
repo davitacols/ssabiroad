@@ -15,6 +15,8 @@
     "schema": "prisma/schema.prisma"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^1.2.5",
+    "@anthropic-ai/sdk": "^0.39.0",
     "@auth/core": "^0.37.4",
     "@chakra-ui/modal": "^2.3.1",
     "@chakra-ui/react": "^3.8.1",
@@ -44,6 +46,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node-fetch": "^2.6.12",
+    "ai": "^4.1.61",
     "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",
