@@ -1,7 +1,36 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Camera, MapPin, Search, Heart, User, X, Navigation, Upload, Settings, LogOut, AlertCircle, Clock, Loader2, Database, Trash2, Info, Plus, Sun, Moon, Image, Map } from 'lucide-react'
+import {
+  Camera,
+  MapPin,
+  Search,
+  Heart,
+  User,
+  X,
+  Navigation,
+  Upload,
+  Settings,
+  LogOut,
+  AlertCircle,
+  Loader2,
+  Database,
+  Trash2,
+  Info,
+  Plus,
+  Sun,
+  Moon,
+  Image,
+  Map,
+  ChevronRight,
+  Compass,
+  Sparkles,
+  MapPinned,
+  Bookmark,
+  History,
+  Award,
+  Locate,
+} from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api"
@@ -10,19 +39,11 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { toast } from "@/components/ui/use-toast"
 import { useIsMobile } from "@/hooks/use-mobile"
 
@@ -363,8 +384,8 @@ const MobileCameraRecognition = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="relative h-[60vh] bg-muted rounded-lg overflow-hidden border border-border flex items-center justify-center">
+    <div className="space-y-6">
+      <div className="relative h-[55vh] bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 rounded-2xl overflow-hidden shadow-lg flex items-center justify-center">
         {/* Camera video feed */}
         <video
           ref={videoRef}
@@ -376,30 +397,81 @@ const MobileCameraRecognition = () => {
         <canvas ref={canvasRef} className="hidden" />
 
         {previewUrl && !isProcessing && !recognitionResult && (
-          <motion.img
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            src={previewUrl || "/placeholder.svg"}
-            alt="Preview"
-            className="absolute inset-0 w-full h-full object-cover"
-          />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0">
+            <motion.img
+              initial={{ scale: 1.1 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5 }}
+              src={previewUrl || "/placeholder.svg"}
+              alt="Preview"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+          </motion.div>
         )}
 
         {isProcessing && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-10"
+            className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-md z-10"
           >
+            <div className="relative">
+              <motion.div
+                animate={{
+                  rotate: 360,
+                  boxShadow: [
+                    "0 0 10px rgba(20,184,166,0.3)",
+                    "0 0 20px rgba(20,184,166,0.6)",
+                    "0 0 10px rgba(20,184,166,0.3)",
+                  ],
+                }}
+                transition={{
+                  rotate: { duration: 4, repeat: Number.POSITIVE_INFINITY, ease: "linear" },
+                  boxShadow: { duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" },
+                }}
+                className="w-20 h-20 rounded-full border-4 border-transparent border-t-teal-500 border-b-cyan-500"
+              />
+              <motion.div
+                animate={{
+                  rotate: -360,
+                  boxShadow: [
+                    "0 0 10px rgba(6,182,212,0.3)",
+                    "0 0 20px rgba(6,182,212,0.6)",
+                    "0 0 10px rgba(6,182,212,0.3)",
+                  ],
+                }}
+                transition={{
+                  rotate: { duration: 6, repeat: Number.POSITIVE_INFINITY, ease: "linear" },
+                  boxShadow: { duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse", delay: 0.5 },
+                }}
+                className="absolute inset-2 rounded-full border-4 border-transparent border-t-cyan-500 border-b-teal-500"
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Sparkles className="h-8 w-8 text-teal-500" />
+              </div>
+            </div>
+
+            <div className="text-lg font-medium mt-6 mb-2 bg-gradient-to-r from-teal-500 to-cyan-500 bg-clip-text text-transparent">
+              Analyzing image...
+            </div>
+
+            <div className="w-64 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full"
+              />
+            </div>
+
             <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 1, 0] }}
+              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, delay: 1 }}
+              className="text-sm text-slate-500 dark:text-slate-400 mt-4"
             >
-              <Loader2 className="w-12 h-12 text-primary" />
+              Detecting landmarks and points of interest
             </motion.div>
-            <div className="text-sm font-medium mt-4 mb-2">Analyzing image...</div>
-            <Progress value={progress} className="w-48 h-2" />
           </motion.div>
         )}
 
@@ -407,73 +479,135 @@ const MobileCameraRecognition = () => {
           <div className="absolute inset-0 flex flex-col p-4 overflow-auto">
             {recognitionResult.success ? (
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-background/90 backdrop-blur-sm p-4 rounded-lg border border-border"
+                transition={{ duration: 0.5 }}
+                className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-xl"
               >
-                <div className="flex items-center gap-2 mb-3">
-                  <MapPin className="h-5 w-5 text-primary" />
-                  <h3 className="font-medium text-lg">{recognitionResult.name || "Unknown Location"}</h3>
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center flex-shrink-0">
+                    <MapPin className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xl">{recognitionResult.name || "Unknown Location"}</h3>
+                    {recognitionResult.address && (
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{recognitionResult.address}</p>
+                    )}
+                  </div>
                 </div>
 
                 {recognitionResult.confidence && (
-                  <Badge variant={recognitionResult.confidence > 0.8 ? "default" : "outline"} className="mb-3">
-                    {Math.round(recognitionResult.confidence * 100)}% confidence
-                  </Badge>
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Recognition confidence</span>
+                      <span className="font-medium">{Math.round(recognitionResult.confidence * 100)}%</span>
+                    </div>
+                    <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          recognitionResult.confidence > 0.8
+                            ? "bg-green-500"
+                            : recognitionResult.confidence > 0.6
+                              ? "bg-yellow-500"
+                              : "bg-red-500"
+                        }`}
+                        style={{ width: `${Math.round(recognitionResult.confidence * 100)}%` }}
+                      />
+                    </div>
+                  </div>
                 )}
 
                 {recognitionResult.confidence && recognitionResult.confidence < 0.7 && (
-                  <div className="mb-3 text-sm bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 p-2 rounded-md flex items-start">
-                    <AlertCircle className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+                  <div className="mb-4 text-sm bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 p-3 rounded-xl flex items-start">
+                    <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
                     <span>Location may not be accurate. Please verify the details.</span>
                   </div>
                 )}
 
-                {recognitionResult.address && (
-                  <p className="text-sm text-muted-foreground mb-3">{recognitionResult.address}</p>
-                )}
-
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {recognitionResult.type && <Badge variant="outline">{recognitionResult.type}</Badge>}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {recognitionResult.type && (
+                    <Badge variant="outline" className="bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">
+                      {recognitionResult.type}
+                    </Badge>
+                  )}
 
                   {recognitionResult.category && recognitionResult.type !== recognitionResult.category && (
-                    <Badge variant="secondary">{recognitionResult.category}</Badge>
+                    <Badge variant="secondary" className="px-3 py-1 rounded-full">
+                      {recognitionResult.category}
+                    </Badge>
+                  )}
+
+                  {recognitionResult.buildingType && (
+                    <Badge variant="outline" className="bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">
+                      {recognitionResult.buildingType}
+                    </Badge>
                   )}
                 </div>
 
-                {recognitionResult.description && <p className="text-sm mb-3">{recognitionResult.description}</p>}
+                {recognitionResult.description && (
+                  <div className="mb-4 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl text-sm">
+                    {recognitionResult.description}
+                  </div>
+                )}
 
                 {/* Display photos if available */}
                 {recognitionResult.photos && recognitionResult.photos.length > 0 && (
-                  <div className="mb-3">
-                    <div className="flex gap-2 overflow-x-auto pb-2">
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium mb-2">Photos</h4>
+                    <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
                       {recognitionResult.photos.map((photo, index) => (
-                        <motion.img
+                        <motion.div
                           key={index}
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: index * 0.1 }}
-                          src={photo || "/placeholder.svg"}
-                          alt={`${recognitionResult.name} photo ${index + 1}`}
-                          className="h-20 w-auto rounded-md object-cover"
-                        />
+                          className="relative flex-shrink-0 h-24 w-32 rounded-xl overflow-hidden shadow-sm"
+                        >
+                          <img
+                            src={photo || "/placeholder.svg"}
+                            alt={`${recognitionResult.name} photo ${index + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+                        </motion.div>
                       ))}
                     </div>
                   </div>
                 )}
 
-                <div className="flex justify-between mt-3">
+                {/* Additional information */}
+                {(recognitionResult.weatherConditions || recognitionResult.airQuality) && (
+                  <div className="mb-4 grid grid-cols-2 gap-2">
+                    {recognitionResult.weatherConditions && (
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl">
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Weather</div>
+                        <div className="text-sm font-medium">{recognitionResult.weatherConditions}</div>
+                      </div>
+                    )}
+                    {recognitionResult.airQuality && (
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl">
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Air Quality</div>
+                        <div className="text-sm font-medium">{recognitionResult.airQuality}</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex gap-3 mt-5">
                   {recognitionResult.mapUrl && (
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="outline" size="lg" className="flex-1 rounded-xl h-12" asChild>
                       <a href={recognitionResult.mapUrl} target="_blank" rel="noopener noreferrer">
-                        <MapPin className="w-4 h-4 mr-2" />
+                        <Map className="w-5 h-5 mr-2" />
                         View on Map
                       </a>
                     </Button>
                   )}
                   {recognitionResult.location && (
-                    <Button variant="default" size="sm">
-                      <Navigation className="w-4 h-4 mr-2" />
+                    <Button
+                      variant="default"
+                      size="lg"
+                      className="flex-1 rounded-xl h-12 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 border-0"
+                    >
+                      <Navigation className="w-5 h-5 mr-2" />
                       Navigate
                     </Button>
                   )}
@@ -481,19 +615,29 @@ const MobileCameraRecognition = () => {
               </motion.div>
             ) : (
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-background/90 backdrop-blur-sm p-4 rounded-lg border border-border"
+                transition={{ duration: 0.5 }}
+                className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-xl"
               >
-                <div className="flex items-center gap-2 mb-4">
-                  <AlertCircle className="h-5 w-5 text-destructive" />
-                  <h3 className="font-medium text-lg">Recognition Failed</h3>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xl">Recognition Failed</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                      We couldn't identify this location
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground mb-4">
+
+                <div className="mb-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl text-sm">
                   {recognitionResult.error || "Could not identify the location in this image."}
-                </p>
-                <Button variant="outline" size="sm" className="w-full" onClick={handleReset}>
-                  <Image className="w-4 h-4 mr-2" />
+                </div>
+
+                <Button variant="outline" size="lg" className="w-full rounded-xl h-12" onClick={handleReset}>
+                  <Image className="w-5 h-5 mr-2" />
                   Try Again
                 </Button>
               </motion.div>
@@ -508,20 +652,57 @@ const MobileCameraRecognition = () => {
             className="flex flex-col items-center justify-center text-center p-6"
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0.5 }}
-              animate={{ scale: 1, opacity: 1 }}
+              initial={{ scale: 0.8, opacity: 0.5 }}
+              animate={{
+                scale: [0.9, 1, 0.9],
+                opacity: [0.7, 1, 0.7],
+              }}
               transition={{
-                duration: 0.5,
+                duration: 3,
                 repeat: Number.POSITIVE_INFINITY,
                 repeatType: "reverse",
               }}
+              className="relative w-24 h-24 mb-6"
             >
-              <Camera className="w-16 h-16 mb-4 text-primary/70" />
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-teal-500/20 to-cyan-500/20 blur-xl"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Camera className="w-16 h-16 text-teal-500/80 dark:text-teal-400/80" />
+              </div>
             </motion.div>
-            <h2 className="text-xl font-bold mb-2">Identify Any Location</h2>
-            <p className="text-muted-foreground mb-6 text-sm">
-              Upload a photo or use your camera to instantly recognize places
+
+            <h2 className="text-2xl font-bold mb-3 bg-gradient-to-r from-teal-600 to-cyan-600 dark:from-teal-400 dark:to-cyan-400 bg-clip-text text-transparent">
+              Identify Any Location
+            </h2>
+
+            <p className="text-slate-600 dark:text-slate-300 mb-6 max-w-xs">
+              Upload a photo or use your camera to instantly recognize places around you
             </p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="flex flex-col gap-2 w-full max-w-xs"
+            >
+              <Button
+                size="lg"
+                onClick={handleCameraCapture}
+                className="w-full h-12 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 border-0"
+              >
+                <Camera className="mr-2 h-5 w-5" />
+                Open Camera
+              </Button>
+
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full h-12 rounded-xl"
+              >
+                <Upload className="mr-2 h-5 w-5" />
+                Upload Photo
+              </Button>
+            </motion.div>
           </motion.div>
         )}
 
@@ -529,76 +710,93 @@ const MobileCameraRecognition = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="absolute bottom-4 left-4 right-4 bg-destructive/10 text-destructive p-3 rounded"
+            className="absolute bottom-4 left-4 right-4 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 p-4 rounded-xl flex items-start"
           >
-            {error}
+            <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+            <span>{error}</span>
           </motion.div>
         )}
-      </div>
-
-      <div className="flex gap-2 justify-center">
-        <Button size="lg" onClick={handleCameraCapture} className="flex-1">
-          <Camera className="mr-2 h-5 w-5" />
-          {cameraActive ? "Capture" : "Camera"}
-        </Button>
-        <Button size="lg" variant="outline" onClick={() => fileInputRef.current?.click()} className="flex-1">
-          <Upload className="mr-2 h-5 w-5" />
-          Upload
-        </Button>
       </div>
 
       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
 
       {(previewUrl || recognitionResult || cameraActive) && (
-        <Button variant="outline" onClick={handleReset} className="w-full mt-2">
-          <X className="mr-2 h-4 w-4" />
+        <Button variant="outline" onClick={handleReset} className="w-full rounded-xl h-12">
+          <X className="mr-2 h-5 w-5" />
           Start Over
         </Button>
       )}
 
       {/* Recent Locations */}
       {recentLocations.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-lg font-medium mb-3 flex items-center">
-            <Clock className="mr-2 h-4 w-4" />
+        <div className="mt-8">
+          <h3 className="text-lg font-bold mb-4 flex items-center">
+            <History className="mr-2 h-5 w-5 text-teal-500" />
             Recent Locations
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {recentLocations.slice(0, 3).map((location, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="p-3 rounded-md border border-border/50 hover:bg-muted/50 cursor-pointer transition-colors"
+                transition={{ delay: index * 0.1 }}
+                className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-all shadow-sm hover:shadow"
                 onClick={() => handleRecentLocationSelect(location)}
               >
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-sm">{location.name}</h4>
-                  {location.confidence && (
-                    <Badge variant="outline" className="text-xs">
-                      {Math.round(location.confidence * 100)}%
-                    </Badge>
-                  )}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                    <MapPin className="h-5 w-5 text-teal-500" />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-base truncate">{location.name}</h4>
+                    {location.address && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">{location.address}</p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {location.confidence && (
+                      <Badge variant="outline" className="text-xs">
+                        {Math.round(location.confidence * 100)}%
+                      </Badge>
+                    )}
+                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                  </div>
                 </div>
-                {location.address && <p className="text-xs text-muted-foreground mt-1 truncate">{location.address}</p>}
-                <div className="flex items-center mt-2">
+
+                <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 dark:border-slate-700">
                   <Badge variant="secondary" className="text-xs">
                     {location.category || location.type || "Unknown"}
                   </Badge>
-                  <span className="text-xs text-muted-foreground ml-auto">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
                     {location.date || new Date().toLocaleDateString()}
                   </span>
                 </div>
               </motion.div>
             ))}
           </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2 text-teal-500 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 w-full"
+          >
+            View All History
+            <ChevronRight className="ml-1 h-4 w-4" />
+          </Button>
         </div>
       )}
 
-      <div className="flex items-center space-x-2 mt-4">
+      <div className="flex items-center space-x-2 mt-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl">
         <Switch id="save-to-db" checked={saveToDb} onCheckedChange={setSaveToDb} />
-        <Label htmlFor="save-to-db">Save to database</Label>
+        <Label htmlFor="save-to-db" className="font-medium">
+          Save to database
+        </Label>
+        <div className="text-xs text-slate-500 dark:text-slate-400 ml-auto">
+          Saves recognized locations for future reference
+        </div>
       </div>
     </div>
   )
@@ -781,114 +979,163 @@ const MobileLocationsFeature = () => {
   })
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3">
-        <Input
-          placeholder="Search locations..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full"
-        />
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            placeholder="Search saved locations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+          />
+        </div>
 
-        <Button variant="outline" onClick={fetchLocations} className="w-full">
-          <Loader2 className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : "hidden"}`} />
+        <Button variant="outline" onClick={fetchLocations} className="w-full rounded-xl h-12">
+          <Loader2 className={`mr-2 h-5 w-5 ${isLoading ? "animate-spin" : "hidden"}`} />
           Refresh Locations
         </Button>
       </div>
 
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="text-center">
+            <Loader2 className="h-10 w-10 animate-spin text-teal-500 mx-auto mb-4" />
+            <p className="text-slate-500 dark:text-slate-400">Loading your saved locations...</p>
+          </div>
         </div>
       ) : error ? (
-        <Card>
+        <Card className="border-slate-200 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
           <CardContent className="py-10">
             <div className="flex flex-col items-center justify-center text-center">
-              <AlertCircle className="h-10 w-10 text-destructive mb-4" />
-              <h3 className="text-lg font-medium mb-2">Error Loading Locations</h3>
-              <p className="text-muted-foreground">{error}</p>
-              <Button onClick={fetchLocations} className="mt-4">
+              <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-4">
+                <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Error Loading Locations</h3>
+              <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-xs">{error}</p>
+              <Button onClick={fetchLocations} className="rounded-xl">
                 Try Again
               </Button>
             </div>
           </CardContent>
         </Card>
       ) : filteredLocations.length === 0 ? (
-        <Card>
+        <Card className="border-slate-200 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
           <CardContent className="py-10">
             <div className="flex flex-col items-center justify-center text-center">
-              <Database className="h-10 w-10 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No Locations Found</h3>
-              <p className="text-muted-foreground">
+              <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+                <Database className="h-8 w-8 text-slate-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">No Locations Found</h3>
+              <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-xs">
                 {searchQuery
                   ? "No locations match your search criteria. Try adjusting your search."
                   : "You haven't saved any locations yet. Use the camera recognition feature to identify and save locations."}
               </p>
+              <Button variant="outline" className="rounded-xl" onClick={() => setSearchQuery("")}>
+                {searchQuery ? "Clear Search" : "Explore Camera Feature"}
+              </Button>
             </div>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-bold">Your Places ({filteredLocations.length})</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-teal-500 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+            >
+              <MapPinned className="h-4 w-4 mr-1" />
+              Categories
+            </Button>
+          </div>
+
           <AnimatePresence>
             {filteredLocations.map((location, index) => (
               <motion.div
                 key={location.id}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ delay: index * 0.03 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ delay: index * 0.05 }}
               >
-                <Card className="overflow-hidden">
-                  <CardContent className="p-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-medium">{location.name || "Unknown"}</h3>
-                        <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                          {location.address || "No address"}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline" className="text-xs">
+                <Card className="overflow-hidden border-slate-200 dark:border-slate-700 shadow-sm hover:shadow transition-all rounded-xl">
+                  <CardContent className="p-0">
+                    {location.photos && location.photos.length > 0 ? (
+                      <div className="h-32 relative">
+                        <img
+                          src={location.photos[0] || "/placeholder.svg"}
+                          alt={location.name || "Location"}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <div className="absolute bottom-0 left-0 right-0 p-3">
+                          <Badge className="bg-white/90 text-slate-800 hover:bg-white/80 dark:bg-slate-800/90 dark:text-slate-200 dark:hover:bg-slate-800/80">
                             {location.category || "Unknown"}
                           </Badge>
-                          {location.confidence && (
-                            <span className="text-xs text-muted-foreground">
-                              {Math.round(location.confidence * 100)}%
-                            </span>
-                          )}
                         </div>
                       </div>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleToggleBookmark(location)}
-                          title={location.isBookmarked ? "Remove bookmark" : "Add bookmark"}
-                          className="h-8 w-8"
-                        >
-                          {location.isBookmarked ? (
-                            <Heart className="h-4 w-4 fill-primary text-primary" />
-                          ) : (
-                            <Heart className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleViewDetails(location)}
-                          title="View details"
-                          className="h-8 w-8"
-                        >
-                          <Info className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteLocation(location.id)}
-                          title="Delete location"
-                          className="h-8 w-8"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                    ) : (
+                      <div className="h-32 bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center">
+                        <MapPin className="h-10 w-10 text-slate-400" />
+                      </div>
+                    )}
+
+                    <div className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-bold text-lg">{location.name || "Unknown"}</h3>
+                          <p className="text-sm text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
+                            {location.address || "No address"}
+                          </p>
+
+                          <div className="flex items-center gap-2 mt-2">
+                            {location.confidence && (
+                              <div className="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-full">
+                                {Math.round(location.confidence * 100)}% match
+                              </div>
+                            )}
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                              {new Date(location.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleToggleBookmark(location)}
+                            title={location.isBookmarked ? "Remove bookmark" : "Add bookmark"}
+                            className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            {location.isBookmarked ? (
+                              <Heart className="h-5 w-5 fill-red-500 text-red-500" />
+                            ) : (
+                              <Heart className="h-5 w-5" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleViewDetails(location)}
+                            title="View details"
+                            className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            <Info className="h-5 w-5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteLocation(location.id)}
+                            title="Delete location"
+                            className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -901,97 +1148,148 @@ const MobileLocationsFeature = () => {
 
       {/* Location Details Dialog */}
       <Dialog open={showLocationDetails} onOpenChange={setShowLocationDetails}>
-        <DialogContent className="max-w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="max-w-full max-h-[90vh] overflow-y-auto p-0 rounded-2xl">
           {selectedLocation && (
             <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-lg">
-                  {selectedLocation.name || "Unknown Location"}
-                </DialogTitle>
-                <DialogDescription>{selectedLocation.address || "No address available"}</DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4">
+              <div className="relative h-48">
                 {selectedLocation.photos && selectedLocation.photos.length > 0 ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="rounded-lg overflow-hidden border h-48"
-                  >
-                    <img
-                      src={selectedLocation.photos[0] || "/placeholder.svg"}
-                      alt={selectedLocation.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </motion.div>
+                  <motion.img
+                    initial={{ scale: 1.1 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.5 }}
+                    src={selectedLocation.photos[0] || "/placeholder.svg"}
+                    alt={selectedLocation.name || "Location"}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
-                  <div className="rounded-lg overflow-hidden border h-48 bg-muted flex items-center justify-center">
-                    <Image className="h-12 w-12 text-muted-foreground" />
+                  <div className="w-full h-full bg-gradient-to-r from-teal-500/20 to-cyan-500/20 flex items-center justify-center">
+                    <MapPin className="h-16 w-16 text-teal-500/50" />
                   </div>
                 )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/30 hover:bg-black/40 text-white"
+                  onClick={() => setShowLocationDetails(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
 
-                {selectedLocation.location && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="rounded-lg overflow-hidden border h-48"
-                  >
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      frameBorder="0"
-                      src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${selectedLocation.location.latitude},${selectedLocation.location.longitude}&zoom=15`}
-                      allowFullScreen
-                    ></iframe>
-                  </motion.div>
-                )}
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                  <h2 className="text-2xl font-bold">{selectedLocation.name || "Unknown Location"}</h2>
+                  <p className="text-white/80 text-sm mt-1">{selectedLocation.address || "No address available"}</p>
+                </div>
+              </div>
 
-                <div>
-                  <h4 className="text-sm font-medium mb-1">Category</h4>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline">{selectedLocation.category || "Unknown"}</Badge>
-                    {selectedLocation.buildingType && <Badge variant="outline">{selectedLocation.buildingType}</Badge>}
-                  </div>
+              <div className="p-6 space-y-6">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className="px-3 py-1 rounded-full">
+                    {selectedLocation.category || "Unknown"}
+                  </Badge>
+                  {selectedLocation.buildingType && (
+                    <Badge variant="outline" className="px-3 py-1 rounded-full">
+                      {selectedLocation.buildingType}
+                    </Badge>
+                  )}
+                  {selectedLocation.materialType && (
+                    <Badge variant="outline" className="px-3 py-1 rounded-full">
+                      {selectedLocation.materialType}
+                    </Badge>
+                  )}
                 </div>
 
                 {selectedLocation.description && (
                   <div>
-                    <h4 className="text-sm font-medium mb-1">Description</h4>
-                    <p className="text-sm text-muted-foreground">{selectedLocation.description}</p>
+                    <h4 className="text-sm font-bold mb-2 text-slate-500 dark:text-slate-400">ABOUT THIS PLACE</h4>
+                    <p className="text-sm">{selectedLocation.description}</p>
                   </div>
                 )}
 
                 {selectedLocation.location && (
                   <div>
-                    <h4 className="text-sm font-medium mb-1">Coordinates</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedLocation.location.latitude.toFixed(6)}, {selectedLocation.location.longitude.toFixed(6)}
-                    </p>
+                    <h4 className="text-sm font-bold mb-2 text-slate-500 dark:text-slate-400">MAP</h4>
+                    <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 h-48 shadow-sm">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${selectedLocation.location.latitude},${selectedLocation.location.longitude}&zoom=15`}
+                        allowFullScreen
+                      ></iframe>
+                    </div>
+
+                    <div className="mt-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500 dark:text-slate-400">Coordinates</span>
+                        <span className="font-medium">
+                          {selectedLocation.location.latitude.toFixed(6)},{" "}
+                          {selectedLocation.location.longitude.toFixed(6)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Additional details */}
+                {(selectedLocation.weatherConditions ||
+                  selectedLocation.airQuality ||
+                  selectedLocation.urbanDensity) && (
+                  <div>
+                    <h4 className="text-sm font-bold mb-2 text-slate-500 dark:text-slate-400">ENVIRONMENT</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      {selectedLocation.weatherConditions && (
+                        <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl">
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Weather</div>
+                          <div className="text-sm font-medium">{selectedLocation.weatherConditions}</div>
+                        </div>
+                      )}
+                      {selectedLocation.airQuality && (
+                        <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl">
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Air Quality</div>
+                          <div className="text-sm font-medium">{selectedLocation.airQuality}</div>
+                        </div>
+                      )}
+                      {selectedLocation.urbanDensity && (
+                        <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl">
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Urban Density</div>
+                          <div className="text-sm font-medium">{selectedLocation.urbanDensity}</div>
+                        </div>
+                      )}
+                      {selectedLocation.vegetationDensity && (
+                        <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl">
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Vegetation</div>
+                          <div className="text-sm font-medium">{selectedLocation.vegetationDensity}</div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
 
-              <DialogFooter className="flex justify-between">
-                <Button variant="outline" onClick={() => handleToggleBookmark(selectedLocation)}>
+              <DialogFooter className="p-4 border-t border-slate-200 dark:border-slate-700">
+                <Button variant="outline" onClick={() => handleToggleBookmark(selectedLocation)} className="rounded-xl">
                   {selectedLocation.isBookmarked ? (
                     <>
-                      <Heart className="mr-2 h-4 w-4 fill-primary text-primary" />
+                      <Heart className="mr-2 h-5 w-5 fill-red-500 text-red-500" />
                       Remove Bookmark
                     </>
                   ) : (
                     <>
-                      <Heart className="mr-2 h-4 w-4" />
+                      <Heart className="mr-2 h-5 w-5" />
                       Add Bookmark
                     </>
                   )}
                 </Button>
 
                 {selectedLocation.mapUrl && (
-                  <Button asChild>
+                  <Button
+                    asChild
+                    className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 border-0"
+                  >
                     <a href={selectedLocation.mapUrl} target="_blank" rel="noopener noreferrer">
-                      <MapPin className="mr-2 h-4 w-4" />
-                      View on Map
+                      <Navigation className="mr-2 h-5 w-5" />
+                      Navigate
                     </a>
                   </Button>
                 )}
@@ -1015,6 +1313,7 @@ const MobileMapFeature = () => {
   const [userLocation, setUserLocation] = useState<Location | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
   const [mapZoom, setMapZoom] = useState(12)
+  const [mapType, setMapType] = useState("roadmap")
 
   // Load Google Maps API
   const { isLoaded: isGoogleMapsLoaded } = useJsApiLoader({
@@ -1129,34 +1428,64 @@ const MobileMapFeature = () => {
     }
   }
 
+  // Toggle map type
+  const toggleMapType = () => {
+    setMapType(mapType === "roadmap" ? "satellite" : "roadmap")
+  }
+
   return (
-    <div className="space-y-4">
-      <Button onClick={fetchLocations} variant="outline" className="w-full">
-        <Loader2 className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : "hidden"}`} />
-        Refresh Map
-      </Button>
+    <div className="space-y-6">
+      <div className="flex gap-3">
+        <Button variant="outline" className="flex-1 rounded-xl h-12" onClick={toggleMapType}>
+          <Map className="mr-2 h-5 w-5" />
+          {mapType === "roadmap" ? "Satellite View" : "Map View"}
+        </Button>
+
+        <Button onClick={fetchLocations} variant="outline" className="flex-1 rounded-xl h-12">
+          <Loader2 className={`mr-2 h-5 w-5 ${isLoading ? "animate-spin" : "hidden"}`} />
+          Refresh Map
+        </Button>
+      </div>
 
       {!isGoogleMapsLoaded ? (
-        <Card className="h-[60vh] flex items-center justify-center border border-border/40 shadow-sm">
+        <Card className="h-[60vh] flex items-center justify-center border-slate-200 dark:border-slate-700 shadow-sm rounded-2xl overflow-hidden">
           <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-            <h3 className="text-lg font-medium">Loading Google Maps</h3>
-            <p className="text-muted-foreground">Please wait while we load the map...</p>
+            <div className="relative w-16 h-16 mx-auto mb-4">
+              <motion.div
+                animate={{
+                  rotate: 360,
+                  boxShadow: [
+                    "0 0 10px rgba(20,184,166,0.3)",
+                    "0 0 20px rgba(20,184,166,0.6)",
+                    "0 0 10px rgba(20,184,166,0.3)",
+                  ],
+                }}
+                transition={{
+                  rotate: { duration: 4, repeat: Number.POSITIVE_INFINITY, ease: "linear" },
+                  boxShadow: { duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" },
+                }}
+                className="absolute inset-0 rounded-full border-4 border-transparent border-t-teal-500"
+              />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Loading Google Maps</h3>
+            <p className="text-slate-500 dark:text-slate-400">Please wait while we load the map...</p>
           </div>
         </Card>
       ) : error ? (
-        <Card className="h-[60vh] flex items-center justify-center border border-border/40 shadow-sm">
+        <Card className="h-[60vh] flex items-center justify-center border-slate-200 dark:border-slate-700 shadow-sm rounded-2xl overflow-hidden">
           <div className="text-center">
-            <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">Error Loading Map</h3>
-            <p className="text-muted-foreground">{error}</p>
-            <Button onClick={fetchLocations} className="mt-4">
+            <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Error Loading Map</h3>
+            <p className="text-slate-500 dark:text-slate-400 mb-6">{error}</p>
+            <Button onClick={fetchLocations} className="rounded-xl">
               Try Again
             </Button>
           </div>
         </Card>
       ) : (
-        <Card className="h-[60vh] overflow-hidden border border-border/40 shadow-sm">
+        <Card className="h-[60vh] overflow-hidden border-slate-200 dark:border-slate-700 shadow-sm rounded-2xl">
           {isGoogleMapsLoaded ? (
             <GoogleMap
               mapContainerStyle={{ width: "100%", height: "100%" }}
@@ -1168,7 +1497,19 @@ const MobileMapFeature = () => {
                 streetViewControl: false,
                 fullscreenControl: false,
                 zoomControl: true,
-                mapTypeId: "roadmap",
+                mapTypeId: mapType,
+                styles: [
+                  {
+                    featureType: "poi",
+                    elementType: "labels",
+                    stylers: [{ visibility: "on" }],
+                  },
+                  {
+                    featureType: "transit",
+                    elementType: "labels",
+                    stylers: [{ visibility: "off" }],
+                  },
+                ],
               }}
             >
               {/* User location marker */}
@@ -1177,11 +1518,11 @@ const MobileMapFeature = () => {
                   position={{ lat: userLocation.latitude, lng: userLocation.longitude }}
                   icon={{
                     path: (window as any).google.maps.SymbolPath.CIRCLE,
-                    scale: 8,
-                    fillColor: "#4285F4",
+                    scale: 10,
+                    fillColor: "#14b8a6",
                     fillOpacity: 1,
                     strokeColor: "#FFFFFF",
-                    strokeWeight: 2,
+                    strokeWeight: 3,
                   }}
                   title="Your Location"
                 />
@@ -1209,18 +1550,18 @@ const MobileMapFeature = () => {
                   position={{ lat: selectedLocation.location.latitude, lng: selectedLocation.location.longitude }}
                   onCloseClick={handleInfoWindowClose}
                 >
-                  <div className="p-2 max-w-[200px]">
-                    <h3 className="font-medium text-sm">{selectedLocation.name}</h3>
-                    <p className="text-xs text-gray-600 mt-1 mb-2">{selectedLocation.address}</p>
+                  <div className="p-3 max-w-[250px]">
+                    <h3 className="font-bold text-sm mb-1">{selectedLocation.name}</h3>
+                    <p className="text-xs text-gray-600 mb-2">{selectedLocation.address}</p>
                     {selectedLocation.category && (
                       <div className="mb-2">
-                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">
+                        <span className="inline-block bg-teal-100 text-teal-800 text-xs px-2 py-0.5 rounded-full">
                           {selectedLocation.category}
                         </span>
                       </div>
                     )}
                     <button
-                      className="bg-blue-500 hover:bg-blue-600 text-white text-xs py-1 px-2 rounded w-full"
+                      className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white text-xs py-1.5 px-3 rounded-full w-full font-medium"
                       onClick={() => handleNavigate(selectedLocation)}
                     >
                       Navigate
@@ -1231,21 +1572,24 @@ const MobileMapFeature = () => {
             </GoogleMap>
           ) : (
             <div className="flex items-center justify-center h-full">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+              <Loader2 className="h-8 w-8 animate-spin text-teal-500 mx-auto" />
             </div>
           )}
         </Card>
       )}
 
       {/* Map Legend */}
-      <Card className="border border-border/40 shadow-sm">
+      <Card className="border-slate-200 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Map Legend</CardTitle>
+          <CardTitle className="text-base flex items-center">
+            <Map className="h-4 w-4 mr-2 text-teal-500" />
+            Map Legend
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             <div className="flex items-center">
-              <div className="w-4 h-4 rounded-full bg-[#4285F4] mr-2"></div>
+              <div className="w-4 h-4 rounded-full bg-teal-500 mr-2"></div>
               <span className="text-sm">Your Location</span>
             </div>
             <div className="flex items-center">
@@ -1265,10 +1609,10 @@ const MobileMapFeature = () => {
       </Card>
 
       {/* Quick Actions */}
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <Button
           variant="outline"
-          className="flex-1"
+          className="flex-1 rounded-xl h-12"
           onClick={() => {
             if (userLocation) {
               setMapCenter(userLocation)
@@ -1276,12 +1620,27 @@ const MobileMapFeature = () => {
             }
           }}
         >
-          <MapPin className="mr-2 h-4 w-4" />
+          <Locate className="mr-2 h-5 w-5" />
           My Location
         </Button>
-        <Button variant="outline" className="flex-1" onClick={fetchLocations}>
-          <Loader2 className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-          Refresh
+        <Button
+          className="flex-1 rounded-xl h-12 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 border-0"
+          onClick={() => {
+            if (selectedLocation && selectedLocation.location) {
+              window.open(
+                `https://www.google.com/maps/dir/?api=1&destination=${selectedLocation.location.latitude},${selectedLocation.location.longitude}`,
+                "_blank",
+              )
+            } else if (locations.length > 0 && locations[0].location) {
+              window.open(
+                `https://www.google.com/maps/dir/?api=1&destination=${locations[0].location.latitude},${locations[0].location.longitude}`,
+                "_blank",
+              )
+            }
+          }}
+        >
+          <Navigation className="mr-2 h-5 w-5" />
+          Navigate
         </Button>
       </div>
     </div>
@@ -1466,11 +1825,11 @@ const MobileSearchFeature = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-3">
-        <div className="flex gap-2">
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <div className="flex gap-3">
           <select
-            className="flex h-10 w-1/3 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-12 w-1/3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             value={searchType}
             onChange={(e) => setSearchType(e.target.value as any)}
           >
@@ -1478,24 +1837,28 @@ const MobileSearchFeature = () => {
             <option value="address">By Address</option>
             <option value="nearby">Nearby</option>
           </select>
-          <Input
-            placeholder={
-              searchType === "text"
-                ? "Search by name..."
-                : searchType === "address"
-                  ? "Enter an address..."
-                  : "Search nearby..."
-            }
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            disabled={isLoading || searchType === "nearby"}
-            className="flex-1"
-          />
+
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder={
+                searchType === "text"
+                  ? "Search by name..."
+                  : searchType === "address"
+                    ? "Enter an address..."
+                    : "Search nearby..."
+              }
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              disabled={isLoading || searchType === "nearby"}
+              className="pl-10 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+            />
+          </div>
         </div>
 
         {searchType === "nearby" && (
-          <div className="flex items-center gap-2">
-            <Label htmlFor="radius" className="min-w-[80px]">
+          <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 p-4 rounded-xl">
+            <Label htmlFor="radius" className="min-w-[80px] font-medium">
               Radius (km):
             </Label>
             <Input
@@ -1505,20 +1868,27 @@ const MobileSearchFeature = () => {
               max="50"
               value={searchRadius}
               onChange={(e) => setSearchRadius(Number(e.target.value))}
-              className="max-w-[100px]"
+              className="max-w-[100px] h-10 rounded-lg bg-white dark:bg-slate-700"
             />
+            <div className="text-xs text-slate-500 dark:text-slate-400 ml-auto">
+              Search within {searchRadius}km of your location
+            </div>
           </div>
         )}
 
-        <Button onClick={handleSearch} disabled={isLoading} className="w-full">
+        <Button
+          onClick={handleSearch}
+          disabled={isLoading}
+          className="w-full rounded-xl h-12 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 border-0"
+        >
           {isLoading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               Searching
             </>
           ) : (
             <>
-              <Search className="mr-2 h-4 w-4" />
+              <Search className="mr-2 h-5 w-5" />
               Search
             </>
           )}
@@ -1529,30 +1899,55 @@ const MobileSearchFeature = () => {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-destructive/10 p-4 rounded-lg flex items-start"
+          className="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl flex items-start"
         >
-          <AlertCircle className="h-5 w-5 text-destructive mr-2 mt-0.5" />
+          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mr-3 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="font-medium text-destructive">Error</p>
-            <p className="text-sm">{error}</p>
+            <p className="font-bold text-red-600 dark:text-red-400">Error</p>
+            <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-1">{error}</p>
           </div>
         </motion.div>
       )}
 
       {isLoading ? (
-        <Card className="border border-border/40 shadow-sm">
+        <Card className="border-slate-200 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
           <CardContent className="py-10">
             <div className="flex flex-col items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-              <p className="text-muted-foreground">Searching for locations...</p>
+              <div className="relative w-16 h-16 mb-4">
+                <motion.div
+                  animate={{
+                    rotate: 360,
+                    boxShadow: [
+                      "0 0 10px rgba(20,184,166,0.3)",
+                      "0 0 20px rgba(20,184,166,0.6)",
+                      "0 0 10px rgba(20,184,166,0.3)",
+                    ],
+                  }}
+                  transition={{
+                    rotate: { duration: 4, repeat: Number.POSITIVE_INFINITY, ease: "linear" },
+                    boxShadow: { duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" },
+                  }}
+                  className="absolute inset-0 rounded-full border-4 border-transparent border-t-teal-500"
+                />
+              </div>
+              <p className="text-slate-600 dark:text-slate-300 font-medium">Searching for locations...</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">This may take a moment</p>
             </div>
           </CardContent>
         </Card>
       ) : searchResults.length > 0 ? (
-        <div className="space-y-3">
-          <h3 className="text-lg font-medium">Search Results ({searchResults.length})</h3>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-bold">Search Results ({searchResults.length})</h3>
+            <Badge
+              variant="outline"
+              className="bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 border-0"
+            >
+              {searchType === "text" ? "Name Search" : searchType === "address" ? "Address Search" : "Nearby Search"}
+            </Badge>
+          </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <AnimatePresence>
               {searchResults.map((location, index) => (
                 <motion.div
@@ -1562,53 +1957,66 @@ const MobileSearchFeature = () => {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <Card className="overflow-hidden">
-                    <div className="h-24 bg-muted relative">
+                  <Card className="overflow-hidden border-slate-200 dark:border-slate-700 shadow-sm hover:shadow transition-all rounded-xl">
+                    <div className="h-32 bg-slate-100 dark:bg-slate-800 relative">
                       {location.photos && location.photos.length > 0 ? (
                         <img
                           src={location.photos[0] || "/placeholder.svg"}
-                          alt={location.name}
+                          alt={location.name || "Location"}
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="flex items-center justify-center h-full">
-                          <MapPin className="h-8 w-8 text-muted-foreground" />
+                        <div className="w-full h-full bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center">
+                          <MapPin className="h-10 w-10 text-slate-400" />
                         </div>
                       )}
 
-                      {location.category && <Badge className="absolute top-2 right-2">{location.category}</Badge>}
+                      {location.category && (
+                        <Badge className="absolute top-3 right-3 bg-white/90 text-slate-800 hover:bg-white/80 dark:bg-slate-800/90 dark:text-slate-200 dark:hover:bg-slate-800/80">
+                          {location.category}
+                        </Badge>
+                      )}
                     </div>
 
-                    <CardContent className="p-3">
-                      <h3 className="font-medium">{location.name || "Unknown Location"}</h3>
-                      <p className="text-xs text-muted-foreground truncate">
+                    <CardContent className="p-4">
+                      <h3 className="font-bold text-lg">{location.name || "Unknown Location"}</h3>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 truncate mt-1">
                         {location.address || "No address available"}
                       </p>
 
-                      <div className="flex items-center text-xs mt-2">
-                        <MapPin className="h-3 w-3 mr-1 text-muted-foreground" />
+                      <div className="flex items-center text-xs mt-3 text-slate-500 dark:text-slate-400">
+                        <MapPin className="h-3 w-3 mr-1" />
                         {location.location ? (
-                          <span className="text-muted-foreground">
+                          <span>
                             {location.location.latitude.toFixed(4)}, {location.location.longitude.toFixed(4)}
                           </span>
                         ) : (
-                          <span className="text-muted-foreground">No coordinates</span>
+                          <span>No coordinates</span>
                         )}
                       </div>
 
-                      <div className="flex justify-between mt-3">
-                        <Button variant="outline" size="sm" onClick={() => handleViewDetails(location)}>
+                      <div className="flex justify-between mt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewDetails(location)}
+                          className="rounded-lg"
+                        >
                           <Info className="h-4 w-4 mr-2" />
                           Details
                         </Button>
 
                         {location.id.startsWith("temp-") ? (
-                          <Button size="sm" onClick={() => handleSaveLocation(location)}>
+                          <Button
+                            size="sm"
+                            onClick={() => handleSaveLocation(location)}
+                            className="rounded-lg bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 border-0"
+                          >
                             <Plus className="h-4 w-4 mr-2" />
                             Save
                           </Button>
                         ) : (
-                          <Button variant="secondary" size="sm" disabled>
+                          <Button variant="secondary" size="sm" disabled className="rounded-lg">
                             <Database className="h-4 w-4 mr-2" />
                             Saved
                           </Button>
@@ -1622,108 +2030,159 @@ const MobileSearchFeature = () => {
           </div>
         </div>
       ) : searchQuery || searchType === "nearby" ? (
-        <Card className="border border-border/40 shadow-sm">
+        <Card className="border-slate-200 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
           <CardContent className="py-10">
             <div className="flex flex-col items-center justify-center text-center">
-              <Search className="h-10 w-10 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No Results Found</h3>
-              <p className="text-muted-foreground max-w-md">
+              <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+                <Search className="h-8 w-8 text-slate-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">No Results Found</h3>
+              <p className="text-slate-500 dark:text-slate-400 max-w-md mb-6">
                 {searchType === "text"
                   ? "No locations match your search query. Try different keywords or search terms."
                   : searchType === "address"
                     ? "Could not find this address. Try a different format or more specific address."
                     : "No locations found near you. Try increasing the search radius."}
               </p>
+              <Button variant="outline" className="rounded-xl" onClick={() => setSearchQuery("")}>
+                {searchQuery ? "Clear Search" : "Try Different Search"}
+              </Button>
             </div>
           </CardContent>
         </Card>
-      ) : null}
+      ) : (
+        <Card className="border-slate-200 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
+          <CardContent className="py-10">
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+                <Compass className="h-8 w-8 text-teal-500" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Discover Places</h3>
+              <p className="text-slate-500 dark:text-slate-400 max-w-md mb-6">
+                Search for locations by name, address, or find places near your current location.
+              </p>
+              <Button
+                className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 border-0"
+                onClick={() => {
+                  setSearchType("nearby")
+                  handleSearch()
+                }}
+              >
+                <MapPin className="mr-2 h-5 w-5" />
+                Discover Nearby Places
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Location Details Dialog */}
       <Dialog open={showLocationDetails} onOpenChange={setShowLocationDetails}>
-        <DialogContent className="max-w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="max-w-full max-h-[90vh] overflow-y-auto p-0 rounded-2xl">
           {selectedLocation && (
             <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-lg">
-                  {selectedLocation.name || "Unknown Location"}
-                </DialogTitle>
-                <DialogDescription>{selectedLocation.address || "No address available"}</DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4">
+              <div className="relative h-48">
                 {selectedLocation.photos && selectedLocation.photos.length > 0 ? (
-                  <div className="rounded-lg overflow-hidden border h-48">
-                    <img
-                      src={selectedLocation.photos[0] || "/placeholder.svg"}
-                      alt={selectedLocation.name || "/placeholder.svg"}
-                      alt={selectedLocation.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                  <motion.img
+                    initial={{ scale: 1.1 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.5 }}
+                    src={selectedLocation.photos[0] || "/placeholder.svg"}
+                    alt={selectedLocation.name || "Location"}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
-                  <div className="rounded-lg overflow-hidden border h-48 bg-muted flex items-center justify-center">
-                    <Image className="h-12 w-12 text-muted-foreground" />
+                  <div className="w-full h-full bg-gradient-to-r from-teal-500/20 to-cyan-500/20 flex items-center justify-center">
+                    <MapPin className="h-16 w-16 text-teal-500/50" />
                   </div>
                 )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/30 hover:bg-black/40 text-white"
+                  onClick={() => setShowLocationDetails(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
 
-                {selectedLocation.location && (
-                  <div className="rounded-lg overflow-hidden border h-48">
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      frameBorder="0"
-                      src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${selectedLocation.location.latitude},${selectedLocation.location.longitude}&zoom=15`}
-                      allowFullScreen
-                    ></iframe>
-                  </div>
-                )}
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                  <h2 className="text-2xl font-bold">{selectedLocation.name || "Unknown Location"}</h2>
+                  <p className="text-white/80 text-sm mt-1">{selectedLocation.address || "No address available"}</p>
+                </div>
+              </div>
 
-                <div>
-                  <h4 className="text-sm font-medium mb-1">Category</h4>
-                  <Badge variant="outline">{selectedLocation.category || "Unknown"}</Badge>
+              <div className="p-6 space-y-6">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className="px-3 py-1 rounded-full">
+                    {selectedLocation.category || "Unknown"}
+                  </Badge>
                   {selectedLocation.buildingType && (
-                    <Badge variant="outline" className="ml-2">
+                    <Badge variant="outline" className="px-3 py-1 rounded-full">
                       {selectedLocation.buildingType}
+                    </Badge>
+                  )}
+                  {selectedLocation.materialType && (
+                    <Badge variant="outline" className="px-3 py-1 rounded-full">
+                      {selectedLocation.materialType}
                     </Badge>
                   )}
                 </div>
 
                 {selectedLocation.description && (
                   <div>
-                    <h4 className="text-sm font-medium mb-1">Description</h4>
-                    <p className="text-sm text-muted-foreground">{selectedLocation.description}</p>
+                    <h4 className="text-sm font-bold mb-2 text-slate-500 dark:text-slate-400">ABOUT THIS PLACE</h4>
+                    <p className="text-sm">{selectedLocation.description}</p>
                   </div>
                 )}
 
                 {selectedLocation.location && (
                   <div>
-                    <h4 className="text-sm font-medium mb-1">Coordinates</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedLocation.location.latitude.toFixed(6)}, {selectedLocation.location.longitude.toFixed(6)}
-                    </p>
+                    <h4 className="text-sm font-bold mb-2 text-slate-500 dark:text-slate-400">MAP</h4>
+                    <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 h-48 shadow-sm">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${selectedLocation.location.latitude},${selectedLocation.location.longitude}&zoom=15`}
+                        allowFullScreen
+                      ></iframe>
+                    </div>
+
+                    <div className="mt-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500 dark:text-slate-400">Coordinates</span>
+                        <span className="font-medium">
+                          {selectedLocation.location.latitude.toFixed(6)},{" "}
+                          {selectedLocation.location.longitude.toFixed(6)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
 
-              <DialogFooter className="flex justify-between">
+              <DialogFooter className="p-4 border-t border-slate-200 dark:border-slate-700">
                 {selectedLocation.id.startsWith("temp-") ? (
-                  <Button onClick={() => handleSaveLocation(selectedLocation)}>
-                    <Plus className="mr-2 h-4 w-4" />
+                  <Button onClick={() => handleSaveLocation(selectedLocation)} className="rounded-xl">
+                    <Plus className="mr-2 h-5 w-5" />
                     Save Location
                   </Button>
                 ) : (
-                  <Button variant="outline" disabled>
-                    <Database className="mr-2 h-4 w-4" />
+                  <Button variant="outline" disabled className="rounded-xl">
+                    <Database className="mr-2 h-5 w-5" />
                     Already Saved
                   </Button>
                 )}
 
                 {selectedLocation.mapUrl && (
-                  <Button asChild>
+                  <Button
+                    asChild
+                    className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 border-0"
+                  >
                     <a href={selectedLocation.mapUrl} target="_blank" rel="noopener noreferrer">
-                      <MapPin className="mr-2 h-4 w-4" />
-                      View on Map
+                      <Navigation className="mr-2 h-5 w-5" />
+                      Navigate
                     </a>
                   </Button>
                 )}
@@ -1838,43 +2297,82 @@ const MobileBookmarksFeature = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <Button onClick={fetchBookmarks} variant="outline" className="w-full">
-        <Loader2 className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : "hidden"}`} />
+    <div className="space-y-6">
+      <Button onClick={fetchBookmarks} variant="outline" className="w-full rounded-xl h-12">
+        <Loader2 className={`mr-2 h-5 w-5 ${isLoading ? "animate-spin" : "hidden"}`} />
         Refresh Bookmarks
       </Button>
 
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="text-center">
+            <div className="relative w-16 h-16 mx-auto mb-4">
+              <motion.div
+                animate={{
+                  rotate: 360,
+                  boxShadow: [
+                    "0 0 10px rgba(20,184,166,0.3)",
+                    "0 0 20px rgba(20,184,166,0.6)",
+                    "0 0 10px rgba(20,184,166,0.3)",
+                  ],
+                }}
+                transition={{
+                  rotate: { duration: 4, repeat: Number.POSITIVE_INFINITY, ease: "linear" },
+                  boxShadow: { duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" },
+                }}
+                className="absolute inset-0 rounded-full border-4 border-transparent border-t-teal-500"
+              />
+            </div>
+            <p className="text-slate-600 dark:text-slate-300 font-medium">Loading your bookmarks...</p>
+          </div>
         </div>
       ) : error ? (
-        <Card className="border border-border/40 shadow-sm">
+        <Card className="border-slate-200 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
           <CardContent className="py-10">
             <div className="flex flex-col items-center justify-center text-center">
-              <AlertCircle className="h-10 w-10 text-destructive mb-4" />
-              <h3 className="text-lg font-medium mb-2">Error Loading Bookmarks</h3>
-              <p className="text-muted-foreground">{error}</p>
-              <Button onClick={fetchBookmarks} className="mt-4">
+              <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Error Loading Bookmarks</h3>
+              <p className="text-slate-500 dark:text-slate-400 mb-6">{error}</p>
+              <Button onClick={fetchBookmarks} className="rounded-xl">
                 Try Again
               </Button>
             </div>
           </CardContent>
         </Card>
       ) : bookmarks.length === 0 ? (
-        <Card className="border border-border/40 shadow-sm">
+        <Card className="border-slate-200 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
           <CardContent className="py-10">
             <div className="flex flex-col items-center justify-center text-center">
-              <Heart className="h-10 w-10 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No Bookmarks Found</h3>
-              <p className="text-muted-foreground">
+              <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+                <Heart className="h-8 w-8 text-slate-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">No Bookmarks Found</h3>
+              <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-xs">
                 You haven't bookmarked any locations yet. Add bookmarks from your saved locations.
               </p>
+              <Button variant="outline" className="rounded-xl" onClick={() => (window.location.hash = "#locations")}>
+                <MapPin className="mr-2 h-5 w-5" />
+                View Saved Locations
+              </Button>
             </div>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-bold">Your Bookmarks ({bookmarks.length})</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-teal-500 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+            >
+              <Bookmark className="h-4 w-4 mr-1" />
+              Sort
+            </Button>
+          </div>
+
           <AnimatePresence>
             {bookmarks.map((bookmark, index) => (
               <motion.div
@@ -1884,41 +2382,46 @@ const MobileBookmarksFeature = () => {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Card className="overflow-hidden">
-                  <CardContent className="p-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-medium">{bookmark.name || "Unknown Location"}</h3>
-                        <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                <Card className="overflow-hidden border-slate-200 dark:border-slate-700 shadow-sm hover:shadow transition-all rounded-xl">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                        <Heart className="h-5 w-5 text-red-500" />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-base">{bookmark.name || "Unknown Location"}</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 truncate mt-1">
                           {bookmark.address || "No address available"}
                         </p>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-2 mt-2">
                           <Badge variant="outline" className="text-xs">
                             {bookmark.category || "Unknown"}
                           </Badge>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
                             {new Date(bookmark.createdAt).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
+
                       <div className="flex gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleViewDetails(bookmark)}
                           title="View details"
-                          className="h-8 w-8"
+                          className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                         >
-                          <Info className="h-4 w-4" />
+                          <Info className="h-5 w-5" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDeleteBookmark(bookmark.id)}
                           title="Delete bookmark"
-                          className="h-8 w-8"
+                          className="h-9 w-9 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-5 w-5" />
                         </Button>
                       </div>
                     </div>
@@ -1932,76 +2435,99 @@ const MobileBookmarksFeature = () => {
 
       {/* Location Details Dialog */}
       <Dialog open={showLocationDetails} onOpenChange={setShowLocationDetails}>
-        <DialogContent className="max-w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="max-w-full max-h-[90vh] overflow-y-auto p-0 rounded-2xl">
           {locationDetails && (
             <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-lg">
-                  {locationDetails.name || "Unknown Location"}
-                </DialogTitle>
-                <DialogDescription>{locationDetails.address || "No address available"}</DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4">
+              <div className="relative h-48">
                 {locationDetails.photos && locationDetails.photos.length > 0 ? (
-                  <div className="rounded-lg overflow-hidden border h-48">
-                    <img
-                      src={locationDetails.photos[0] || "/placeholder.svg"}
-                      alt={locationDetails.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                  <motion.img
+                    initial={{ scale: 1.1 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.5 }}
+                    src={locationDetails.photos[0] || "/placeholder.svg"}
+                    alt={locationDetails.name || "Location"}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
-                  <div className="rounded-lg overflow-hidden border h-48 bg-muted flex items-center justify-center">
-                    <Image className="h-12 w-12 text-muted-foreground" />
+                  <div className="w-full h-full bg-gradient-to-r from-teal-500/20 to-cyan-500/20 flex items-center justify-center">
+                    <MapPin className="h-16 w-16 text-teal-500/50" />
                   </div>
                 )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/30 hover:bg-black/40 text-white"
+                  onClick={() => setShowLocationDetails(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
 
-                {locationDetails.location && (
-                  <div className="rounded-lg overflow-hidden border h-48">
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      frameBorder="0"
-                      src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${locationDetails.location.latitude},${locationDetails.location.longitude}&zoom=15`}
-                      allowFullScreen
-                    ></iframe>
-                  </div>
-                )}
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                  <h2 className="text-2xl font-bold">{locationDetails.name || "Unknown Location"}</h2>
+                  <p className="text-white/80 text-sm mt-1">{locationDetails.address || "No address available"}</p>
+                </div>
+              </div>
 
-                <div>
-                  <h4 className="text-sm font-medium mb-1">Category</h4>
-                  <Badge variant="outline">{locationDetails.category || "Unknown"}</Badge>
+              <div className="p-6 space-y-6">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className="px-3 py-1 rounded-full">
+                    {locationDetails.category || "Unknown"}
+                  </Badge>
                   {locationDetails.buildingType && (
-                    <Badge variant="outline" className="ml-2">
+                    <Badge variant="outline" className="px-3 py-1 rounded-full">
                       {locationDetails.buildingType}
+                    </Badge>
+                  )}
+                  {locationDetails.materialType && (
+                    <Badge variant="outline" className="px-3 py-1 rounded-full">
+                      {locationDetails.materialType}
                     </Badge>
                   )}
                 </div>
 
                 {locationDetails.description && (
                   <div>
-                    <h4 className="text-sm font-medium mb-1">Description</h4>
-                    <p className="text-sm text-muted-foreground">{locationDetails.description}</p>
+                    <h4 className="text-sm font-bold mb-2 text-slate-500 dark:text-slate-400">ABOUT THIS PLACE</h4>
+                    <p className="text-sm">{locationDetails.description}</p>
                   </div>
                 )}
 
                 {locationDetails.location && (
                   <div>
-                    <h4 className="text-sm font-medium mb-1">Coordinates</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {locationDetails.location.latitude.toFixed(6)}, {locationDetails.location.longitude.toFixed(6)}
-                    </p>
+                    <h4 className="text-sm font-bold mb-2 text-slate-500 dark:text-slate-400">MAP</h4>
+                    <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 h-48 shadow-sm">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${locationDetails.location.latitude},${locationDetails.location.longitude}&zoom=15`}
+                        allowFullScreen
+                      ></iframe>
+                    </div>
+
+                    <div className="mt-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500 dark:text-slate-400">Coordinates</span>
+                        <span className="font-medium">
+                          {locationDetails.location.latitude.toFixed(6)},{" "}
+                          {locationDetails.location.longitude.toFixed(6)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
 
-              <DialogFooter>
+              <DialogFooter className="p-4 border-t border-slate-200 dark:border-slate-700">
                 {locationDetails.mapUrl && (
-                  <Button asChild>
+                  <Button
+                    asChild
+                    className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 border-0"
+                  >
                     <a href={locationDetails.mapUrl} target="_blank" rel="noopener noreferrer">
-                      <MapPin className="mr-2 h-4 w-4" />
-                      View on Map
+                      <Navigation className="mr-2 h-5 w-5" />
+                      Navigate
                     </a>
                   </Button>
                 )}
@@ -2019,6 +2545,7 @@ export default function MobileDashboard() {
   const [activeTab, setActiveTab] = useState("recognition")
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [username, setUsername] = useState("Alex")
   const router = useRouter()
 
   // Handle dark mode toggle
@@ -2032,6 +2559,12 @@ export default function MobileDashboard() {
     } else {
       setIsDarkMode(false)
       document.documentElement.classList.remove("dark")
+    }
+
+    // Get username from localStorage or use default
+    const storedUsername = localStorage.getItem("username")
+    if (storedUsername) {
+      setUsername(storedUsername)
     }
   }, [])
 
@@ -2063,64 +2596,117 @@ export default function MobileDashboard() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Mobile App Header */}
-      <header className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="container flex items-center justify-between h-14 px-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg flex items-center justify-center">
+      <header className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="container flex items-center justify-between h-16 px-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-md">
               <Navigation className="h-5 w-5 text-white" />
             </div>
-            <span className="font-bold text-lg bg-gradient-to-r from-teal-600 to-cyan-600 dark:from-teal-400 dark:to-cyan-400 bg-clip-text text-transparent">
+            <span className="font-bold text-xl bg-gradient-to-r from-teal-600 to-cyan-600 dark:from-teal-400 dark:to-cyan-400 bg-clip-text text-transparent">
               Pic2Nav
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={toggleDarkMode} className="rounded-full">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleDarkMode}
+              className="rounded-full h-10 w-10 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
               {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
 
             <Sheet open={showUserMenu} onOpenChange={setShowUserMenu}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <User className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[80vw] sm:w-[350px]">
-                <SheetHeader className="mb-6">
-                  <SheetTitle>Account</SheetTitle>
-                </SheetHeader>
-
-                <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg mb-6">
-                  <Avatar className="h-12 w-12 border-2 border-cyan-500/20">
-                    <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-teal-500 text-white font-medium">
-                      U
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full h-10 w-10 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <Avatar className="h-10 w-10 border-2 border-slate-200 dark:border-slate-700">
+                    <AvatarFallback className="bg-gradient-to-br from-teal-500 to-cyan-500 text-white font-medium">
+                      {username.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <h3 className="font-medium">Demo User</h3>
-                    <p className="text-xs text-muted-foreground">Pro Plan</p>
-                  </div>
-                </div>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[80vw] sm:w-[350px] p-0">
+                <div className="h-full flex flex-col">
+                  <div className="p-6 bg-gradient-to-r from-teal-500 to-cyan-500 text-white">
+                    <div className="flex items-center gap-4 mb-6">
+                      <Avatar className="h-16 w-16 border-4 border-white/20">
+                        <AvatarFallback className="bg-white/20 text-white font-bold text-xl">
+                          {username.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h3 className="text-2xl font-bold">Hi, {username}!</h3>
+                        <p className="text-white/80 text-sm">Pro Plan</p>
+                      </div>
+                    </div>
 
-                <div className="space-y-4">
-                  <Button variant="outline" className="w-full justify-start" onClick={() => router.push("/profile")}>
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={() => router.push("/settings")}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log out
-                  </Button>
+                    <div className="flex gap-2">
+                      <div className="bg-white/10 rounded-lg p-3 flex-1 backdrop-blur-sm">
+                        <div className="text-xs text-white/70 mb-1">Saved Places</div>
+                        <div className="text-xl font-bold">24</div>
+                      </div>
+                      <div className="bg-white/10 rounded-lg p-3 flex-1 backdrop-blur-sm">
+                        <div className="text-xs text-white/70 mb-1">Bookmarks</div>
+                        <div className="text-xl font-bold">12</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-6 flex-1">
+                    <div className="space-y-1 mb-6">
+                      <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">ACCOUNT</h4>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start h-12 rounded-lg"
+                        onClick={() => router.push("/profile")}
+                      >
+                        <User className="mr-3 h-5 w-5" />
+                        Profile
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start h-12 rounded-lg"
+                        onClick={() => router.push("/settings")}
+                      >
+                        <Settings className="mr-3 h-5 w-5" />
+                        Settings
+                      </Button>
+                      <Button variant="ghost" className="w-full justify-start h-12 rounded-lg">
+                        <Award className="mr-3 h-5 w-5" />
+                        Upgrade to Pro
+                      </Button>
+                    </div>
+
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">PREFERENCES</h4>
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <div className="flex items-center">
+                          <Sun className="mr-3 h-5 w-5" />
+                          <span>Dark Mode</span>
+                        </div>
+                        <Switch checked={isDarkMode} onCheckedChange={toggleDarkMode} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-6 border-t border-slate-200 dark:border-slate-800">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start h-12 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="mr-3 h-5 w-5" />
+                      Log out
+                    </Button>
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>
@@ -2128,8 +2714,31 @@ export default function MobileDashboard() {
         </div>
       </header>
 
+      {/* Welcome Banner */}
+      <div className="px-4 py-6">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="bg-gradient-to-r from-teal-500 to-cyan-500 rounded-2xl p-6 text-white shadow-lg"
+        >
+          <h1 className="text-2xl font-bold mb-2">Welcome back, {username}!</h1>
+          <p className="text-white/80 mb-4">Ready to explore new places today?</p>
+          <div className="flex items-center gap-2">
+            <Badge className="bg-white/20 hover:bg-white/30 text-white border-0">
+              <MapPin className="h-3 w-3 mr-1" />
+              24 Places Saved
+            </Badge>
+            <Badge className="bg-white/20 hover:bg-white/30 text-white border-0">
+              <Heart className="h-3 w-3 mr-1" />
+              12 Bookmarks
+            </Badge>
+          </div>
+        </motion.div>
+      </div>
+
       {/* Main Content */}
-      <main className="flex-1 p-4 pb-20">
+      <main className="flex-1 px-4 pb-20">
         {activeTab === "recognition" && <MobileCameraRecognition />}
         {activeTab === "locations" && <MobileLocationsFeature />}
         {activeTab === "map" && <MobileMapFeature />}
@@ -2146,59 +2755,75 @@ export default function MobileDashboard() {
       </main>
 
       {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50 shadow-lg">
         <div className="grid grid-cols-5 h-16">
-          <button
+          <motion.button
+            whileTap={{ scale: 0.9 }}
             className={`flex flex-col items-center justify-center gap-1 ${
               activeTab === "recognition" ? "text-teal-600 dark:text-teal-400" : "text-slate-500 dark:text-slate-400"
             }`}
             onClick={() => setActiveTab("recognition")}
           >
-            <Camera className="h-5 w-5" />
-            <span className="text-[10px]">Camera</span>
-          </button>
+            <div className={`p-1 rounded-full ${activeTab === "recognition" ? "bg-teal-100 dark:bg-teal-900/30" : ""}`}>
+              <Camera className="h-5 w-5" />
+            </div>
+            <span className="text-[10px] font-medium">Camera</span>
+          </motion.button>
 
-          <button
+          <motion.button
+            whileTap={{ scale: 0.9 }}
             className={`flex flex-col items-center justify-center gap-1 ${
               activeTab === "locations" ? "text-teal-600 dark:text-teal-400" : "text-slate-500 dark:text-slate-400"
             }`}
             onClick={() => setActiveTab("locations")}
           >
-            <MapPin className="h-5 w-5" />
-            <span className="text-[10px]">Places</span>
-          </button>
+            <div className={`p-1 rounded-full ${activeTab === "locations" ? "bg-teal-100 dark:bg-teal-900/30" : ""}`}>
+              <MapPin className="h-5 w-5" />
+            </div>
+            <span className="text-[10px] font-medium">Places</span>
+          </motion.button>
 
-          <button
+          <motion.button
+            whileTap={{ scale: 0.9 }}
             className={`flex flex-col items-center justify-center gap-1 ${
               activeTab === "map" ? "text-teal-600 dark:text-teal-400" : "text-slate-500 dark:text-slate-400"
             }`}
             onClick={() => setActiveTab("map")}
           >
-            <Map className="h-5 w-5" />
-            <span className="text-[10px]">Map</span>
-          </button>
+            <div className={`p-1 rounded-full ${activeTab === "map" ? "bg-teal-100 dark:bg-teal-900/30" : ""}`}>
+              <Map className="h-5 w-5" />
+            </div>
+            <span className="text-[10px] font-medium">Map</span>
+          </motion.button>
 
-          <button
+          <motion.button
+            whileTap={{ scale: 0.9 }}
             className={`flex flex-col items-center justify-center gap-1 ${
               activeTab === "search" ? "text-teal-600 dark:text-teal-400" : "text-slate-500 dark:text-slate-400"
             }`}
             onClick={() => setActiveTab("search")}
           >
-            <Search className="h-5 w-5" />
-            <span className="text-[10px]">Search</span>
-          </button>
+            <div className={`p-1 rounded-full ${activeTab === "search" ? "bg-teal-100 dark:bg-teal-900/30" : ""}`}>
+              <Search className="h-5 w-5" />
+            </div>
+            <span className="text-[10px] font-medium">Search</span>
+          </motion.button>
 
-          <button
+          <motion.button
+            whileTap={{ scale: 0.9 }}
             className={`flex flex-col items-center justify-center gap-1 ${
               activeTab === "bookmarks" ? "text-teal-600 dark:text-teal-400" : "text-slate-500 dark:text-slate-400"
             }`}
             onClick={() => setActiveTab("bookmarks")}
           >
-            <Heart className="h-5 w-5" />
-            <span className="text-[10px]">Saved</span>
-          </button>
+            <div className={`p-1 rounded-full ${activeTab === "bookmarks" ? "bg-teal-100 dark:bg-teal-900/30" : ""}`}>
+              <Heart className="h-5 w-5" />
+            </div>
+            <span className="text-[10px] font-medium">Saved</span>
+          </motion.button>
         </div>
       </nav>
     </div>
   )
 }
+
