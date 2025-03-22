@@ -144,27 +144,47 @@ model BuildingSimilarity {
 }
 
 model Location {
-  id               String   @id @default(uuid())
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  latitude         Float
-  longitude        Float
-  name            String?
-  address         String?
-  confidence      Float?
-  recognitionType String   // Added this field to fix your issue
-  description     String?   // Added missing description field
-
-  // Add these new fields
+  id                   String    @id @default(cuid())
+  name                 String
+  address              String
+  latitude             Float?
+  longitude            Float?
+  confidence           Float?
+  recognitionType      String    @default("unknown")
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  description          String?
   category             String?
+  buildingType         String?
   architecturalStyle   String?
   yearBuilt            String?
   materialType         String?
   culturalSignificance String?
+  website              String?
+  phoneNumber          String?
+  weatherConditions    String?
+  airQuality           String?
+  
+  // Additional fields that might be used in the API
+  formattedAddress     String?
+  placeId              String?
+  mapUrl               String?
+  photos               String[]  @default([])
+  rating               Float?
+  priceLevel           Int?
+  urbanDensity         String?
+  vegetationDensity    String?
+  crowdDensity         String?
+  timeOfDay            String?
+  significantColors    String[]  @default([])
+  waterProximity       String?
+  safetyScore          Float?
+  noiseLevel           String?
   
   // Relation to User (optional)
-  userId          String?
-  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId               String?
+  user                 User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([latitude, longitude])
+  @@index([userId])
 }

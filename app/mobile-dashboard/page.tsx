@@ -2540,68 +2540,142 @@ const MobileBookmarksFeature = () => {
   )
 }
 
-// Mobile Dashboard Component
 export default function MobileDashboard() {
-  const [activeTab, setActiveTab] = useState("recognition")
-  const [isDarkMode, setIsDarkMode] = useState(false)
-  const [showUserMenu, setShowUserMenu] = useState(false)
-  const [username, setUsername] = useState("Alex")
-  const router = useRouter()
-
-  // Handle dark mode toggle
+  const [activeTab, setActiveTab] = useState("recognition");
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [userData, setUserData] = useState({ username: "Guest", plan: "Free", savedPlaces: 0, bookmarks: 0 });
+  const [isLoading, setIsLoading] = useState(true);
+  const [authError, setAuthError] = useState(false);
+  const router = useRouter();
+  
+  // Fetch user data from API with proper auth handling
   useEffect(() => {
-    const storedTheme = localStorage.getItem("theme")
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+    const fetchUserData = async () => {
+      setIsLoading(true);
+      try {
+        // Get auth token from local storage - using consistent key name
+        const token = localStorage.getItem("authToken");
+        
+        const response = await fetch('/api/user', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            setAuthError(true);
+            console.warn("Authentication error when fetching user data");
+            // Use fallback data instead of redirecting immediately
+            setUserData({ username: "Guest", plan: "Free", savedPlaces: 0, bookmarks: 0 });
+          } else {
+            throw new Error(`API error: ${response.status}`);
+          }
+        } else {
+          const data = await response.json();
+          setUserData({
+            username: data.username || "Guest",
+            plan: data.plan || "Free",
+            savedPlaces: data.savedPlaces || 0,
+            bookmarks: data.bookmarks || 0
+          });
+          setAuthError(false);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        // Use fallback data on error
+        setUserData({ username: "Guest", plan: "Free", savedPlaces: 0, bookmarks: 0 });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchUserData();
+
+    // Check session status separately
+    const checkSession = async () => {
+      try {
+        const sessionRes = await fetch('/api/auth/session');
+        if (!sessionRes.ok && sessionRes.status === 401) {
+          // Optional: Redirect to login if session endpoint explicitly says user isn't authenticated
+          // Commenting out to prevent unwanted redirects
+          // router.push("/login");
+        }
+      } catch (error) {
+        console.error("Session check error:", error);
+      }
+    };
+    
+    checkSession();
+  }, []);
+
+  // Handle theme preferences
+  useEffect(() => {
+    const storedTheme = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
     if (storedTheme === "dark" || (!storedTheme && prefersDark)) {
-      setIsDarkMode(true)
-      document.documentElement.classList.add("dark")
+      setIsDarkMode(true);
+      document.documentElement.classList.add("dark");
     } else {
-      setIsDarkMode(false)
-      document.documentElement.classList.remove("dark")
+      setIsDarkMode(false);
+      document.documentElement.classList.remove("dark");
     }
+  }, []);
 
-    // Get username from localStorage or use default
-    const storedUsername = localStorage.getItem("username")
-    if (storedUsername) {
-      setUsername(storedUsername)
-    }
-  }, [])
-
-  // Function to toggle dark mode
+  // Toggle dark mode
   const toggleDarkMode = () => {
-    const newMode = !isDarkMode
-    setIsDarkMode(newMode)
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
 
     if (newMode) {
-      document.documentElement.classList.add("dark")
-      localStorage.setItem("theme", "dark")
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
     } else {
-      document.documentElement.classList.remove("dark")
-      localStorage.setItem("theme", "light")
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
     }
-  }
+  };
 
   // Handle logout
   const handleLogout = async () => {
     try {
-      // Remove authentication token
-      localStorage.removeItem("token")
-
-      // Redirect to login page
-      router.push("/login")
+      // Using the consistent authToken key
+      const token = localStorage.getItem("authToken");
+      await fetch('/api/logout', { 
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // Clear local auth data with the correct key
+      localStorage.removeItem("authToken");
+      router.push("/signin");
     } catch (error) {
-      console.error("Error during logout:", error)
+      console.error("Error during logout:", error);
+      // Still clear local auth data and redirect even if API call fails
+      localStorage.removeItem("authToken");
+      router.push("/signin");
     }
-  }
+  };
+
+  // Handle login redirect
+  const handleLogin = () => {
+    router.push("/signin");
+  };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-900">
-      {/* Mobile App Header */}
-      <header className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      {/* App Header */}
+      <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800">
         <div className="container flex items-center justify-between h-16 px-4">
+          {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg">
               <Navigation className="h-5 w-5 text-white" />
             </div>
             <span className="font-bold text-xl bg-gradient-to-r from-teal-600 to-cyan-600 dark:from-teal-400 dark:to-cyan-400 bg-clip-text text-transparent">
@@ -2609,12 +2683,13 @@ export default function MobileDashboard() {
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* User Actions */}
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleDarkMode}
-              className="rounded-full h-10 w-10 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="rounded-full h-10 w-10 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
@@ -2624,88 +2699,140 @@ export default function MobileDashboard() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="rounded-full h-10 w-10 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="rounded-full h-10 w-10 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  <Avatar className="h-10 w-10 border-2 border-slate-200 dark:border-slate-700">
-                    <AvatarFallback className="bg-gradient-to-br from-teal-500 to-cyan-500 text-white font-medium">
-                      {username.charAt(0).toUpperCase()}
+                  <Avatar className="h-10 w-10 border-2 border-slate-200 dark:border-slate-700 transition-all hover:border-teal-500 dark:hover:border-teal-400">
+                    <AvatarFallback className="bg-gradient-to-br from-teal-500 to-cyan-600 text-white font-medium">
+                      {isLoading ? "..." : userData.username.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[80vw] sm:w-[350px] p-0">
+              <SheetContent side="right" className="w-[85vw] sm:w-[380px] p-0 rounded-l-2xl border-l-0">
                 <div className="h-full flex flex-col">
-                  <div className="p-6 bg-gradient-to-r from-teal-500 to-cyan-500 text-white">
+                  {/* User Profile Header */}
+                  <div className="p-6 bg-gradient-to-br from-teal-600 to-cyan-600 text-white rounded-tl-2xl">
                     <div className="flex items-center gap-4 mb-6">
                       <Avatar className="h-16 w-16 border-4 border-white/20">
                         <AvatarFallback className="bg-white/20 text-white font-bold text-xl">
-                          {username.charAt(0).toUpperCase()}
+                          {userData.username.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <h3 className="text-2xl font-bold">Hi, {username}!</h3>
-                        <p className="text-white/80 text-sm">Pro Plan</p>
+                        {authError ? (
+                          <>
+                            <h3 className="text-2xl font-bold">Hello, Guest!</h3>
+                            <p className="text-sm text-white/80 mt-1">Please sign in to continue</p>
+                          </>
+                        ) : (
+                          <>
+                            <h3 className="text-2xl font-bold">Hi, {userData.username}!</h3>
+                            <Badge className="bg-white/20 hover:bg-white/30 border-0">
+                              {userData.plan} Plan
+                            </Badge>
+                          </>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
-                      <div className="bg-white/10 rounded-lg p-3 flex-1 backdrop-blur-sm">
-                        <div className="text-xs text-white/70 mb-1">Saved Places</div>
-                        <div className="text-xl font-bold">24</div>
-                      </div>
-                      <div className="bg-white/10 rounded-lg p-3 flex-1 backdrop-blur-sm">
-                        <div className="text-xs text-white/70 mb-1">Bookmarks</div>
-                        <div className="text-xl font-bold">12</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-6 flex-1">
-                    <div className="space-y-1 mb-6">
-                      <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">ACCOUNT</h4>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start h-12 rounded-lg"
-                        onClick={() => router.push("/profile")}
-                      >
-                        <User className="mr-3 h-5 w-5" />
-                        Profile
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start h-12 rounded-lg"
-                        onClick={() => router.push("/settings")}
-                      >
-                        <Settings className="mr-3 h-5 w-5" />
-                        Settings
-                      </Button>
-                      <Button variant="ghost" className="w-full justify-start h-12 rounded-lg">
-                        <Award className="mr-3 h-5 w-5" />
-                        Upgrade to Pro
-                      </Button>
-                    </div>
-
-                    <div className="space-y-1">
-                      <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">PREFERENCES</h4>
-                      <div className="flex items-center justify-between px-3 py-2">
-                        <div className="flex items-center">
-                          <Sun className="mr-3 h-5 w-5" />
-                          <span>Dark Mode</span>
+                    {!authError && (
+                      <div className="flex gap-2">
+                        <div className="bg-white/10 rounded-lg p-3 flex-1 backdrop-blur-sm">
+                          <div className="text-xs text-white/70 mb-1">Saved Places</div>
+                          <div className="text-xl font-bold">{userData.savedPlaces}</div>
                         </div>
-                        <Switch checked={isDarkMode} onCheckedChange={toggleDarkMode} />
+                        <div className="bg-white/10 rounded-lg p-3 flex-1 backdrop-blur-sm">
+                          <div className="text-xs text-white/70 mb-1">Bookmarks</div>
+                          <div className="text-xl font-bold">{userData.bookmarks}</div>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
+                  {/* User Menu Options */}
+                  <div className="p-6 flex-1">
+                    {authError ? (
+                      <div className="space-y-4">
+                        <Button 
+                          className="w-full h-12 rounded-lg bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600"
+                          onClick={handleLogin}
+                        >
+                          <LogIn className="mr-2 h-5 w-5" />
+                          Sign In
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          className="w-full h-12 rounded-lg"
+                          onClick={() => router.push("/register")}
+                        >
+                          <UserPlus className="mr-2 h-5 w-5" />
+                          Create Account
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="space-y-1 mb-6">
+                          <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">ACCOUNT</h4>
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start h-12 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            onClick={() => router.push("/profile")}
+                          >
+                            <User className="mr-3 h-5 w-5" />
+                            Profile
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start h-12 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            onClick={() => router.push("/settings")}
+                          >
+                            <Settings className="mr-3 h-5 w-5" />
+                            Settings
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            className="w-full justify-start h-12 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          >
+                            <Award className="mr-3 h-5 w-5" />
+                            Upgrade to Pro
+                          </Button>
+                        </div>
+
+                        <div className="space-y-1">
+                          <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">PREFERENCES</h4>
+                          <div className="flex items-center justify-between px-3 py-3">
+                            <div className="flex items-center">
+                              {isDarkMode ? <Moon className="mr-3 h-5 w-5" /> : <Sun className="mr-3 h-5 w-5" />}
+                              <span>Dark Mode</span>
+                            </div>
+                            <Switch checked={isDarkMode} onCheckedChange={toggleDarkMode} />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Logout/Back Button */}
                   <div className="p-6 border-t border-slate-200 dark:border-slate-800">
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start h-12 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      onClick={handleLogout}
-                    >
-                      <LogOut className="mr-3 h-5 w-5" />
-                      Log out
-                    </Button>
+                    {authError ? (
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start h-12 rounded-lg transition-colors"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <ArrowLeft className="mr-3 h-5 w-5" />
+                        Back to App
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start h-12 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        onClick={handleLogout}
+                      >
+                        <LogOut className="mr-3 h-5 w-5" />
+                        Log out
+                      </Button>
+                    )}
                   </div>
                 </div>
               </SheetContent>
@@ -2714,27 +2841,58 @@ export default function MobileDashboard() {
         </div>
       </header>
 
-      {/* Welcome Banner */}
+      {/* Welcome Banner with Authentication Awareness */}
       <div className="px-4 py-6">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-gradient-to-r from-teal-500 to-cyan-500 rounded-2xl p-6 text-white shadow-lg"
-        >
-          <h1 className="text-2xl font-bold mb-2">Welcome back, {username}!</h1>
-          <p className="text-white/80 mb-4">Ready to explore new places today?</p>
-          <div className="flex items-center gap-2">
-            <Badge className="bg-white/20 hover:bg-white/30 text-white border-0">
-              <MapPin className="h-3 w-3 mr-1" />
-              24 Places Saved
-            </Badge>
-            <Badge className="bg-white/20 hover:bg-white/30 text-white border-0">
-              <Heart className="h-3 w-3 mr-1" />
-              12 Bookmarks
-            </Badge>
-          </div>
-        </motion.div>
+        {isLoading ? (
+          <div className="bg-slate-200 dark:bg-slate-800 animate-pulse rounded-2xl p-6 h-36" />
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="bg-gradient-to-br from-teal-500 to-cyan-600 rounded-2xl p-6 text-white shadow-xl"
+          >
+            {authError ? (
+              <>
+                <h1 className="text-2xl font-bold mb-2">Welcome to Pic2Nav!</h1>
+                <p className="text-white/80 mb-4">Discover and navigate to amazing places with just a photo.</p>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    className="bg-white/20 hover:bg-white/30 text-white border-0"
+                    onClick={handleLogin}
+                  >
+                    <SignIn className="h-4 w-4 mr-1" />
+                    Sign In
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="bg-transparent border-white/30 text-white hover:bg-white/10"
+                    onClick={() => router.push("/register")}
+                  >
+                    Try for Free
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h1 className="text-2xl font-bold mb-2">Welcome back, {userData.username}!</h1>
+                <p className="text-white/80 mb-4">Ready to discover amazing places today?</p>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-white/20 hover:bg-white/30 text-white border-0">
+                    <MapPin className="h-3 w-3 mr-1" />
+                    {userData.savedPlaces} Places
+                  </Badge>
+                  <Badge className="bg-white/20 hover:bg-white/30 text-white border-0">
+                    <Heart className="h-3 w-3 mr-1" />
+                    {userData.bookmarks} Bookmarks
+                  </Badge>
+                </div>
+              </>
+            )}
+          </motion.div>
+        )}
       </div>
 
       {/* Main Content */}
@@ -2744,86 +2902,36 @@ export default function MobileDashboard() {
         {activeTab === "map" && <MobileMapFeature />}
         {activeTab === "search" && <MobileSearchFeature />}
         {activeTab === "bookmarks" && <MobileBookmarksFeature />}
-        {activeTab === "suggestions" && (
-          <LocationSuggestions
-            location={{ lat: 0, lng: 0, name: "Default Location" }}
-            currentLocation={{ lat: 0, lng: 0 }}
-          />
-        )}
-        {activeTab === "captions" && <ImageCaptionGenerator />}
-        {activeTab === "ai-content" && <AIContentGenerator />}
       </main>
 
       {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50 shadow-lg">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-50 shadow-lg">
         <div className="grid grid-cols-5 h-16">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            className={`flex flex-col items-center justify-center gap-1 ${
-              activeTab === "recognition" ? "text-teal-600 dark:text-teal-400" : "text-slate-500 dark:text-slate-400"
-            }`}
-            onClick={() => setActiveTab("recognition")}
-          >
-            <div className={`p-1 rounded-full ${activeTab === "recognition" ? "bg-teal-100 dark:bg-teal-900/30" : ""}`}>
-              <Camera className="h-5 w-5" />
-            </div>
-            <span className="text-[10px] font-medium">Camera</span>
-          </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            className={`flex flex-col items-center justify-center gap-1 ${
-              activeTab === "locations" ? "text-teal-600 dark:text-teal-400" : "text-slate-500 dark:text-slate-400"
-            }`}
-            onClick={() => setActiveTab("locations")}
-          >
-            <div className={`p-1 rounded-full ${activeTab === "locations" ? "bg-teal-100 dark:bg-teal-900/30" : ""}`}>
-              <MapPin className="h-5 w-5" />
-            </div>
-            <span className="text-[10px] font-medium">Places</span>
-          </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            className={`flex flex-col items-center justify-center gap-1 ${
-              activeTab === "map" ? "text-teal-600 dark:text-teal-400" : "text-slate-500 dark:text-slate-400"
-            }`}
-            onClick={() => setActiveTab("map")}
-          >
-            <div className={`p-1 rounded-full ${activeTab === "map" ? "bg-teal-100 dark:bg-teal-900/30" : ""}`}>
-              <Map className="h-5 w-5" />
-            </div>
-            <span className="text-[10px] font-medium">Map</span>
-          </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            className={`flex flex-col items-center justify-center gap-1 ${
-              activeTab === "search" ? "text-teal-600 dark:text-teal-400" : "text-slate-500 dark:text-slate-400"
-            }`}
-            onClick={() => setActiveTab("search")}
-          >
-            <div className={`p-1 rounded-full ${activeTab === "search" ? "bg-teal-100 dark:bg-teal-900/30" : ""}`}>
-              <Search className="h-5 w-5" />
-            </div>
-            <span className="text-[10px] font-medium">Search</span>
-          </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            className={`flex flex-col items-center justify-center gap-1 ${
-              activeTab === "bookmarks" ? "text-teal-600 dark:text-teal-400" : "text-slate-500 dark:text-slate-400"
-            }`}
-            onClick={() => setActiveTab("bookmarks")}
-          >
-            <div className={`p-1 rounded-full ${activeTab === "bookmarks" ? "bg-teal-100 dark:bg-teal-900/30" : ""}`}>
-              <Heart className="h-5 w-5" />
-            </div>
-            <span className="text-[10px] font-medium">Saved</span>
-          </motion.button>
+          {[
+            { id: "recognition", icon: Camera, label: "Camera" },
+            { id: "locations", icon: MapPin, label: "Places" },
+            { id: "map", icon: Map, label: "Map" },
+            { id: "search", icon: Search, label: "Search" },
+            { id: "bookmarks", icon: Heart, label: "Saved" }
+          ].map((item) => (
+            <motion.button
+              key={item.id}
+              whileTap={{ scale: 0.9 }}
+              className={`flex flex-col items-center justify-center gap-1 transition-colors ${
+                activeTab === item.id ? "text-teal-600 dark:text-teal-400" : "text-slate-500 dark:text-slate-400"
+              }`}
+              onClick={() => setActiveTab(item.id)}
+            >
+              <div className={`p-1.5 rounded-full transition-colors ${
+                activeTab === item.id ? "bg-teal-100 dark:bg-teal-900/30" : ""
+              }`}>
+                <item.icon className="h-5 w-5" />
+              </div>
+              <span className="text-[10px] font-medium">{item.label}</span>
+            </motion.button>
+          ))}
         </div>
       </nav>
     </div>
-  )
+  );
 }
-
