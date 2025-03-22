@@ -23,7 +23,6 @@ import {
   Database,
   Trash2,
   Heart,
-  Plus,
   ArrowUpDown,
   Info,
   Phone,
@@ -79,7 +78,6 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/hooks/use-toast"
 import { toast } from "@/components/ui/use-toast"
 import { useIsMobile } from "@/hooks/use-mobile"
 
@@ -180,6 +178,14 @@ interface Bookmark {
   createdAt: string
 }
 
+// Define a type for user
+interface UserType {
+  id: string
+  username: string
+  email: string
+  plan: string
+}
+
 // 3D Models for the dashboard
 const LocationModel = () => {
   const gltf = useGLTF("/assets/3d/location.glb")
@@ -246,6 +252,7 @@ const CameraRecognition = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [cameraActive, setCameraActive] = useState(false)
   const isMobile = useIsMobile()
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
 
   // Load recent locations from localStorage on component mount
   useEffect(() => {
@@ -1592,11 +1599,12 @@ const MapFeature = () => {
   const [mapZoom, setMapZoom] = useState(12)
   const [is3DMode, setIs3DMode] = useState(false)
   const isMobile = useIsMobile()
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
 
   // Load Google Maps API
   const { isLoaded: isGoogleMapsLoaded } = useJsApiLoader({
     id: "google-map-script",
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+    googleMapsApiKey,
   })
 
   // Get user's current location
@@ -2036,892 +2044,6 @@ const MapFeature = () => {
   )
 }
 
-const SearchFeature = () => {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [searchResults, setSearchResults] = useState<SavedLocation[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedLocation, setSelectedLocation] = useState<SavedLocation | null>(null)
-  const [showLocationDetails, setShowLocationDetails] = useState(false)
-  const [searchType, setSearchType] = useState<"text" | "address" | "nearby">("text")
-  const [userLocation, setUserLocation] = useState<Location | null>(null)
-  const [searchRadius, setSearchRadius] = useState<number>(5) // in km
-
-  // Get user's current location
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          })
-        },
-        (error) => {
-          console.error("Error getting user location:", error)
-        },
-      )
-    }
-  }, [])
-
-  // Handle search
-  const handleSearch = async () => {
-    if (!searchQuery.trim() && searchType !== "nearby") {
-      setError("Please enter a search query")
-      return
-    }
-
-    try {
-      setIsLoading(true)
-      setError(null)
-      setSearchResults([])
-
-      let endpoint = ""
-      let params: any = {}
-
-      switch (searchType) {
-        case "text":
-          endpoint = "/api/location-recognition?operation=search"
-          params = { query: searchQuery }
-          break
-        case "address":
-          endpoint = "/api/location-recognition?operation=geocode"
-          params = { address: searchQuery }
-          break
-        case "nearby":
-          if (!userLocation) {
-            throw new Error("User location is not available")
-          }
-          endpoint = "/api/location-recognition?operation=nearby"
-          params = {
-            lat: userLocation.latitude,
-            lng: userLocation.longitude,
-            radius: searchRadius,
-          }
-          break
-      }
-
-      const queryString = new URLSearchParams(params).toString()
-      const response = await fetch(`${endpoint}&${queryString}`)
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
-      }
-
-      const data = await response.json()
-
-      if (data.success) {
-        if (searchType === "address" && data.location) {
-          // Single location result from geocoding
-          setSearchResults([
-            {
-              ...data.location,
-              id: "temp-" + Date.now(),
-              createdAt: new Date().toISOString(),
-            },
-          ])
-        } else if (data.locations) {
-          // Multiple location results
-          const transformedLocations = data.locations.map((loc: any) => ({
-            ...loc,
-            createdAt: new Date(loc.createdAt).toISOString(),
-            location: {
-              latitude: loc.latitude,
-              longitude: loc.longitude,
-            },
-          }))
-          setSearchResults(transformedLocations)
-        } else {
-          setSearchResults([])
-        }
-      } else {
-        setSearchResults([])
-        if (data.error) {
-          setError(data.error)
-        }
-      }
-    } catch (err) {
-      console.error("Search failed:", err)
-      setError(err instanceof Error ? err.message : "Search failed")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // View location details
-  const handleViewDetails = (location: SavedLocation) => {
-    setSelectedLocation(location)
-    setShowLocationDetails(true)
-  }
-
-  // Save search result to database
-  const handleSaveLocation = async (location: SavedLocation) => {
-    try {
-      // Check if this is a temporary location (from geocoding)
-      if (location.id.startsWith("temp-")) {
-        // This is a new location, save it to the database
-        const response = await fetch("/api/location-recognition", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: location.name,
-            address: location.address,
-            latitude: location.location?.latitude,
-            longitude: location.location?.longitude,
-            category: location.category,
-            type: location.type,
-            confidence: location.confidence,
-          }),
-        })
-
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`)
-        }
-
-        const data = await response.json()
-
-        if (data.success) {
-          toast({
-            title: "Location saved",
-            description: `${location.name} has been saved to your locations.`,
-          })
-
-          // Update the location in search results with the saved ID
-          setSearchResults(
-            searchResults.map((loc) => (loc.id === location.id ? { ...loc, id: data.id, isSaved: true } : loc)),
-          )
-        } else {
-          throw new Error(data.error || "Failed to save location")
-        }
-      } else {
-        // This location is already in the database
-        toast({
-          title: "Location already saved",
-          description: `${location.name} is already in your saved locations.`,
-        })
-      }
-    } catch (err) {
-      console.error("Failed to save location:", err)
-      toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to save location",
-        variant: "destructive",
-      })
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Search Locations</h2>
-        <p className="text-muted-foreground">Find locations by name, address, or nearby your current location</p>
-      </div>
-
-      <Card className="border border-border/40 shadow-sm">
-        <CardContent className="pt-6">
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <Input
-                  placeholder={
-                    searchType === "text"
-                      ? "Search for a location by name..."
-                      : searchType === "address"
-                        ? "Enter an address to geocode..."
-                        : "Search for locations near you..."
-                  }
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  disabled={isLoading || searchType === "nearby"}
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Select value={searchType} onValueChange={(value) => setSearchType(value as any)}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue placeholder="Search type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="text">By Name</SelectItem>
-                    <SelectItem value="address">By Address</SelectItem>
-                    <SelectItem value="nearby">Nearby</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Button onClick={handleSearch} disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Searching
-                    </>
-                  ) : (
-                    <>
-                      <Search className="mr-2 h-4 w-4" />
-                      Search
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            {searchType === "nearby" && (
-              <div className="flex items-center gap-4">
-                <Label htmlFor="radius" className="min-w-[80px]">
-                  Radius (km):
-                </Label>
-                <Input
-                  id="radius"
-                  type="number"
-                  min="1"
-                  max="50"
-                  value={searchRadius}
-                  onChange={(e) => setSearchRadius(Number(e.target.value))}
-                  className="max-w-[100px]"
-                />
-                <p className="text-sm text-muted-foreground">
-                  {userLocation ? "Using your current location" : "Waiting for your location..."}
-                </p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {error && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-destructive/10 p-4 rounded-lg flex items-start"
-        >
-          <AlertCircle className="h-5 w-5 text-destructive mr-2 mt-0.5" />
-          <div>
-            <p className="font-medium text-destructive">Error</p>
-            <p className="text-sm">{error}</p>
-          </div>
-        </motion.div>
-      )}
-
-      {isLoading ? (
-        <Card className="border border-border/40 shadow-sm">
-          <CardContent className="py-10">
-            <div className="flex flex-col items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-              <p className="text-muted-foreground">Searching for locations...</p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : searchResults.length > 0 ? (
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Search Results ({searchResults.length})</h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <AnimatePresence>
-              {searchResults.map((location, index) => (
-                <motion.div
-                  key={location.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card className="overflow-hidden h-full flex flex-col border border-border/40 shadow-sm">
-                    <div className="h-32 bg-muted relative">
-                      {location.photos && location.photos.length > 0 ? (
-                        <img
-                          src={location.photos[0] || "/placeholder.svg"}
-                          alt={location.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center h-full">
-                          <MapPin className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                      )}
-
-                      {location.category && <Badge className="absolute top-2 right-2">{location.category}</Badge>}
-                    </div>
-
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">{location.name || "Unknown Location"}</CardTitle>
-                      <CardDescription className="line-clamp-1">
-                        {location.address || "No address available"}
-                      </CardDescription>
-                    </CardHeader>
-
-                    <CardContent className="pb-2 flex-grow">
-                      <div className="flex items-center text-sm">
-                        <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
-                        {location.location ? (
-                          <span className="text-muted-foreground">
-                            {location.location.latitude.toFixed(4)}, {location.location.longitude.toFixed(4)}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">No coordinates</span>
-                        )}
-                      </div>
-
-                      {location.confidence && (
-                        <div className="mt-2">
-                          <Badge variant={location.confidence > 0.8 ? "default" : "outline"}>
-                            {Math.round(location.confidence * 100)}% confidence
-                          </Badge>
-                        </div>
-                      )}
-
-                      {/* Environmental data */}
-                      {(location.weatherConditions || location.urbanDensity) && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {location.weatherConditions && (
-                            <Badge variant="outline" className="text-xs">
-                              <Cloud className="h-3 w-3 mr-1" />
-                              {location.weatherConditions.split(",")[0]}
-                            </Badge>
-                          )}
-                          {location.urbanDensity && (
-                            <Badge variant="outline" className="text-xs">
-                              <Building className="h-3 w-3 mr-1" />
-                              {location.urbanDensity}
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
-
-                    <CardFooter className="flex justify-between">
-                      <Button variant="outline" size="sm" onClick={() => handleViewDetails(location)}>
-                        <Info className="h-4 w-4 mr-2" />
-                        Details
-                      </Button>
-
-                      {location.id.startsWith("temp-") ? (
-                        <Button size="sm" onClick={() => handleSaveLocation(location)}>
-                          <Plus className="h-4 w-4 mr-2" />
-                          Save
-                        </Button>
-                      ) : (
-                        <Button variant="secondary" size="sm" disabled>
-                          <Database className="h-4 w-4 mr-2" />
-                          Saved
-                        </Button>
-                      )}
-                    </CardFooter>
-                  </Card>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        </div>
-      ) : searchQuery || searchType === "nearby" ? (
-        <Card className="border border-border/40 shadow-sm">
-          <CardContent className="py-10">
-            <div className="flex flex-col items-center justify-center text-center">
-              <Search className="h-10 w-10 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No Results Found</h3>
-              <p className="text-muted-foreground max-w-md">
-                {searchType === "text"
-                  ? "No locations match your search query. Try different keywords or search terms."
-                  : searchType === "address"
-                    ? "Could not find this address. Try a different format or more specific address."
-                    : "No locations found near you. Try increasing the search radius."}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {/* Location Details Dialog */}
-      <Dialog open={showLocationDetails} onOpenChange={setShowLocationDetails}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          {selectedLocation && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  {selectedLocation.name || "Unknown Location"}
-                  {selectedLocation.confidence && (
-                    <Badge variant={selectedLocation.confidence > 0.8 ? "default" : "outline"} className="ml-2">
-                      {Math.round(selectedLocation.confidence * 100)}% confidence
-                    </Badge>
-                  )}
-                </DialogTitle>
-                <DialogDescription>{selectedLocation.address || "No address available"}</DialogDescription>
-              </DialogHeader>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  {selectedLocation.photos && selectedLocation.photos.length > 0 ? (
-                    <div className="rounded-lg overflow-hidden border h-48">
-                      <img
-                        src={selectedLocation.photos[0] || "/placeholder.svg"}
-                        alt={selectedLocation.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="rounded-lg overflow-hidden border h-48 bg-muted flex items-center justify-center">
-                      <ImageIcon className="h-12 w-12 text-muted-foreground" />
-                    </div>
-                  )}
-
-                  {selectedLocation.location && (
-                    <div className="rounded-lg overflow-hidden border h-48">
-                      <iframe
-                        width="100%"
-                        height="100%"
-                        frameBorder="0"
-                        src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${selectedLocation.location.latitude},${selectedLocation.location.longitude}&zoom=15`}
-                        allowFullScreen
-                      ></iframe>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium mb-1">Category</h4>
-                    <Badge variant="outline">{selectedLocation.category || "Unknown"}</Badge>
-                    {selectedLocation.buildingType && (
-                      <Badge variant="outline" className="ml-2">
-                        {selectedLocation.buildingType}
-                      </Badge>
-                    )}
-                  </div>
-
-                  {selectedLocation.description && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">Description</h4>
-                      <p className="text-sm text-muted-foreground">{selectedLocation.description}</p>
-                    </div>
-                  )}
-
-                  {selectedLocation.location && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">Coordinates</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedLocation.location.latitude.toFixed(6)},{" "}
-                        {selectedLocation.location.longitude.toFixed(6)}
-                      </p>
-                    </div>
-                  )}
-
-                  {selectedLocation.geoData && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">Location Details</h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        {selectedLocation.geoData.country && (
-                          <div>
-                            <span className="text-muted-foreground">Country:</span> {selectedLocation.geoData.country} (
-                            {selectedLocation.geoData.countryCode})
-                          </div>
-                        )}
-                        {selectedLocation.geoData.administrativeArea && (
-                          <div>
-                            <span className="text-muted-foreground">State/Province:</span>{" "}
-                            {selectedLocation.geoData.administrativeArea}
-                          </div>
-                        )}
-                        {selectedLocation.geoData.locality && (
-                          <div>
-                            <span className="text-muted-foreground">City:</span> {selectedLocation.geoData.locality}
-                          </div>
-                        )}
-                        {selectedLocation.geoData.postalCode && (
-                          <div>
-                            <span className="text-muted-foreground">Postal Code:</span>{" "}
-                            {selectedLocation.geoData.postalCode}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedLocation.nearbyPlaces && selectedLocation.nearbyPlaces.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">Nearby Places</h4>
-                      <div className="space-y-2">
-                        {selectedLocation.nearbyPlaces.slice(0, 3).map((place, idx) => (
-                          <div key={idx} className="flex justify-between text-sm">
-                            <span>{place.name}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {place.distance < 1000
-                                ? `${Math.round(place.distance)}m`
-                                : `${(place.distance / 1000).toFixed(1)}km`}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <DialogFooter className="flex justify-between">
-                {selectedLocation.id.startsWith("temp-") ? (
-                  <Button onClick={() => handleSaveLocation(selectedLocation)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Save Location
-                  </Button>
-                ) : (
-                  <Button variant="outline" disabled>
-                    <Database className="mr-2 h-4 w-4" />
-                    Already Saved
-                  </Button>
-                )}
-
-                {selectedLocation.mapUrl && (
-                  <Button asChild>
-                    <a href={selectedLocation.mapUrl} target="_blank" rel="noopener noreferrer">
-                      <MapPin className="mr-2 h-4 w-4" />
-                      View on Map
-                    </a>
-                  </Button>
-                )}
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
-}
-
-const BookmarksFeature = () => {
-  const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedBookmark, setSelectedBookmark] = useState<Bookmark | null>(null)
-  const [locationDetails, setLocationDetails] = useState<SavedLocation | null>(null)
-  const [showLocationDetails, setShowLocationDetails] = useState(false)
-  const { toast } = useToast()
-
-  // Fetch bookmarks from the API
-  const fetchBookmarks = async () => {
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const response = await fetch("/api/bookmarks")
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
-      }
-
-      const data = await response.json()
-
-      setBookmarks(data.success && data.bookmarks ? data.bookmarks : [])
-    } catch (err) {
-      console.error("Failed to fetch bookmarks:", err)
-      setError(err instanceof Error ? err.message : "Failed to fetch bookmarks")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Fetch bookmarks on component mount
-  useEffect(() => {
-    fetchBookmarks()
-  }, [])
-
-  // Handle bookmark deletion
-  const handleDeleteBookmark = async (id: string) => {
-    try {
-      console.log("Deleting bookmark with id:", id) // Add logging
-
-      const response = await fetch(`/api/bookmarks/${id}`, {
-        method: "DELETE",
-      })
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
-      }
-
-      // Remove the bookmark from the state
-      setBookmarks((prevBookmarks) => prevBookmarks.filter((bookmark) => bookmark.id !== id))
-      toast({
-        title: "Bookmark removed",
-        description: "The bookmark has been successfully removed.",
-      })
-    } catch (err) {
-      console.error("Failed to delete bookmark:", err)
-      toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to delete bookmark",
-        variant: "destructive",
-      })
-    }
-  }
-
-  // View location details
-  const handleViewDetails = async (bookmark: Bookmark) => {
-    try {
-      setSelectedBookmark(bookmark)
-
-      // Fetch the full location details
-      const response = await fetch(`/api/location-recognition?operation=getById&id=${bookmark.locationId}`)
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
-      }
-
-      const data = await response.json()
-
-      if (data.success) {
-        setLocationDetails({
-          ...data,
-          location: {
-            latitude: data.latitude,
-            longitude: data.longitude,
-          },
-          createdAt: new Date(data.createdAt).toISOString(),
-        })
-        setShowLocationDetails(true)
-      } else {
-        throw new Error(data.error || "Failed to fetch location details")
-      }
-    } catch (err) {
-      console.error("Failed to fetch location details:", err)
-      toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to fetch location details",
-        variant: "destructive",
-      })
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">Bookmarks</h2>
-          <p className="text-muted-foreground">Your favorite and frequently visited locations</p>
-        </div>
-
-        <Button onClick={fetchBookmarks} variant="outline">
-          <Loader2 className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : "hidden"}`} />
-          Refresh
-        </Button>
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : error ? (
-        <Card className="border border-border/40 shadow-sm">
-          <CardContent className="py-10">
-            <div className="flex flex-col items-center justify-center text-center">
-              <AlertCircle className="h-10 w-10 text-destructive mb-4" />
-              <h3 className="text-lg font-medium mb-2">Error Loading Bookmarks</h3>
-              <p className="text-muted-foreground">{error}</p>
-              <Button onClick={fetchBookmarks} className="mt-4">
-                Try Again
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : bookmarks.length === 0 ? (
-        <Card className="border border-border/40 shadow-sm">
-          <CardContent className="py-10">
-            <div className="flex flex-col items-center justify-center text-center">
-              <Heart className="h-10 w-10 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No Bookmarks Found</h3>
-              <p className="text-muted-foreground">
-                You haven't bookmarked any locations yet. Add bookmarks from your saved locations.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <AnimatePresence>
-            {bookmarks.map((bookmark, index) => (
-              <motion.div
-                key={bookmark.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card className="overflow-hidden h-full flex flex-col border border-border/40 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">{bookmark.name || "Unknown Location"}</CardTitle>
-                    <CardDescription className="line-clamp-1">
-                      {bookmark.address || "No address available"}
-                    </CardDescription>
-                  </CardHeader>
-
-                  <CardContent className="pb-2 flex-grow">
-                    <Badge variant="outline">{bookmark.category || "Unknown"}</Badge>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Added on {new Date(bookmark.createdAt).toLocaleDateString()}
-                    </p>
-                  </CardContent>
-
-                  <CardFooter className="flex justify-between">
-                    <Button variant="outline" size="sm" onClick={() => handleViewDetails(bookmark)}>
-                      <Info className="h-4 w-4 mr-2" />
-                      Details
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteBookmark(bookmark.id)}
-                      className="hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      )}
-
-      {/* Location Details Dialog */}
-      <Dialog open={showLocationDetails} onOpenChange={setShowLocationDetails}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          {locationDetails && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  {locationDetails.name || "Unknown Location"}
-                  {locationDetails.confidence && (
-                    <Badge variant={locationDetails.confidence > 0.8 ? "default" : "outline"} className="ml-2">
-                      {Math.round(locationDetails.confidence * 100)}% confidence
-                    </Badge>
-                  )}
-                </DialogTitle>
-                <DialogDescription>{locationDetails.address || "No address available"}</DialogDescription>
-              </DialogHeader>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  {locationDetails.photos && locationDetails.photos.length > 0 ? (
-                    <div className="rounded-lg overflow-hidden border h-48">
-                      <img
-                        src={locationDetails.photos[0] || "/placeholder.svg"}
-                        alt={locationDetails.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="rounded-lg overflow-hidden border h-48 bg-muted flex items-center justify-center">
-                      <ImageIcon className="h-12 w-12 text-muted-foreground" />
-                    </div>
-                  )}
-
-                  {locationDetails.location && (
-                    <div className="rounded-lg overflow-hidden border h-48">
-                      <iframe
-                        width="100%"
-                        height="100%"
-                        frameBorder="0"
-                        src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${locationDetails.location.latitude},${locationDetails.location.longitude}&zoom=15`}
-                        allowFullScreen
-                      ></iframe>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium mb-1">Category</h4>
-                    <Badge variant="outline">{locationDetails.category || "Unknown"}</Badge>
-                    {locationDetails.buildingType && (
-                      <Badge variant="outline" className="ml-2">
-                        {locationDetails.buildingType}
-                      </Badge>
-                    )}
-                  </div>
-
-                  {locationDetails.description && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">Description</h4>
-                      <p className="text-sm text-muted-foreground">{locationDetails.description}</p>
-                    </div>
-                  )}
-
-                  {locationDetails.location && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">Coordinates</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {locationDetails.location.latitude.toFixed(6)}, {locationDetails.location.longitude.toFixed(6)}
-                      </p>
-                    </div>
-                  )}
-
-                  {locationDetails.geoData && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">Location Details</h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        {locationDetails.geoData.country && (
-                          <div>
-                            <span className="text-muted-foreground">Country:</span> {locationDetails.geoData.country} (
-                            {locationDetails.geoData.countryCode})
-                          </div>
-                        )}
-                        {locationDetails.geoData.administrativeArea && (
-                          <div>
-                            <span className="text-muted-foreground">State/Province:</span>{" "}
-                            {locationDetails.geoData.administrativeArea}
-                          </div>
-                        )}
-                        {locationDetails.geoData.locality && (
-                          <div>
-                            <span className="text-muted-foreground">City:</span> {locationDetails.geoData.locality}
-                          </div>
-                        )}
-                        {locationDetails.geoData.postalCode && (
-                          <div>
-                            <span className="text-muted-foreground">Postal Code:</span>{" "}
-                            {locationDetails.geoData.postalCode}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {locationDetails.nearbyPlaces && locationDetails.nearbyPlaces.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">Nearby Places</h4>
-                      <div className="space-y-2">
-                        {locationDetails.nearbyPlaces.slice(0, 3).map((place, idx) => (
-                          <div key={idx} className="flex justify-between text-sm">
-                            <span>{place.name}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {place.distance < 1000
-                                ? `${Math.round(place.distance)}m`
-                                : `${(place.distance / 1000).toFixed(1)}km`}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <DialogFooter>
-                {locationDetails.mapUrl && (
-                  <Button asChild>
-                    <a href={locationDetails.mapUrl} target="_blank" rel="noopener noreferrer">
-                      <MapPin className="mr-2 h-4 w-4" />
-                      View on Map
-                    </a>
-                  </Button>
-                )}
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
-}
-
 // Location Recognition Dialog Component
 const LocationRecognitionDialog = ({ open, onOpenChange }) => {
   return (
@@ -2959,18 +2081,79 @@ const DashboardSkeleton = () => {
   )
 }
 
+// Search Feature Component (Placeholder)
+const SearchFeature = () => {
+  return (
+    <div>
+      <h2>Search Feature</h2>
+      <p>This feature is under development. Please check back later.</p>
+    </div>
+  )
+}
+
+// Bookmarks Feature Component (Placeholder)
+const BookmarksFeature = () => {
+  return (
+    <div>
+      <h2>Bookmarks Feature</h2>
+      <p>This feature is under development. Please check back later.</p>
+    </div>
+  )
+}
+
 // Main Dashboard Component
 export default function Dashboard() {
   const [showLocationRecognitionDialog, setShowLocationRecognitionDialog] = useState(false)
   const [activeTab, setActiveTab] = useState("recognition")
   const [isDarkMode, setIsDarkMode] = useState(false)
 
-  const [user, setUser] = useState({ username: "Demo User", plan: "Pro" })
-  const [loading, setLoading] = useState(false)
+  const [user, setUser] = useState<UserType | null>(null)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const router = useRouter()
   const isMobile = useIsMobile()
+
+  // Fetch user data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        setLoading(true)
+
+        // Get the JWT token from localStorage
+        const token = localStorage.getItem("token")
+
+        if (!token) {
+          throw new Error("No authentication token found")
+        }
+
+        const response = await fetch("/api/user", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            // Token is invalid or expired, redirect to login
+            router.push("/login")
+            return
+          }
+          throw new Error("Failed to fetch user data")
+        }
+
+        const userData = await response.json()
+        setUser(userData)
+      } catch (err) {
+        console.error("Error fetching user data:", err)
+        setError(err instanceof Error ? err.message : "An error occurred")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUserData()
+  }, [router])
 
   // Handle dark mode toggle
   useEffect(() => {
@@ -3023,7 +2206,7 @@ export default function Dashboard() {
   // Handle logout
   const handleLogout = async () => {
     try {
-      // Remove authentication token
+      // Remove the token from localStorage
       localStorage.removeItem("token")
 
       // Redirect to login page
@@ -3305,7 +2488,7 @@ export default function Dashboard() {
                 <h2 className="text-xl sm:text-2xl font-bold">
                   Welcome back,{" "}
                   <span className="bg-gradient-to-r from-cyan-500 to-teal-500 text-transparent bg-clip-text">
-                    {user.username}
+                    {user?.username || "Guest"}
                   </span>
                   !
                 </h2>

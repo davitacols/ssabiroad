@@ -151,15 +151,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Invalid authentication" }, { status: 401 });
     }
 
+    // Determine user plan based on role
+    let plan = "Free";
+    if (user.role === "admin") {
+      plan = "Admin";
+    } else if (user.role === "premium") {
+      plan = "Pro";
+    }
+
+    // Format the response to match what the dashboard component expects
     const response = NextResponse.json({
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-        createdAt: user.createdAt,
-      },
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      plan: plan,
+      role: user.role,
+      createdAt: user.createdAt
     });
 
     response.headers.set("X-Content-Type-Options", "nosniff");
