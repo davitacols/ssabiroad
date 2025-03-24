@@ -97,6 +97,19 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar" // Import from shadcn sidebar [^1]
 
+// Helper function to get environment variables that works in both local and production
+function getEnv(key: string): string | undefined {
+  // For server-side code
+  if (typeof process !== "undefined" && process.env) {
+    return process.env[key]
+  }
+  // For client-side code with NEXT_PUBLIC_ prefix
+  if (typeof window !== "undefined" && key.startsWith("NEXT_PUBLIC_")) {
+    return (window as any).__ENV?.[key]
+  }
+  return undefined
+}
+
 // Location Recognition API Types
 interface Location {
   latitude: number
@@ -252,7 +265,7 @@ const CameraRecognition = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [cameraActive, setCameraActive] = useState(false)
   const isMobile = useIsMobile()
-  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
+  const googleMapsApiKey = getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY") || ""
 
   // Load recent locations from localStorage on component mount
   useEffect(() => {
@@ -1395,7 +1408,7 @@ const LocationsFeature = () => {
                         width="100%"
                         height="100%"
                         frameBorder="0"
-                        src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${selectedLocation.location.latitude},${selectedLocation.location.longitude}&zoom=15`}
+                        src={`https://www.google.com/maps/embed/v1/place?key=${getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")}&q=${selectedLocation.location.latitude},${selectedLocation.location.longitude}&zoom=15`}
                         allowFullScreen
                       ></iframe>
                     </motion.div>
@@ -1599,7 +1612,7 @@ const MapFeature = () => {
   const [mapZoom, setMapZoom] = useState(12)
   const [is3DMode, setIs3DMode] = useState(false)
   const isMobile = useIsMobile()
-  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
+  const googleMapsApiKey = getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY") || ""
 
   // Load Google Maps API
   const { isLoaded: isGoogleMapsLoaded } = useJsApiLoader({

@@ -5,6 +5,19 @@ import * as exifParser from "exif-parser"
 import NodeCache from "node-cache"
 import prisma from "@/lib/db"
 
+// Helper function to get environment variables that works in both local and production
+function getEnv(key: string): string | undefined {
+  // For server-side code
+  if (typeof process !== "undefined" && process.env) {
+    return process.env[key]
+  }
+  // For client-side code with NEXT_PUBLIC_ prefix
+  if (typeof window !== "undefined" && key.startsWith("NEXT_PUBLIC_")) {
+    return (window as any).__ENV?.[key]
+  }
+  return undefined
+}
+
 // Cache configuration
 const cache = new NodeCache({ stdTTL: 3600 }) // 1 hour cache
 
@@ -339,7 +352,7 @@ async function getNearbyPlaces(location: Location): Promise<any[]> {
       params: {
         location: `${location.latitude},${location.longitude}`,
         radius: 500, // 500 meters radius
-        key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+        key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
       },
     })
 
@@ -374,7 +387,7 @@ async function getWeatherConditions(location: Location): Promise<string | null> 
       params: {
         lat: location.latitude,
         lon: location.longitude,
-        appid: process.env.OPENWEATHER_API_KEY,
+        appid: getEnv("OPENWEATHER_API_KEY"),
         units: "metric",
       },
     })
@@ -398,7 +411,7 @@ async function getAirQuality(location: Location): Promise<string | null> {
       params: {
         lat: location.latitude,
         lon: location.longitude,
-        appid: process.env.OPENWEATHER_API_KEY,
+        appid: getEnv("OPENWEATHER_API_KEY"),
       },
     })
 
@@ -427,7 +440,7 @@ async function analyzeImageScene(imageBuffer: Buffer): Promise<{
 }> {
   try {
     // Initialize Vision client with credentials from the environment
-    const base64Credentials = process.env.GCLOUD_CREDENTIALS
+    const base64Credentials = getEnv("GCLOUD_CREDENTIALS")
     if (!base64Credentials) {
       throw new Error("GCLOUD_CREDENTIALS environment variable is not set.")
     }
@@ -586,7 +599,7 @@ async function analyzeImageScene(imageBuffer: Buffer): Promise<{
 async function detectBuildingMaterial(imageBuffer: Buffer): Promise<string | null> {
   try {
     // Initialize Vision client
-    const base64Credentials = process.env.GCLOUD_CREDENTIALS
+    const base64Credentials = getEnv("GCLOUD_CREDENTIALS")
     if (!base64Credentials) {
       throw new Error("GCLOUD_CREDENTIALS environment variable is not set.")
     }
@@ -656,7 +669,7 @@ async function geocodeAddress(
     // Prepare geocoding parameters
     const params: any = {
       address: cleanedAddress,
-      key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+      key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
     }
 
     // Add location bias if current location is available
@@ -816,7 +829,7 @@ async function detectTextAndExtractLocations(
     console.log("Starting advanced text detection for location identification...")
 
     // Initialize Vision client with credentials from the environment
-    const base64Credentials = process.env.GCLOUD_CREDENTIALS
+    const base64Credentials = getEnv("GCLOUD_CREDENTIALS")
     if (!base64Credentials) {
       throw new Error("GCLOUD_CREDENTIALS environment variable is not set.")
     }
@@ -1473,7 +1486,7 @@ async function searchBusinessByName(
       input: searchQuery,
       inputtype: "textquery",
       fields: "formatted_address,name,geometry,place_id,types,photos,rating,opening_hours",
-      key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+      key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
     }
 
     // Add location bias if current location is available
@@ -1497,7 +1510,7 @@ async function searchBusinessByName(
           place_id: place.place_id,
           fields:
             "name,formatted_address,geometry,address_component,type,photo,vicinity,rating,opening_hours,url,website,formatted_phone_number,international_phone_number,price_level,review,utc_offset",
-          key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+          key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
         },
       })
 
@@ -1510,7 +1523,7 @@ async function searchBusinessByName(
             query: searchQuery,
             location: currentLocation ? `${currentLocation.latitude},${currentLocation.longitude}` : undefined,
             radius: 2000, // 2km radius
-            key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+            key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
           },
         })
 
@@ -1549,7 +1562,7 @@ async function searchBusinessByName(
                   place_id: textSearchPlace.place_id,
                   fields:
                     "name,formatted_address,geometry,address_component,type,photo,vicinity,rating,opening_hours,url,website,formatted_phone_number,international_phone_number,price_level,review,utc_offset",
-                  key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+                  key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
                 },
               })
 
@@ -1610,7 +1623,7 @@ async function searchBusinessByName(
         if (details.photos && details.photos.length > 0) {
           details.photos.slice(0, 3).forEach((photo: any) => {
             photoUrls.push(
-              `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`,
+              `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")}`,
             )
           })
         }
@@ -1678,7 +1691,7 @@ async function searchBusinessByName(
           query: businessName,
           location: currentLocation ? `${currentLocation.latitude},${currentLocation.longitude}` : undefined,
           radius: 5000, // 5km radius
-          key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+          key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
         },
       })
 
@@ -1695,7 +1708,7 @@ async function searchBusinessByName(
             place_id: place.place_id,
             fields:
               "name,formatted_address,geometry,address_component,type,photo,vicinity,rating,opening_hours,url,website,formatted_phone_number",
-            key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+            key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
           },
         })
 
@@ -1800,7 +1813,7 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
     console.log("Starting image analysis...")
 
     // Initialize Vision client with credentials from the environment
-    const base64Credentials = process.env.GCLOUD_CREDENTIALS
+    const base64Credentials = getEnv("GCLOUD_CREDENTIALS")
     if (!base64Credentials) {
       throw new Error("GCLOUD_CREDENTIALS environment variable is not set.")
     }
@@ -1855,7 +1868,7 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
       const geocodeResponse = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
         params: {
           latlng: `${locationToUse.latitude},${locationToUse.longitude}`,
-          key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+          key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
         },
       })
 
@@ -1913,7 +1926,7 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
         const geocodeResponse = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
           params: {
             latlng: `${exifLocation.latitude},${exifLocation.longitude}`,
-            key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+            key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
           },
         })
 
@@ -2018,7 +2031,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.log("Received POST request to location recognition API")
 
     // Check if required environment variables are set
-    if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
+    if (!getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")) {
       console.error("Missing environment variable: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")
       return NextResponse.json(
         {
@@ -2029,7 +2042,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    if (!process.env.GCLOUD_CREDENTIALS) {
+    if (!getEnv("GCLOUD_CREDENTIALS")) {
       console.error("Missing environment variable: GCLOUD_CREDENTIALS")
       return NextResponse.json(
         {
