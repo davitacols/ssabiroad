@@ -1,0 +1,9 @@
+---
+deployment:
+  tasks:
+    - /bin/bash -c "nvm use 18"  # Use Node.js 18 (adjust based on your setup)
+    - npm install  # Install dependencies
+    - npm run build  # Build the Next.js app
+    - npm run dev  # Start the application
+    - yarn run build
+    - yarn run dev
