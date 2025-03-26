@@ -1,401 +1,481 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-// Use the environment variable consistently
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyCMs6xd8S-q7A2hzvvKvfogbhAsleUEODg"
+// Enhanced configuration and security
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+const GOOGLE_MAPS_BASE_URL = "https://maps.googleapis.com/maps/api"
 
-// Enhanced location-search route handler with better error handling
+// Advanced configuration
+const CONFIG = {
+  MAX_RETRIES: 2,
+  RETRY_DELAY_MS: 500,
+  DEFAULT_RADIUS: 5000,
+  MAX_RESULTS: 20,
+  CACHE_DURATION_MS: 1000 * 60 * 60, // 1 hour cache
+}
+
+// Enhanced type definitions
+interface LocationGeometry {
+  location: { lat: number; lng: number }
+  viewport?: {
+    northeast: { lat: number; lng: number }
+    southwest: { lat: number; lng: number }
+  }
+}
+
+interface PlaceDetails {
+  place_id: string
+  name: string
+  formatted_address: string
+  geometry: LocationGeometry
+  types: string[]
+  rating?: number
+  user_ratings_total?: number
+  opening_hours?: OpeningHours
+  photos?: PhotoReference[]
+  price_level?: number
+  website?: string
+  formatted_phone_number?: string
+}
+
+interface NearbyPlace extends Omit<PlaceDetails, 'formatted_address'> {
+  vicinity: string
+  business_status?: string
+}
+
+interface OpeningHours {
+  open_now: boolean
+  periods?: Array<{
+    open: { day: number, time: string }
+    close?: { day: number, time: string }
+  }>
+  weekday_text?: string[]
+}
+
+interface PhotoReference {
+  photo_reference: string
+  height?: number
+  width?: number
+  html_attributions?: string[]
+}
+
+// Simple in-memory cache
+class APICache {
+  private cache = new Map<string, { data: any, timestamp: number }>();
+
+  set(key: string, data: any) {
+    this.cache.set(key, {
+      data, 
+      timestamp: Date.now()
+    });
+  }
+
+  get(key: string) {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    
+    // Check if cache is still valid
+    if (Date.now() - entry.timestamp > CONFIG.CACHE_DURATION_MS) {
+      this.cache.delete(key);
+      return null;
+    }
+    
+    return entry.data;
+  }
+
+  clear(key?: string) {
+    if (key) {
+      this.cache.delete(key);
+    } else {
+      this.cache.clear();
+    }
+  }
+}
+const apiCache = new APICache();
+
+// Utility function for exponential backoff
+async function retryFetch(url: string, options?: RequestInit, maxRetries = CONFIG.MAX_RETRIES) {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      lastError = error as Error;
+      
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, CONFIG.RETRY_DELAY_MS * Math.pow(2, attempt)));
+      }
+    }
+  }
+
+  console.error('Fetch failed after retries:', lastError);
+  throw lastError;
+}
+
+// Helper function to get place details
+async function getPlaceDetails(placeId: string): Promise<Partial<PlaceDetails>> {
+  if (!placeId) return {};
+
+  const params = new URLSearchParams({
+    place_id: placeId,
+    key: GOOGLE_MAPS_API_KEY!,
+    fields: 'geometry,types,rating,user_ratings_total,price_level,opening_hours,formatted_address,name'
+  });
+
+  const cacheKey = `placedetails:${placeId}`;
+  const cachedResult = apiCache.get(cacheKey);
+  if (cachedResult) return cachedResult;
+
+  try {
+    const data = await retryFetch(`${GOOGLE_MAPS_BASE_URL}/place/details/json?${params}`);
+
+    if (data.status === 'OK') {
+      const result = data.result;
+      const details: Partial<PlaceDetails> = {
+        place_id: result.place_id,
+        name: result.name,
+        formatted_address: result.formatted_address,
+        geometry: result.geometry,
+        types: result.types,
+        rating: result.rating,
+        user_ratings_total: result.user_ratings_total,
+        price_level: result.price_level,
+        opening_hours: result.opening_hours
+      };
+
+      apiCache.set(cacheKey, details);
+      return details;
+    }
+
+    return {};
+  } catch (error) {
+    console.error('Place Details Error:', error);
+    return {};
+  }
+}
+
+// Get nearby places
+async function getNearbyPlaces(
+  lat: number, 
+  lng: number, 
+  radius = CONFIG.DEFAULT_RADIUS, 
+  type = ''
+): Promise<NearbyPlace[]> {
+  if (!lat || !lng) return [];
+
+  const params = new URLSearchParams({
+    location: `${lat},${lng}`,
+    radius: radius.toString(),
+    key: GOOGLE_MAPS_API_KEY!,
+  });
+
+  if (type) params.append('type', type);
+
+  const cacheKey = `nearby:${params.toString()}`;
+  const cachedResult = apiCache.get(cacheKey);
+  if (cachedResult) return cachedResult;
+
+  try {
+    const data = await retryFetch(`${GOOGLE_MAPS_BASE_URL}/place/nearbysearch/json?${params}`);
+
+    if (data.status === 'OK') {
+      const enrichedResults: NearbyPlace[] = await Promise.all(
+        data.results.slice(0, CONFIG.MAX_RESULTS).map(async (result: any): Promise<NearbyPlace> => ({
+          place_id: result.place_id,
+          name: result.name,
+          vicinity: result.vicinity,
+          geometry: result.geometry,
+          types: result.types,
+          rating: result.rating,
+          user_ratings_total: result.user_ratings_total,
+          price_level: result.price_level,
+          business_status: result.business_status,
+          opening_hours: result.opening_hours
+        }))
+      );
+
+      apiCache.set(cacheKey, enrichedResults);
+      return enrichedResults;
+    }
+
+    return [];
+  } catch (error) {
+    console.error('Nearby Places Error:', error);
+    return [];
+  }
+}
+
+// Place Autocomplete
+async function getPlaceAutocomplete(query: string, type?: string) {
+  if (!query) return [];
+
+  const params = new URLSearchParams({
+    input: query,
+    key: GOOGLE_MAPS_API_KEY!,
+    types: type || ''
+  });
+
+  const cacheKey = `autocomplete:${params.toString()}`;
+  const cachedResult = apiCache.get(cacheKey);
+  if (cachedResult) return cachedResult;
+
+  try {
+    const data = await retryFetch(`${GOOGLE_MAPS_BASE_URL}/place/autocomplete/json?${params}`);
+
+    if (data.status === 'OK') {
+      const enrichedResults = await Promise.all(
+        data.predictions.slice(0, CONFIG.MAX_RESULTS).map(async (prediction: any) => {
+          const placeDetails = await getPlaceDetails(prediction.place_id);
+          return {
+            place_id: prediction.place_id,
+            name: prediction.structured_formatting.main_text,
+            formatted_address: prediction.description,
+            ...placeDetails
+          };
+        })
+      );
+
+      apiCache.set(cacheKey, enrichedResults);
+      return enrichedResults;
+    }
+
+    return [];
+  } catch (error) {
+    console.error('Place Autocomplete Error:', error);
+    return [];
+  }
+}
+
+// Advanced geocoding
+async function advancedGeocoding(input: string, options: { 
+  language?: string, 
+  region?: string, 
+  resultType?: string[] 
+} = {}) {
+  const { language = 'en', region = '', resultType = [] } = options;
+  
+  const params = new URLSearchParams({
+    key: GOOGLE_MAPS_API_KEY!,
+    address: input,
+    language,
+  });
+
+  if (region) params.append('region', region);
+  if (resultType.length) params.append('result_type', resultType.join('|'));
+
+  const cacheKey = `geocode:${params.toString()}`;
+  const cachedResult = apiCache.get(cacheKey);
+  if (cachedResult) return cachedResult;
+
+  try {
+    const data = await retryFetch(`${GOOGLE_MAPS_BASE_URL}/geocode/json?${params}`);
+
+    if (data.status === 'OK') {
+      const enrichedResults = await Promise.all(
+        data.results.map(async (result: any) => ({
+          ...result,
+          nearby_places: await getNearbyPlaces(
+            result.geometry.location.lat, 
+            result.geometry.location.lng
+          )
+        }))
+      );
+
+      apiCache.set(cacheKey, enrichedResults);
+      return enrichedResults;
+    }
+
+    throw new Error(data.status);
+  } catch (error) {
+    console.error('Advanced Geocoding Error:', error);
+    return null;
+  }
+}
+
+// Advanced place search
+async function advancedPlaceSearch(query: string, options: {
+  type?: string,
+  radius?: number,
+  language?: string,
+  openNow?: boolean,
+  minPrice?: number,
+  maxPrice?: number
+} = {}) {
+  const {
+    type = '',
+    radius = CONFIG.DEFAULT_RADIUS,
+    language = 'en',
+    openNow = false,
+    minPrice,
+    maxPrice
+  } = options;
+
+  const params = new URLSearchParams({
+    query,
+    key: GOOGLE_MAPS_API_KEY!,
+    language,
+  });
+
+  if (type) params.append('type', type);
+  if (openNow) params.append('opennow', 'true');
+  if (minPrice !== undefined) params.append('minprice', minPrice.toString());
+  if (maxPrice !== undefined) params.append('maxprice', maxPrice.toString());
+
+  const cacheKey = `placesearch:${params.toString()}`;
+  const cachedResult = apiCache.get(cacheKey);
+  if (cachedResult) return cachedResult;
+
+  try {
+    // Try Place Autocomplete first
+    const autocompleteResults = await getPlaceAutocomplete(query, type);
+    if (autocompleteResults.length) {
+      return autocompleteResults;
+    }
+
+    // Fallback to Text Search
+    const data = await retryFetch(`${GOOGLE_MAPS_BASE_URL}/place/textsearch/json?${params}`);
+
+    if (data.status === 'OK') {
+      const enrichedResults = await Promise.all(
+        data.results.slice(0, CONFIG.MAX_RESULTS).map(async (result: any) => ({
+          place_id: result.place_id,
+          name: result.name,
+          formatted_address: result.formatted_address,
+          geometry: result.geometry,
+          types: result.types,
+          rating: result.rating,
+          user_ratings_total: result.user_ratings_total,
+          price_level: result.price_level,
+          opening_hours: result.opening_hours,
+          nearby_places: await getNearbyPlaces(
+            result.geometry.location.lat, 
+            result.geometry.location.lng,
+            radius
+          )
+        }))
+      );
+
+      apiCache.set(cacheKey, enrichedResults);
+      return enrichedResults;
+    }
+
+    return [];
+  } catch (error) {
+    console.error('Advanced Place Search Error:', error);
+    return [];
+  }
+}
+
+// GET Route Handler
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    
+    // Advanced search parameters
     const query = searchParams.get("query")
-    const radius = searchParams.get("radius") || "5000" // Default 5km radius
-    const type = searchParams.get("type") || "" // Optional type filter
+    const searchType = searchParams.get("searchType") || "default"
+    const language = searchParams.get("language") || "en"
+    const type = searchParams.get("type")
+    const openNow = searchParams.get("openNow") === "true"
+    const minPrice = searchParams.get("minPrice") 
+      ? parseInt(searchParams.get("minPrice")!) 
+      : undefined
+    const maxPrice = searchParams.get("maxPrice") 
+      ? parseInt(searchParams.get("maxPrice")!) 
+      : undefined
+    const radius = searchParams.get("radius") 
+      ? parseInt(searchParams.get("radius")!) 
+      : CONFIG.DEFAULT_RADIUS
 
     if (!query) {
       return NextResponse.json({ error: "Query parameter is required" }, { status: 400 })
     }
 
-    // Check if query could be coordinates
-    const coordRegex = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/
-    if (coordRegex.test(query)) {
-      return await getDetailsByCoordinates(query)
+    let results;
+    switch(searchType) {
+      case "geocode":
+        results = await advancedGeocoding(query, { 
+          language, 
+          resultType: type ? [type] : undefined 
+        });
+        break;
+      case "nearby":
+        // Assuming query is coordinates for nearby search
+        const [lat, lng] = query.split(',').map(parseFloat);
+        results = await getNearbyPlaces(lat, lng, radius, type);
+        break;
+      default:
+        results = await advancedPlaceSearch(query, {
+          type,
+          radius,
+          language,
+          openNow,
+          minPrice,
+          maxPrice
+        });
     }
 
-    // Step 1: Use Place Autocomplete API
-    const autocompleteEndpoint = "https://maps.googleapis.com/maps/api/place/autocomplete/json"
-    const autocompleteParams = new URLSearchParams({
-      input: query,
-      key: GOOGLE_MAPS_API_KEY,
-    })
-
-    // Add types parameter only if type is provided
-    if (type) {
-      // For 'place' type, use establishment instead which is a valid Google type
-      const googleType = type === "place" ? "establishment" : type
-      autocompleteParams.append("types", googleType)
-    }
-
-    const autocompleteResponse = await fetch(`${autocompleteEndpoint}?${autocompleteParams}`)
-    const autocompleteData = await autocompleteResponse.json()
-
-    if (autocompleteData.status === "ZERO_RESULTS") {
-      // Try text search for more flexible matching
-      const textSearchResult = await tryTextSearch(query, type)
-      if (textSearchResult && textSearchResult.length > 0) {
-        return NextResponse.json(textSearchResult)
-      }
-
-      // Return empty array if no results found
-      return NextResponse.json([], { status: 200 })
-    }
-
-    if (autocompleteData.status !== "OK") {
-      console.error(`Autocomplete API error for query "${query}": ${autocompleteData.status}`)
-
-      // Fallback to text search
-      const textSearchResult = await tryTextSearch(query, type)
-      if (textSearchResult && textSearchResult.length > 0) {
-        return NextResponse.json(textSearchResult)
-      }
-
-      return NextResponse.json([], { status: 200 })
-    }
-
-    // Step 2: Get detailed information for each suggestion
-    const suggestions = await Promise.all(
-      autocompleteData.predictions.map(async (prediction) => {
-        return await getPlaceDetails(prediction.place_id)
-      }),
-    )
-
-    // Filter out any null results
-    const validSuggestions = suggestions.filter((suggestion) => suggestion !== null)
-
-    return NextResponse.json(validSuggestions)
+    return NextResponse.json(results || [], { status: 200 })
   } catch (error) {
-    console.error("Location search error:", error)
-    return NextResponse.json({ error: "Failed to process location search" }, { status: 500 })
+    console.error("Advanced search error:", error)
+    return NextResponse.json({ error: "Failed to process search" }, { status: 500 })
   }
 }
 
-// Extract geocoding by coordinates to a reusable function
-async function getDetailsByCoordinates(latlng: string) {
-  try {
-    const geocodingEndpoint = "https://maps.googleapis.com/maps/api/geocode/json"
-    const geocodingParams = new URLSearchParams({
-      latlng: latlng,
-      key: GOOGLE_MAPS_API_KEY,
-    })
-
-    const geocodingResponse = await fetch(`${geocodingEndpoint}?${geocodingParams}`)
-    const geocodingData = await geocodingResponse.json()
-
-    if (geocodingData.status === "OK") {
-      // Get coordinates for additional data
-      const [lat, lng] = latlng.split(",").map(Number.parseFloat)
-
-      // Map results to consistent format
-      const formattedResults = await Promise.all(
-        geocodingData.results.map(async (result) => {
-          // Get nearby places
-          const nearbyPlaces = await getNearbyPlaces(lat, lng)
-
-          return {
-            place_id: result.place_id,
-            name: extractName(result),
-            formatted_address: result.formatted_address,
-            address_components: result.address_components,
-            geometry: result.geometry,
-            location: {
-              lat: result.geometry.location.lat,
-              lng: result.geometry.location.lng,
-            },
-            plus_code: result.plus_code,
-            types: result.types,
-            nearby_places: nearbyPlaces,
-          }
-        }),
-      )
-
-      return NextResponse.json(formattedResults)
-    }
-
-    if (geocodingData.status === "ZERO_RESULTS") {
-      return NextResponse.json([], { status: 200 })
-    }
-
-    console.error(`Geocoding API error for coordinates "${latlng}": ${geocodingData.status}`)
-    return NextResponse.json({ error: `Geocoding failed: ${geocodingData.status}` }, { status: 400 })
-  } catch (error) {
-    console.error("Geocoding error:", error)
-    return NextResponse.json({ error: "Failed to process coordinates" }, { status: 500 })
-  }
-}
-
-// Try text search for more flexible matching
-async function tryTextSearch(query: string, type = "") {
-  try {
-    const textSearchEndpoint = "https://maps.googleapis.com/maps/api/place/textsearch/json"
-    const textSearchParams = new URLSearchParams({
-      query: query,
-      key: GOOGLE_MAPS_API_KEY,
-    })
-
-    if (type && type !== "place") {
-      textSearchParams.append("type", type)
-    }
-
-    const textSearchResponse = await fetch(`${textSearchEndpoint}?${textSearchParams}`)
-    const textSearchData = await textSearchResponse.json()
-
-    if (textSearchData.status === "OK") {
-      return Promise.all(
-        textSearchData.results.map(async (result) => {
-          const nearbyPlaces = await getNearbyPlaces(result.geometry.location.lat, result.geometry.location.lng)
-
-          return {
-            place_id: result.place_id,
-            name: result.name,
-            formatted_address: result.formatted_address,
-            geometry: result.geometry,
-            location: {
-              lat: result.geometry.location.lat,
-              lng: result.geometry.location.lng,
-            },
-            types: result.types,
-            rating: result.rating,
-            user_ratings_total: result.user_ratings_total,
-            business_status: result.business_status,
-            nearby_places: nearbyPlaces,
-            photos: result.photos?.map((photo) => ({
-              photo_reference: photo.photo_reference,
-              html_attribution: photo.html_attributions,
-            })),
-          }
-        }),
-      )
-    }
-
-    if (textSearchData.status !== "ZERO_RESULTS") {
-      console.error(`Text search API error for query "${query}": ${textSearchData.status}`)
-    }
-
-    return null
-  } catch (error) {
-    console.error("Text search error:", error)
-    return null
-  }
-}
-
-// Get detailed place information
-async function getPlaceDetails(placeId: string) {
-  try {
-    const detailsEndpoint = "https://maps.googleapis.com/maps/api/place/details/json"
-    const detailsParams = new URLSearchParams({
-      place_id: placeId,
-      fields:
-        "name,formatted_address,formatted_phone_number,geometry,address_component,place_id,type,url,website,rating,review,opening_hours,photo,price_level,user_ratings_total,plus_code",
-      key: GOOGLE_MAPS_API_KEY,
-    })
-
-    const detailsResponse = await fetch(`${detailsEndpoint}?${detailsParams}`)
-    const detailsData = await detailsResponse.json()
-
-    if (detailsData.status === "OK") {
-      const { result } = detailsData
-
-      // Get nearby places
-      const nearbyPlaces = await getNearbyPlaces(result.geometry.location.lat, result.geometry.location.lng)
-
-      return {
-        place_id: result.place_id,
-        name: result.name,
-        formatted_address: result.formatted_address,
-        formatted_phone_number: result.formatted_phone_number,
-        geometry: result.geometry,
-        location: {
-          lat: result.geometry.location.lat,
-          lng: result.geometry.location.lng,
-        },
-        address_components: result.address_components,
-        types: result.types,
-        url: result.url,
-        website: result.website,
-        rating: result.rating,
-        reviews: result.reviews?.map((review) => ({
-          author_name: review.author_name,
-          rating: review.rating,
-          text: review.text,
-          time: review.time,
-        })),
-        opening_hours: result.opening_hours,
-        photos: result.photos?.map((photo) => ({
-          photo_reference: photo.photo_reference,
-          html_attribution: photo.html_attributions,
-        })),
-        price_level: result.price_level,
-        user_ratings_total: result.user_ratings_total,
-        plus_code: result.plus_code,
-        nearby_places: nearbyPlaces,
-      }
-    }
-
-    if (detailsData.status !== "ZERO_RESULTS" && detailsData.status !== "NOT_FOUND") {
-      console.error(`Place details API error for place_id "${placeId}": ${detailsData.status}`)
-    }
-
-    return null
-  } catch (error) {
-    console.error("Place details error:", error)
-    return null
-  }
-}
-
-// Get nearby places of interest
-async function getNearbyPlaces(lat: number, lng: number, radius = 1000) {
-  try {
-    const nearbyEndpoint = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-    const nearbyParams = new URLSearchParams({
-      location: `${lat},${lng}`,
-      radius: radius.toString(),
-      key: GOOGLE_MAPS_API_KEY,
-    })
-
-    const nearbyResponse = await fetch(`${nearbyEndpoint}?${nearbyParams}`)
-    const nearbyData = await nearbyResponse.json()
-
-    if (nearbyData.status === "OK") {
-      return nearbyData.results.map((place) => ({
-        place_id: place.place_id,
-        name: place.name,
-        vicinity: place.vicinity,
-        types: place.types,
-        location: {
-          lat: place.geometry.location.lat,
-          lng: place.geometry.location.lng,
-        },
-        business_status: place.business_status,
-        rating: place.rating,
-        user_ratings_total: place.user_ratings_total,
-        price_level: place.price_level,
-        opening_hours: place.opening_hours,
-      }))
-    }
-
-    if (nearbyData.status !== "ZERO_RESULTS") {
-      console.error(`Nearby places API error for coordinates "${lat},${lng}": ${nearbyData.status}`)
-    }
-
-    return []
-  } catch (error) {
-    console.error("Nearby places error:", error)
-    return []
-  }
-}
-
-// Extract a meaningful name from address components
-function extractName(geocodeResult: any): string {
-  // Try to extract the most specific name from the address components
-  if (geocodeResult.address_components && geocodeResult.address_components.length > 0) {
-    // Priority order for name extraction
-    const typesPriority = [
-      "premise",
-      "subpremise",
-      "point_of_interest",
-      "establishment",
-      "street_number",
-      "route",
-      "neighborhood",
-      "sublocality_level_1",
-      "sublocality",
-      "locality",
-      "administrative_area_level_2",
-    ]
-
-    for (const type of typesPriority) {
-      const component = geocodeResult.address_components.find((comp: any) => comp.types.includes(type))
-      if (component) {
-        return component.long_name
-      }
-    }
-  }
-
-  // Default to formatted address if no specific name found
-  return geocodeResult.formatted_address.split(",")[0] || "Location"
-}
-
-// Enhanced POST method with better error handling
+// POST Route Handler (optional, can be customized)
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData()
-    const address = formData.get("address")
-    const lat = formData.get("lat")
-    const lng = formData.get("lng")
+    const body = await request.json();
+    const { 
+      query, 
+      searchType = "default", 
+      language = "en",
+      type,
+      openNow,
+      minPrice,
+      maxPrice,
+      radius
+    } = body;
 
-    if (address) {
-      // Process by address
-      const geocodingEndpoint = "https://maps.googleapis.com/maps/api/geocode/json"
-      const geocodingParams = new URLSearchParams({
-        address: String(address),
-        key: GOOGLE_MAPS_API_KEY,
-      })
-
-      const geocodingResponse = await fetch(`${geocodingEndpoint}?${geocodingParams}`)
-      const geocodingData = await geocodingResponse.json()
-
-      if (geocodingData.status === "OK") {
-        const result = geocodingData.results[0]
-
-        // Get nearby places
-        const nearbyPlaces = await getNearbyPlaces(result.geometry.location.lat, result.geometry.location.lng)
-
-        return NextResponse.json({
-          ...result,
-          nearby_places: nearbyPlaces,
-        })
-      }
-
-      if (geocodingData.status === "ZERO_RESULTS") {
-        return NextResponse.json({ error: "No results found for this address" }, { status: 404 })
-      }
-
-      console.error(`Geocoding API error for address "${address}": ${geocodingData.status}`)
-      return NextResponse.json({ error: `Geocoding failed: ${geocodingData.status}` }, { status: 400 })
-    } else if (lat && lng) {
-      // Process by coordinates
-      const geocodingEndpoint = "https://maps.googleapis.com/maps/api/geocode/json"
-      const geocodingParams = new URLSearchParams({
-        latlng: `${lat},${lng}`,
-        key: GOOGLE_MAPS_API_KEY,
-      })
-
-      const geocodingResponse = await fetch(`${geocodingEndpoint}?${geocodingParams}`)
-      const geocodingData = await geocodingResponse.json()
-
-      if (geocodingData.status === "OK") {
-        const result = geocodingData.results[0]
-
-        // Get nearby places
-        const nearbyPlaces = await getNearbyPlaces(Number(lat), Number(lng))
-
-        return NextResponse.json({
-          ...result,
-          nearby_places: nearbyPlaces,
-        })
-      }
-
-      if (geocodingData.status === "ZERO_RESULTS") {
-        return NextResponse.json({ error: "No results found for these coordinates" }, { status: 404 })
-      }
-
-      console.error(`Geocoding API error for coordinates "${lat},${lng}": ${geocodingData.status}`)
-      return NextResponse.json({ error: `Geocoding failed: ${geocodingData.status}` }, { status: 400 })
-    } else {
-      return NextResponse.json({ error: "Address or coordinates are required" }, { status: 400 })
+    if (!query) {
+      return NextResponse.json({ error: "Query parameter is required" }, { status: 400 })
     }
+
+    let results;
+    switch(searchType) {
+      case "geocode":
+        results = await advancedGeocoding(query, { 
+          language, 
+          resultType: type ? [type] : undefined 
+        });
+        break;
+      case "nearby":
+        const [lat, lng] = query.split(',').map(parseFloat);
+        results = await getNearbyPlaces(lat, lng, radius, type);
+        break;
+      default:
+        results = await advancedPlaceSearch(query, {
+          type,
+          radius,
+          language,
+          openNow,
+          minPrice,
+          maxPrice
+        });
+    }
+
+    return NextResponse.json(results || [], { status: 200 })
   } catch (error) {
-    console.error("Error processing location data:", error)
-    return NextResponse.json({ error: "Failed to process location data" }, { status: 500 })
+    console.error("Advanced POST search error:", error)
+    return NextResponse.json({ error: "Failed to process search" }, { status: 500 })
   }
 }
 
+// Export as default for compatibility
+export default { GET, POST }

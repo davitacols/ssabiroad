@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react"
 import {
   Camera,
   MapPin,
-  ChevronDown,
   Map,
   ImageIcon,
   X,
@@ -35,10 +34,20 @@ import {
   Droplets,
   PlusCircle,
   FileText,
+  Grid,
+  Bell,
+  MessageSquare,
+  HelpCircle,
+  Maximize,
+  Minimize,
+  Sliders,
+  Globe,
+  BarChart3,
+  Filter,
+  LayoutDashboard,
 } from "lucide-react"
 import * as THREE from "three"
 import * as LucideIcons from "lucide-react"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api"
@@ -72,7 +81,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -80,22 +88,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/components/ui/use-toast"
 import { useIsMobile } from "@/hooks/use-mobile"
-
-// Sidebar Provider and Components
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar" // Import from shadcn sidebar [^1]
+import { cn } from "@/lib/utils"
 
 // Helper function to get environment variables that works in both local and production
 function getEnv(key: string): string | undefined {
@@ -182,13 +175,15 @@ interface LocationModel {
 }
 
 // Define a type for bookmarks
-interface Bookmark {
+interface BookmarkType {
   id: string
   locationId: string
   name: string
   address: string
   category: string
   createdAt: string
+  notes?: string
+  imageUrl?: string
 }
 
 // Define a type for user
@@ -206,7 +201,7 @@ const LocationModel = () => {
 }
 
 // 3D Globe Component
-const Globe = ({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0] }) => {
+const GlobeComponent = ({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0] }) => {
   const globeRef = useRef()
 
   useEffect(() => {
@@ -241,7 +236,7 @@ const DashboardScene = () => {
       <pointLight position={[-10, -10, -10]} />
 
       <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.5}>
-        <Globe position={[0, 0, 0]} scale={1.5} />
+        <GlobeComponent position={[0, 0, 0]} scale={1.5} />
       </Float>
 
       <Environment preset="city" />
@@ -1015,7 +1010,7 @@ const LocationsFeature = () => {
         if (bookmarksResponse.ok) {
           const bookmarksData = await bookmarksResponse.json()
           if (bookmarksData.success && bookmarksData.bookmarks) {
-            const bookmarkedLocationIds = bookmarksData.bookmarks.map((b: Bookmark) => b.locationId)
+            const bookmarkedLocationIds = bookmarksData.bookmarks.map((b: BookmarkType) => b.locationId)
 
             // Mark bookmarked locations
             transformedLocations.forEach((loc: SavedLocation) => {
@@ -1810,7 +1805,7 @@ const MapFeature = () => {
               <pointLight position={[-10, -10, -10]} />
 
               {/* Earth globe */}
-              <Globe position={[0, 0, 0]} scale={3} />
+              <GlobeComponent position={[0, 0, 0]} scale={3} />
 
               {/* Location markers */}
               {locations.map(
@@ -2043,7 +2038,7 @@ const MapFeature = () => {
                     </>
                   ) : (
                     <>
-                      <LucideIcons.Globe className="mr-2 h-4 w-4" />
+                      <GlobeComponent className="mr-2 h-4 w-4" />
                       Switch to 3D View
                     </>
                   )}
@@ -2057,19 +2052,950 @@ const MapFeature = () => {
   )
 }
 
-// Location Recognition Dialog Component
-const LocationRecognitionDialog = ({ open, onOpenChange }) => {
+// Add the BookmarksFeature component after the MapFeature component
+
+// Implement the Bookmarks feature
+const BookmarksFeature = () => {
+  const [bookmarks, setBookmarks] = useState<BookmarkType[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedBookmark, setSelectedBookmark] = useState<BookmarkType | null>(null)
+  const [showBookmarkDetails, setShowBookmarkDetails] = useState(false)
+  const [sortField, setSortField] = useState<string>("createdAt")
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
+  const [filterCategory, setFilterCategory] = useState<string>("all")
+  const [searchQuery, setSearchQuery] = useState<string>("")
+  const [view, setView] = useState<"grid" | "list">("grid")
+  const router = useRouter()
+
+  // Fetch bookmarks from the API
+  const fetchBookmarks = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      const response = await fetch("/api/bookmarks")
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success && data.bookmarks) {
+        setBookmarks(data.bookmarks)
+      } else {
+        setBookmarks([])
+      }
+    } catch (err) {
+      console.error("Failed to fetch bookmarks:", err)
+      setError(err instanceof Error ? err.message : "Failed to fetch bookmarks")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Fetch bookmarks on component mount
+  useEffect(() => {
+    fetchBookmarks()
+  }, [])
+
+  // Handle bookmark deletion
+  const handleDeleteBookmark = async (id: string) => {
+    try {
+      const response = await fetch(`/api/bookmarks/${id}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      // Remove the bookmark from the state
+      setBookmarks(bookmarks.filter((bookmark) => bookmark.id !== id))
+      toast({
+        title: "Bookmark deleted",
+        description: "The bookmark has been successfully deleted.",
+      })
+    } catch (err) {
+      console.error("Failed to delete bookmark:", err)
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to delete bookmark",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // View bookmark details
+  const handleViewDetails = (bookmark: BookmarkType) => {
+    setSelectedBookmark(bookmark)
+    setShowBookmarkDetails(true)
+  }
+
+  // Navigate to location
+  const handleNavigate = (bookmark: BookmarkType) => {
+    // In a real app, this would navigate to the location
+    toast({
+      title: "Navigation started",
+      description: `Navigating to ${bookmark.name}`,
+    })
+  }
+
+  // Filter and sort bookmarks
+  const filteredAndSortedBookmarks = bookmarks
+    .filter((bookmark) => {
+      // Apply category filter
+      if (filterCategory !== "all" && bookmark.category !== filterCategory) {
+        return false
+      }
+
+      // Apply search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase()
+        return bookmark.name.toLowerCase().includes(query) || bookmark.address.toLowerCase().includes(query)
+      }
+
+      return true
+    })
+    .sort((a, b) => {
+      // Apply sorting
+      let comparison = 0
+
+      switch (sortField) {
+        case "name":
+          comparison = a.name.localeCompare(b.name)
+          break
+        case "category":
+          comparison = a.category.localeCompare(b.category)
+          break
+        case "createdAt":
+        default:
+          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          break
+      }
+
+      return sortDirection === "asc" ? comparison : -comparison
+    })
+
+  // Toggle sort direction
+  const toggleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setSortField(field)
+      setSortDirection("asc")
+    }
+  }
+
+  // Get unique categories for filter
+  const categories = ["all", ...new Set(bookmarks.map((bookmark) => bookmark.category))]
+
+  // Generate a random image for bookmarks without images
+  const getRandomImage = (seed: string) => {
+    const colors = ["4287f5", "42f54e", "f54242", "f5d442", "f542f2"]
+    const colorIndex = seed.charCodeAt(0) % colors.length
+    return `/placeholder.svg?height=200&width=300&text=${encodeURIComponent(seed)}&bg=${colors[colorIndex]}`
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Quick Location Scan</DialogTitle>
-          <DialogDescription>Quickly identify a location using your camera or by uploading an image.</DialogDescription>
-        </DialogHeader>
-        <CameraRecognition />
-      </DialogContent>
-    </Dialog>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold">Bookmarked Locations</h2>
+          <p className="text-muted-foreground">Your favorite places and destinations</p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Input
+            placeholder="Search bookmarks..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full sm:w-48 md:w-64"
+          />
+
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="w-full sm:w-36 md:w-40">
+              <SelectValue placeholder="Filter by category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category === "all" ? "All Categories" : category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex rounded-md border border-input overflow-hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-9 w-9 rounded-none ${view === "grid" ? "bg-muted" : ""}`}
+              onClick={() => setView("grid")}
+            >
+              <Grid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-9 w-9 rounded-none ${view === "list" ? "bg-muted" : ""}`}
+              onClick={() => setView("list")}
+            >
+              <LayoutDashboard className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : error ? (
+        <Card>
+          <CardContent className="py-10">
+            <div className="flex flex-col items-center justify-center text-center">
+              <AlertCircle className="h-10 w-10 text-destructive mb-4" />
+              <h3 className="text-lg font-medium mb-2">Error Loading Bookmarks</h3>
+              <p className="text-muted-foreground">{error}</p>
+              <Button onClick={fetchBookmarks} className="mt-4">
+                Try Again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : filteredAndSortedBookmarks.length === 0 ? (
+        <Card>
+          <CardContent className="py-10">
+            <div className="flex flex-col items-center justify-center text-center">
+              <Heart className="h-10 w-10 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No Bookmarks Found</h3>
+              <p className="text-muted-foreground">
+                {searchQuery || filterCategory !== "all"
+                  ? "No bookmarks match your search criteria. Try adjusting your filters."
+                  : "You haven't saved any bookmarks yet. Use the heart icon to bookmark locations."}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : view === "list" ? (
+        <Card className="border border-border/40 shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[250px]">
+                  <Button variant="ghost" className="p-0 font-medium" onClick={() => toggleSort("name")}>
+                    Name
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button variant="ghost" className="p-0 font-medium" onClick={() => toggleSort("category")}>
+                    Category
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
+                <TableHead className="hidden md:table-cell">Address</TableHead>
+                <TableHead className="hidden md:table-cell">
+                  <Button variant="ghost" className="p-0 font-medium" onClick={() => toggleSort("createdAt")}>
+                    Date Added
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <AnimatePresence>
+                {filteredAndSortedBookmarks.map((bookmark, index) => (
+                  <motion.tr
+                    key={bookmark.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ delay: index * 0.03 }}
+                    className="group"
+                  >
+                    <TableCell className="font-medium">{bookmark.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{bookmark.category}</Badge>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell truncate max-w-[200px]">{bookmark.address}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {new Date(bookmark.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleViewDetails(bookmark)}
+                          title="View details"
+                          className="opacity-70 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Info className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleNavigate(bookmark)}
+                          title="Navigate"
+                          className="opacity-70 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Navigation className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteBookmark(bookmark.id)}
+                          title="Delete bookmark"
+                          className="opacity-70 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
+            </TableBody>
+          </Table>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredAndSortedBookmarks.map((bookmark, index) => (
+            <motion.div
+              key={bookmark.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <Card className="overflow-hidden h-full flex flex-col group hover:shadow-md transition-shadow">
+                <div className="relative h-40 bg-muted">
+                  <img
+                    src={bookmark.imageUrl || getRandomImage(bookmark.name)}
+                    alt={bookmark.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <h3 className="font-medium text-white truncate">{bookmark.name}</h3>
+                    <p className="text-xs text-white/80 truncate">{bookmark.address}</p>
+                  </div>
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-7 w-7 bg-black/30 hover:bg-black/50 text-white border-none opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleViewDetails(bookmark)}
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-7 w-7 bg-black/30 hover:bg-black/50 text-white border-none opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleDeleteBookmark(bookmark.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+                <CardContent className="flex-1 p-3">
+                  <div className="flex justify-between items-center mb-2">
+                    <Badge variant="outline" className="text-xs">
+                      {bookmark.category}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(bookmark.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </CardContent>
+                <CardFooter className="p-3 pt-0">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
+                    onClick={() => handleNavigate(bookmark)}
+                  >
+                    <Navigation className="mr-2 h-4 w-4" />
+                    Navigate
+                  </Button>
+                </CardFooter>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {/* Bookmark Details Dialog */}
+      <Dialog open={showBookmarkDetails} onOpenChange={setShowBookmarkDetails}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {selectedBookmark && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedBookmark.name}</DialogTitle>
+                <DialogDescription>{selectedBookmark.address}</DialogDescription>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-4">
+                  <div className="rounded-lg overflow-hidden border h-48">
+                    <img
+                      src={selectedBookmark.imageUrl || getRandomImage(selectedBookmark.name)}
+                      alt={selectedBookmark.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  {/* Map would go here in a real implementation */}
+                  <div className="rounded-lg overflow-hidden border h-48 bg-muted flex items-center justify-center">
+                    <Map className="h-12 w-12 text-muted-foreground" />
+                    <p className="text-muted-foreground ml-2">Map view would appear here</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-1">Category</h4>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline">{selectedBookmark.category}</Badge>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-medium mb-1">Date Added</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(selectedBookmark.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-medium mb-1">Notes</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedBookmark.notes || "No notes added for this bookmark."}
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-medium mb-1">Actions</h4>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          setShowBookmarkDetails(false)
+                          handleNavigate(selectedBookmark)
+                        }}
+                      >
+                        <Navigation className="mr-2 h-4 w-4" />
+                        Navigate to this location
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          setShowBookmarkDetails(false)
+                          handleDeleteBookmark(selectedBookmark.id)
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete bookmark
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  onClick={() => setShowBookmarkDetails(false)}
+                  className="bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
+                >
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   )
+}
+
+// Implement the Search feature
+const SearchFeature = () => {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<SavedLocation[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [searchHistory, setSearchHistory] = useState<string[]>([])
+  const [selectedLocation, setSelectedLocation] = useState<SavedLocation | null>(null)
+  const [showLocationDetails, setShowLocationDetails] = useState(false)
+  const [searchFilters, setSearchFilters] = useState({
+    category: "all",
+    radius: 10, // km
+    sortBy: "relevance",
+  })
+
+  // Load search history from localStorage on component mount
+  useEffect(() => {
+    const storedHistory = localStorage.getItem("searchHistory")
+    if (storedHistory) {
+      try {
+        setSearchHistory(JSON.parse(storedHistory))
+      } catch (e) {
+        console.error("Failed to parse stored search history", e)
+      }
+    }
+  }, [])
+
+  // Save search history to localStorage when it changes
+  useEffect(() => {
+    if (searchHistory.length > 0) {
+      localStorage.setItem("searchHistory", JSON.stringify(searchHistory))
+    }
+  }, [searchHistory])
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return
+
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      // Add to search history if not already present
+      if (!searchHistory.includes(searchQuery)) {
+        setSearchHistory((prev) => [searchQuery, ...prev].slice(0, 5))
+      }
+
+      // In a real app, this would be a call to your search API
+      const response = await fetch(
+        `/api/location-search?query=${encodeURIComponent(searchQuery)}&radius=${searchFilters.radius * 1000}&type=${searchFilters.category === "all" ? "" : searchFilters.category}`,
+      )
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success && data.results) {
+        setSearchResults(data.results)
+      } else {
+        // For demo purposes, generate some mock results
+        const mockResults = Array(5)
+          .fill(0)
+          .map((_, i) => ({
+            id: `mock-${i}`,
+            name: `${searchQuery} Location ${i + 1}`,
+            address: `${i + 1} ${searchQuery} Street, City`,
+            category: ["Landmark", "Business", "Restaurant", "Park", "Hotel"][i % 5],
+            confidence: 0.7 + Math.random() * 0.3,
+            createdAt: new Date().toISOString(),
+            location: {
+              latitude: 40.7128 + (Math.random() * 0.1 - 0.05),
+              longitude: -74.006 + (Math.random() * 0.1 - 0.05),
+            },
+            isBookmarked: Math.random() > 0.7,
+          }))
+        setSearchResults(mockResults)
+      }
+    } catch (err) {
+      console.error("Search failed:", err)
+      setError(err instanceof Error ? err.message : "Search failed")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleHistoryItemClick = (query: string) => {
+    setSearchQuery(query)
+    // Move this item to the top of history
+    setSearchHistory((prev) => [query, ...prev.filter((item) => item !== query)])
+    // Execute search
+    handleSearch()
+  }
+
+  const clearSearchHistory = () => {
+    setSearchHistory([])
+    localStorage.removeItem("searchHistory")
+  }
+
+  const handleViewDetails = (location: SavedLocation) => {
+    setSelectedLocation(location)
+    setShowLocationDetails(true)
+  }
+
+  const handleToggleBookmark = async (location: SavedLocation) => {
+    // In a real app, this would call your API to toggle the bookmark
+    setSearchResults((results) =>
+      results.map((result) => (result.id === location.id ? { ...result, isBookmarked: !result.isBookmarked } : result)),
+    )
+
+    toast({
+      title: location.isBookmarked ? "Bookmark removed" : "Bookmark added",
+      description: `${location.name} has been ${location.isBookmarked ? "removed from" : "added to"} your bookmarks.`,
+    })
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Input
+                placeholder="Search for locations, landmarks, businesses..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pr-20"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSearch()
+                  }
+                }}
+              />
+              <Button
+                className="absolute right-0 top-0 h-full rounded-l-none bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
+                onClick={handleSearch}
+                disabled={isLoading}
+              >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Select
+              value={searchFilters.category}
+              onValueChange={(value) => setSearchFilters((prev) => ({ ...prev, category: value }))}
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="Landmark">Landmarks</SelectItem>
+                <SelectItem value="Business">Businesses</SelectItem>
+                <SelectItem value="Restaurant">Restaurants</SelectItem>
+                <SelectItem value="Hotel">Hotels</SelectItem>
+                <SelectItem value="Park">Parks</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={searchFilters.radius.toString()}
+              onValueChange={(value) => setSearchFilters((prev) => ({ ...prev, radius: Number.parseInt(value) }))}
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Radius" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5 km radius</SelectItem>
+                <SelectItem value="10">10 km radius</SelectItem>
+                <SelectItem value="25">25 km radius</SelectItem>
+                <SelectItem value="50">50 km radius</SelectItem>
+                <SelectItem value="100">100 km radius</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={searchFilters.sortBy}
+              onValueChange={(value) => setSearchFilters((prev) => ({ ...prev, sortBy: value }))}
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="relevance">Relevance</SelectItem>
+                <SelectItem value="distance">Distance</SelectItem>
+                <SelectItem value="rating">Rating</SelectItem>
+                <SelectItem value="name">Name</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Search history */}
+        {searchHistory.length > 0 && (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Recent searches:</span>
+            <div className="flex flex-wrap gap-2">
+              {searchHistory.map((query, index) => (
+                <Badge
+                  key={index}
+                  variant="outline"
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleHistoryItemClick(query)}
+                >
+                  {query}
+                </Badge>
+              ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs text-muted-foreground"
+                onClick={clearSearchHistory}
+              >
+                Clear
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <div className="bg-destructive/10 text-destructive p-3 rounded-md">
+          <div className="flex items-start">
+            <AlertCircle className="h-5 w-5 mr-2 mt-0.5" />
+            <div>
+              <p className="font-medium">Search Error</p>
+              <p className="text-sm">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="flex flex-col items-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <p className="text-muted-foreground">Searching for locations...</p>
+          </div>
+        </div>
+      ) : searchResults.length > 0 ? (
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Search Results</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {searchResults.map((result) => (
+              <Card key={result.id} className="overflow-hidden group hover:shadow-md transition-shadow">
+                <div className="relative h-40 bg-muted">
+                  <img
+                    src={
+                      result.photos?.[0] ||
+                      `/placeholder.svg?height=200&width=300&text=${encodeURIComponent(result.name) || "/placeholder.svg"}`
+                    }
+                    alt={result.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <h3 className="font-medium text-white truncate">{result.name}</h3>
+                    <p className="text-xs text-white/80 truncate">{result.address}</p>
+                  </div>
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-7 w-7 bg-black/30 hover:bg-black/50 text-white border-none opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleViewDetails(result)}
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-7 w-7 bg-black/30 hover:bg-black/50 text-white border-none opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleToggleBookmark(result)}
+                    >
+                      {result.isBookmarked ? (
+                        <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" />
+                      ) : (
+                        <Heart className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <CardContent className="p-3">
+                  <div className="flex justify-between items-center mb-2">
+                    <Badge variant="outline" className="text-xs">
+                      {result.category}
+                    </Badge>
+                    {result.confidence && (
+                      <Badge variant={result.confidence > 0.8 ? "default" : "outline"} className="text-xs">
+                        {Math.round(result.confidence * 100)}% match
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <MapPin className="h-3 w-3 mr-1" />
+                    <span>
+                      {result.location
+                        ? `${result.location.latitude.toFixed(4)}, ${result.location.longitude.toFixed(4)}`
+                        : "Location data unavailable"}
+                    </span>
+                  </div>
+                </CardContent>
+                <CardFooter className="p-3 pt-0">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
+                    onClick={() => handleViewDetails(result)}
+                  >
+                    <Info className="mr-2 h-4 w-4" />
+                    View Details
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        </div>
+      ) : searchQuery && !isLoading ? (
+        <div className="flex flex-col items-center justify-center h-64 text-center">
+          <Search className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium mb-2">No Results Found</h3>
+          <p className="text-muted-foreground max-w-md">
+            We couldn't find any locations matching "{searchQuery}". Try adjusting your search terms or filters.
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center h-64 text-center">
+          <Search className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium mb-2">Search for Locations</h3>
+          <p className="text-muted-foreground max-w-md">
+            Enter a location name, address, or landmark to find places. You can filter by category and distance.
+          </p>
+        </div>
+      )}
+
+      {/* Location Details Dialog */}
+      <Dialog open={showLocationDetails} onOpenChange={setShowLocationDetails}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {selectedLocation && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {selectedLocation.name}
+                  {selectedLocation.confidence && (
+                    <Badge variant={selectedLocation.confidence > 0.8 ? "default" : "outline"} className="ml-2">
+                      {Math.round(selectedLocation.confidence * 100)}% match
+                    </Badge>
+                  )}
+                </DialogTitle>
+                <DialogDescription>{selectedLocation.address || "No address available"}</DialogDescription>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-4">
+                  {selectedLocation.photos && selectedLocation.photos.length > 0 ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="rounded-lg overflow-hidden border h-48"
+                    >
+                      <img
+                        src={selectedLocation.photos[0] || "/placeholder.svg"}
+                        alt={selectedLocation.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </motion.div>
+                  ) : (
+                    <div className="rounded-lg overflow-hidden border h-48 bg-muted flex items-center justify-center">
+                      <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                  )}
+
+                  {selectedLocation.location && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                      className="rounded-lg overflow-hidden border h-48"
+                    >
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        src={`https://www.google.com/maps/embed/v1/place?key=${getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")}&q=${selectedLocation.location.latitude},${selectedLocation.location.longitude}&zoom=15`}
+                        allowFullScreen
+                      ></iframe>
+                    </motion.div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-1">Category</h4>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline">{selectedLocation.category || "Unknown"}</Badge>
+                    </div>
+                  </div>
+
+                  {selectedLocation.description && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Description</h4>
+                      <p className="text-sm text-muted-foreground">{selectedLocation.description}</p>
+                    </div>
+                  )}
+
+                  {selectedLocation.location && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Coordinates</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedLocation.location.latitude.toFixed(6)},{" "}
+                        {selectedLocation.location.longitude.toFixed(6)}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between mt-4">
+                    <Button variant="outline" onClick={() => handleToggleBookmark(selectedLocation)}>
+                      {selectedLocation.isBookmarked ? (
+                        <>
+                          <Heart className="mr-2 h-4 w-4 fill-primary text-primary" />
+                          Remove Bookmark
+                        </>
+                      ) : (
+                        <>
+                          <Heart className="mr-2 h-4 w-4" />
+                          Add Bookmark
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      variant="default"
+                      className="bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
+                    >
+                      <Navigation className="mr-2 h-4 w-4" />
+                      Navigate
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+// Update the Dashboard component to use the new features
+// Replace the placeholder content in the activeTab === "bookmarks" and activeTab === "search" sections
+// with the new components
+
+// In the Dashboard component, replace:
+// {activeTab === "bookmarks" && (
+//   <div className="flex items-center justify-center h-64">
+//     <p className="text-muted-foreground">Bookmarks feature is under development</p>
+//   </div>
+// )}
+// {activeTab === "search" && (
+//   <div className="flex items-center justify-center h-64">
+//     <p className="text-muted-foreground">Search feature is under development</p>
+//   </div>
+// )}
+
+// With:
+{
+  /*activeTab === "bookmarks" && <BookmarksFeature />*/
+}
+{
+  /*activeTab === "search" && <SearchFeature />*/
 }
 
 // Dashboard Skeleton Component
@@ -2094,23 +3020,18 @@ const DashboardSkeleton = () => {
   )
 }
 
-// Search Feature Component (Placeholder)
-const SearchFeature = () => {
+// Location Recognition Dialog Component
+const LocationRecognitionDialog = ({ open, onOpenChange }) => {
   return (
-    <div>
-      <h2>Search Feature</h2>
-      <p>This feature is under development. Please check back later.</p>
-    </div>
-  )
-}
-
-// Bookmarks Feature Component (Placeholder)
-const BookmarksFeature = () => {
-  return (
-    <div>
-      <h2>Bookmarks Feature</h2>
-      <p>This feature is under development. Please check back later.</p>
-    </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Quick Location Scan</DialogTitle>
+          <DialogDescription>Use your camera to quickly identify locations.</DialogDescription>
+        </DialogHeader>
+        <CameraRecognition />
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -2119,11 +3040,12 @@ export default function Dashboard() {
   const [showLocationRecognitionDialog, setShowLocationRecognitionDialog] = useState(false)
   const [activeTab, setActiveTab] = useState("recognition")
   const [isDarkMode, setIsDarkMode] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [activeTheme, setActiveTheme] = useState("blue")
 
   const [user, setUser] = useState<UserType | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
   const router = useRouter()
   const isMobile = useIsMobile()
 
@@ -2196,25 +3118,26 @@ export default function Dashboard() {
     }
   }
 
-  useEffect(() => {
-    // Responsive sidebar handling
-    const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setSidebarOpen(false)
-      } else {
-        setSidebarOpen(true)
+  // Function to toggle fullscreen
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((e) => {
+        console.error(`Error attempting to enable fullscreen: ${e.message}`)
+      })
+      setIsFullscreen(true)
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen()
+        setIsFullscreen(false)
       }
     }
+  }
 
-    // Set initial state
-    handleResize()
-
-    // Add event listener
-    window.addEventListener("resize", handleResize)
-
-    // Cleanup
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
+  // Handle theme change
+  const changeTheme = (theme: string) => {
+    setActiveTheme(theme)
+    // Apply theme classes or CSS variables here
+  }
 
   // Handle logout
   const handleLogout = async () => {
@@ -2228,6 +3151,18 @@ export default function Dashboard() {
       console.error("Error during logout:", error)
     }
   }
+
+  // Navigation items
+  const navigationItems = [
+    { id: "recognition", label: "Image Recognition", icon: Camera, color: "text-cyan-500" },
+    { id: "locations", label: "Saved Locations", icon: MapPin, color: "text-green-500" },
+    { id: "map", label: "Map View", icon: Map, color: "text-indigo-500" },
+    { id: "search", label: "Search", icon: Search, color: "text-amber-500" },
+    { id: "bookmarks", label: "Bookmarks", icon: Heart, color: "text-red-500" },
+    { id: "location-suggestions", label: "Suggestions", icon: PlusCircle, color: "text-purple-500" },
+    { id: "image-caption", label: "Image Captions", icon: ImageIcon, color: "text-cyan-500" },
+    { id: "ai-content-generator", label: "AI Content", icon: FileText, color: "text-orange-500" },
+  ]
 
   // Loading state
   if (loading) {
@@ -2260,365 +3195,355 @@ export default function Dashboard() {
   }
 
   return (
-    <SidebarProvider defaultOpen={sidebarOpen}>
-      <div className="flex flex-col md:flex-row min-h-screen bg-background">
-        {/* Sidebar */}
-        <Sidebar className="border-r border-border bg-gray-50 dark:bg-gray-900/30">
-          <SidebarHeader>
-            <div className="flex items-center px-4 py-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-teal-500 rounded-xl flex items-center justify-center mr-3 shadow-md">
-                <MapPin className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-cyan-500 to-teal-500 text-transparent bg-clip-text">
-                Pic2Nav
-              </span>
+    <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100`}>
+      {/* Top Navigation Bar */}
+      <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-sm">
+        <div className="flex h-16 items-center justify-between px-4 md:px-6">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-teal-500 rounded-lg flex items-center justify-center">
+              <MapPin className="w-4 h-4 text-white" />
             </div>
-          </SidebarHeader>
+            <span className="text-xl font-bold bg-gradient-to-r from-cyan-500 to-teal-500 text-transparent bg-clip-text">
+              Pic2Nav
+            </span>
+          </div>
 
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-4 mb-2">
-                Navigation
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={activeTab === "recognition"}
-                      onClick={() => setActiveTab("recognition")}
-                      tooltip="Image Recognition"
-                      className="px-4 py-3 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
-                    >
-                      <button>
-                        <Camera className="h-5 w-5" />
-                        <span className="ml-3">Image Recognition</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex">
+              <Input placeholder="Search locations..." className="w-[200px] lg:w-[300px] h-9 bg-background" />
+            </div>
 
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={activeTab === "locations"}
-                      onClick={() => setActiveTab("locations")}
-                      tooltip="Saved Locations"
-                      className="px-4 py-3 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
-                    >
-                      <button>
-                        <MapPin className="h-5 w-5" />
-                        <span className="ml-3">Saved Locations</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full w-9 h-9"
+                onClick={() => setShowLocationRecognitionDialog(true)}
+              >
+                <Camera className="h-4 w-4" />
+                <span className="sr-only">Quick Scan</span>
+              </Button>
 
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={activeTab === "map"}
-                      onClick={() => setActiveTab("map")}
-                      tooltip="Map View"
-                      className="px-4 py-3 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
-                    >
-                      <button>
-                        <Map className="h-5 w-5" />
-                        <span className="ml-3">Map View</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+              <Button variant="ghost" size="icon" className="rounded-full w-9 h-9" onClick={toggleFullscreen}>
+                {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                <span className="sr-only">Toggle fullscreen</span>
+              </Button>
 
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={activeTab === "search"}
-                      onClick={() => setActiveTab("search")}
-                      tooltip="Search"
-                      className="px-4 py-3 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
-                    >
-                      <button>
-                        <Search className="h-5 w-5" />
-                        <span className="ml-3">Search</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+              <Button variant="ghost" size="icon" className="rounded-full w-9 h-9" onClick={toggleDarkMode}>
+                {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                <span className="sr-only">Toggle theme</span>
+              </Button>
 
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={activeTab === "bookmarks"}
-                      onClick={() => setActiveTab("bookmarks")}
-                      tooltip="Bookmarks"
-                      className="px-4 py-3 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
-                    >
-                      <button>
-                        <Heart className="h-5 w-5" />
-                        <span className="ml-3">Bookmarks</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={activeTab === "location-suggestions"}
-                      onClick={() => setActiveTab("location-suggestions")}
-                      tooltip="Location Suggestions"
-                      className="px-4 py-3 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
-                    >
-                      <button>
-                        <PlusCircle className="h-5 w-5" />
-                        <span className="ml-3">Suggestions</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={activeTab === "image-caption"}
-                      onClick={() => setActiveTab("image-caption")}
-                      tooltip="Image Captions"
-                      className="px-4 py-3 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
-                    >
-                      <button>
-                        <Image className="h-5 w-5" />
-                        <span className="ml-3">Image Captions</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={activeTab === "ai-content-generator"}
-                      onClick={() => setActiveTab("ai-content-generator")}
-                      tooltip="AI Content Generator"
-                      className="px-4 py-3 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
-                    >
-                      <button>
-                        <FileText className="h-5 w-5" />
-                        <span className="ml-3">AI Content</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
-
-          <SidebarFooter>
-            <div className="p-4 mt-4">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start px-3 py-6 rounded-lg bg-gray-100/50 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
-                  >
-                    <Avatar className="h-10 w-10 mr-3 border-2 border-cyan-500/20 shadow-sm">
-                      <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-teal-500 text-white font-medium">
+                  <Button variant="ghost" size="icon" className="rounded-full w-9 h-9">
+                    <Bell className="h-4 w-4" />
+                    <span className="sr-only">Notifications</span>
+                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500"></span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <div className="max-h-80 overflow-auto">
+                    <div className="flex items-start gap-4 p-3 hover:bg-muted/50 rounded-md">
+                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <MapPin className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">New location recognized</p>
+                        <p className="text-xs text-muted-foreground">
+                          Empire State Building was added to your locations
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">2 hours ago</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4 p-3 hover:bg-muted/50 rounded-md">
+                      <div className="w-8 h-8 bg-amber-500/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Bell className="h-4 w-4 text-amber-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">System update</p>
+                        <p className="text-xs text-muted-foreground">New features have been added to the platform</p>
+                        <p className="text-xs text-muted-foreground mt-1">1 day ago</p>
+                      </div>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <div className="p-2">
+                    <Button variant="outline" size="sm" className="w-full">
+                      View all notifications
+                    </Button>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                    <Avatar className="h-9 w-9">
+                      <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-teal-500 text-white">
                         {user?.username?.[0]}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex flex-col items-start">
-                      <span className="font-semibold">{user?.username}</span>
-                      <span className="text-xs text-muted-foreground flex items-center">
-                        <span className="h-2 w-2 rounded-full bg-green-500 mr-1"></span>
-                        {user?.plan}
-                      </span>
-                    </div>
-                    <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 border-none shadow-lg">
+                <DropdownMenuContent align="end">
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium">My Account</p>
-                      <p className="text-xs text-muted-foreground">Manage your account settings</p>
+                      <p className="text-sm font-medium">{user?.username}</p>
+                      <p className="text-xs text-muted-foreground">{user?.email}</p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
+                  <DropdownMenuItem asChild>
+                    <a href="/profile">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </a>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
+                  <DropdownMenuItem asChild>
+                    <a href="/settings">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const newMode = !isDarkMode
+                      setIsDarkMode(newMode)
+                      if (newMode) {
+                        document.documentElement.classList.add("dark")
+                        localStorage.setItem("theme", "dark")
+                      } else {
+                        document.documentElement.classList.remove("dark")
+                        localStorage.setItem("theme", "light")
+                      }
+                    }}
+                  >
+                    {isDarkMode ? (
+                      <>
+                        <Sun className="mr-2 h-4 w-4" />
+                        <span>Light Mode</span>
+                      </>
+                    ) : (
+                      <>
+                        <Moon className="mr-2 h-4 w-4" />
+                        <span>Dark Mode</span>
+                      </>
+                    )}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleLogout}
-                    className="cursor-pointer text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
-                  >
+                  <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </SidebarFooter>
-        </Sidebar>
+          </div>
+        </div>
+      </header>
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col min-h-screen md:max-h-screen overflow-hidden">
-          {/* Header */}
-          <header className="border-b border-border h-16 flex items-center justify-between px-4 sm:px-6 bg-background backdrop-blur-md bg-opacity-90">
-            <div className="flex items-center">
-              <SidebarTrigger className="mr-4 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg p-2 transition-all" />
-              <h1 className="text-lg sm:text-xl font-bold truncate">
-                <span className="bg-gradient-to-r from-cyan-500 to-teal-500 text-transparent bg-clip-text">
-                  Image-Based Navigation
-                </span>
-              </h1>
-            </div>
-
-            <div className="flex items-center space-x-3">
+      {/* Main Content Area */}
+      <div className="container mx-auto p-4 md:p-6">
+        {/* Navigation Tabs */}
+        <div className="mb-8">
+          <div className="flex flex-wrap gap-2 overflow-x-auto pb-2">
+            {navigationItems.map((item) => (
               <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleDarkMode}
-                className="rounded-full w-10 h-10 bg-gray-100 dark:bg-gray-800 transition-all"
+                key={item.id}
+                variant={activeTab === item.id ? "default" : "outline"}
+                className={cn(
+                  "rounded-full transition-all",
+                  activeTab === item.id ? "bg-gradient-to-r from-cyan-500 to-teal-500 text-white" : "hover:bg-muted/50",
+                )}
+                onClick={() => setActiveTab(item.id)}
               >
-                {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                <item.icon className={cn("h-4 w-4 mr-2", activeTab !== item.id && item.color)} />
+                {item.label}
               </Button>
+            ))}
+          </div>
+        </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowLocationRecognitionDialog(true)}
-                className="bg-gradient-to-r from-cyan-500/10 to-teal-500/10 border-cyan-200 dark:border-cyan-900 hover:bg-gradient-to-r hover:from-cyan-500/20 hover:to-teal-500/20 transition-all rounded-lg px-4 py-2"
-              >
-                <Camera className="h-4 w-4 mr-2" />
-                Quick Scan
-              </Button>
-            </div>
-          </header>
+        {/* Dashboard Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold">
+              <span className="bg-gradient-to-r from-cyan-500 to-teal-500 text-transparent bg-clip-text">
+                {navigationItems.find((item) => item.id === activeTab)?.label}
+              </span>
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {activeTab === "recognition"
+                ? "Upload or capture images to identify locations"
+                : activeTab === "locations"
+                  ? "Manage your saved locations and bookmarks"
+                  : activeTab === "map"
+                    ? "View all your saved locations on a map"
+                    : "Explore and manage your location data"}
+            </p>
+          </div>
 
-          {/* Main Dashboard Content */}
-          <main className="flex-1 p-6 sm:p-8 overflow-auto bg-gray-50/50 dark:bg-gray-900/10">
-            <div className="mb-6">
-              <div className="flex items-center space-x-2 mb-1">
-                <h2 className="text-xl sm:text-2xl font-bold">
-                  Welcome back,{" "}
-                  <span className="bg-gradient-to-r from-cyan-500 to-teal-500 text-transparent bg-clip-text">
-                    {user?.username || "Guest"}
-                  </span>
-                  !
-                </h2>
-                <div className="flex-shrink-0 w-8 h-8 bg-cyan-500/10 rounded-full flex items-center justify-center">
-                  <span className="text-cyan-500 text-xs">👋</span>
-                </div>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <span>Filter</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <div className="w-4 h-4 rounded-full bg-blue-500 mr-2" />
+                  Landmarks
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <div className="w-4 h-4 rounded-full bg-green-500 mr-2" />
+                  Businesses
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <div className="w-4 h-4 rounded-full bg-purple-500 mr-2" />
+                  Points of Interest
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9">
+                  <Sliders className="h-4 w-4 mr-2" />
+                  <span>Customize</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Dashboard Settings</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => changeTheme("blue")}>
+                  <div className="w-4 h-4 rounded-full bg-blue-500 mr-2" />
+                  Blue Theme
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => changeTheme("green")}>
+                  <div className="w-4 h-4 rounded-full bg-green-500 mr-2" />
+                  Green Theme
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => changeTheme("purple")}>
+                  <div className="w-4 h-4 rounded-full bg-purple-500 mr-2" />
+                  Purple Theme
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <Grid className="h-4 w-4 mr-2" />
+                  Change Layout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button
+              size="sm"
+              className="h-9 bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
+            >
+              <Camera className="h-4 w-4 mr-2" />
+              <span>New Scan</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Dashboard Content */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-border/40 overflow-hidden">
+          <div className="p-6">
+            {activeTab === "recognition" && <CameraRecognition />}
+            {activeTab === "locations" && <LocationsFeature />}
+            {activeTab === "map" && <MapFeature />}
+            {activeTab === "search" && <SearchFeature />}
+            {activeTab === "bookmarks" && <BookmarksFeature />}
+            {activeTab === "location-suggestions" && (
+              <LocationSuggestions
+                location={{ lat: 0, lng: 0, name: "Default Location" }}
+                currentLocation={{ lat: 0, lng: 0 }}
+              />
+            )}
+            {activeTab === "image-caption" && <ImageCaptionGenerator />}
+            {activeTab === "ai-content-generator" && <AIContentGenerator />}
+          </div>
+        </div>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+          <Card className="border border-border/40 shadow-sm">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-cyan-500/10 flex items-center justify-center">
+                <MapPin className="h-6 w-6 text-cyan-500" />
               </div>
-              <p className="text-sm sm:text-base text-muted-foreground">Let's analyze a location for you today.</p>
-            </div>
-
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="mb-6 flex flex-wrap gap-1 sm:gap-0 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
-                <TabsTrigger
-                  value="recognition"
-                  className="rounded-lg px-3 sm:px-4 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all"
-                >
-                  <Camera className="h-4 w-4 sm:mr-2 text-cyan-500" />
-                  <span className="hidden sm:inline">Recognition</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="locations"
-                  className="rounded-lg px-3 sm:px-4 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all"
-                >
-                  <MapPin className="h-4 w-4 sm:mr-2 text-green-500" />
-                  <span className="hidden sm:inline">Locations</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="map"
-                  className="rounded-lg px-3 sm:px-4 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all"
-                >
-                  <Map className="h-4 w-4 sm:mr-2 text-indigo-500" />
-                  <span className="hidden sm:inline">Map</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="search"
-                  className="rounded-lg px-3 sm:px-4 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all"
-                >
-                  <Search className="h-4 w-4 sm:mr-2 text-amber-500" />
-                  <span className="hidden sm:inline">Search</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="bookmarks"
-                  className="rounded-lg px-3 sm:px-4 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all"
-                >
-                  <Heart className="h-4 w-4 sm:mr-2 text-red-500" />
-                  <span className="hidden sm:inline">Bookmarks</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="location-suggestions"
-                  className="rounded-lg px-3 sm:px-4 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all"
-                >
-                  <PlusCircle className="h-4 w-4 sm:mr-2 text-purple-500" />
-                  <span className="hidden sm:inline">Suggestions</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="image-caption"
-                  className="rounded-lg px-3 sm:px-4 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all"
-                >
-                  <Image className="h-4 w-4 sm:mr-2 text-cyan-500" />
-                  <span className="hidden sm:inline">Captions</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="ai-content-generator"
-                  className="rounded-lg px-3 sm:px-4 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm transition-all"
-                >
-                  <FileText className="h-4 w-4 sm:mr-2 text-orange-500" />
-                  <span className="hidden sm:inline">AI Content</span>
-                </TabsTrigger>
-              </TabsList>
-
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                <TabsContent value="recognition" className="mt-0">
-                  <CameraRecognition />
-                </TabsContent>
-
-                <TabsContent value="locations" className="mt-0">
-                  <LocationsFeature />
-                </TabsContent>
-
-                <TabsContent value="map" className="mt-0">
-                  <MapFeature />
-                </TabsContent>
-
-                <TabsContent value="search" className="mt-0">
-                  <SearchFeature />
-                </TabsContent>
-
-                <TabsContent value="bookmarks" className="mt-0">
-                  <BookmarksFeature />
-                </TabsContent>
-
-                <TabsContent value="location-suggestions" className="mt-0">
-                  <LocationSuggestions
-                    location={{ lat: 0, lng: 0, name: "Default Location" }}
-                    currentLocation={{ lat: 0, lng: 0 }}
-                  />
-                </TabsContent>
-
-                <TabsContent value="image-caption" className="mt-0">
-                  <ImageCaptionGenerator />
-                </TabsContent>
-
-                <TabsContent value="ai-content-generator" className="mt-0">
-                  <AIContentGenerator />
-                </TabsContent>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Locations</p>
+                <p className="text-2xl font-bold">124</p>
               </div>
-            </Tabs>
-          </main>
+            </CardContent>
+          </Card>
 
-          {/* Location Recognition Dialog */}
-          <LocationRecognitionDialog
-            open={showLocationRecognitionDialog}
-            onOpenChange={setShowLocationRecognitionDialog}
-          />
+          <Card className="border border-border/40 shadow-sm">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                <Camera className="h-6 w-6 text-green-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Scans This Month</p>
+                <p className="text-2xl font-bold">37</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-border/40 shadow-sm">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center">
+                <Heart className="h-6 w-6 text-purple-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Bookmarks</p>
+                <p className="text-2xl font-bold">18</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-border/40 shadow-sm">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center">
+                <BarChart3 className="h-6 w-6 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Accuracy Rate</p>
+                <p className="text-2xl font-bold">94%</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Help and Support */}
+        <div className="mt-8 flex justify-center">
+          <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <Button variant="link" size="sm" className="h-auto p-0">
+              <HelpCircle className="h-4 w-4 mr-1" />
+              Help Center
+            </Button>
+            <Button variant="link" size="sm" className="h-auto p-0">
+              <MessageSquare className="h-4 w-4 mr-1" />
+              Feedback
+            </Button>
+            <Button variant="link" size="sm" className="h-auto p-0">
+              <Info className="h-4 w-4 mr-1" />
+              About
+            </Button>
+          </div>
         </div>
       </div>
-    </SidebarProvider>
+
+      {/* Location Recognition Dialog */}
+      <LocationRecognitionDialog open={showLocationRecognitionDialog} onOpenChange={setShowLocationRecognitionDialog} />
+    </div>
   )
 }
 
