@@ -1458,7 +1458,7 @@ export default function MobileDashboard() {
       setIsLoading(true)
       try {
         // Get auth token from local storage - using consistent key name
-        const token = localStorage.getItem("authToken")
+        const token = localStorage.getItem("token")
 
         const response = await fetch("/api/user", {
           headers: {
