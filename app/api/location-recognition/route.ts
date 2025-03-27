@@ -7,14 +7,25 @@ import prisma from "@/lib/db"
 
 // Helper function to get environment variables that works in both local and production
 function getEnv(key: string): string | undefined {
-  // For server-side code
+  // For server-side code (API routes)
   if (typeof process !== "undefined" && process.env) {
-    return process.env[key]
+    const value = process.env[key]
+    if (value) return value
   }
+
   // For client-side code with NEXT_PUBLIC_ prefix
   if (typeof window !== "undefined" && key.startsWith("NEXT_PUBLIC_")) {
-    return (window as any).__ENV?.[key]
+    // Try window.__ENV first (for Vercel)
+    if ((window as any).__ENV && (window as any).__ENV[key]) {
+      return (window as any).__ENV[key]
+    }
+    // Fallback to direct process.env for Next.js client-side
+    if ((window as any).process?.env && (window as any).process.env[key]) {
+      return (window as any).process.env[key]
+    }
   }
+
+  console.warn(`Environment variable ${key} not found`)
   return undefined
 }
 
@@ -354,6 +365,7 @@ async function getNearbyPlaces(location: Location): Promise<any[]> {
         radius: 500, // 500 meters radius
         key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
       },
+      timeout: 10000, // 10 second timeout
     })
 
     if (response.data.status === "OK" && response.data.results) {
@@ -390,6 +402,7 @@ async function getWeatherConditions(location: Location): Promise<string | null> 
         appid: getEnv("OPENWEATHER_API_KEY"),
         units: "metric",
       },
+      timeout: 10000, // 10 second timeout
     })
 
     if (response.data) {
@@ -413,6 +426,7 @@ async function getAirQuality(location: Location): Promise<string | null> {
         lon: location.longitude,
         appid: getEnv("OPENWEATHER_API_KEY"),
       },
+      timeout: 10000, // 10 second timeout
     })
 
     if (response.data && response.data.list && response.data.list.length > 0) {
@@ -440,22 +454,34 @@ async function analyzeImageScene(imageBuffer: Buffer): Promise<{
 }> {
   try {
     // Initialize Vision client with credentials from the environment
-    const base64Credentials = getEnv("GCLOUD_CREDENTIALS")
-    if (!base64Credentials) {
-      throw new Error("GCLOUD_CREDENTIALS environment variable is not set.")
+    let client: vision.ImageAnnotatorClient
+    try {
+      const base64Credentials = getEnv("GCLOUD_CREDENTIALS")
+      if (!base64Credentials) {
+        throw new Error("GCLOUD_CREDENTIALS environment variable is not set.")
+      }
+
+      const credentialsBuffer = Buffer.from(base64Credentials, "base64")
+      const credentialsJson = credentialsBuffer.toString("utf8")
+
+      // Validate JSON before parsing
+      if (!credentialsJson.includes("client_email") || !credentialsJson.includes("private_key")) {
+        throw new Error("Invalid GCLOUD_CREDENTIALS format")
+      }
+
+      const serviceAccount = JSON.parse(credentialsJson)
+
+      client = new vision.ImageAnnotatorClient({
+        credentials: {
+          client_email: serviceAccount.client_email,
+          private_key: serviceAccount.private_key,
+        },
+        projectId: serviceAccount.project_id,
+      })
+    } catch (error) {
+      console.error("Failed to initialize Vision client:", error)
+      throw new Error("Vision API initialization failed")
     }
-
-    const credentialsBuffer = Buffer.from(base64Credentials, "base64")
-    const credentialsJson = credentialsBuffer.toString("utf8")
-    const serviceAccount = JSON.parse(credentialsJson)
-
-    const client = new vision.ImageAnnotatorClient({
-      credentials: {
-        client_email: serviceAccount.client_email,
-        private_key: serviceAccount.private_key,
-      },
-      projectId: serviceAccount.project_id,
-    })
 
     // Perform label detection
     const [labelResult] = await client.labelDetection({ image: { content: imageBuffer } })
@@ -599,22 +625,28 @@ async function analyzeImageScene(imageBuffer: Buffer): Promise<{
 async function detectBuildingMaterial(imageBuffer: Buffer): Promise<string | null> {
   try {
     // Initialize Vision client
-    const base64Credentials = getEnv("GCLOUD_CREDENTIALS")
-    if (!base64Credentials) {
-      throw new Error("GCLOUD_CREDENTIALS environment variable is not set.")
+    let client: vision.ImageAnnotatorClient
+    try {
+      const base64Credentials = getEnv("GCLOUD_CREDENTIALS")
+      if (!base64Credentials) {
+        throw new Error("GCLOUD_CREDENTIALS environment variable is not set.")
+      }
+
+      const credentialsBuffer = Buffer.from(base64Credentials, "base64")
+      const credentialsJson = credentialsBuffer.toString("utf8")
+      const serviceAccount = JSON.parse(credentialsJson)
+
+      client = new vision.ImageAnnotatorClient({
+        credentials: {
+          client_email: serviceAccount.client_email,
+          private_key: serviceAccount.private_key,
+        },
+        projectId: serviceAccount.project_id,
+      })
+    } catch (error) {
+      console.error("Failed to initialize Vision client:", error)
+      throw new Error("Vision API initialization failed")
     }
-
-    const credentialsBuffer = Buffer.from(base64Credentials, "base64")
-    const credentialsJson = credentialsBuffer.toString("utf8")
-    const serviceAccount = JSON.parse(credentialsJson)
-
-    const client = new vision.ImageAnnotatorClient({
-      credentials: {
-        client_email: serviceAccount.client_email,
-        private_key: serviceAccount.private_key,
-      },
-      projectId: serviceAccount.project_id,
-    })
 
     // Perform label detection
     const [labelResult] = await client.labelDetection({ image: { content: imageBuffer } })
@@ -679,7 +711,7 @@ async function geocodeAddress(
     }
 
     // Make the geocoding request
-    const response = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", { params })
+    const response = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", { params, timeout: 10000 })
 
     // Log the response status
     console.log(`Geocoding response status: ${response.data.status}`)
@@ -829,22 +861,34 @@ async function detectTextAndExtractLocations(
     console.log("Starting advanced text detection for location identification...")
 
     // Initialize Vision client with credentials from the environment
-    const base64Credentials = getEnv("GCLOUD_CREDENTIALS")
-    if (!base64Credentials) {
-      throw new Error("GCLOUD_CREDENTIALS environment variable is not set.")
+    let client: vision.ImageAnnotatorClient
+    try {
+      const base64Credentials = getEnv("GCLOUD_CREDENTIALS")
+      if (!base64Credentials) {
+        throw new Error("GCLOUD_CREDENTIALS environment variable is not set.")
+      }
+
+      const credentialsBuffer = Buffer.from(base64Credentials, "base64")
+      const credentialsJson = credentialsBuffer.toString("utf8")
+
+      // Validate JSON before parsing
+      if (!credentialsJson.includes("client_email") || !credentialsJson.includes("private_key")) {
+        throw new Error("Invalid GCLOUD_CREDENTIALS format")
+      }
+
+      const serviceAccount = JSON.parse(credentialsJson)
+
+      client = new vision.ImageAnnotatorClient({
+        credentials: {
+          client_email: serviceAccount.client_email,
+          private_key: serviceAccount.private_key,
+        },
+        projectId: serviceAccount.project_id,
+      })
+    } catch (error) {
+      console.error("Failed to initialize Vision client:", error)
+      throw new Error("Vision API initialization failed")
     }
-
-    const credentialsBuffer = Buffer.from(base64Credentials, "base64")
-    const credentialsJson = credentialsBuffer.toString("utf8")
-    const serviceAccount = JSON.parse(credentialsJson)
-
-    const client = new vision.ImageAnnotatorClient({
-      credentials: {
-        client_email: serviceAccount.client_email,
-        private_key: serviceAccount.private_key,
-      },
-      projectId: serviceAccount.project_id,
-    })
 
     // Start multiple detections in parallel for efficiency and comprehensive analysis
     const [textResult, labelResult, logoResult, objectResult, buildingMaterial, sceneAnalysis] = await Promise.all([
@@ -1084,7 +1128,7 @@ async function detectTextAndExtractLocations(
           // If we also have a business name, enhance the result
           if (extractedInfo.businessName) {
             geocodeResult.name = extractedInfo.businessName
-            geocodeResult.description = `${extractedInfo.businessName} located at ${geocodeResult.address}`
+            geocodeResult.description = `${geocodeResult.name} located at ${geocodeResult.address}`
             geocodeResult.type = "business-with-address"
 
             // Update building type if we have a business name
@@ -1496,7 +1540,10 @@ async function searchBusinessByName(
     }
 
     // Make the Places API request
-    const response = await axios.get("https://maps.googleapis.com/maps/api/place/findplacefromtext/json", { params })
+    const response = await axios.get("https://maps.googleapis.com/maps/api/place/findplacefromtext/json", {
+      params,
+      timeout: 10000,
+    })
 
     console.log(`Places API response status: ${response.data.status}`)
 
@@ -1512,6 +1559,7 @@ async function searchBusinessByName(
             "name,formatted_address,geometry,address_component,type,photo,vicinity,rating,opening_hours,url,website,formatted_phone_number,international_phone_number,price_level,review,utc_offset",
           key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
         },
+        timeout: 10000, // 10 second timeout
       })
 
       if (detailsResponse.data.result) {
@@ -1525,6 +1573,7 @@ async function searchBusinessByName(
             radius: 2000, // 2km radius
             key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
           },
+          timeout: 10000, // 10 second timeout
         })
 
         // If text search found results, compare them with the findplacefromtext result
@@ -1564,6 +1613,7 @@ async function searchBusinessByName(
                     "name,formatted_address,geometry,address_component,type,photo,vicinity,rating,opening_hours,url,website,formatted_phone_number,international_phone_number,price_level,review,utc_offset",
                   key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
                 },
+                timeout: 10000, // 10 second timeout
               })
 
               if (textDetailsResponse.data.result) {
@@ -1693,6 +1743,7 @@ async function searchBusinessByName(
           radius: 5000, // 5km radius
           key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
         },
+        timeout: 10000, // 10 second timeout
       })
 
       if (
@@ -1710,6 +1761,7 @@ async function searchBusinessByName(
               "name,formatted_address,geometry,address_component,type,photo,vicinity,rating,opening_hours,url,website,formatted_phone_number",
             key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
           },
+          timeout: 10000, // 10 second timeout
         })
 
         if (detailsResponse.data.result) {
@@ -1813,22 +1865,34 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
     console.log("Starting image analysis...")
 
     // Initialize Vision client with credentials from the environment
-    const base64Credentials = getEnv("GCLOUD_CREDENTIALS")
-    if (!base64Credentials) {
-      throw new Error("GCLOUD_CREDENTIALS environment variable is not set.")
+    let client: vision.ImageAnnotatorClient
+    try {
+      const base64Credentials = getEnv("GCLOUD_CREDENTIALS")
+      if (!base64Credentials) {
+        throw new Error("GCLOUD_CREDENTIALS environment variable is not set.")
+      }
+
+      const credentialsBuffer = Buffer.from(base64Credentials, "base64")
+      const credentialsJson = credentialsBuffer.toString("utf8")
+
+      // Validate JSON before parsing
+      if (!credentialsJson.includes("client_email") || !credentialsJson.includes("private_key")) {
+        throw new Error("Invalid GCLOUD_CREDENTIALS format")
+      }
+
+      const serviceAccount = JSON.parse(credentialsJson)
+
+      client = new vision.ImageAnnotatorClient({
+        credentials: {
+          client_email: serviceAccount.client_email,
+          private_key: serviceAccount.private_key,
+        },
+        projectId: serviceAccount.project_id,
+      })
+    } catch (error) {
+      console.error("Failed to initialize Vision client:", error)
+      throw new Error("Vision API initialization failed")
     }
-
-    const credentialsBuffer = Buffer.from(base64Credentials, "base64")
-    const credentialsJson = credentialsBuffer.toString("utf8")
-    const serviceAccount = JSON.parse(credentialsJson)
-
-    const client = new vision.ImageAnnotatorClient({
-      credentials: {
-        client_email: serviceAccount.client_email,
-        private_key: serviceAccount.private_key,
-      },
-      projectId: serviceAccount.project_id,
-    })
 
     // Start multiple detections in parallel for efficiency
     const [landmarkResult, sceneAnalysis, buildingMaterial] = await Promise.all([
@@ -1870,6 +1934,7 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
           latlng: `${locationToUse.latitude},${locationToUse.longitude}`,
           key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
         },
+        timeout: 10000, // 10 second timeout
       })
 
       let formattedAddress = ""
@@ -1928,6 +1993,7 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
             latlng: `${exifLocation.latitude},${exifLocation.longitude}`,
             key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
           },
+          timeout: 10000, // 10 second timeout
         })
 
         if (geocodeResponse.data.results && geocodeResponse.data.results.length > 0) {
@@ -2224,6 +2290,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         recognitionResult.id = locationId
       } catch (error) {
         console.error("Failed to save location to database:", error)
+        // Add more detailed error information
+        recognitionResult.dbError = error instanceof Error ? error.message : "Unknown database error"
         // Don't fail the request if database save fails
         recognitionResult.id = "temp-" + Date.now()
       }
