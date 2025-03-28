@@ -2130,121 +2130,65 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
     }
 
-    // Enhanced form data parsing with detailed logging and validation
-    let formData: FormData;
+    // Parse the form data
+    let formData
     try {
-      formData = await request.formData();
-      
-      // Comprehensive form data logging
-      console.log("Form data keys:", [...formData.keys()]);
+      formData = await request.formData()
+      console.log("Form data keys:", [...formData.keys()])
       console.log("Form data entries:", 
-        [...formData.entries()].map(([key, value]) => {
-          // Special handling for File objects
-          if (value instanceof File) {
-            return `${key}: File(name: ${value.name}, size: ${value.size}, type: ${value.type})`;
-          }
-          // Convert other values to string for logging
-          return `${key}: ${value}`;
-        })
-      );
-
-      // Validate critical form data
-      const requiredFields = ['image', 'lat', 'lng'];
-      const missingFields = requiredFields.filter(field => !formData.get(field));
-      
-      if (missingFields.length > 0) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: `Missing required fields: ${missingFields.join(", ")}`,
-            receivedFields: [...formData.keys()]
-          },
-          { status: 400 }
-        );
-      }
+        [...formData.entries()].map(([key, value]) => 
+          `${key}: ${value instanceof File ? `File(name: ${value.name}, size: ${value.size}, type: ${value.type})` : value}`
+        )
+      )
     } catch (error) {
-      console.error("Error parsing form data:", error);
+      console.error("Error parsing form data:", error)
       return NextResponse.json(
         {
           success: false,
           error: "Failed to parse form data",
-          details: error instanceof Error ? error.message : "Unknown parsing error"
         },
         { status: 400 },
       )
     }
 
-    // Check for database operations
-    const operation = formData.get("operation")
-
-    // Handle database operations (existing code remains the same)
-    if (operation) {
-      try {
-        switch (operation) {
-          // ... (existing database operation cases remain unchanged)
-          default:
-            return NextResponse.json({ success: false, error: "Invalid operation" }, { status: 400 })
-        }
-      } catch (dbError: any) {
-        console.error("Database operation failed:", dbError)
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Database operation failed",
-            details: dbError instanceof Error ? dbError.message : "Unknown error",
-          },
-          { status: 500 },
-        )
-      }
-    }
-
-    // Get the image file from the form data with enhanced validation
+    // Get the image file from the form data
     const imageFile = formData.get("image") as File
-    if (!imageFile || !(imageFile instanceof File)) {
+    if (!imageFile) {
       return NextResponse.json(
         {
           success: false,
-          error: "No valid image file provided",
-          details: {
-            imageProvided: !!imageFile,
-            imageType: imageFile ? typeof imageFile : 'null'
-          }
+          error: "No image file provided",
         },
         { status: 400 },
       )
     }
 
-    // Get the current location from the form data with more robust parsing
-    const latInput = formData.get("lat")
-    const lngInput = formData.get("lng")
+    // Check if we should save to database
+    const saveToDb = formData.get("saveToDb") !== "false" // Default to true if not specified
 
-    // Validate latitude and longitude
-    const lat = latInput ? Number.parseFloat(latInput.toString()) : NaN
-    const lng = lngInput ? Number.parseFloat(lngInput.toString()) : NaN
-
-    if (isNaN(lat) || isNaN(lng)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid current location coordinates",
-          details: {
-            lat: latInput?.toString(),
-            lng: lngInput?.toString(),
-            parsedLat: lat,
-            parsedLng: lng
-          }
-        },
-        { status: 400 },
-      )
+    // Fallback location (e.g., coordinates of London city center)
+    const fallbackLocation: Location = {
+      latitude: 51.5074,
+      longitude: -0.1278
     }
 
-    const currentLocation: Location = {
-      latitude: lat,
-      longitude: lng,
-    }
+    // Attempt to get coordinates from form data
+    let currentLocation: Location = fallbackLocation
+    const lat = formData.get("lat")
+    const lng = formData.get("lng")
 
-    // Check if we should save to database (default to true)
-    const saveToDb = formData.get("saveToDb") !== "false"
+    if (lat && lng) {
+      try {
+        currentLocation = {
+          latitude: Number.parseFloat(lat.toString()),
+          longitude: Number.parseFloat(lng.toString())
+        }
+      } catch (error) {
+        console.warn("Failed to parse coordinates, using fallback location")
+      }
+    } else {
+      console.warn("No coordinates provided, using fallback location")
+    }
 
     // Convert the image file to a buffer
     const imageBuffer = Buffer.from(await imageFile.arrayBuffer())
@@ -2259,10 +2203,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         recognitionResult.id = locationId
       } catch (error) {
         console.error("Failed to save location to database:", error)
+        // Add more detailed error information
         recognitionResult.dbError = error instanceof Error ? error.message : "Unknown database error"
+        // Don't fail the request if database save fails
         recognitionResult.id = "temp-" + Date.now()
       }
     }
+
+    // Attach location information to the result
+    recognitionResult.providedLocation = currentLocation
+    recognitionResult.usingFallbackLocation = currentLocation === fallbackLocation
 
     return NextResponse.json(recognitionResult, { status: 200 })
   } catch (error: any) {
