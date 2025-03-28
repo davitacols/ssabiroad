@@ -36,11 +36,12 @@ import {
   Check,
   ArrowLeft,
   UserPlus,
-  LogIn,
+
   Linkedin,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
+import { LogIn } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
