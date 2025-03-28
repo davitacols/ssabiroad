@@ -2094,193 +2094,219 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
 // Modified POST handler to handle the saveToDb parameter and handle new fields
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    console.log("Received POST request to location recognition API");
+    console.log("Received POST request to location recognition API")
 
-    // Log the full request headers for debugging
-    console.log("Request Headers:", Object.fromEntries(request.headers));
-
-    // More flexible content type checking
-    const contentType = request.headers.get("Content-Type") || "";
-    console.log("Content-Type:", contentType);
-
-    // Handle both multipart/form-data and application/x-www-form-urlencoded
-    let formData: FormData;
-    try {
-      // Try parsing as FormData first
-      formData = await request.formData();
-    } catch (formDataError) {
-      try {
-        // Fallback to parsing as JSON if FormData fails
-        const body = await request.json();
-        formData = new FormData();
-        
-        // Convert JSON body to FormData
-        Object.entries(body).forEach(([key, value]) => {
-          if (value instanceof File) {
-            formData.append(key, value);
-          } else {
-            formData.append(key, String(value));
-          }
-        });
-      } catch (jsonError) {
-        console.error("Failed to parse request body:", jsonError);
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Unable to parse request body",
-            details: String(jsonError)
-          },
-          { status: 400 }
-        );
-      }
-    }
-
-    console.log("Form data keys:", [...formData.keys()]);
-
-    // Image file validation
-    const imageFile = formData.get("image");
-    if (!imageFile || !(imageFile instanceof File)) {
+    // Check if required environment variables are set
+    if (!getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")) {
+      console.error("Missing environment variable: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")
       return NextResponse.json(
         {
           success: false,
-          error: "No image file provided or invalid file",
+          error: "Server configuration error: Missing Google Maps API key",
         },
-        { status: 400 }
-      );
+        { status: 500 },
+      )
     }
 
-    // Optional saveToDb flag
-    const saveToDb = formData.get("saveToDb") !== "false";
-
-    // Convert image to buffer
-    const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
-
-    // Simulate location recognition (replace with actual implementation)
-    const recognitionResult = {
-      success: true,
-      location: {
-        name: "Wheel Shop",
-        address: "Sample Address",
-        confidence: 0.85
-      }
-    };
-
-    // Optional database save
-    if (saveToDb) {
-      try {
-        // Simulate database save
-        recognitionResult.id = `location-${Date.now()}`;
-      } catch (error) {
-        console.error("Database save failed:", error);
-        recognitionResult.dbError = String(error);
-      }
-    }
-
-    return NextResponse.json(recognitionResult, { status: 200 });
-
-  } catch (error) {
-    console.error("Unexpected server error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Unexpected server error",
-        details: String(error)
-      },
-      { status: 500 }
-    );
-  }
-}
-
-// Separate function for database operations to improve readability
-async function handleDatabaseOperation(formData: FormData): Promise<NextResponse> {
-  const operation = formData.get("operation");
-
-  const operationHandlers: Record<string, () => Promise<NextResponse>> = {
-    getById: async () => {
-      const id = formData.get("id");
-      if (!id) {
-        return NextResponse.json({ success: false, error: "Missing location ID" }, { status: 400 });
-      }
-
-      const location = await LocationDB.getLocationById(id.toString());
-      if (!location) {
-        return NextResponse.json({ success: false, error: "Location not found" }, { status: 404 });
-      }
-
+    if (!getEnv("GCLOUD_CREDENTIALS")) {
+      console.error("Missing environment variable: GCLOUD_CREDENTIALS")
       return NextResponse.json(
         {
-          success: true,
-          ...location,
-          mapUrl: `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`,
+          success: false,
+          error: "Server configuration error: Missing Google Cloud credentials",
         },
-        { status: 200 }
-      );
-    },
-    search: async () => {
-      const query = formData.get("query");
-      if (!query) {
-        return NextResponse.json({ success: false, error: "Missing search query" }, { status: 400 });
-      }
-
-      const locations = await LocationDB.searchLocations(query.toString());
-      return NextResponse.json({ success: true, locations }, { status: 200 });
-    },
-    nearby: async () => {
-      const lat = formData.get("lat");
-      const lng = formData.get("lng");
-      const radius = formData.get("radius");
-
-      if (!lat || !lng) {
-        return NextResponse.json({ success: false, error: "Missing coordinates" }, { status: 400 });
-      }
-
-      const locations = await LocationDB.getNearbyLocations(
-        Number.parseFloat(lat.toString()),
-        Number.parseFloat(lng.toString()),
-        radius ? Number.parseFloat(radius.toString()) : undefined
-      );
-      return NextResponse.json({ success: true, locations }, { status: 200 });
-    },
-    all: async () => {
-      const locations = await LocationDB.getAllLocations();
-      return NextResponse.json({ success: true, locations }, { status: 200 });
-    },
-    byCategory: async () => {
-      const category = formData.get("category");
-      if (!category) {
-        return NextResponse.json({ success: false, error: "Missing category" }, { status: 400 });
-      }
-
-      const locations = await LocationDB.getLocationsByCategory(category.toString());
-      return NextResponse.json({ success: true, locations }, { status: 200 });
-    },
-    byBuildingType: async () => {
-      const type = formData.get("type");
-      if (!type) {
-        return NextResponse.json({ success: false, error: "Missing building type" }, { status: 400 });
-      }
-
-      const locations = await LocationDB.getLocationsByBuildingType(type.toString());
-      return NextResponse.json({ success: true, locations }, { status: 200 });
+        { status: 500 },
+      )
     }
-  };
 
-  try {
-    const handler = operationHandlers[operation as string];
-    if (!handler) {
-      return NextResponse.json({ success: false, error: "Invalid operation" }, { status: 400 });
+    // Check the Content-Type header
+    const contentType = request.headers.get("Content-Type") || ""
+    if (!contentType.includes("multipart/form-data") && !contentType.includes("application/x-www-form-urlencoded")) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Content-Type must be "multipart/form-data" or "application/x-www-form-urlencoded"',
+        },
+        { status: 400 },
+      )
     }
-    return await handler();
-  } catch (dbError: any) {
-    console.error("Database operation failed:", dbError);
+
+    // Parse the form data
+    let formData
+    try {
+      formData = await request.formData()
+      console.log("Form data keys:", [...formData.keys()])
+    } catch (error) {
+      console.error("Error parsing form data:", error)
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Failed to parse form data",
+        },
+        { status: 400 },
+      )
+    }
+
+    // Check for database operations
+    const operation = formData.get("operation")
+
+    // Handle database operations
+    if (operation) {
+      try {
+        switch (operation) {
+          case "getById": {
+            const id = formData.get("id")
+            if (!id) {
+              return NextResponse.json({ success: false, error: "Missing location ID" }, { status: 400 })
+            }
+
+            const location = await LocationDB.getLocationById(id.toString())
+            if (!location) {
+              return NextResponse.json({ success: false, error: "Location not found" }, { status: 404 })
+            }
+
+            return NextResponse.json(
+              {
+                success: true,
+                ...location,
+                mapUrl: `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`,
+              },
+              { status: 200 },
+            )
+          }
+
+          case "search": {
+            const query = formData.get("query")
+            if (!query) {
+              return NextResponse.json({ success: false, error: "Missing search query" }, { status: 400 })
+            }
+
+            const locations = await LocationDB.searchLocations(query.toString())
+            return NextResponse.json({ success: true, locations }, { status: 200 })
+          }
+
+          case "nearby": {
+            const lat = formData.get("lat")
+            const lng = formData.get("lng")
+            const radius = formData.get("radius")
+
+            if (!lat || !lng) {
+              return NextResponse.json({ success: false, error: "Missing coordinates" }, { status: 400 })
+            }
+
+            const locations = await LocationDB.getNearbyLocations(
+              Number.parseFloat(lat.toString()),
+              Number.parseFloat(lng.toString()),
+              radius ? Number.parseFloat(radius.toString()) : undefined,
+            )
+            return NextResponse.json({ success: true, locations }, { status: 200 })
+          }
+
+          case "all": {
+            const locations = await LocationDB.getAllLocations()
+            return NextResponse.json({ success: true, locations }, { status: 200 })
+          }
+
+          case "byCategory": {
+            const category = formData.get("category")
+            if (!category) {
+              return NextResponse.json({ success: false, error: "Missing category" }, { status: 400 })
+            }
+
+            const locations = await LocationDB.getLocationsByCategory(category.toString())
+            return NextResponse.json({ success: true, locations }, { status: 200 })
+          }
+
+          case "byBuildingType": {
+            const type = formData.get("type")
+            if (!type) {
+              return NextResponse.json({ success: false, error: "Missing building type" }, { status: 400 })
+            }
+
+            const locations = await LocationDB.getLocationsByBuildingType(type.toString())
+            return NextResponse.json({ success: true, locations }, { status: 200 })
+          }
+
+          default:
+            return NextResponse.json({ success: false, error: "Invalid operation" }, { status: 400 })
+        }
+      } catch (dbError: any) {
+        console.error("Database operation failed:", dbError)
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Database operation failed",
+            details: dbError instanceof Error ? dbError.message : "Unknown error",
+          },
+          { status: 500 },
+        )
+      }
+    }
+
+    // Get the image file from the form data
+    const imageFile = formData.get("image") as File
+    if (!imageFile) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No image file provided",
+        },
+        { status: 400 },
+      )
+    }
+
+    // Get the current location from the form data
+    const lat = formData.get("lat")
+    const lng = formData.get("lng")
+
+    if (!lat || !lng) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Missing current location coordinates",
+        },
+        { status: 400 },
+      )
+    }
+
+    const currentLocation: Location = {
+      latitude: Number.parseFloat(lat.toString()),
+      longitude: Number.parseFloat(lng.toString()),
+    }
+
+    // Check if we should save to database
+    const saveToDb = formData.get("saveToDb") !== "false" // Default to true if not specified
+
+    // Convert the image file to a buffer
+    const imageBuffer = Buffer.from(await imageFile.arrayBuffer())
+
+    // Perform image analysis with enhanced recognition
+    const recognitionResult = await recognizeLocation(imageBuffer, currentLocation)
+
+    // Save the location to the database if recognition was successful and saveToDb is true
+    if (recognitionResult.success && saveToDb) {
+      try {
+        const locationId = await LocationDB.saveLocation(recognitionResult)
+        recognitionResult.id = locationId
+      } catch (error) {
+        console.error("Failed to save location to database:", error)
+        // Add more detailed error information
+        recognitionResult.dbError = error instanceof Error ? error.message : "Unknown database error"
+        // Don't fail the request if database save fails
+        recognitionResult.id = "temp-" + Date.now()
+      }
+    }
+
+    return NextResponse.json(recognitionResult, { status: 200 })
+  } catch (error: any) {
+    console.error("Server error:", error)
     return NextResponse.json(
       {
         success: false,
-        error: "Database operation failed",
-        details: dbError instanceof Error ? dbError.message : "Unknown error",
+        error: error instanceof Error ? error.message : "Server error",
       },
-      { status: 500 }
-    );
+      { status: 500 },
+    )
   }
 }
 
@@ -2420,15 +2446,22 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-
 export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
-  return new NextResponse(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      "Access-Control-Max-Age": "86400",
-    }
-  });
+  // Handle preflight requests
+  if (request.method === "OPTIONS") {
+    const response = new NextResponse(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Max-Age": "86400",
+      },
+    })
+
+    return response
+  } else {
+    return NextResponse.json({ success: false, error: "Method not allowed" }, { status: 405 })
+  }
 }
+
