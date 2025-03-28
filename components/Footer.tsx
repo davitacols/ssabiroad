@@ -14,6 +14,15 @@ export function Footer() {
             <Link href="#" className="text-sm text-gray-500 hover:text-indigo-600">
               Terms
             </Link>
+            <Link href="/help-center" className="text-sm text-gray-500 hover:text-indigo-600">
+              Help Center
+            </Link>
+            <Link href="/feedback" className="text-sm text-gray-500 hover:text-indigo-600">
+              Feedback
+            </Link>
+            <Link href="/about" className="text-sm text-gray-500 hover:text-indigo-600">
+              About
+            </Link>
           </div>
           <div className="flex items-center gap-6">
             <Link href="#" className="text-gray-400 hover:text-indigo-600">
