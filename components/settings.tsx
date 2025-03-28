@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import React from "react"
 import {
   Moon,
   Sun,
@@ -64,6 +65,90 @@ interface SettingsState {
     sessionTimeout: "15min" | "30min" | "1hour" | "4hours" | "never"
     loginNotifications: boolean
   }
+}
+
+// Simple User Settings Component
+interface UserSettingsProps {
+  currentTheme?: string;
+  notificationsEnabled?: boolean;
+}
+
+export function UserSettings({ 
+  currentTheme = "light", 
+  notificationsEnabled = true 
+}: UserSettingsProps) {
+  const [theme, setTheme] = useState(currentTheme);
+  const [notifications, setNotifications] = useState(notificationsEnabled);
+
+  const handleThemeChange = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    
+    // Apply theme changes
+    if (newTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    
+    toast({
+      title: "Theme Changed",
+      description: `Theme set to ${newTheme} mode`,
+    });
+  };
+
+  const handleNotificationsChange = (checked: boolean) => {
+    setNotifications(checked);
+    toast({
+      title: "Notifications Setting Updated",
+      description: `Notifications ${checked ? "enabled" : "disabled"}`,
+    });
+  };
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Quick Settings</CardTitle>
+        <CardDescription>Adjust your basic preferences</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="theme-toggle">Theme</Label>
+            <p className="text-sm text-muted-foreground">Switch between light and dark mode</p>
+          </div>
+          <Button onClick={handleThemeChange} variant="outline">
+            {theme === "light" ? (
+              <>
+                <Moon className="mr-2 h-4 w-4" />
+                Switch to Dark
+              </>
+            ) : (
+              <>
+                <Sun className="mr-2 h-4 w-4" />
+                Switch to Light
+              </>
+            )}
+          </Button>
+        </div>
+        
+        <Separator />
+        
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="notifications-toggle">Notifications</Label>
+            <p className="text-sm text-muted-foreground">Enable or disable all notifications</p>
+          </div>
+          <Switch
+            id="notifications-toggle"
+            checked={notifications}
+            onCheckedChange={handleNotificationsChange}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export function SettingsComponent() {
@@ -336,6 +421,12 @@ export function SettingsComponent() {
           )}
         </Button>
       </div>
+
+      {/* Quick Settings Component */}
+      <UserSettings 
+        currentTheme={settings.appearance.theme === "dark" ? "dark" : "light"} 
+        notificationsEnabled={settings.notifications.push} 
+      />
 
       <Tabs defaultValue="appearance" className="w-full">
         <TabsList className="grid grid-cols-5 w-full md:w-[600px]">

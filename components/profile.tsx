@@ -58,11 +58,26 @@ interface UserProfile {
   }[]
 }
 
+// Fields that can be edited by the user
+interface EditableProfileFields {
+  fullName: string
+  bio: string
+  location: string
+  website: string
+  occupation: string
+}
+
 export function ProfileComponent() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
-  const [editedProfile, setEditedProfile] = useState<Partial<UserProfile>>({})
+  const [editedProfile, setEditedProfile] = useState<EditableProfileFields>({
+    fullName: "",
+    bio: "",
+    location: "",
+    website: "",
+    occupation: ""
+  })
   const [isSaving, setIsSaving] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
@@ -127,6 +142,15 @@ export function ProfileComponent() {
         }
 
         setProfile(userProfile)
+        
+        // Initialize editable fields with profile data
+        setEditedProfile({
+          fullName: userProfile.fullName,
+          bio: userProfile.bio,
+          location: userProfile.location,
+          website: userProfile.website,
+          occupation: userProfile.occupation,
+        })
       } catch (error) {
         console.error("Error fetching profile:", error)
         toast({
@@ -140,13 +164,20 @@ export function ProfileComponent() {
     }
 
     fetchProfile()
-  }, [])
+  }, [router])
 
   const handleEditToggle = () => {
     if (isEditing) {
       // Cancel editing
       setIsEditing(false)
-      setEditedProfile({})
+      // Reset edited profile to original values
+      setEditedProfile({
+        fullName: profile?.fullName || "",
+        bio: profile?.bio || "",
+        location: profile?.location || "",
+        website: profile?.website || "",
+        occupation: profile?.occupation || "",
+      })
     } else {
       // Start editing with current profile data
       setIsEditing(true)
@@ -166,6 +197,19 @@ export function ProfileComponent() {
       ...prev,
       [name]: value,
     }))
+  }
+  
+  // Reset form to original values
+  const resetForm = () => {
+    if (!profile) return
+    
+    setEditedProfile({
+      fullName: profile.fullName || "",
+      bio: profile.bio || "",
+      location: profile.location || "",
+      website: profile.website || "",
+      occupation: profile.occupation || "",
+    })
   }
 
   const handleSaveProfile = async () => {
@@ -218,6 +262,12 @@ export function ProfileComponent() {
     } finally {
       setIsSaving(false)
     }
+  }
+  
+  // Cancel editing and reset form
+  const handleCancelEdit = () => {
+    resetForm()
+    setIsEditing(false)
   }
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -313,25 +363,43 @@ export function ProfileComponent() {
           <p className="text-muted-foreground mt-1">Manage your personal information and account settings</p>
         </div>
 
-        <Button
-          onClick={handleEditToggle}
-          variant={isEditing ? "outline" : "default"}
-          className={
-            isEditing ? "" : "bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
-          }
-        >
-          {isEditing ? (
-            <>
+        {isEditing ? (
+          <div className="flex gap-2">
+            <Button
+              onClick={handleCancelEdit}
+              variant="outline"
+            >
               <X className="mr-2 h-4 w-4" />
               Cancel
-            </>
-          ) : (
-            <>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Profile
-            </>
-          )}
-        </Button>
+            </Button>
+            <Button
+              onClick={handleSaveProfile}
+              disabled={isSaving}
+              className="bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save
+                </>
+              )}
+            </Button>
+          </div>
+        ) : (
+          <Button
+            onClick={handleEditToggle}
+            variant="default"
+            className="bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
+          >
+            <Edit className="mr-2 h-4 w-4" />
+            Edit Profile
+          </Button>
+        )}
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
@@ -459,25 +527,7 @@ export function ProfileComponent() {
                     />
                   </div>
 
-                  <div className="flex justify-end">
-                    <Button
-                      onClick={handleSaveProfile}
-                      disabled={isSaving}
-                      className="bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
-                    >
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                  {/* Buttons moved to the header for better UX */}
                 </div>
               ) : (
                 <div className="space-y-6">

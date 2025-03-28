@@ -34,27 +34,30 @@ import {
   Droplets,
   PlusCircle,
   FileText,
-  Grid,
   Bell,
   MessageSquare,
   HelpCircle,
   Maximize,
   Minimize,
-  Sliders,
   Globe,
   BarChart3,
   Filter,
   LayoutDashboard,
+  Share,
+  ChevronDown,
+  LayoutGrid,
+  ThumbsUp,
+  Layers,
+  GalleryHorizontalEnd,
 } from "lucide-react"
 import * as THREE from "three"
-import * as LucideIcons from "lucide-react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api"
 import { Canvas } from "@react-three/fiber"
 import { Environment, OrbitControls, useGLTF, Text, Float, PerspectiveCamera } from "@react-three/drei"
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -86,7 +89,11 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/use-toast"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 
@@ -503,6 +510,43 @@ const CameraRecognition = () => {
     setError(null)
   }
 
+  // Function to handle sharing location details
+  const handleShare = () => {
+    if (recognitionResult) {
+      const shareData = {
+        title: recognitionResult.name || "Location",
+        text: recognitionResult.description || "Check out this location!",
+        url: recognitionResult.mapUrl || window.location.href,
+      }
+
+      if (navigator.share) {
+        navigator
+          .share(shareData)
+          .then(() => {
+            toast({
+              title: "Shared successfully",
+              description: "Location details have been shared",
+            })
+          })
+          .catch((error) => {
+            console.error("Error sharing:", error)
+            toast({
+              title: "Sharing failed",
+              description: "Could not share location details",
+              variant: "destructive",
+            })
+          })
+      } else {
+        // Fallback for browsers that don't support the Web Share API
+        toast({
+          title: "Sharing not supported",
+          description: "Your browser doesn't support sharing. Try copying the URL manually.",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
   // Render environmental data
   const renderEnvironmentalData = (data) => {
     if (!data) return null
@@ -546,7 +590,7 @@ const CameraRecognition = () => {
 
         {data.materialType && (
           <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
-            <LucideIcons.Layers className="h-4 w-4 text-primary" />
+            <Layers className="h-4 w-4 text-primary" />
             <span className="text-xs">Material: {data.materialType}</span>
           </div>
         )}
@@ -558,7 +602,7 @@ const CameraRecognition = () => {
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
         <div className="flex-1">
-          <div className="relative h-[400px] bg-muted rounded-lg overflow-hidden border border-border flex items-center justify-center">
+          <div className="relative h-[400px] bg-background rounded-xl overflow-hidden border border-border shadow-md flex items-center justify-center">
             {/* Camera video feed */}
             <video
               ref={videoRef}
@@ -603,7 +647,7 @@ const CameraRecognition = () => {
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-background/90 backdrop-blur-sm p-6 rounded-lg border border-border"
+                    className="bg-background/90 backdrop-blur-sm p-6 rounded-xl border border-border shadow-lg"
                   >
                     <div className="flex items-center gap-2 mb-4">
                       <MapPin className="h-5 w-5 text-primary" />
@@ -740,7 +784,7 @@ const CameraRecognition = () => {
                       </div>
                     )}
 
-                    <div className="flex justify-between mt-4">
+                    <div className="flex flex-wrap justify-between gap-2 mt-4">
                       {recognitionResult.mapUrl && (
                         <Button variant="outline" size="lg" asChild>
                           <a href={recognitionResult.mapUrl} target="_blank" rel="noopener noreferrer">
@@ -749,19 +793,17 @@ const CameraRecognition = () => {
                           </a>
                         </Button>
                       )}
-                      {recognitionResult.location && (
-                        <Button variant="default" size="lg">
-                          <Navigation className="w-4 h-4 mr-2" />
-                          Navigate
-                        </Button>
-                      )}
+                      <Button variant="outline" size="lg" onClick={handleShare}>
+                        <Share className="w-4 h-4 mr-2" />
+                        Share
+                      </Button>
                     </div>
                   </motion.div>
                 ) : (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-background/90 backdrop-blur-sm p-6 rounded-lg border border-border"
+                    className="bg-background/90 backdrop-blur-sm p-6 rounded-xl border border-border shadow-lg"
                   >
                     <div className="flex items-center gap-2 mb-4">
                       <AlertCircle className="h-5 w-5 text-destructive" />
@@ -801,11 +843,20 @@ const CameraRecognition = () => {
                   Upload a photo or use your camera to instantly recognize landmarks, businesses, and navigate to them
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Button size="lg" onClick={() => fileInputRef.current?.click()}>
+                  <Button
+                    size="lg"
+                    className="bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
                     <Upload className="mr-2 h-5 w-5" />
                     Upload Image
                   </Button>
-                  <Button size="lg" variant="outline" onClick={handleCameraCapture}>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-primary/20 hover:bg-primary/5"
+                    onClick={handleCameraCapture}
+                  >
                     <Camera className="mr-2 h-5 w-5" />
                     Use Camera
                   </Button>
@@ -817,7 +868,7 @@ const CameraRecognition = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute bottom-4 left-4 right-4 bg-destructive/10 text-destructive p-3 rounded"
+                className="absolute bottom-4 left-4 right-4 bg-destructive/10 text-destructive p-3 rounded-md"
               >
                 {error}
               </motion.div>
@@ -843,48 +894,50 @@ const CameraRecognition = () => {
 
         {/* Recent Locations Panel */}
         <div className="w-full lg:w-80 shrink-0">
-          <Card className="border border-border/40 shadow-sm">
-            <CardHeader className="pb-2">
+          <Card className="border border-border/40 shadow-md rounded-xl overflow-hidden">
+            <CardHeader className="pb-2 bg-muted/30">
               <CardTitle className="text-lg flex items-center">
-                <Clock className="mr-2 h-4 w-4" />
+                <Clock className="mr-2 h-4 w-4 text-primary" />
                 Recent Locations
               </CardTitle>
               <CardDescription>Your recently identified places</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3">
               {recentLocations.length > 0 ? (
-                <div className="space-y-3">
-                  {recentLocations.map((location, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="p-3 rounded-md border border-border/50 hover:bg-muted/50 cursor-pointer transition-colors"
-                      onClick={() => handleRecentLocationSelect(location)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm">{location.name}</h4>
-                        {location.confidence && (
-                          <Badge variant="outline" className="text-xs">
-                            {Math.round(location.confidence * 100)}%
-                          </Badge>
+                <ScrollArea className="max-h-[350px] pr-3">
+                  <div className="space-y-3">
+                    {recentLocations.map((location, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="p-3 rounded-lg border border-border/50 hover:bg-muted/50 cursor-pointer transition-colors"
+                        onClick={() => handleRecentLocationSelect(location)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-sm">{location.name}</h4>
+                          {location.confidence && (
+                            <Badge variant="outline" className="text-xs">
+                              {Math.round(location.confidence * 100)}%
+                            </Badge>
+                          )}
+                        </div>
+                        {location.address && (
+                          <p className="text-xs text-muted-foreground mt-1 truncate">{location.address}</p>
                         )}
-                      </div>
-                      {location.address && (
-                        <p className="text-xs text-muted-foreground mt-1 truncate">{location.address}</p>
-                      )}
-                      <div className="flex items-center mt-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {location.category || location.type || "Unknown"}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground ml-auto">
-                          {location.date || new Date().toLocaleDateString()}
-                        </span>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+                        <div className="flex items-center mt-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {location.category || location.type || "Unknown"}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground ml-auto">
+                            {location.date || new Date().toLocaleDateString()}
+                          </span>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </ScrollArea>
               ) : (
                 <div className="flex flex-col items-center justify-center py-6 text-center">
                   <History className="h-10 w-10 text-muted-foreground mb-2" />
@@ -898,12 +951,12 @@ const CameraRecognition = () => {
       </div>
 
       {/* How It Works Section */}
-      <Card className="border border-border/40 shadow-sm">
-        <CardHeader className="pb-2">
+      <Card className="border border-border/40 shadow-md rounded-xl overflow-hidden">
+        <CardHeader className="pb-2 bg-muted/30">
           <CardTitle>How It Works</CardTitle>
           <CardDescription>Three simple steps to navigate to any place using just a photo</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -913,7 +966,7 @@ const CameraRecognition = () => {
             >
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 relative">
                 <Camera className="h-6 w-6 text-primary" />
-                <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center font-medium">
+                <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center font-medium shadow-md">
                   1
                 </div>
               </div>
@@ -931,7 +984,7 @@ const CameraRecognition = () => {
             >
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 relative">
                 <Sparkles className="h-6 w-6 text-primary" />
-                <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center font-medium">
+                <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center font-medium shadow-md">
                   2
                 </div>
               </div>
@@ -949,7 +1002,7 @@ const CameraRecognition = () => {
             >
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 relative">
                 <Compass className="h-6 w-6 text-primary" />
-                <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center font-medium">
+                <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center font-medium shadow-md">
                   3
                 </div>
               </div>
@@ -966,7 +1019,7 @@ const CameraRecognition = () => {
 }
 
 // Implement the Locations feature
-const LocationsFeature = () => {
+const LocationsFeature = ({ filterCategory = "all" }) => {
   const [locations, setLocations] = useState<SavedLocation[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -974,14 +1027,15 @@ const LocationsFeature = () => {
   const [showLocationDetails, setShowLocationDetails] = useState(false)
   const [sortField, setSortField] = useState<string>("createdAt")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
-  const [filterCategory, setFilterCategory] = useState<string>("all")
+  const [localFilterCategory, setLocalFilterCategory] = useState<string>(filterCategory)
+
+  // Update local filter when prop changes
+  useEffect(() => {
+    setLocalFilterCategory(filterCategory)
+  }, [filterCategory])
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [isBookmarked, setIsBookmarked] = useState<boolean>(false)
-  const [cameraActive, setCameraActive] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [recognitionResult, setRecognitionResult] = useState<LocationRecognitionResponse | null>(null)
-
-  const [recentLocations, setRecentLocations] = useState<LocationRecognitionResponse[]>([])
+  const [view, setView] = useState<"grid" | "list">("list")
 
   // Fetch locations from the API
   const fetchLocations = async () => {
@@ -1138,7 +1192,12 @@ const LocationsFeature = () => {
   const filteredAndSortedLocations = locations
     .filter((loc) => {
       // Apply category filter
-      if (filterCategory !== "all" && loc.category !== filterCategory) {
+      if (
+        localFilterCategory !== "all" &&
+        loc.category !== localFilterCategory &&
+        // Handle case differences and plurals
+        loc.category?.toLowerCase() !== localFilterCategory.toLowerCase().replace(/s$/, "")
+      ) {
         return false
       }
 
@@ -1209,7 +1268,7 @@ const LocationsFeature = () => {
             className="w-full sm:w-48 md:w-64"
           />
 
-          <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <Select value={localFilterCategory} onValueChange={setLocalFilterCategory}>
             <SelectTrigger className="w-full sm:w-36 md:w-40">
               <SelectValue placeholder="Filter by category" />
             </SelectTrigger>
@@ -1221,6 +1280,40 @@ const LocationsFeature = () => {
               ))}
             </SelectContent>
           </Select>
+
+          <div className="flex rounded-md border border-input overflow-hidden">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-9 w-9 rounded-none ${view === "list" ? "bg-muted" : ""}`}
+                    onClick={() => setView("list")}
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>List View</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-9 w-9 rounded-none ${view === "grid" ? "bg-muted" : ""}`}
+                    onClick={() => setView("grid")}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Grid View</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </div>
 
@@ -1242,7 +1335,7 @@ const LocationsFeature = () => {
           </CardContent>
         </Card>
       ) : filteredAndSortedLocations.length === 0 ? (
-        <Card>
+        <Card className="rounded-xl shadow-md">
           <CardContent className="py-10">
             <div className="flex flex-col items-center justify-center text-center">
               <Database className="h-10 w-10 text-muted-foreground mb-4" />
@@ -1255,10 +1348,10 @@ const LocationsFeature = () => {
             </div>
           </CardContent>
         </Card>
-      ) : (
-        <Card className="border border-border/40 shadow-sm">
+      ) : view === "list" ? (
+        <Card className="border border-border/40 shadow-md rounded-xl overflow-hidden">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-muted/30">
               <TableRow>
                 <TableHead className="w-[250px]">
                   <Button variant="ghost" className="p-0 font-medium" onClick={() => toggleSort("name")}>
@@ -1353,6 +1446,85 @@ const LocationsFeature = () => {
             </TableBody>
           </Table>
         </Card>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredAndSortedLocations.map((location, index) => (
+            <motion.div
+              key={location.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <Card className="overflow-hidden h-full flex flex-col group hover:shadow-lg transition-shadow rounded-xl">
+                <div className="relative h-40 bg-muted">
+                  <img
+                    src={
+                      location.photos?.[0] ||
+                      `/placeholder.svg?height=160&width=320&text=${encodeURIComponent(location.name || "Unknown")}`
+                    }
+                    alt={location.name || "Unknown location"}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <h3 className="font-medium text-white truncate">{location.name || "Unknown"}</h3>
+                    <p className="text-xs text-white/80 truncate">{location.address || "No address"}</p>
+                  </div>
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-7 w-7 bg-black/30 hover:bg-black/50 text-white border-none opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleViewDetails(location)}
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-7 w-7 bg-black/30 hover:bg-black/50 text-white border-none opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleToggleBookmark(location)}
+                    >
+                      {location.isBookmarked ? (
+                        <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" />
+                      ) : (
+                        <Heart className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-7 w-7 bg-black/30 hover:bg-black/50 text-white border-none opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleDeleteLocation(location.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  {location.confidence && (
+                    <div className="absolute top-2 left-2">
+                      <Badge
+                        variant={location.confidence > 0.8 ? "default" : "secondary"}
+                        className="bg-black/30 text-white"
+                      >
+                        {Math.round(location.confidence * 100)}%
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+                <CardContent className="flex-1 p-3">
+                  <div className="flex justify-between items-center mb-2">
+                    <Badge variant="outline" className="text-xs">
+                      {location.category || "Unknown"}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(location.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
       )}
 
       {/* Location Details Dialog */}
@@ -1562,7 +1734,7 @@ const LocationsFeature = () => {
                 </div>
               </div>
 
-              <DialogFooter className="flex justify-between">
+              <DialogFooter className="flex flex-wrap justify-between gap-2 mt-4">
                 <Button variant="outline" onClick={() => handleToggleBookmark(selectedLocation)}>
                   {selectedLocation.isBookmarked ? (
                     <>
@@ -1578,13 +1750,39 @@ const LocationsFeature = () => {
                 </Button>
 
                 {selectedLocation.mapUrl && (
-                  <Button asChild>
+                  <Button asChild className="bg-primary hover:bg-primary/90">
                     <a href={selectedLocation.mapUrl} target="_blank" rel="noopener noreferrer">
                       <MapPin className="mr-2 h-4 w-4" />
                       View on Map
                     </a>
                   </Button>
                 )}
+
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (selectedLocation) {
+                      const shareData = {
+                        title: selectedLocation.name || "Location",
+                        text: selectedLocation.description || "Check out this location!",
+                        url: selectedLocation.mapUrl || window.location.href,
+                      }
+
+                      if (navigator.share) {
+                        navigator.share(shareData).catch((error) => console.error("Error sharing:", error))
+                      } else {
+                        toast({
+                          title: "Sharing not supported",
+                          description: "Your browser doesn't support sharing. Try copying the URL manually.",
+                          variant: "destructive",
+                        })
+                      }
+                    }
+                  }}
+                >
+                  <Share className="mr-2 h-4 w-4" />
+                  Share
+                </Button>
               </DialogFooter>
             </>
           )}
@@ -1595,7 +1793,7 @@ const LocationsFeature = () => {
 }
 
 // Implement the Map feature
-const MapFeature = () => {
+const MapFeature = ({ filterCategory = "all" }) => {
   const [locations, setLocations] = useState<SavedLocation[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -1766,18 +1964,19 @@ const MapFeature = () => {
         </div>
 
         <div className="flex gap-2">
-          <Button onClick={toggle3DMode} variant="outline">
+          <Button onClick={toggle3DMode} variant="outline" className="gap-2">
+            {is3DMode ? <Map className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
             {is3DMode ? "2D Map" : "3D View"}
           </Button>
-          <Button onClick={fetchLocations} variant="outline">
-            <Loader2 className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : "hidden"}`} />
+          <Button onClick={fetchLocations} variant="outline" className="gap-2">
+            <Loader2 className={`h-4 w-4 ${isLoading ? "animate-spin" : "hidden"}`} />
             Refresh Map
           </Button>
         </div>
       </div>
 
       {!isGoogleMapsLoaded ? (
-        <Card className="h-[600px] flex items-center justify-center border border-border/40 shadow-sm">
+        <Card className="h-[600px] flex items-center justify-center border border-border/40 shadow-md rounded-xl">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
             <h3 className="text-lg font-medium">Loading Google Maps</h3>
@@ -1785,7 +1984,7 @@ const MapFeature = () => {
           </div>
         </Card>
       ) : error ? (
-        <Card className="h-[600px] flex items-center justify-center border border-border/40 shadow-sm">
+        <Card className="h-[600px] flex items-center justify-center border border-border/40 shadow-md rounded-xl">
           <div className="text-center">
             <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">Error Loading Map</h3>
@@ -1796,7 +1995,7 @@ const MapFeature = () => {
           </div>
         </Card>
       ) : is3DMode ? (
-        <Card className="h-[600px] overflow-hidden border border-border/40 shadow-sm">
+        <Card className="h-[600px] overflow-hidden border border-border/40 shadow-md rounded-xl">
           <div className="w-full h-full">
             <Canvas>
               <PerspectiveCamera makeDefault position={[0, 5, 10]} />
@@ -1859,7 +2058,7 @@ const MapFeature = () => {
           </div>
         </Card>
       ) : (
-        <Card className="h-[600px] overflow-hidden border border-border/40 shadow-sm">
+        <Card className="h-[600px] overflow-hidden border border-border/40 shadow-md rounded-xl">
           <GoogleMap
             mapContainerStyle={{ width: "100%", height: "100%" }}
             center={{ lat: mapCenter.latitude, lng: mapCenter.longitude }}
@@ -1870,6 +2069,33 @@ const MapFeature = () => {
               streetViewControl: true,
               fullscreenControl: true,
               mapTypeId: "hybrid",
+              styles: [
+                {
+                  featureType: "all",
+                  elementType: "labels.text.fill",
+                  stylers: [{ color: "#7c93a3" }, { lightness: -10 }],
+                },
+                {
+                  featureType: "administrative.country",
+                  elementType: "geometry",
+                  stylers: [{ visibility: "on" }],
+                },
+                {
+                  featureType: "administrative.province",
+                  elementType: "geometry.stroke",
+                  stylers: [{ color: "#ffffff" }, { visibility: "on" }, { weight: 1 }],
+                },
+                {
+                  featureType: "landscape",
+                  elementType: "geometry",
+                  stylers: [{ color: "#f3f4f4" }],
+                },
+                {
+                  featureType: "water",
+                  elementType: "geometry",
+                  stylers: [{ color: "#a3ccff" }],
+                },
+              ],
             }}
           >
             {/* User location marker */}
@@ -1933,44 +2159,58 @@ const MapFeature = () => {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <Card className="border border-border/40 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Location Stats</CardTitle>
+          <Card className="border border-border/40 shadow-md rounded-xl h-full">
+            <CardHeader className="pb-2 bg-muted/30">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                Location Stats
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Total Locations:</span>
-                  <span className="font-medium">{locations.length}</span>
+                  <span className="font-medium text-lg">{locations.length}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Landmarks:</span>
-                  <span className="font-medium">{locations.filter((loc) => loc.category === "Landmark").length}</span>
+                  <Badge variant="outline">{locations.filter((loc) => loc.category === "Landmark").length}</Badge>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Businesses:</span>
-                  <span className="font-medium">{locations.filter((loc) => loc.category === "Business").length}</span>
+                  <Badge variant="outline">{locations.filter((loc) => loc.category === "Business").length}</Badge>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Other:</span>
-                  <span className="font-medium">
+                  <Badge variant="outline">
                     {locations.filter((loc) => loc.category !== "Landmark" && loc.category !== "Business").length}
-                  </span>
+                  </Badge>
                 </div>
+                {userLocation && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Your Position:</span>
+                    <span className="text-xs font-mono bg-muted p-1 rounded">
+                      {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
+                    </span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card className="border border-border/40 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Map Legend</CardTitle>
+          <Card className="border border-border/40 shadow-md rounded-xl h-full">
+            <CardHeader className="pb-2 bg-muted/30">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <GalleryHorizontalEnd className="h-5 w-5 text-primary" />
+                Map Legend
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center">
                   <div className="w-4 h-4 rounded-full bg-[#4285F4] mr-2"></div>
                   <span>Your Current Location</span>
@@ -1997,9 +2237,12 @@ const MapFeature = () => {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card className="border border-border/40 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
+          <Card className="border border-border/40 shadow-md rounded-xl h-full">
+            <CardHeader className="pb-2 bg-muted/30">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Settings className="h-5 w-5 text-primary" />
+                Quick Actions
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -2038,7 +2281,7 @@ const MapFeature = () => {
                     </>
                   ) : (
                     <>
-                      <GlobeComponent className="mr-2 h-4 w-4" />
+                      <Globe className="mr-2 h-4 w-4" />
                       Switch to 3D View
                     </>
                   )}
@@ -2052,997 +2295,14 @@ const MapFeature = () => {
   )
 }
 
-// Add the BookmarksFeature component after the MapFeature component
-
-// Implement the Bookmarks feature
-const BookmarksFeature = () => {
-  const [bookmarks, setBookmarks] = useState<BookmarkType[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedBookmark, setSelectedBookmark] = useState<BookmarkType | null>(null)
-  const [showBookmarkDetails, setShowBookmarkDetails] = useState(false)
-  const [sortField, setSortField] = useState<string>("createdAt")
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
-  const [filterCategory, setFilterCategory] = useState<string>("all")
-  const [searchQuery, setSearchQuery] = useState<string>("")
-  const [view, setView] = useState<"grid" | "list">("grid")
-  const router = useRouter()
-
-  // Fetch bookmarks from the API
-  const fetchBookmarks = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-
-      const response = await fetch("/api/bookmarks")
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
-      }
-
-      const data = await response.json()
-
-      if (data.success && data.bookmarks) {
-        setBookmarks(data.bookmarks)
-      } else {
-        setBookmarks([])
-      }
-    } catch (err) {
-      console.error("Failed to fetch bookmarks:", err)
-      setError(err instanceof Error ? err.message : "Failed to fetch bookmarks")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Fetch bookmarks on component mount
-  useEffect(() => {
-    fetchBookmarks()
-  }, [])
-
-  // Handle bookmark deletion
-  const handleDeleteBookmark = async (id: string) => {
-    try {
-      const response = await fetch(`/api/bookmarks/${id}`, {
-        method: "DELETE",
-      })
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
-      }
-
-      // Remove the bookmark from the state
-      setBookmarks(bookmarks.filter((bookmark) => bookmark.id !== id))
-      toast({
-        title: "Bookmark deleted",
-        description: "The bookmark has been successfully deleted.",
-      })
-    } catch (err) {
-      console.error("Failed to delete bookmark:", err)
-      toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to delete bookmark",
-        variant: "destructive",
-      })
-    }
-  }
-
-  // View bookmark details
-  const handleViewDetails = (bookmark: BookmarkType) => {
-    setSelectedBookmark(bookmark)
-    setShowBookmarkDetails(true)
-  }
-
-  // Navigate to location
-  const handleNavigate = (bookmark: BookmarkType) => {
-    // In a real app, this would navigate to the location
-    toast({
-      title: "Navigation started",
-      description: `Navigating to ${bookmark.name}`,
-    })
-  }
-
-  // Filter and sort bookmarks
-  const filteredAndSortedBookmarks = bookmarks
-    .filter((bookmark) => {
-      // Apply category filter
-      if (filterCategory !== "all" && bookmark.category !== filterCategory) {
-        return false
-      }
-
-      // Apply search filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase()
-        return bookmark.name.toLowerCase().includes(query) || bookmark.address.toLowerCase().includes(query)
-      }
-
-      return true
-    })
-    .sort((a, b) => {
-      // Apply sorting
-      let comparison = 0
-
-      switch (sortField) {
-        case "name":
-          comparison = a.name.localeCompare(b.name)
-          break
-        case "category":
-          comparison = a.category.localeCompare(b.category)
-          break
-        case "createdAt":
-        default:
-          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          break
-      }
-
-      return sortDirection === "asc" ? comparison : -comparison
-    })
-
-  // Toggle sort direction
-  const toggleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
-    } else {
-      setSortField(field)
-      setSortDirection("asc")
-    }
-  }
-
-  // Get unique categories for filter
-  const categories = ["all", ...new Set(bookmarks.map((bookmark) => bookmark.category))]
-
-  // Generate a random image for bookmarks without images
-  const getRandomImage = (seed: string) => {
-    const colors = ["4287f5", "42f54e", "f54242", "f5d442", "f542f2"]
-    const colorIndex = seed.charCodeAt(0) % colors.length
-    return `/placeholder.svg?height=200&width=300&text=${encodeURIComponent(seed)}&bg=${colors[colorIndex]}`
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold">Bookmarked Locations</h2>
-          <p className="text-muted-foreground">Your favorite places and destinations</p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          <Input
-            placeholder="Search bookmarks..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full sm:w-48 md:w-64"
-          />
-
-          <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-full sm:w-36 md:w-40">
-              <SelectValue placeholder="Filter by category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category === "all" ? "All Categories" : category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <div className="flex rounded-md border border-input overflow-hidden">
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`h-9 w-9 rounded-none ${view === "grid" ? "bg-muted" : ""}`}
-              onClick={() => setView("grid")}
-            >
-              <Grid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`h-9 w-9 rounded-none ${view === "list" ? "bg-muted" : ""}`}
-              onClick={() => setView("list")}
-            >
-              <LayoutDashboard className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : error ? (
-        <Card>
-          <CardContent className="py-10">
-            <div className="flex flex-col items-center justify-center text-center">
-              <AlertCircle className="h-10 w-10 text-destructive mb-4" />
-              <h3 className="text-lg font-medium mb-2">Error Loading Bookmarks</h3>
-              <p className="text-muted-foreground">{error}</p>
-              <Button onClick={fetchBookmarks} className="mt-4">
-                Try Again
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : filteredAndSortedBookmarks.length === 0 ? (
-        <Card>
-          <CardContent className="py-10">
-            <div className="flex flex-col items-center justify-center text-center">
-              <Heart className="h-10 w-10 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No Bookmarks Found</h3>
-              <p className="text-muted-foreground">
-                {searchQuery || filterCategory !== "all"
-                  ? "No bookmarks match your search criteria. Try adjusting your filters."
-                  : "You haven't saved any bookmarks yet. Use the heart icon to bookmark locations."}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : view === "list" ? (
-        <Card className="border border-border/40 shadow-sm">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[250px]">
-                  <Button variant="ghost" className="p-0 font-medium" onClick={() => toggleSort("name")}>
-                    Name
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead>
-                  <Button variant="ghost" className="p-0 font-medium" onClick={() => toggleSort("category")}>
-                    Category
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead className="hidden md:table-cell">Address</TableHead>
-                <TableHead className="hidden md:table-cell">
-                  <Button variant="ghost" className="p-0 font-medium" onClick={() => toggleSort("createdAt")}>
-                    Date Added
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <AnimatePresence>
-                {filteredAndSortedBookmarks.map((bookmark, index) => (
-                  <motion.tr
-                    key={bookmark.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ delay: index * 0.03 }}
-                    className="group"
-                  >
-                    <TableCell className="font-medium">{bookmark.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{bookmark.category}</Badge>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell truncate max-w-[200px]">{bookmark.address}</TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {new Date(bookmark.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleViewDetails(bookmark)}
-                          title="View details"
-                          className="opacity-70 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Info className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleNavigate(bookmark)}
-                          title="Navigate"
-                          className="opacity-70 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Navigation className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteBookmark(bookmark.id)}
-                          title="Delete bookmark"
-                          className="opacity-70 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
-            </TableBody>
-          </Table>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredAndSortedBookmarks.map((bookmark, index) => (
-            <motion.div
-              key={bookmark.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <Card className="overflow-hidden h-full flex flex-col group hover:shadow-md transition-shadow">
-                <div className="relative h-40 bg-muted">
-                  <img
-                    src={bookmark.imageUrl || getRandomImage(bookmark.name)}
-                    alt={bookmark.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3">
-                    <h3 className="font-medium text-white truncate">{bookmark.name}</h3>
-                    <p className="text-xs text-white/80 truncate">{bookmark.address}</p>
-                  </div>
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="h-7 w-7 bg-black/30 hover:bg-black/50 text-white border-none opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleViewDetails(bookmark)}
-                    >
-                      <Info className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="h-7 w-7 bg-black/30 hover:bg-black/50 text-white border-none opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleDeleteBookmark(bookmark.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-                <CardContent className="flex-1 p-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <Badge variant="outline" className="text-xs">
-                      {bookmark.category}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(bookmark.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                </CardContent>
-                <CardFooter className="p-3 pt-0">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
-                    onClick={() => handleNavigate(bookmark)}
-                  >
-                    <Navigation className="mr-2 h-4 w-4" />
-                    Navigate
-                  </Button>
-                </CardFooter>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      )}
-
-      {/* Bookmark Details Dialog */}
-      <Dialog open={showBookmarkDetails} onOpenChange={setShowBookmarkDetails}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          {selectedBookmark && (
-            <>
-              <DialogHeader>
-                <DialogTitle>{selectedBookmark.name}</DialogTitle>
-                <DialogDescription>{selectedBookmark.address}</DialogDescription>
-              </DialogHeader>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <div className="space-y-4">
-                  <div className="rounded-lg overflow-hidden border h-48">
-                    <img
-                      src={selectedBookmark.imageUrl || getRandomImage(selectedBookmark.name)}
-                      alt={selectedBookmark.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  {/* Map would go here in a real implementation */}
-                  <div className="rounded-lg overflow-hidden border h-48 bg-muted flex items-center justify-center">
-                    <Map className="h-12 w-12 text-muted-foreground" />
-                    <p className="text-muted-foreground ml-2">Map view would appear here</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium mb-1">Category</h4>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline">{selectedBookmark.category}</Badge>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-medium mb-1">Date Added</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(selectedBookmark.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-medium mb-1">Notes</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedBookmark.notes || "No notes added for this bookmark."}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-medium mb-1">Actions</h4>
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start"
-                        onClick={() => {
-                          setShowBookmarkDetails(false)
-                          handleNavigate(selectedBookmark)
-                        }}
-                      >
-                        <Navigation className="mr-2 h-4 w-4" />
-                        Navigate to this location
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start"
-                        onClick={() => {
-                          setShowBookmarkDetails(false)
-                          handleDeleteBookmark(selectedBookmark.id)
-                        }}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete bookmark
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button
-                  onClick={() => setShowBookmarkDetails(false)}
-                  className="bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
-                >
-                  Close
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
-}
-
-// Implement the Search feature
-const SearchFeature = () => {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [searchResults, setSearchResults] = useState<SavedLocation[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [searchHistory, setSearchHistory] = useState<string[]>([])
-  const [selectedLocation, setSelectedLocation] = useState<SavedLocation | null>(null)
-  const [showLocationDetails, setShowLocationDetails] = useState(false)
-  const [searchFilters, setSearchFilters] = useState({
-    category: "all",
-    radius: 10, // km
-    sortBy: "relevance",
-  })
-
-  // Load search history from localStorage on component mount
-  useEffect(() => {
-    const storedHistory = localStorage.getItem("searchHistory")
-    if (storedHistory) {
-      try {
-        setSearchHistory(JSON.parse(storedHistory))
-      } catch (e) {
-        console.error("Failed to parse stored search history", e)
-      }
-    }
-  }, [])
-
-  // Save search history to localStorage when it changes
-  useEffect(() => {
-    if (searchHistory.length > 0) {
-      localStorage.setItem("searchHistory", JSON.stringify(searchHistory))
-    }
-  }, [searchHistory])
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return
-
-    try {
-      setIsLoading(true)
-      setError(null)
-
-      // Add to search history if not already present
-      if (!searchHistory.includes(searchQuery)) {
-        setSearchHistory((prev) => [searchQuery, ...prev].slice(0, 5))
-      }
-
-      // In a real app, this would be a call to your search API
-      const response = await fetch(
-        `/api/location-search?query=${encodeURIComponent(searchQuery)}&radius=${searchFilters.radius * 1000}&type=${searchFilters.category === "all" ? "" : searchFilters.category}`,
-      )
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
-      }
-
-      const data = await response.json()
-
-      if (data.success && data.results) {
-        setSearchResults(data.results)
-      } else {
-        // For demo purposes, generate some mock results
-        const mockResults = Array(5)
-          .fill(0)
-          .map((_, i) => ({
-            id: `mock-${i}`,
-            name: `${searchQuery} Location ${i + 1}`,
-            address: `${i + 1} ${searchQuery} Street, City`,
-            category: ["Landmark", "Business", "Restaurant", "Park", "Hotel"][i % 5],
-            confidence: 0.7 + Math.random() * 0.3,
-            createdAt: new Date().toISOString(),
-            location: {
-              latitude: 40.7128 + (Math.random() * 0.1 - 0.05),
-              longitude: -74.006 + (Math.random() * 0.1 - 0.05),
-            },
-            isBookmarked: Math.random() > 0.7,
-          }))
-        setSearchResults(mockResults)
-      }
-    } catch (err) {
-      console.error("Search failed:", err)
-      setError(err instanceof Error ? err.message : "Search failed")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleHistoryItemClick = (query: string) => {
-    setSearchQuery(query)
-    // Move this item to the top of history
-    setSearchHistory((prev) => [query, ...prev.filter((item) => item !== query)])
-    // Execute search
-    handleSearch()
-  }
-
-  const clearSearchHistory = () => {
-    setSearchHistory([])
-    localStorage.removeItem("searchHistory")
-  }
-
-  const handleViewDetails = (location: SavedLocation) => {
-    setSelectedLocation(location)
-    setShowLocationDetails(true)
-  }
-
-  const handleToggleBookmark = async (location: SavedLocation) => {
-    // In a real app, this would call your API to toggle the bookmark
-    setSearchResults((results) =>
-      results.map((result) => (result.id === location.id ? { ...result, isBookmarked: !result.isBookmarked } : result)),
-    )
-
-    toast({
-      title: location.isBookmarked ? "Bookmark removed" : "Bookmark added",
-      description: `${location.name} has been ${location.isBookmarked ? "removed from" : "added to"} your bookmarks.`,
-    })
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Input
-                placeholder="Search for locations, landmarks, businesses..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pr-20"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleSearch()
-                  }
-                }}
-              />
-              <Button
-                className="absolute right-0 top-0 h-full rounded-l-none bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
-                onClick={handleSearch}
-                disabled={isLoading}
-              >
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Select
-              value={searchFilters.category}
-              onValueChange={(value) => setSearchFilters((prev) => ({ ...prev, category: value }))}
-            >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="Landmark">Landmarks</SelectItem>
-                <SelectItem value="Business">Businesses</SelectItem>
-                <SelectItem value="Restaurant">Restaurants</SelectItem>
-                <SelectItem value="Hotel">Hotels</SelectItem>
-                <SelectItem value="Park">Parks</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={searchFilters.radius.toString()}
-              onValueChange={(value) => setSearchFilters((prev) => ({ ...prev, radius: Number.parseInt(value) }))}
-            >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Radius" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="5">5 km radius</SelectItem>
-                <SelectItem value="10">10 km radius</SelectItem>
-                <SelectItem value="25">25 km radius</SelectItem>
-                <SelectItem value="50">50 km radius</SelectItem>
-                <SelectItem value="100">100 km radius</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={searchFilters.sortBy}
-              onValueChange={(value) => setSearchFilters((prev) => ({ ...prev, sortBy: value }))}
-            >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="relevance">Relevance</SelectItem>
-                <SelectItem value="distance">Distance</SelectItem>
-                <SelectItem value="rating">Rating</SelectItem>
-                <SelectItem value="name">Name</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Search history */}
-        {searchHistory.length > 0 && (
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Recent searches:</span>
-            <div className="flex flex-wrap gap-2">
-              {searchHistory.map((query, index) => (
-                <Badge
-                  key={index}
-                  variant="outline"
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleHistoryItemClick(query)}
-                >
-                  {query}
-                </Badge>
-              ))}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs text-muted-foreground"
-                onClick={clearSearchHistory}
-              >
-                Clear
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {error && (
-        <div className="bg-destructive/10 text-destructive p-3 rounded-md">
-          <div className="flex items-start">
-            <AlertCircle className="h-5 w-5 mr-2 mt-0.5" />
-            <div>
-              <p className="font-medium">Search Error</p>
-              <p className="text-sm">{error}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="flex flex-col items-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">Searching for locations...</p>
-          </div>
-        </div>
-      ) : searchResults.length > 0 ? (
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Search Results</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {searchResults.map((result) => (
-              <Card key={result.id} className="overflow-hidden group hover:shadow-md transition-shadow">
-                <div className="relative h-40 bg-muted">
-                  <img
-                    src={
-                      result.photos?.[0] ||
-                      `/placeholder.svg?height=200&width=300&text=${encodeURIComponent(result.name) || "/placeholder.svg"}`
-                    }
-                    alt={result.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3">
-                    <h3 className="font-medium text-white truncate">{result.name}</h3>
-                    <p className="text-xs text-white/80 truncate">{result.address}</p>
-                  </div>
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="h-7 w-7 bg-black/30 hover:bg-black/50 text-white border-none opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleViewDetails(result)}
-                    >
-                      <Info className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="h-7 w-7 bg-black/30 hover:bg-black/50 text-white border-none opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleToggleBookmark(result)}
-                    >
-                      {result.isBookmarked ? (
-                        <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" />
-                      ) : (
-                        <Heart className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-                <CardContent className="p-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <Badge variant="outline" className="text-xs">
-                      {result.category}
-                    </Badge>
-                    {result.confidence && (
-                      <Badge variant={result.confidence > 0.8 ? "default" : "outline"} className="text-xs">
-                        {Math.round(result.confidence * 100)}% match
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center text-xs text-muted-foreground">
-                    <MapPin className="h-3 w-3 mr-1" />
-                    <span>
-                      {result.location
-                        ? `${result.location.latitude.toFixed(4)}, ${result.location.longitude.toFixed(4)}`
-                        : "Location data unavailable"}
-                    </span>
-                  </div>
-                </CardContent>
-                <CardFooter className="p-3 pt-0">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
-                    onClick={() => handleViewDetails(result)}
-                  >
-                    <Info className="mr-2 h-4 w-4" />
-                    View Details
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        </div>
-      ) : searchQuery && !isLoading ? (
-        <div className="flex flex-col items-center justify-center h-64 text-center">
-          <Search className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium mb-2">No Results Found</h3>
-          <p className="text-muted-foreground max-w-md">
-            We couldn't find any locations matching "{searchQuery}". Try adjusting your search terms or filters.
-          </p>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center h-64 text-center">
-          <Search className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium mb-2">Search for Locations</h3>
-          <p className="text-muted-foreground max-w-md">
-            Enter a location name, address, or landmark to find places. You can filter by category and distance.
-          </p>
-        </div>
-      )}
-
-      {/* Location Details Dialog */}
-      <Dialog open={showLocationDetails} onOpenChange={setShowLocationDetails}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          {selectedLocation && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  {selectedLocation.name}
-                  {selectedLocation.confidence && (
-                    <Badge variant={selectedLocation.confidence > 0.8 ? "default" : "outline"} className="ml-2">
-                      {Math.round(selectedLocation.confidence * 100)}% match
-                    </Badge>
-                  )}
-                </DialogTitle>
-                <DialogDescription>{selectedLocation.address || "No address available"}</DialogDescription>
-              </DialogHeader>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <div className="space-y-4">
-                  {selectedLocation.photos && selectedLocation.photos.length > 0 ? (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="rounded-lg overflow-hidden border h-48"
-                    >
-                      <img
-                        src={selectedLocation.photos[0] || "/placeholder.svg"}
-                        alt={selectedLocation.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </motion.div>
-                  ) : (
-                    <div className="rounded-lg overflow-hidden border h-48 bg-muted flex items-center justify-center">
-                      <ImageIcon className="h-12 w-12 text-muted-foreground" />
-                    </div>
-                  )}
-
-                  {selectedLocation.location && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.2 }}
-                      className="rounded-lg overflow-hidden border h-48"
-                    >
-                      <iframe
-                        width="100%"
-                        height="100%"
-                        frameBorder="0"
-                        src={`https://www.google.com/maps/embed/v1/place?key=${getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY")}&q=${selectedLocation.location.latitude},${selectedLocation.location.longitude}&zoom=15`}
-                        allowFullScreen
-                      ></iframe>
-                    </motion.div>
-                  )}
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium mb-1">Category</h4>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline">{selectedLocation.category || "Unknown"}</Badge>
-                    </div>
-                  </div>
-
-                  {selectedLocation.description && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">Description</h4>
-                      <p className="text-sm text-muted-foreground">{selectedLocation.description}</p>
-                    </div>
-                  )}
-
-                  {selectedLocation.location && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">Coordinates</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedLocation.location.latitude.toFixed(6)},{" "}
-                        {selectedLocation.location.longitude.toFixed(6)}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="flex justify-between mt-4">
-                    <Button variant="outline" onClick={() => handleToggleBookmark(selectedLocation)}>
-                      {selectedLocation.isBookmarked ? (
-                        <>
-                          <Heart className="mr-2 h-4 w-4 fill-primary text-primary" />
-                          Remove Bookmark
-                        </>
-                      ) : (
-                        <>
-                          <Heart className="mr-2 h-4 w-4" />
-                          Add Bookmark
-                        </>
-                      )}
-                    </Button>
-
-                    <Button
-                      variant="default"
-                      className="bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
-                    >
-                      <Navigation className="mr-2 h-4 w-4" />
-                      Navigate
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
-}
-
-// Update the Dashboard component to use the new features
-// Replace the placeholder content in the activeTab === "bookmarks" and activeTab === "search" sections
-// with the new components
-
-// In the Dashboard component, replace:
-// {activeTab === "bookmarks" && (
-//   <div className="flex items-center justify-center h-64">
-//     <p className="text-muted-foreground">Bookmarks feature is under development</p>
-//   </div>
-// )}
-// {activeTab === "search" && (
-//   <div className="flex items-center justify-center h-64">
-//     <p className="text-muted-foreground">Search feature is under development</p>
-//   </div>
-// )}
-
-// With:
-{
-  /*activeTab === "bookmarks" && <BookmarksFeature />*/
-}
-{
-  /*activeTab === "search" && <SearchFeature />*/
-}
-
-// Dashboard Skeleton Component
-const DashboardSkeleton = () => {
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <Card className="w-full max-w-md animate-pulse">
-        <CardHeader>
-          <CardTitle className="h-6 bg-muted/50 rounded-md w-3/4"></CardTitle>
-          <CardDescription className="h-4 bg-muted/50 rounded-md w-1/2"></CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="h-4 bg-muted/50 rounded-md"></div>
-          <div className="h-4 bg-muted/50 rounded-md"></div>
-          <div className="h-4 bg-muted/50 rounded-md"></div>
-        </CardContent>
-        <CardFooter>
-          <Button className="w-full bg-muted/50 text-muted-foreground pointer-events-none">Loading...</Button>
-        </CardFooter>
-      </Card>
-    </div>
-  )
-}
-
-// Location Recognition Dialog Component
-const LocationRecognitionDialog = ({ open, onOpenChange }) => {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Quick Location Scan</DialogTitle>
-          <DialogDescription>Use your camera to quickly identify locations.</DialogDescription>
-        </DialogHeader>
-        <CameraRecognition />
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 // Main Dashboard Component
 export default function Dashboard() {
   const [showLocationRecognitionDialog, setShowLocationRecognitionDialog] = useState(false)
   const [activeTab, setActiveTab] = useState("recognition")
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [activeTheme, setActiveTheme] = useState("blue")
-
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [filterCategory, setFilterCategory] = useState("all")
   const [user, setUser] = useState<UserType | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -3133,10 +2393,23 @@ export default function Dashboard() {
     }
   }
 
-  // Handle theme change
-  const changeTheme = (theme: string) => {
-    setActiveTheme(theme)
-    // Apply theme classes or CSS variables here
+  // Function to handle filter change
+  const handleFilterChange = (category: string) => {
+    setFilterCategory(category)
+    toast({
+      title: "Filter Applied",
+      description: `Showing ${category === "all" ? "all" : category} locations.`,
+    })
+  }
+
+  // Function to initiate a new scan
+  const handleNewScan = () => {
+    setActiveTab("recognition")
+    setShowLocationRecognitionDialog(true)
+    toast({
+      title: "New Scan",
+      description: "Initiating a new image recognition scan.",
+    })
   }
 
   // Handle logout
@@ -3152,40 +2425,290 @@ export default function Dashboard() {
     }
   }
 
+  // Enhanced Location Recognition Dialog Component
+  const LocationRecognitionDialog = ({ open, onOpenChange }) => {
+    const fileInputRef = useRef(null)
+    const [progress, setProgress] = useState(0)
+    const [isProcessing, setIsProcessing] = useState(false)
+    const [selectedFile, setSelectedFile] = useState(null)
+    const [previewUrl, setPreviewUrl] = useState(null)
+    const [cameraActive, setCameraActive] = useState(false)
+    const videoRef = useRef<HTMLVideoElement>(null)
+    const canvasRef = useRef<HTMLCanvasElement>(null)
+
+    const handleFileChange = (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        const file = e.target.files[0]
+        setSelectedFile(file)
+        setPreviewUrl(URL.createObjectURL(file))
+        handleImageProcessing(file)
+      }
+    }
+
+    const handleImageProcessing = (file) => {
+      setIsProcessing(true)
+      setProgress(0)
+
+      // Simulate processing with progress updates
+      const interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 100) {
+            clearInterval(interval)
+            setIsProcessing(false)
+            onOpenChange(false) // Close dialog when done
+            return 100
+          }
+          return prev + 5
+        })
+      }, 150)
+    }
+
+    const handleCameraCapture = async () => {
+      try {
+        if (!cameraActive) {
+          // Start the camera
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: "environment", // Use back camera if available
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
+            audio: false,
+          })
+
+          // Set the stream to the video element
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream
+            videoRef.current.play()
+            setCameraActive(true)
+          }
+        } else {
+          // Capture the current frame
+          if (videoRef.current && canvasRef.current) {
+            const video = videoRef.current
+            const canvas = canvasRef.current
+
+            // Set canvas dimensions to match video
+            canvas.width = video.videoWidth
+            canvas.height = video.videoHeight
+
+            // Draw the current video frame to the canvas
+            const context = canvas.getContext("2d")
+            if (context) {
+              context.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+              // Convert the canvas to a Blob
+              canvas.toBlob(
+                async (blob) => {
+                  if (blob) {
+                    // Create a File object from the Blob
+                    const file = new File([blob], `camera-capture-${Date.now()}.jpg`, {
+                      type: "image/jpeg",
+                      lastModified: Date.now(),
+                    })
+
+                    // Process the file
+                    setSelectedFile(file)
+                    const fileUrl = URL.createObjectURL(file)
+                    setPreviewUrl(fileUrl)
+                    handleImageProcessing(file)
+
+                    // Stop the camera
+                    stopCamera()
+                  }
+                },
+                "image/jpeg",
+                0.8,
+              ) // JPEG at 80% quality
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error accessing camera:", error)
+        toast({
+          title: "Camera Error",
+          description: "Could not access the camera. Please check permissions.",
+          variant: "destructive",
+        })
+      }
+    }
+
+    const stopCamera = () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream
+        const tracks = stream.getTracks()
+
+        tracks.forEach((track) => {
+          track.stop()
+        })
+
+        videoRef.current.srcObject = null
+        setCameraActive(false)
+      }
+    }
+
+    return (
+      <Dialog
+        open={open}
+        onOpenChange={(newOpen) => {
+          if (!newOpen) stopCamera() // Stop camera when dialog closes
+          onOpenChange(newOpen)
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Camera className="h-5 w-5 text-primary" />
+              Quick Location Scan
+            </DialogTitle>
+            <DialogDescription>
+              Use your camera to quickly identify locations. Capture or upload an image to start the scan.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="relative h-[300px] bg-muted rounded-lg overflow-hidden border border-border flex items-center justify-center">
+            {/* Camera video feed */}
+            <video
+              ref={videoRef}
+              className={`absolute inset-0 w-full h-full object-cover ${cameraActive ? "block" : "hidden"}`}
+              autoPlay
+              playsInline
+              muted
+            />
+            <canvas ref={canvasRef} className="hidden" />
+
+            {previewUrl && (
+              <img
+                src={previewUrl || "/placeholder.svg"}
+                alt="Preview"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            )}
+
+            {!cameraActive && !previewUrl && (
+              <div className="flex flex-col items-center justify-center text-center p-6">
+                <Camera className="w-16 h-16 mb-4 text-primary/70" />
+                <h2 className="text-xl font-bold mb-2">Identify Any Location</h2>
+                <p className="text-muted-foreground mb-4">
+                  Upload a photo or use your camera to instantly recognize places
+                </p>
+              </div>
+            )}
+
+            {isProcessing && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-10">
+                <Loader2 className="w-12 h-12 animate-spin text-primary" />
+                <div className="text-sm font-medium mt-4 mb-2">Analyzing image...</div>
+              </div>
+            )}
+          </div>
+
+          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+
+          <div className="flex flex-col sm:flex-row gap-4 mt-4">
+            <Button
+              size="lg"
+              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="mr-2 h-5 w-5" />
+              Upload Image
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="flex-1 border-primary/20 hover:bg-primary/5"
+              onClick={handleCameraCapture}
+            >
+              <Camera className="mr-2 h-5 w-5" />
+              {cameraActive ? "Capture Photo" : "Use Camera"}
+            </Button>
+          </div>
+
+          {isProcessing && (
+            <div className="mt-4">
+              <Progress value={progress} className="w-full h-2" />
+              <p className="text-xs text-center text-muted-foreground mt-1">
+                {progress < 100 ? "Processing image..." : "Completed!"}
+              </p>
+            </div>
+          )}
+
+          <DialogFooter className="flex justify-between mt-4">
+            <div className="flex items-center space-x-2">
+              <Switch id="save-to-db" defaultChecked />
+              <Label htmlFor="save-to-db">Save to database</Label>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => {
+                stopCamera()
+                onOpenChange(false)
+              }}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
   // Navigation items
   const navigationItems = [
-    { id: "recognition", label: "Image Recognition", icon: Camera, color: "text-cyan-500" },
-    { id: "locations", label: "Saved Locations", icon: MapPin, color: "text-green-500" },
+    { id: "recognition", label: "Image Recognition", icon: Camera, color: "text-primary" },
+    { id: "locations", label: "Saved Locations", icon: MapPin, color: "text-emerald-500" },
     { id: "map", label: "Map View", icon: Map, color: "text-indigo-500" },
     { id: "search", label: "Search", icon: Search, color: "text-amber-500" },
-    { id: "bookmarks", label: "Bookmarks", icon: Heart, color: "text-red-500" },
+    { id: "bookmarks", label: "Bookmarks", icon: Heart, color: "text-rose-500" },
+  ]
+
+  // Advanced features
+  const advancedFeatures = [
     { id: "location-suggestions", label: "Suggestions", icon: PlusCircle, color: "text-purple-500" },
-    { id: "image-caption", label: "Image Captions", icon: ImageIcon, color: "text-cyan-500" },
+    { id: "image-caption", label: "Image Captions", icon: ImageIcon, color: "text-sky-500" },
     { id: "ai-content-generator", label: "AI Content", icon: FileText, color: "text-orange-500" },
   ]
 
   // Loading state
   if (loading) {
-    return <DashboardSkeleton />
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center space-y-4">
+          <div className="relative w-16 h-16 mx-auto">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <MapPin className="h-8 w-8 text-primary animate-pulse" />
+            </div>
+            <div className="absolute inset-0 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+          </div>
+          <h2 className="text-xl font-semibold mt-4">Loading Pic2Nav</h2>
+          <p className="text-muted-foreground">Preparing your location dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   // Error state
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
-        <Card className="w-full max-w-md border-none shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-red-500/10 to-orange-500/10 rounded-t-lg">
-            <CardTitle className="text-red-500">Error Loading Dashboard</CardTitle>
+        <Card className="w-full max-w-md border-none shadow-xl rounded-xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-red-500/10 to-orange-500/10">
+            <CardTitle className="text-red-500 flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              Error Loading Dashboard
+            </CardTitle>
             <CardDescription>We encountered an issue while loading your data</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             <p className="text-muted-foreground">{error}</p>
           </CardContent>
-          <CardFooter className="bg-gray-50 dark:bg-gray-900/30 rounded-b-lg">
+          <CardFooter className="bg-muted/30 flex justify-center">
             <Button
               onClick={() => window.location.reload()}
-              className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
+              <Loader2 className="mr-2 h-4 w-4" />
               Try Again
             </Button>
           </CardFooter>
@@ -3195,57 +2718,129 @@ export default function Dashboard() {
   }
 
   return (
-    <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100`}>
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-sm">
-        <div className="flex h-16 items-center justify-between px-4 md:px-6">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-teal-500 rounded-lg flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-white" />
+      <header className="sticky top-0 z-40 w-full border-b bg-background/90 backdrop-blur-sm">
+        <div className="flex h-16 items-center px-4 md:px-6">
+          <div className="flex items-center gap-2 mr-4">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMenuOpen(true)}>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="3" y1="6" x2="21" y2="6" />
+                      <line x1="3" y1="12" x2="21" y2="12" />
+                      <line x1="3" y1="18" x2="21" y2="18" />
+                    </svg>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Menu</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <MapPin className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <span className="text-xl font-bold hidden sm:inline-block">Pic2Nav</span>
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-cyan-500 to-teal-500 text-transparent bg-clip-text">
-              Pic2Nav
-            </span>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex">
-              <Input placeholder="Search locations..." className="w-[200px] lg:w-[300px] h-9 bg-background" />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full w-9 h-9"
-                onClick={() => setShowLocationRecognitionDialog(true)}
-              >
-                <Camera className="h-4 w-4" />
-                <span className="sr-only">Quick Scan</span>
-              </Button>
-
-              <Button variant="ghost" size="icon" className="rounded-full w-9 h-9" onClick={toggleFullscreen}>
-                {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-                <span className="sr-only">Toggle fullscreen</span>
-              </Button>
-
-              <Button variant="ghost" size="icon" className="rounded-full w-9 h-9" onClick={toggleDarkMode}>
-                {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                <span className="sr-only">Toggle theme</span>
-              </Button>
-
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="hidden md:flex flex-1 mx-4">
+            <TabsList className="bg-muted/50 p-1">
+              {navigationItems.map((item) => (
+                <TabsTrigger
+                  key={item.id}
+                  value={item.id}
+                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md"
+                >
+                  <item.icon className={`h-4 w-4 mr-2 ${item.color}`} />
+                  {item.label}
+                </TabsTrigger>
+              ))}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full w-9 h-9">
-                    <Bell className="h-4 w-4" />
-                    <span className="sr-only">Notifications</span>
-                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500"></span>
+                  <Button variant="ghost" size="sm" className="h-8 gap-1">
+                    More
+                    <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80">
-                  <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <div className="max-h-80 overflow-auto">
+                <DropdownMenuContent align="end">
+                  {advancedFeatures.map((item) => (
+                    <DropdownMenuItem key={item.id} onClick={() => setActiveTab(item.id)} className="gap-2">
+                      <item.icon className={`h-4 w-4 ${item.color}`} />
+                      {item.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TabsList>
+          </Tabs>
+
+          <div className="flex items-center gap-2 ml-auto">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full"
+                    onClick={() => setShowLocationRecognitionDialog(true)}
+                  >
+                    <Camera className="h-4 w-4" />
+                    <span className="sr-only">Quick Scan</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Quick Scan</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" className="rounded-full" onClick={toggleFullscreen}>
+                    {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                    <span className="sr-only">Toggle fullscreen</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" className="rounded-full" onClick={toggleDarkMode}>
+                    {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                    <span className="sr-only">Toggle theme</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{isDarkMode ? "Light Mode" : "Dark Mode"}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="rounded-full relative">
+                  <Bell className="h-4 w-4" />
+                  <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-primary"></span>
+                  <span className="sr-only">Notifications</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <ScrollArea className="h-[300px]">
+                  <div className="p-2 space-y-2">
                     <div className="flex items-start gap-4 p-3 hover:bg-muted/50 rounded-md">
                       <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
                         <MapPin className="h-4 w-4 text-primary" />
@@ -3268,112 +2863,167 @@ export default function Dashboard() {
                         <p className="text-xs text-muted-foreground mt-1">1 day ago</p>
                       </div>
                     </div>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <div className="p-2">
-                    <Button variant="outline" size="sm" className="w-full">
-                      View all notifications
-                    </Button>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                    <Avatar className="h-9 w-9">
-                      <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-teal-500 text-white">
-                        {user?.username?.[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium">{user?.username}</p>
-                      <p className="text-xs text-muted-foreground">{user?.email}</p>
+                    <div className="flex items-start gap-4 p-3 hover:bg-muted/50 rounded-md">
+                      <div className="w-8 h-8 bg-emerald-500/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <ThumbsUp className="h-4 w-4 text-emerald-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Enhanced precision</p>
+                        <p className="text-xs text-muted-foreground">
+                          Our location recognition model has been upgraded for better accuracy
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">3 days ago</p>
+                      </div>
                     </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <a href="/profile">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <a href="/settings">
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      const newMode = !isDarkMode
-                      setIsDarkMode(newMode)
-                      if (newMode) {
-                        document.documentElement.classList.add("dark")
-                        localStorage.setItem("theme", "dark")
-                      } else {
-                        document.documentElement.classList.remove("dark")
-                        localStorage.setItem("theme", "light")
-                      }
-                    }}
-                  >
-                    {isDarkMode ? (
-                      <>
-                        <Sun className="mr-2 h-4 w-4" />
-                        <span>Light Mode</span>
-                      </>
-                    ) : (
-                      <>
-                        <Moon className="mr-2 h-4 w-4" />
-                        <span>Dark Mode</span>
-                      </>
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                  </div>
+                </ScrollArea>
+                <DropdownMenuSeparator />
+                <div className="p-2">
+                  <Button variant="outline" size="sm" className="w-full">
+                    View all notifications
+                  </Button>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user?.username || "User"}`} />
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {user?.username?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium">{user?.username}</p>
+                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="gap-2">
+                  <User className="h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="gap-2">
+                  <Settings className="h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="gap-2">
+                  <LogOut className="h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <div className="container mx-auto p-4 md:p-6">
-        {/* Navigation Tabs */}
-        <div className="mb-8">
-          <div className="flex flex-wrap gap-2 overflow-x-auto pb-2">
-            {navigationItems.map((item) => (
-              <Button
-                key={item.id}
-                variant={activeTab === item.id ? "default" : "outline"}
-                className={cn(
-                  "rounded-full transition-all",
-                  activeTab === item.id ? "bg-gradient-to-r from-cyan-500 to-teal-500 text-white" : "hover:bg-muted/50",
-                )}
-                onClick={() => setActiveTab(item.id)}
-              >
-                <item.icon className={cn("h-4 w-4 mr-2", activeTab !== item.id && item.color)} />
-                {item.label}
-              </Button>
-            ))}
+      {/* Mobile Menu Sheet */}
+      <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+        <SheetContent side="left" className="w-64 pt-10">
+          <SheetHeader className="text-left mb-4">
+            <SheetTitle className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <MapPin className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <span>Pic2Nav</span>
+            </SheetTitle>
+          </SheetHeader>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <h3 className="text-xs font-semibold text-muted-foreground tracking-wider pl-2 mb-1">MAIN NAVIGATION</h3>
+              {navigationItems.map((item) => (
+                <Button
+                  key={item.id}
+                  variant={activeTab === item.id ? "secondary" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setActiveTab(item.id)
+                    setIsMenuOpen(false)
+                  }}
+                >
+                  <item.icon className={`h-4 w-4 mr-2 ${activeTab === item.id ? "text-primary" : item.color}`} />
+                  {item.label}
+                </Button>
+              ))}
+            </div>
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground tracking-wider pl-2 mb-1 pt-2">
+                ADVANCED FEATURES
+              </h3>
+              {advancedFeatures.map((item) => (
+                <Button
+                  key={item.id}
+                  variant={activeTab === item.id ? "secondary" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setActiveTab(item.id)
+                    setIsMenuOpen(false)
+                  }}
+                >
+                  <item.icon className={`h-4 w-4 mr-2 ${activeTab === item.id ? "text-primary" : item.color}`} />
+                  {item.label}
+                </Button>
+              ))}
+            </div>
           </div>
+          <div className="absolute bottom-4 left-4 right-4">
+            <Card className="bg-muted/50">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user?.username || "User"}`} />
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {user?.username?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 overflow-hidden">
+                    <p className="text-sm font-medium truncate">{user?.username}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Main Content Area */}
+      <div className="flex-1 container mx-auto p-4 md:p-6">
+        {/* Mobile Tabs Navigation */}
+        <div className="md:hidden mb-4">
+          <ScrollArea orientation="horizontal" className="w-full">
+            <div className="flex space-x-2 p-1 min-w-full">
+              {navigationItems.map((item) => (
+                <Button
+                  key={item.id}
+                  variant={activeTab === item.id ? "default" : "outline"}
+                  size="sm"
+                  className={cn(
+                    "rounded-full gap-2",
+                    activeTab === item.id ? "bg-primary text-primary-foreground" : "",
+                  )}
+                  onClick={() => setActiveTab(item.id)}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </Button>
+              ))}
+            </div>
+          </ScrollArea>
         </div>
 
         {/* Dashboard Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">
-              <span className="bg-gradient-to-r from-cyan-500 to-teal-500 text-transparent bg-clip-text">
-                {navigationItems.find((item) => item.id === activeTab)?.label}
-              </span>
+              {navigationItems.concat(advancedFeatures).find((item) => item.id === activeTab)?.label}
             </h1>
             <p className="text-muted-foreground mt-1">
               {activeTab === "recognition"
@@ -3389,77 +3039,60 @@ export default function Dashboard() {
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9">
-                  <Filter className="h-4 w-4 mr-2" />
+                <Button variant="outline" size="sm" className="h-9 gap-2">
+                  <Filter className="h-4 w-4" />
                   <span>Filter</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Filter Options</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <div className="w-4 h-4 rounded-full bg-blue-500 mr-2" />
+                <DropdownMenuItem onClick={() => handleFilterChange("Landmarks")} className="gap-2">
+                  <div className="w-4 h-4 rounded-full bg-blue-500" />
                   Landmarks
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <div className="w-4 h-4 rounded-full bg-green-500 mr-2" />
+                <DropdownMenuItem onClick={() => handleFilterChange("Businesses")} className="gap-2">
+                  <div className="w-4 h-4 rounded-full bg-green-500" />
                   Businesses
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <div className="w-4 h-4 rounded-full bg-purple-500 mr-2" />
+                <DropdownMenuItem onClick={() => handleFilterChange("Points of Interest")} className="gap-2">
+                  <div className="w-4 h-4 rounded-full bg-purple-500" />
                   Points of Interest
                 </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9">
-                  <Sliders className="h-4 w-4 mr-2" />
-                  <span>Customize</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Dashboard Settings</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => changeTheme("blue")}>
-                  <div className="w-4 h-4 rounded-full bg-blue-500 mr-2" />
-                  Blue Theme
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => changeTheme("green")}>
-                  <div className="w-4 h-4 rounded-full bg-green-500 mr-2" />
-                  Green Theme
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => changeTheme("purple")}>
-                  <div className="w-4 h-4 rounded-full bg-purple-500 mr-2" />
-                  Purple Theme
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Grid className="h-4 w-4 mr-2" />
-                  Change Layout
+                <DropdownMenuItem onClick={() => handleFilterChange("all")} className="gap-2">
+                  <div className="w-4 h-4 rounded-full bg-gray-500" />
+                  Show All
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
             <Button
               size="sm"
-              className="h-9 bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600"
+              className="h-9 gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={handleNewScan}
             >
-              <Camera className="h-4 w-4 mr-2" />
+              <Camera className="h-4 w-4" />
               <span>New Scan</span>
             </Button>
           </div>
         </div>
 
         {/* Dashboard Content */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-border/40 overflow-hidden">
+        <div className="bg-background rounded-xl shadow-md border overflow-hidden">
           <div className="p-6">
             {activeTab === "recognition" && <CameraRecognition />}
-            {activeTab === "locations" && <LocationsFeature />}
-            {activeTab === "map" && <MapFeature />}
-            {activeTab === "search" && <SearchFeature />}
-            {activeTab === "bookmarks" && <BookmarksFeature />}
+            {activeTab === "locations" && <LocationsFeature filterCategory={filterCategory} />}
+            {activeTab === "map" && <MapFeature filterCategory={filterCategory} />}
+            {activeTab === "bookmarks" && (
+              <div className="flex items-center justify-center h-64">
+                <p className="text-muted-foreground">Bookmarks feature coming soon</p>
+              </div>
+            )}
+            {activeTab === "search" && (
+              <div className="flex items-center justify-center h-64">
+                <p className="text-muted-foreground">Search feature coming soon</p>
+              </div>
+            )}
             {activeTab === "location-suggestions" && (
               <LocationSuggestions
                 location={{ lat: 0, lng: 0, name: "Default Location" }}
@@ -3472,51 +3105,71 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-          <Card className="border border-border/40 shadow-sm">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-cyan-500/10 flex items-center justify-center">
-                <MapPin className="h-6 w-6 text-cyan-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Locations</p>
-                <p className="text-2xl font-bold">124</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border border-border/40 shadow-sm">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                <Camera className="h-6 w-6 text-green-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Scans This Month</p>
-                <p className="text-2xl font-bold">37</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+          <Card className="border shadow-sm rounded-xl overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex">
+                <div className="w-3 bg-primary h-full"></div>
+                <div className="p-4 flex items-center gap-4 flex-1">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <MapPin className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Locations</p>
+                    <p className="text-2xl font-bold">124</p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border border-border/40 shadow-sm">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center">
-                <Heart className="h-6 w-6 text-purple-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Bookmarks</p>
-                <p className="text-2xl font-bold">18</p>
+          <Card className="border shadow-sm rounded-xl overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex">
+                <div className="w-3 bg-emerald-500 h-full"></div>
+                <div className="p-4 flex items-center gap-4 flex-1">
+                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                    <Camera className="h-6 w-6 text-emerald-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Scans This Month</p>
+                    <p className="text-2xl font-bold">37</p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border border-border/40 shadow-sm">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center">
-                <BarChart3 className="h-6 w-6 text-amber-500" />
+          <Card className="border shadow-sm rounded-xl overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex">
+                <div className="w-3 bg-purple-500 h-full"></div>
+                <div className="p-4 flex items-center gap-4 flex-1">
+                  <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center">
+                    <Heart className="h-6 w-6 text-purple-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Bookmarks</p>
+                    <p className="text-2xl font-bold">18</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Accuracy Rate</p>
-                <p className="text-2xl font-bold">94%</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border shadow-sm rounded-xl overflow-hidden">
+            <CardContent className="p-0">
+              <div className="flex">
+                <div className="w-3 bg-amber-500 h-full"></div>
+                <div className="p-4 flex items-center gap-4 flex-1">
+                  <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center">
+                    <BarChart3 className="h-6 w-6 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Accuracy Rate</p>
+                    <p className="text-2xl font-bold">94%</p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -3525,15 +3178,15 @@ export default function Dashboard() {
         {/* Help and Support */}
         <div className="mt-8 flex justify-center">
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <Button variant="link" size="sm" className="h-auto p-0">
+            <Button variant="link" size="sm" className="h-auto p-0 text-muted-foreground hover:text-foreground">
               <HelpCircle className="h-4 w-4 mr-1" />
               Help Center
             </Button>
-            <Button variant="link" size="sm" className="h-auto p-0">
+            <Button variant="link" size="sm" className="h-auto p-0 text-muted-foreground hover:text-foreground">
               <MessageSquare className="h-4 w-4 mr-1" />
               Feedback
             </Button>
-            <Button variant="link" size="sm" className="h-auto p-0">
+            <Button variant="link" size="sm" className="h-auto p-0 text-muted-foreground hover:text-foreground">
               <Info className="h-4 w-4 mr-1" />
               About
             </Button>
