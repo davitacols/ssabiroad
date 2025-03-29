@@ -1864,6 +1864,104 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
   try {
     console.log("Starting image analysis...")
 
+    // Attempt EXIF data extraction first
+    console.log("Attempting EXIF geotag extraction...")
+    const exifLocation = await extractExifLocation(imageBuffer)
+    if (exifLocation) {
+      console.log("EXIF location data found:", exifLocation)
+      try {
+        const geocodeResponse = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
+          params: {
+            latlng: `${exifLocation.latitude},${exifLocation.longitude}`,
+            key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
+          },
+          timeout: 10000, // 10 second timeout
+        })
+
+        if (geocodeResponse.data.results && geocodeResponse.data.results.length > 0) {
+          const result = geocodeResponse.data.results[0]
+          const detailedAddress = extractDetailedAddressComponents(result.address_components)
+
+          // Initialize Vision client for scene analysis and building material detection
+          let client: vision.ImageAnnotatorClient
+          try {
+            const base64Credentials = getEnv("GCLOUD_CREDENTIALS")
+            if (!base64Credentials) {
+              throw new Error("GCLOUD_CREDENTIALS environment variable is not set.")
+            }
+
+            const credentialsBuffer = Buffer.from(base64Credentials, "base64")
+            const credentialsJson = credentialsBuffer.toString("utf8")
+
+            // Validate JSON before parsing
+            if (!credentialsJson.includes("client_email") || !credentialsJson.includes("private_key")) {
+              throw new Error("Invalid GCLOUD_CREDENTIALS format")
+            }
+
+            const serviceAccount = JSON.parse(credentialsJson)
+
+            client = new vision.ImageAnnotatorClient({
+              credentials: {
+                client_email: serviceAccount.client_email,
+                private_key: serviceAccount.private_key,
+              },
+              projectId: serviceAccount.project_id,
+            })
+          } catch (error) {
+            console.error("Failed to initialize Vision client:", error)
+            throw new Error("Vision API initialization failed")
+          }
+
+          // Get scene analysis and building material in parallel
+          const [sceneAnalysis, buildingMaterial] = await Promise.all([
+            analyzeImageScene(imageBuffer),
+            detectBuildingMaterial(imageBuffer),
+          ])
+
+          // Get enhanced geotagging data
+          const [nearbyPlaces, weather, airQuality] = await Promise.all([
+            getNearbyPlaces(exifLocation),
+            getWeatherConditions(exifLocation),
+            getAirQuality(exifLocation),
+          ])
+
+          return {
+            success: true,
+            type: "exif-geotag",
+            name: result.formatted_address.split(",")[0],
+            address: result.formatted_address,
+            formattedAddress: result.formatted_address,
+            location: exifLocation,
+            description: `Location extracted from image EXIF data: ${result.formatted_address}`,
+            confidence: 0.9, // High confidence for EXIF data
+            category: "EXIF Location",
+            mapUrl: `https://www.google.com/maps/search/?api=1&query=${exifLocation.latitude},${exifLocation.longitude}`,
+            placeId: result.place_id,
+            addressComponents: result.address_components,
+            materialType: buildingMaterial,
+            urbanDensity: sceneAnalysis.urbanDensity,
+            vegetationDensity: sceneAnalysis.vegetationDensity,
+            crowdDensity: sceneAnalysis.crowdDensity,
+            timeOfDay: sceneAnalysis.timeOfDay,
+            significantColors: sceneAnalysis.significantColors,
+            waterProximity: sceneAnalysis.waterProximity,
+            weatherConditions: weather,
+            airQuality: airQuality,
+            geoData: {
+              ...detailedAddress,
+              formattedAddress: result.formatted_address,
+            },
+            nearbyPlaces: nearbyPlaces,
+          }
+        }
+      } catch (error) {
+        console.warn("Error getting address for EXIF location:", error)
+      }
+    }
+
+    // If EXIF data is not available, proceed with other detection methods
+    console.log("No valid EXIF data found, proceeding with other detection methods...")
+
     // Initialize Vision client with credentials from the environment
     let client: vision.ImageAnnotatorClient
     try {
@@ -1903,7 +2001,7 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
 
     const landmarks = landmarkResult[0].landmarkAnnotations || []
 
-    // 1. First try landmark detection
+    // Try landmark detection
     if (landmarks.length > 0) {
       const landmark = landmarks[0]
       const confidence = landmark.score || 0
@@ -1982,66 +2080,7 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
       return textLocations[0]
     }
 
-    // 3. Try EXIF data extraction as a final fallback
-    console.log("Attempting EXIF geotag extraction as fallback...")
-    const exifLocation = await extractExifLocation(imageBuffer)
-    if (exifLocation) {
-      console.log("EXIF location data found:", exifLocation)
-      try {
-        const geocodeResponse = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
-          params: {
-            latlng: `${exifLocation.latitude},${exifLocation.longitude}`,
-            key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
-          },
-          timeout: 10000, // 10 second timeout
-        })
-
-        if (geocodeResponse.data.results && geocodeResponse.data.results.length > 0) {
-          const result = geocodeResponse.data.results[0]
-          const detailedAddress = extractDetailedAddressComponents(result.address_components)
-
-          // Get enhanced geotagging data
-          const [nearbyPlaces, weather, airQuality] = await Promise.all([
-            getNearbyPlaces(exifLocation),
-            getWeatherConditions(exifLocation),
-            getAirQuality(exifLocation),
-          ])
-
-          return {
-            success: true,
-            type: "exif-geotag",
-            name: result.formatted_address.split(",")[0],
-            address: result.formatted_address,
-            formattedAddress: result.formatted_address,
-            location: exifLocation,
-            description: `Location extracted from image EXIF data: ${result.formatted_address}`,
-            confidence: 0.9, // High confidence for EXIF data
-            category: "EXIF Location",
-            mapUrl: `https://www.google.com/maps/search/?api=1&query=${exifLocation.latitude},${exifLocation.longitude}`,
-            placeId: result.place_id,
-            addressComponents: result.address_components,
-            materialType: buildingMaterial,
-            urbanDensity: sceneAnalysis.urbanDensity,
-            vegetationDensity: sceneAnalysis.vegetationDensity,
-            crowdDensity: sceneAnalysis.crowdDensity,
-            timeOfDay: sceneAnalysis.timeOfDay,
-            significantColors: sceneAnalysis.significantColors,
-            waterProximity: sceneAnalysis.waterProximity,
-            weatherConditions: weather,
-            airQuality: airQuality,
-            geoData: {
-              ...detailedAddress,
-              formattedAddress: result.formatted_address,
-            },
-            nearbyPlaces: nearbyPlaces,
-          }
-        }
-      } catch (error) {
-        console.warn("Error getting address for EXIF location:", error)
-      }
-    }
-
-    // 4. If all detection methods fail, use scene analysis to make a best guess
+    // 3. If all detection methods fail, use scene analysis to make a best guess
     const buildingType = sceneAnalysis.buildingType || "Unknown"
     let category = "Unknown"
     let name = "Unknown Location"
