@@ -2304,12 +2304,12 @@ export default function Dashboard() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [filterCategory, setFilterCategory] = useState("all")
   const [user, setUser] = useState<UserType | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const router = useRouter()
   const isMobile = useIsMobile()
 
-  // Fetch user data
+  /* // Fetch user data
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -2348,7 +2348,7 @@ export default function Dashboard() {
     }
 
     fetchUserData()
-  }, [router])
+  }, [router]) */
 
   // Handle dark mode toggle
   useEffect(() => {
@@ -2412,7 +2412,7 @@ export default function Dashboard() {
     })
   }
 
-  // Handle logout
+  /* // Handle logout
   const handleLogout = async () => {
     try {
       // Remove the token from localStorage
@@ -2423,7 +2423,7 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Error during logout:", error)
     }
-  }
+  } */
 
   // Enhanced Location Recognition Dialog Component
   const LocationRecognitionDialog = ({ open, onOpenChange }) => {
@@ -2914,10 +2914,10 @@ export default function Dashboard() {
                   <span>Settings</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="gap-2">
+                {/* <DropdownMenuItem onClick={handleLogout} className="gap-2">
                   <LogOut className="h-4 w-4" />
                   <span>Log out</span>
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
