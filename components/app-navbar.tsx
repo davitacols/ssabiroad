@@ -29,21 +29,12 @@ export const AppNavbar = () => {
         </Link>
         <div className="flex items-center gap-4">
           <Button
-            variant="ghost"
             size="sm"
-            onClick={() => handleNavigation("/login")}
-            disabled={loading}
-            className="hover:text-teal-600 dark:hover:text-teal-400"
-          >
-            {loading ? "Loading..." : "Sign In"}
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => handleNavigation("/signup")}
+            onClick={() => handleNavigation("/dashboard")}
             disabled={loading}
             className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white border-0"
           >
-            {loading ? "Loading..." : "Sign Up"}
+            {loading ? "Loading..." : "Get Started"}
           </Button>
         </div>
       </div>
