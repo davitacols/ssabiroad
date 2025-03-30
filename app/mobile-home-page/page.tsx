@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 
 export default function MobileSplashScreen() {
   const [currentStep, setCurrentStep] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
   // Simulate initial loading
@@ -35,14 +35,7 @@ export default function MobileSplashScreen() {
 
   // Handle navigation to main app
   const handleGetStarted = () => {
-    router.push("/signin")
-  }
-
-  // Handle camera access
-  const handleTakePhoto = () => {
-    // In a real app, this would request camera permissions
-    // and open the camera interface
-    router.push("/camera")
+    router.push("/mobile-dashboard")
   }
 
   // Intro steps content
@@ -553,7 +546,7 @@ export default function MobileSplashScreen() {
                 transition={{ delay: 1, duration: 0.6 }}
                 className="flex flex-col gap-4 mb-8 px-4"
               >
-                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                {/* <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
                   <Button
                     size="lg"
                     className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white border-0 h-14 w-full rounded-full shadow-lg shadow-teal-500/20 transition-all duration-300"
@@ -568,7 +561,7 @@ export default function MobileSplashScreen() {
                       <span className="font-medium">Take a Photo Now</span>
                     </motion.div>
                   </Button>
-                </motion.div>
+                </motion.div> */}
 
                 <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
                   <Button
