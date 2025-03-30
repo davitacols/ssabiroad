@@ -1510,7 +1510,7 @@ export default function MobileDashboard() {
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [userData, setUserData] = useState({ username: "Guest", plan: "Free", savedPlaces: 0, bookmarks: 0 })
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   const [authError, setAuthError] = useState(false)
   const router = useRouter()
 
