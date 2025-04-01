@@ -181,6 +181,10 @@ model Location {
   safetyScore          Float?
   noiseLevel           String?
   
+  // New fields added for walkability metrics
+  walkScore            Int?
+  bikeScore            Int?
+  
   // Relation to User (optional)
   userId               String?
   user                 User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
