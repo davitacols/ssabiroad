@@ -1,3 +1,4 @@
+// app/dashboard/page.tsx
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -7,7 +8,9 @@ import {
   Map,
   ImageIcon,
   X,
+  GalleryThumbnails,
   Navigation,
+  Download,
   Upload,
   User,
   LogOut,
@@ -17,6 +20,10 @@ import {
   Search,
   Compass,
   Sparkles,
+  CalendarIcon,
+  Building2,
+  Leaf,
+  Smartphone,
   Clock,
   Loader2,
   Database,
@@ -252,7 +259,7 @@ const DashboardScene = () => {
   )
 }
 
-// Camera Recognition Component with API Integration
+// Camera Recognition Component with API Integration and Metadata Dialog
 const CameraRecognition = () => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -268,6 +275,9 @@ const CameraRecognition = () => {
   const [cameraActive, setCameraActive] = useState(false)
   const isMobile = useIsMobile()
   const googleMapsApiKey = getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY") || ""
+  // Added state for metadata dialog
+  const [showMetadataDialog, setShowMetadataDialog] = useState(false)
+  const [metadata, setMetadata] = useState(null)
 
   // Load recent locations from localStorage on component mount
   useEffect(() => {
@@ -547,6 +557,86 @@ const CameraRecognition = () => {
     }
   }
 
+  // Extract metadata from file and recognition result
+  const extractMetadata = () => {
+    if (!selectedFile && !recognitionResult) return null
+
+    const metadataObj = {
+      imageInfo: {
+        fileName: selectedFile?.name || "Camera Capture",
+        fileType: selectedFile?.type || "image/jpeg",
+        fileSize: selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : "Unknown",
+        dimensions: "Extracted from image",
+        captureDate: selectedFile?.lastModified 
+          ? new Date(selectedFile.lastModified).toLocaleString() 
+          : new Date().toLocaleString(),
+        exifData: "EXIF data extraction requires additional libraries",
+      },
+      deviceInfo: {
+        browser: navigator.userAgent,
+        platform: navigator.platform,
+        screenResolution: `${window.screen.width}x${window.screen.height}`,
+        devicePixelRatio: window.devicePixelRatio,
+        orientation: screen.orientation ? screen.orientation.type : "Unknown",
+      },
+      locationInfo: {
+        name: recognitionResult?.name || "Unknown",
+        address: recognitionResult?.address || "Unknown",
+        formattedAddress: recognitionResult?.formattedAddress || "Unknown",
+        placeId: recognitionResult?.placeId || "Unknown",
+        coordinates: recognitionResult?.location 
+          ? `${recognitionResult.location.lat}, ${recognitionResult.location.lng}` 
+          : "Unknown",
+        accuracy: recognitionResult?.confidence 
+          ? `${(recognitionResult.confidence * 100).toFixed(1)}%` 
+          : "Unknown",
+        category: recognitionResult?.category || "Unknown",
+        type: recognitionResult?.type || "Unknown",
+        buildingType: recognitionResult?.buildingType || "N/A",
+      },
+      businessInfo: {
+        phoneNumber: recognitionResult?.phoneNumber || "N/A",
+        website: recognitionResult?.website || "N/A",
+        rating: recognitionResult?.rating || "N/A",
+        openingHours: recognitionResult?.openingHours || "N/A",
+      },
+      environmentalData: {
+        weatherConditions: recognitionResult?.weatherConditions || "N/A",
+        airQuality: recognitionResult?.airQuality || "N/A",
+        urbanDensity: recognitionResult?.urbanDensity || "N/A",
+        vegetationDensity: recognitionResult?.vegetationDensity || "N/A",
+        waterProximity: recognitionResult?.waterProximity || "N/A",
+        materialType: recognitionResult?.materialType || "N/A",
+      },
+      nearbyPlaces: recognitionResult?.nearbyPlaces || [],
+      historicalInfo: recognitionResult?.historicalInfo || "N/A",
+      timestamp: new Date().toISOString(),
+    }
+
+    return metadataObj
+  }
+
+  // Handle opening metadata dialog
+  const handleShowMetadata = () => {
+    const metadataObj = extractMetadata()
+    setMetadata(metadataObj)
+    setShowMetadataDialog(true)
+  }
+
+  // Export metadata as JSON file
+  const handleExportMetadata = () => {
+    if (!metadata) return
+
+    const dataStr = JSON.stringify(metadata, null, 2)
+    const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`
+    const exportName = `location-metadata-${new Date().getTime()}.json`
+
+    const linkElement = document.createElement("a")
+    linkElement.setAttribute("href", dataUri)
+    linkElement.setAttribute("download", exportName)
+    linkElement.click()
+  }
+
   // Render environmental data
   const renderEnvironmentalData = (data) => {
     if (!data) return null
@@ -714,22 +804,21 @@ const CameraRecognition = () => {
                     {renderEnvironmentalData(recognitionResult)}
 
                     {/* Display opening hours if available */}
-                    {recognitionResult.openingHours && recognitionResult.openingHours.length > 0 && (
+                    {recognitionResult?.openingHours && (
                       <div className="mb-4">
                         <p className="text-sm font-medium mb-1 flex items-center">
                           <Clock className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
                           Opening Hours
                         </p>
                         <div className="text-xs text-muted-foreground space-y-0.5 ml-5">
-                          {Array.isArray(recognitionResult.openingHours) ? (
-                            recognitionResult.openingHours.map((hours, index) => <p key={index}>{hours}</p>)
+                          {recognitionResult.openingHours.weekday_text && Array.isArray(recognitionResult.openingHours.weekday_text) ? (
+                            recognitionResult.openingHours.weekday_text.map((text, index) => <p key={index}>{text}</p>)
                           ) : (
-                            <p>{recognitionResult.openingHours}</p>
+                            <p>No opening hours available</p>
                           )}
                         </div>
                       </div>
                     )}
-
                     {/* Display photos if available */}
                     {recognitionResult.photos && recognitionResult.photos.length > 0 && (
                       <div className="mb-4">
@@ -786,18 +875,29 @@ const CameraRecognition = () => {
 
                     <div className="flex flex-wrap justify-between gap-2 mt-4">
                       {recognitionResult.mapUrl && (
-                        <Button variant="outline" size="lg" asChild>
+                        <Button variant="outline" size="lg" asChild className="flex-1">
                           <a href={recognitionResult.mapUrl} target="_blank" rel="noopener noreferrer">
                             <Map className="w-4 h-4 mr-2" />
                             View on Map
                           </a>
                         </Button>
                       )}
-                      <Button variant="outline" size="lg" onClick={handleShare}>
+                      <Button variant="outline" size="lg" onClick={handleShare} className="flex-1">
                         <Share className="w-4 h-4 mr-2" />
                         Share
                       </Button>
                     </div>
+                    
+                    {/* More Info Button - Added as requested */}
+                    <Button 
+                      variant="outline" 
+                      size="lg" 
+                      onClick={handleShowMetadata} 
+                      className="w-full mt-2 bg-teal-50 hover:bg-teal-100 border-teal-200 dark:bg-teal-900/20 dark:hover:bg-teal-900/30 dark:border-teal-800/50"
+                    >
+                      <FileText className="w-4 h-4 mr-2 text-teal-600 dark:text-teal-400" />
+                      <span className="text-teal-700 dark:text-teal-300">More Info</span>
+                    </Button>
                   </motion.div>
                 ) : (
                   <motion.div
@@ -916,33 +1016,35 @@ const CameraRecognition = () => {
                         onClick={() => handleRecentLocationSelect(location)}
                       >
                         <div className="flex items-center justify-between">
-                          <h4 className="font-medium text-sm">{location.name}</h4>
-                          {location.confidence && (
-                            <Badge variant="outline" className="text-xs">
-                              {Math.round(location.confidence * 100)}%
-                            </Badge>
-                          )}
-                        </div>
-                        {location.address && (
-                          <p className="text-xs text-muted-foreground mt-1 truncate">{location.address}</p>
-                        )}
-                        <div className="flex items-center mt-2">
-                          <Badge variant="secondary" className="text-xs">
-                            {location.category || location.type || "Unknown"}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground ml-auto">
-                            {location.date || new Date().toLocaleDateString()}
-                          </span>
-                        </div>
-                      </motion.div>
+  <h4 className="font-medium truncate">{location.name}</h4>
+  {location.confidence && (
+    <Badge variant="outline" className="ml-2 text-xs">
+      {Math.round(location.confidence * 100)}%
+    </Badge>
+  )}
+</div>
+<p className="text-xs text-muted-foreground mt-1 truncate">{location.address}</p>
+<div className="flex items-center text-xs text-muted-foreground mt-1">
+  <CalendarIcon className="h-3 w-3 mr-1" />
+  <span>{location.date}</span>
+  {location.category && (
+    <>
+      <span className="mx-1">•</span>
+      <span>{location.category}</span>
+    </>
+  )}
+</div>
+</motion.div>
                     ))}
                   </div>
                 </ScrollArea>
               ) : (
-                <div className="flex flex-col items-center justify-center py-6 text-center">
-                  <History className="h-10 w-10 text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">No recent locations</p>
-                  <p className="text-xs text-muted-foreground mt-1">Identified locations will appear here</p>
+                <div className="py-8 text-center">
+                  <GalleryThumbnails className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
+                  <p className="text-sm text-muted-foreground">No recent locations found</p>
+                  <p className="text-xs text-muted-foreground/80 mt-1">
+                    Try recognizing a location first
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -950,73 +1052,184 @@ const CameraRecognition = () => {
         </div>
       </div>
 
-      {/* How It Works Section */}
-      <Card className="border border-border/40 shadow-md rounded-xl overflow-hidden">
-        <CardHeader className="pb-2 bg-muted/30">
-          <CardTitle>How It Works</CardTitle>
-          <CardDescription>Three simple steps to navigate to any place using just a photo</CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="flex flex-col items-center text-center"
-            >
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 relative">
-                <Camera className="h-6 w-6 text-primary" />
-                <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center font-medium shadow-md">
-                  1
+      {/* Metadata Dialog */}
+      <Dialog open={showMetadataDialog} onOpenChange={setShowMetadataDialog}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Location Metadata</DialogTitle>
+            <DialogDescription>
+              Detailed information about this location and the captured image
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="max-h-[60vh] overflow-y-auto pr-2">
+            {metadata && (
+              <div className="space-y-4">
+                {/* Image Information Section */}
+                <div>
+                  <h3 className="text-sm font-semibold flex items-center mb-2">
+                    <ImageIcon className="h-4 w-4 mr-2 text-primary" />
+                    Image Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">File Name</span>
+                      <p className="text-xs text-muted-foreground truncate">{metadata.imageInfo.fileName}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">File Type</span>
+                      <p className="text-xs text-muted-foreground">{metadata.imageInfo.fileType}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">File Size</span>
+                      <p className="text-xs text-muted-foreground">{metadata.imageInfo.fileSize}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">Capture Date</span>
+                      <p className="text-xs text-muted-foreground">{metadata.imageInfo.captureDate}</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <h3 className="text-lg font-medium mb-2">Upload or Take a Photo</h3>
-              <p className="text-muted-foreground">
-                Capture or select an image of any landmark, building, or location you want to visit
-              </p>
-            </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="flex flex-col items-center text-center"
-            >
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 relative">
-                <Sparkles className="h-6 w-6 text-primary" />
-                <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center font-medium shadow-md">
-                  2
+                {/* Location Information Section */}
+                <div>
+                  <h3 className="text-sm font-semibold flex items-center mb-2">
+                    <MapPin className="h-4 w-4 mr-2 text-primary" />
+                    Location Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">Name</span>
+                      <p className="text-xs text-muted-foreground">{metadata.locationInfo.name}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">Category</span>
+                      <p className="text-xs text-muted-foreground">{metadata.locationInfo.category}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">Type</span>
+                      <p className="text-xs text-muted-foreground">{metadata.locationInfo.type}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">Coordinates</span>
+                      <p className="text-xs text-muted-foreground">{metadata.locationInfo.coordinates}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded-md col-span-2">
+                      <span className="text-xs font-medium">Address</span>
+                      <p className="text-xs text-muted-foreground">{metadata.locationInfo.formattedAddress}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">Place ID</span>
+                      <p className="text-xs text-muted-foreground truncate">{metadata.locationInfo.placeId}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">Recognition Accuracy</span>
+                      <p className="text-xs text-muted-foreground">{metadata.locationInfo.accuracy}</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <h3 className="text-lg font-medium mb-2">AI Identifies the Location</h3>
-              <p className="text-muted-foreground">
-                Our technology recognizes the place in your image and provides details about it
-              </p>
-            </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="flex flex-col items-center text-center"
-            >
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 relative">
-                <Compass className="h-6 w-6 text-primary" />
-                <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center font-medium shadow-md">
-                  3
+                {/* Business Information Section */}
+                <div>
+                  <h3 className="text-sm font-semibold flex items-center mb-2">
+                    <Building2 className="h-4 w-4 mr-2 text-primary" />
+                    Business Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">Phone Number</span>
+                      <p className="text-xs text-muted-foreground">{metadata.businessInfo.phoneNumber}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">Rating</span>
+                      <p className="text-xs text-muted-foreground">{metadata.businessInfo.rating}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded-md col-span-2">
+                      <span className="text-xs font-medium">Website</span>
+                      <p className="text-xs text-muted-foreground truncate">{metadata.businessInfo.website}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded-md col-span-2">
+                      <span className="text-xs font-medium">Opening Hours</span>
+                      <p className="text-xs text-muted-foreground">{
+                        Array.isArray(metadata.businessInfo.openingHours) 
+                          ? metadata.businessInfo.openingHours.join(", ") 
+                          : metadata.businessInfo.openingHours
+                      }</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Environmental Data Section */}
+                <div>
+                  <h3 className="text-sm font-semibold flex items-center mb-2">
+                    <Leaf className="h-4 w-4 mr-2 text-primary" />
+                    Environmental Data
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">Weather</span>
+                      <p className="text-xs text-muted-foreground">{metadata.environmentalData.weatherConditions}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">Air Quality</span>
+                      <p className="text-xs text-muted-foreground">{metadata.environmentalData.airQuality}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">Urban Density</span>
+                      <p className="text-xs text-muted-foreground">{metadata.environmentalData.urbanDensity}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">Vegetation</span>
+                      <p className="text-xs text-muted-foreground">{metadata.environmentalData.vegetationDensity}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Device Information Section */}
+                <div>
+                  <h3 className="text-sm font-semibold flex items-center mb-2">
+                    <Smartphone className="h-4 w-4 mr-2 text-primary" />
+                    Device Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="bg-muted/50 p-2 rounded-md col-span-2">
+                      <span className="text-xs font-medium">Browser</span>
+                      <p className="text-xs text-muted-foreground truncate">{metadata.deviceInfo.browser}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">Platform</span>
+                      <p className="text-xs text-muted-foreground">{metadata.deviceInfo.platform}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded-md">
+                      <span className="text-xs font-medium">Screen Resolution</span>
+                      <p className="text-xs text-muted-foreground">{metadata.deviceInfo.screenResolution}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Timestamp */}
+                <div className="text-xs text-muted-foreground text-center pt-2">
+                  Generated on {new Date(metadata.timestamp).toLocaleString()}
                 </div>
               </div>
-              <h3 className="text-lg font-medium mb-2">Get Navigation Directions</h3>
-              <p className="text-muted-foreground">
-                Navigate to the identified location with precise turn-by-turn directions
-              </p>
-            </motion.div>
+            )}
           </div>
-        </CardContent>
-      </Card>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMetadataDialog(false)}>
+              Close
+            </Button>
+            <Button onClick={handleExportMetadata}>
+              <Download className="h-4 w-4 mr-2" />
+              Export JSON
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-  )
-}
+  );
+};
+
 
 // Implement the Locations feature
 const LocationsFeature = ({ filterCategory = "all" }) => {

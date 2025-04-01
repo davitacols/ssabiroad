@@ -5,7 +5,7 @@ import { Providers } from './providers'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
-  title: 'SabiRoad',
+  title: 'Pic2Nav \\ Find Locations with Ease',
   description: 'Find locations with ease',
 }
 
@@ -16,7 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning={true}>
         <Providers>{children}</Providers>
       </body>
     </html>
