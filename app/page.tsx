@@ -152,7 +152,7 @@ export default function HomePage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
               >
-                <Button
+                {/* <Button
                   size="lg"
                   className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white border-0"
                 >
@@ -166,7 +166,7 @@ export default function HomePage() {
                 >
                   <LucideIcons.Play className="mr-2 h-5 w-5" />
                   See How It Works
-                </Button>
+                </Button> */}
               </motion.div>
 
               <motion.div
@@ -1036,188 +1036,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer className="bg-slate-100 dark:bg-slate-900 py-12 border-t border-slate-200 dark:border-slate-800">
-        <div className="container px-4 md:px-6">
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-teal-500 to-cyan-500 flex items-center justify-center">
-                  <LucideIcons.Navigation className="h-5 w-5 text-white" />
-                </div>
-                <span className="font-bold text-xl text-slate-800 dark:text-white">Pic2Nav</span>
-              </div>
-              <p className="text-slate-600 dark:text-slate-300 mb-4">
-                Transforming navigation with image recognition technology. Find your way to any place from just a photo.
-              </p>
-              <div className="flex gap-4">
-                <a
-                  href="#"
-                  className="text-slate-500 hover:text-teal-500 dark:text-slate-400 dark:hover:text-teal-400 transition-colors"
-                >
-                  <LucideIcons.Twitter className="h-5 w-5" />
-                </a>
-                <a
-                  href="#"
-                  className="text-slate-500 hover:text-teal-500 dark:text-slate-400 dark:hover:text-teal-400 transition-colors"
-                >
-                  <LucideIcons.Instagram className="h-5 w-5" />
-                </a>
-                <a
-                  href="#"
-                  className="text-slate-500 hover:text-teal-500 dark:text-slate-400 dark:hover:text-teal-400 transition-colors"
-                >
-                  <LucideIcons.Facebook className="h-5 w-5" />
-                </a>
-                <a
-                  href="#"
-                  className="text-slate-500 hover:text-teal-500 dark:text-slate-400 dark:hover:text-teal-400 transition-colors"
-                >
-                  <LucideIcons.Youtube className="h-5 w-5" />
-                </a>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="font-medium mb-4 text-slate-800 dark:text-white">Product</h3>
-              <ul className="space-y-2">
-                <li>
-                  <Link
-                    href="#"
-                    className="text-slate-600 hover:text-teal-500 dark:text-slate-300 dark:hover:text-teal-400 transition-colors"
-                  >
-                    Features
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="text-slate-600 hover:text-teal-500 dark:text-slate-300 dark:hover:text-teal-400 transition-colors"
-                  >
-                    Supported Services
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="text-slate-600 hover:text-teal-500 dark:text-slate-300 dark:hover:text-teal-400 transition-colors"
-                  >
-                    Testimonials
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="text-slate-600 hover:text-teal-500 dark:text-slate-300 dark:hover:text-teal-400 transition-colors"
-                  >
-                    Pricing
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-medium mb-4 text-slate-800 dark:text-white">Resources</h3>
-              <ul className="space-y-2">
-                <li>
-                  <Link
-                    href="#"
-                    className="text-slate-600 hover:text-teal-500 dark:text-slate-300 dark:hover:text-teal-400 transition-colors"
-                  >
-                    Blog
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="text-slate-600 hover:text-teal-500 dark:text-slate-300 dark:hover:text-teal-400 transition-colors"
-                  >
-                    Documentation
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="text-slate-600 hover:text-teal-500 dark:text-slate-300 dark:hover:text-teal-400 transition-colors"
-                  >
-                    Research
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="text-slate-600 hover:text-teal-500 dark:text-slate-300 dark:hover:text-teal-400 transition-colors"
-                  >
-                    API
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-medium mb-4 text-slate-800 dark:text-white">Company</h3>
-              <ul className="space-y-2">
-                <li>
-                  <Link
-                    href="#"
-                    className="text-slate-600 hover:text-teal-500 dark:text-slate-300 dark:hover:text-teal-400 transition-colors"
-                  >
-                    About Us
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="text-slate-600 hover:text-teal-500 dark:text-slate-300 dark:hover:text-teal-400 transition-colors"
-                  >
-                    Careers
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="text-slate-600 hover:text-teal-500 dark:text-slate-300 dark:hover:text-teal-400 transition-colors"
-                  >
-                    Press
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="text-slate-600 hover:text-teal-500 dark:text-slate-300 dark:hover:text-teal-400 transition-colors"
-                  >
-                    Contact
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="border-t border-slate-200 dark:border-slate-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 md:mb-0">
-              © {new Date().getFullYear()} Pic2Nav. All rights reserved.
-            </p>
-            <div className="flex gap-6">
-              <Link
-                href="#"
-                className="text-sm text-slate-600 hover:text-teal-500 dark:text-slate-300 dark:hover:text-teal-400 transition-colors"
-              >
-                Privacy Policy
-              </Link>
-              <Link
-                href="#"
-                className="text-sm text-slate-600 hover:text-teal-500 dark:text-slate-300 dark:hover:text-teal-400 transition-colors"
-              >
-                Terms of Service
-              </Link>
-              <Link
-                href="#"
-                className="text-sm text-slate-600 hover:text-teal-500 dark:text-slate-300 dark:hover:text-teal-400 transition-colors"
-              >
-                Cookie Policy
-              </Link>
-            </div>
-          </div>
-        </div>
+      <footer className="bg-slate-100 dark:bg-slate-900 py-4 border-t border-slate-200 dark:border-slate-800 text-center">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          © {new Date().getFullYear()} All rights reserved.
+        </p>
       </footer>
     </div>
   )
