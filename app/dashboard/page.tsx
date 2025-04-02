@@ -1,33 +1,44 @@
-// app/dashboard/page.tsx
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   Camera,
   MapPin,
   Map,
   ImageIcon,
   X,
-  GalleryThumbnails,
+  Star,
+  CheckCircle2,
+  Users,
   Navigation,
   Download,
-  Upload,
   User,
   LogOut,
   Settings,
   AlertCircle,
-  History,
   Search,
-  Compass,
-  Sparkles,
   CalendarIcon,
   Building2,
   Leaf,
   Smartphone,
+  MessageCircle,
+  Headphones,
+  Send,
+  FileQuestion,
+  BookOpen,
   Clock,
   Loader2,
+  Video,
+  HeadphonesIcon,
+  ArrowDown,
+  BookmarkIcon,
   Database,
+  Lightbulb,
   Trash2,
+  Shield,
+  ChevronRight,
+  Lock,
   Heart,
   ArrowUpDown,
   Info,
@@ -56,10 +67,18 @@ import {
   ThumbsUp,
   Layers,
   GalleryHorizontalEnd,
+  GalleryThumbnails,
+  Upload,
+  Sparkles,
+  Check,
+  Twitter,
+  GithubIcon,
+  Compass,
+  Mail,
+  Play,
 } from "lucide-react"
 import * as THREE from "three"
 import { useRouter } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api"
 import { Canvas } from "@react-three/fiber"
 import { Environment, OrbitControls, useGLTF, Text, Float, PerspectiveCamera } from "@react-three/drei"
@@ -76,12 +95,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-
-// Import the new components
-import { LocationSuggestions } from "@/components/location-suggestions"
-import { ImageCaptionGenerator } from "@/components/image-caption-generator"
-import { AIContentGenerator } from "@/components/ai-content-generator"
-
 import { Progress } from "@/components/ui/progress"
 import {
   Dialog,
@@ -97,12 +110,15 @@ import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/use-toast"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
+import { Textarea } from "@/components/ui/textarea"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import Link from "next/link"
 
 // Helper function to get environment variables that works in both local and production
 function getEnv(key: string): string | undefined {
@@ -567,8 +583,8 @@ const CameraRecognition = () => {
         fileType: selectedFile?.type || "image/jpeg",
         fileSize: selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : "Unknown",
         dimensions: "Extracted from image",
-        captureDate: selectedFile?.lastModified 
-          ? new Date(selectedFile.lastModified).toLocaleString() 
+        captureDate: selectedFile?.lastModified
+          ? new Date(selectedFile.lastModified).toLocaleString()
           : new Date().toLocaleString(),
         exifData: "EXIF data extraction requires additional libraries",
       },
@@ -584,12 +600,10 @@ const CameraRecognition = () => {
         address: recognitionResult?.address || "Unknown",
         formattedAddress: recognitionResult?.formattedAddress || "Unknown",
         placeId: recognitionResult?.placeId || "Unknown",
-        coordinates: recognitionResult?.location 
-          ? `${recognitionResult.location.lat}, ${recognitionResult.location.lng}` 
+        coordinates: recognitionResult?.location
+          ? `${recognitionResult.location.latitude}, ${recognitionResult.location.longitude}`
           : "Unknown",
-        accuracy: recognitionResult?.confidence 
-          ? `${(recognitionResult.confidence * 100).toFixed(1)}%` 
-          : "Unknown",
+        accuracy: recognitionResult?.confidence ? `${(recognitionResult.confidence * 100).toFixed(1)}%` : "Unknown",
         category: recognitionResult?.category || "Unknown",
         type: recognitionResult?.type || "Unknown",
         buildingType: recognitionResult?.buildingType || "N/A",
@@ -644,43 +658,43 @@ const CameraRecognition = () => {
     return (
       <div className="grid grid-cols-2 gap-2 mt-4">
         {data.weatherConditions && (
-          <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
-            <Cloud className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-2 bg-teal-500/5 p-2 rounded-md">
+            <Cloud className="h-4 w-4 text-teal-500" />
             <span className="text-xs">{data.weatherConditions}</span>
           </div>
         )}
 
         {data.airQuality && (
-          <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
-            <Wind className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-2 bg-teal-500/5 p-2 rounded-md">
+            <Wind className="h-4 w-4 text-teal-500" />
             <span className="text-xs">Air: {data.airQuality}</span>
           </div>
         )}
 
         {data.urbanDensity && (
-          <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
-            <Building className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-2 bg-teal-500/5 p-2 rounded-md">
+            <Building className="h-4 w-4 text-teal-500" />
             <span className="text-xs">{data.urbanDensity}</span>
           </div>
         )}
 
         {data.vegetationDensity && (
-          <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
-            <Trees className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-2 bg-teal-500/5 p-2 rounded-md">
+            <Trees className="h-4 w-4 text-teal-500" />
             <span className="text-xs">{data.vegetationDensity}</span>
           </div>
         )}
 
         {data.waterProximity && (
-          <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
-            <Droplets className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-2 bg-teal-500/5 p-2 rounded-md">
+            <Droplets className="h-4 w-4 text-teal-500" />
             <span className="text-xs">{data.waterProximity}</span>
           </div>
         )}
 
         {data.materialType && (
-          <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
-            <Layers className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-2 bg-teal-500/5 p-2 rounded-md">
+            <Layers className="h-4 w-4 text-teal-500" />
             <span className="text-xs">Material: {data.materialType}</span>
           </div>
         )}
@@ -692,7 +706,7 @@ const CameraRecognition = () => {
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
         <div className="flex-1">
-          <div className="relative h-[400px] bg-background rounded-xl overflow-hidden border border-border shadow-md flex items-center justify-center">
+          <div className="relative h-[400px] bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-md flex items-center justify-center">
             {/* Camera video feed */}
             <video
               ref={videoRef}
@@ -718,13 +732,13 @@ const CameraRecognition = () => {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-10"
+                className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm z-10"
               >
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
                 >
-                  <Loader2 className="w-12 h-12 text-primary" />
+                  <Loader2 className="w-12 h-12 text-teal-500" />
                 </motion.div>
                 <div className="text-sm font-medium mt-4 mb-2">Analyzing image...</div>
                 <Progress value={progress} className="w-48 h-2" />
@@ -737,10 +751,10 @@ const CameraRecognition = () => {
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-background/90 backdrop-blur-sm p-6 rounded-xl border border-border shadow-lg"
+                    className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg"
                   >
                     <div className="flex items-center gap-2 mb-4">
-                      <MapPin className="h-5 w-5 text-primary" />
+                      <MapPin className="h-5 w-5 text-teal-500" />
                       <h3 className="font-medium text-xl">{recognitionResult.name || "Unknown Location"}</h3>
 
                       {recognitionResult.confidence && (
@@ -758,7 +772,7 @@ const CameraRecognition = () => {
                     )}
 
                     {recognitionResult.address && (
-                      <p className="text-sm text-muted-foreground mb-3">{recognitionResult.address}</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">{recognitionResult.address}</p>
                     )}
 
                     <div className="flex flex-wrap gap-2 mb-4">
@@ -780,18 +794,18 @@ const CameraRecognition = () => {
                       <div className="mb-4 space-y-1">
                         {recognitionResult.phoneNumber && (
                           <p className="text-sm flex items-center">
-                            <Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                            <Phone className="h-3.5 w-3.5 mr-2 text-slate-500 dark:text-slate-400" />
                             {recognitionResult.phoneNumber}
                           </p>
                         )}
                         {recognitionResult.website && (
                           <p className="text-sm flex items-center">
-                            <Globe className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                            <Globe className="h-3.5 w-3.5 mr-2 text-slate-500 dark:text-slate-400" />
                             <a
                               href={recognitionResult.website}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-primary hover:underline truncate"
+                              className="text-teal-500 hover:underline truncate"
                             >
                               {recognitionResult.website}
                             </a>
@@ -807,11 +821,12 @@ const CameraRecognition = () => {
                     {recognitionResult?.openingHours && (
                       <div className="mb-4">
                         <p className="text-sm font-medium mb-1 flex items-center">
-                          <Clock className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                          <Clock className="h-3.5 w-3.5 mr-2 text-slate-500 dark:text-slate-400" />
                           Opening Hours
                         </p>
-                        <div className="text-xs text-muted-foreground space-y-0.5 ml-5">
-                          {recognitionResult.openingHours.weekday_text && Array.isArray(recognitionResult.openingHours.weekday_text) ? (
+                        <div className="text-xs text-slate-600 dark:text-slate-300 space-y-0.5 ml-5">
+                          {recognitionResult.openingHours.weekday_text &&
+                          Array.isArray(recognitionResult.openingHours.weekday_text) ? (
                             recognitionResult.openingHours.weekday_text.map((text, index) => <p key={index}>{text}</p>)
                           ) : (
                             <p>No opening hours available</p>
@@ -869,7 +884,7 @@ const CameraRecognition = () => {
                     {recognitionResult.historicalInfo && (
                       <div className="mb-4">
                         <p className="text-sm font-medium mb-1">Historical Information:</p>
-                        <p className="text-xs text-muted-foreground">{recognitionResult.historicalInfo}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-300">{recognitionResult.historicalInfo}</p>
                       </div>
                     )}
 
@@ -887,12 +902,12 @@ const CameraRecognition = () => {
                         Share
                       </Button>
                     </div>
-                    
-                    {/* More Info Button - Added as requested */}
-                    <Button 
-                      variant="outline" 
-                      size="lg" 
-                      onClick={handleShowMetadata} 
+
+                    {/* More Info Button */}
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={handleShowMetadata}
                       className="w-full mt-2 bg-teal-50 hover:bg-teal-100 border-teal-200 dark:bg-teal-900/20 dark:hover:bg-teal-900/30 dark:border-teal-800/50"
                     >
                       <FileText className="w-4 h-4 mr-2 text-teal-600 dark:text-teal-400" />
@@ -903,13 +918,13 @@ const CameraRecognition = () => {
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-background/90 backdrop-blur-sm p-6 rounded-xl border border-border shadow-lg"
+                    className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg"
                   >
                     <div className="flex items-center gap-2 mb-4">
-                      <AlertCircle className="h-5 w-5 text-destructive" />
+                      <AlertCircle className="h-5 w-5 text-red-500" />
                       <h3 className="font-medium text-xl">Recognition Failed</h3>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-4">
+                    <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
                       {recognitionResult.error || "Could not identify the location in this image."}
                     </p>
                     <Button variant="outline" size="lg" className="w-full" onClick={handleReset}>
@@ -936,16 +951,16 @@ const CameraRecognition = () => {
                     repeatType: "reverse",
                   }}
                 >
-                  <Camera className="w-20 h-20 mb-6 text-primary/70" />
+                  <Camera className="w-20 h-20 mb-6 text-teal-500/70" />
                 </motion.div>
                 <h2 className="text-2xl font-bold mb-2">Identify Any Location</h2>
-                <p className="text-muted-foreground mb-6 max-w-md">
+                <p className="text-slate-600 dark:text-slate-300 mb-6 max-w-md">
                   Upload a photo or use your camera to instantly recognize landmarks, businesses, and navigate to them
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button
                     size="lg"
-                    className="bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
+                    className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white border-0"
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <Upload className="mr-2 h-5 w-5" />
@@ -954,7 +969,7 @@ const CameraRecognition = () => {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-primary/20 hover:bg-primary/5"
+                    className="border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                     onClick={handleCameraCapture}
                   >
                     <Camera className="mr-2 h-5 w-5" />
@@ -968,7 +983,7 @@ const CameraRecognition = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute bottom-4 left-4 right-4 bg-destructive/10 text-destructive p-3 rounded-md"
+                className="absolute bottom-4 left-4 right-4 bg-red-500/10 text-red-500 p-3 rounded-md"
               >
                 {error}
               </motion.div>
@@ -994,10 +1009,10 @@ const CameraRecognition = () => {
 
         {/* Recent Locations Panel */}
         <div className="w-full lg:w-80 shrink-0">
-          <Card className="border border-border/40 shadow-md rounded-xl overflow-hidden">
-            <CardHeader className="pb-2 bg-muted/30">
+          <Card className="border border-slate-200 dark:border-slate-700 shadow-md rounded-xl overflow-hidden">
+            <CardHeader className="pb-2 bg-slate-50 dark:bg-slate-800/50">
               <CardTitle className="text-lg flex items-center">
-                <Clock className="mr-2 h-4 w-4 text-primary" />
+                <Clock className="mr-2 h-4 w-4 text-teal-500" />
                 Recent Locations
               </CardTitle>
               <CardDescription>Your recently identified places</CardDescription>
@@ -1012,39 +1027,37 @@ const CameraRecognition = () => {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className="p-3 rounded-lg border border-border/50 hover:bg-muted/50 cursor-pointer transition-colors"
+                        className="p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
                         onClick={() => handleRecentLocationSelect(location)}
                       >
                         <div className="flex items-center justify-between">
-  <h4 className="font-medium truncate">{location.name}</h4>
-  {location.confidence && (
-    <Badge variant="outline" className="ml-2 text-xs">
-      {Math.round(location.confidence * 100)}%
-    </Badge>
-  )}
-</div>
-<p className="text-xs text-muted-foreground mt-1 truncate">{location.address}</p>
-<div className="flex items-center text-xs text-muted-foreground mt-1">
-  <CalendarIcon className="h-3 w-3 mr-1" />
-  <span>{location.date}</span>
-  {location.category && (
-    <>
-      <span className="mx-1">•</span>
-      <span>{location.category}</span>
-    </>
-  )}
-</div>
-</motion.div>
+                          <h4 className="font-medium truncate">{location.name}</h4>
+                          {location.confidence && (
+                            <Badge variant="outline" className="ml-2 text-xs">
+                              {Math.round(location.confidence * 100)}%
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 truncate">{location.address}</p>
+                        <div className="flex items-center text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          <CalendarIcon className="h-3 w-3 mr-1" />
+                          <span>{location.date}</span>
+                          {location.category && (
+                            <>
+                              <span className="mx-1">•</span>
+                              <span>{location.category}</span>
+                            </>
+                          )}
+                        </div>
+                      </motion.div>
                     ))}
                   </div>
                 </ScrollArea>
               ) : (
                 <div className="py-8 text-center">
-                  <GalleryThumbnails className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
-                  <p className="text-sm text-muted-foreground">No recent locations found</p>
-                  <p className="text-xs text-muted-foreground/80 mt-1">
-                    Try recognizing a location first
-                  </p>
+                  <GalleryThumbnails className="h-10 w-10 mx-auto text-slate-400 dark:text-slate-500 mb-3" />
+                  <p className="text-sm text-slate-600 dark:text-slate-300">No recent locations found</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Try recognizing a location first</p>
                 </div>
               )}
             </CardContent>
@@ -1057,36 +1070,36 @@ const CameraRecognition = () => {
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Location Metadata</DialogTitle>
-            <DialogDescription>
-              Detailed information about this location and the captured image
-            </DialogDescription>
+            <DialogDescription>Detailed information about this location and the captured image</DialogDescription>
           </DialogHeader>
-          
+
           <div className="max-h-[60vh] overflow-y-auto pr-2">
             {metadata && (
               <div className="space-y-4">
                 {/* Image Information Section */}
                 <div>
                   <h3 className="text-sm font-semibold flex items-center mb-2">
-                    <ImageIcon className="h-4 w-4 mr-2 text-primary" />
+                    <ImageIcon className="h-4 w-4 mr-2 text-teal-500" />
                     Image Information
                   </h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">File Name</span>
-                      <p className="text-xs text-muted-foreground truncate">{metadata.imageInfo.fileName}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 truncate">
+                        {metadata.imageInfo.fileName}
+                      </p>
                     </div>
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">File Type</span>
-                      <p className="text-xs text-muted-foreground">{metadata.imageInfo.fileType}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">{metadata.imageInfo.fileType}</p>
                     </div>
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">File Size</span>
-                      <p className="text-xs text-muted-foreground">{metadata.imageInfo.fileSize}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">{metadata.imageInfo.fileSize}</p>
                     </div>
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">Capture Date</span>
-                      <p className="text-xs text-muted-foreground">{metadata.imageInfo.captureDate}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">{metadata.imageInfo.captureDate}</p>
                     </div>
                   </div>
                 </div>
@@ -1094,37 +1107,41 @@ const CameraRecognition = () => {
                 {/* Location Information Section */}
                 <div>
                   <h3 className="text-sm font-semibold flex items-center mb-2">
-                    <MapPin className="h-4 w-4 mr-2 text-primary" />
+                    <MapPin className="h-4 w-4 mr-2 text-teal-500" />
                     Location Information
                   </h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">Name</span>
-                      <p className="text-xs text-muted-foreground">{metadata.locationInfo.name}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">{metadata.locationInfo.name}</p>
                     </div>
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">Category</span>
-                      <p className="text-xs text-muted-foreground">{metadata.locationInfo.category}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">{metadata.locationInfo.category}</p>
                     </div>
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">Type</span>
-                      <p className="text-xs text-muted-foreground">{metadata.locationInfo.type}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">{metadata.locationInfo.type}</p>
                     </div>
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">Coordinates</span>
-                      <p className="text-xs text-muted-foreground">{metadata.locationInfo.coordinates}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">{metadata.locationInfo.coordinates}</p>
                     </div>
-                    <div className="bg-muted/50 p-2 rounded-md col-span-2">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md col-span-2">
                       <span className="text-xs font-medium">Address</span>
-                      <p className="text-xs text-muted-foreground">{metadata.locationInfo.formattedAddress}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        {metadata.locationInfo.formattedAddress}
+                      </p>
                     </div>
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">Place ID</span>
-                      <p className="text-xs text-muted-foreground truncate">{metadata.locationInfo.placeId}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 truncate">
+                        {metadata.locationInfo.placeId}
+                      </p>
                     </div>
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">Recognition Accuracy</span>
-                      <p className="text-xs text-muted-foreground">{metadata.locationInfo.accuracy}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">{metadata.locationInfo.accuracy}</p>
                     </div>
                   </div>
                 </div>
@@ -1132,29 +1149,31 @@ const CameraRecognition = () => {
                 {/* Business Information Section */}
                 <div>
                   <h3 className="text-sm font-semibold flex items-center mb-2">
-                    <Building2 className="h-4 w-4 mr-2 text-primary" />
+                    <Building2 className="h-4 w-4 mr-2 text-teal-500" />
                     Business Information
                   </h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">Phone Number</span>
-                      <p className="text-xs text-muted-foreground">{metadata.businessInfo.phoneNumber}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">{metadata.businessInfo.phoneNumber}</p>
                     </div>
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">Rating</span>
-                      <p className="text-xs text-muted-foreground">{metadata.businessInfo.rating}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">{metadata.businessInfo.rating}</p>
                     </div>
-                    <div className="bg-muted/50 p-2 rounded-md col-span-2">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md col-span-2">
                       <span className="text-xs font-medium">Website</span>
-                      <p className="text-xs text-muted-foreground truncate">{metadata.businessInfo.website}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 truncate">
+                        {metadata.businessInfo.website}
+                      </p>
                     </div>
-                    <div className="bg-muted/50 p-2 rounded-md col-span-2">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md col-span-2">
                       <span className="text-xs font-medium">Opening Hours</span>
-                      <p className="text-xs text-muted-foreground">{
-                        Array.isArray(metadata.businessInfo.openingHours) 
-                          ? metadata.businessInfo.openingHours.join(", ") 
-                          : metadata.businessInfo.openingHours
-                      }</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        {Array.isArray(metadata.businessInfo.openingHours)
+                          ? metadata.businessInfo.openingHours.join(", ")
+                          : metadata.businessInfo.openingHours}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1162,25 +1181,33 @@ const CameraRecognition = () => {
                 {/* Environmental Data Section */}
                 <div>
                   <h3 className="text-sm font-semibold flex items-center mb-2">
-                    <Leaf className="h-4 w-4 mr-2 text-primary" />
+                    <Leaf className="h-4 w-4 mr-2 text-teal-500" />
                     Environmental Data
                   </h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">Weather</span>
-                      <p className="text-xs text-muted-foreground">{metadata.environmentalData.weatherConditions}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        {metadata.environmentalData.weatherConditions}
+                      </p>
                     </div>
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">Air Quality</span>
-                      <p className="text-xs text-muted-foreground">{metadata.environmentalData.airQuality}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        {metadata.environmentalData.airQuality}
+                      </p>
                     </div>
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">Urban Density</span>
-                      <p className="text-xs text-muted-foreground">{metadata.environmentalData.urbanDensity}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        {metadata.environmentalData.urbanDensity}
+                      </p>
                     </div>
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">Vegetation</span>
-                      <p className="text-xs text-muted-foreground">{metadata.environmentalData.vegetationDensity}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        {metadata.environmentalData.vegetationDensity}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1188,38 +1215,45 @@ const CameraRecognition = () => {
                 {/* Device Information Section */}
                 <div>
                   <h3 className="text-sm font-semibold flex items-center mb-2">
-                    <Smartphone className="h-4 w-4 mr-2 text-primary" />
+                    <Smartphone className="h-4 w-4 mr-2 text-teal-500" />
                     Device Information
                   </h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="bg-muted/50 p-2 rounded-md col-span-2">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md col-span-2">
                       <span className="text-xs font-medium">Browser</span>
-                      <p className="text-xs text-muted-foreground truncate">{metadata.deviceInfo.browser}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 truncate">
+                        {metadata.deviceInfo.browser}
+                      </p>
                     </div>
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">Platform</span>
-                      <p className="text-xs text-muted-foreground">{metadata.deviceInfo.platform}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">{metadata.deviceInfo.platform}</p>
                     </div>
-                    <div className="bg-muted/50 p-2 rounded-md">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
                       <span className="text-xs font-medium">Screen Resolution</span>
-                      <p className="text-xs text-muted-foreground">{metadata.deviceInfo.screenResolution}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        {metadata.deviceInfo.screenResolution}
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Timestamp */}
-                <div className="text-xs text-muted-foreground text-center pt-2">
+                <div className="text-xs text-slate-500 dark:text-slate-400 text-center pt-2">
                   Generated on {new Date(metadata.timestamp).toLocaleString()}
                 </div>
               </div>
             )}
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowMetadataDialog(false)}>
               Close
             </Button>
-            <Button onClick={handleExportMetadata}>
+            <Button
+              className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white border-0"
+              onClick={handleExportMetadata}
+            >
               <Download className="h-4 w-4 mr-2" />
               Export JSON
             </Button>
@@ -1227,9 +1261,8 @@ const CameraRecognition = () => {
         </DialogContent>
       </Dialog>
     </div>
-  );
-};
-
+  )
+}
 
 // Implement the Locations feature
 const LocationsFeature = ({ filterCategory = "all" }) => {
@@ -1470,7 +1503,7 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold">Saved Locations</h2>
-          <p className="text-muted-foreground">Manage your saved locations and bookmarks</p>
+          <p className="text-slate-600 dark:text-slate-300">Manage your saved locations and bookmarks</p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -1494,14 +1527,14 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
             </SelectContent>
           </Select>
 
-          <div className="flex rounded-md border border-input overflow-hidden">
+          <div className="flex rounded-md border border-slate-200 dark:border-slate-700 overflow-hidden">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={`h-9 w-9 rounded-none ${view === "list" ? "bg-muted" : ""}`}
+                    className={`h-9 w-9 rounded-none ${view === "list" ? "bg-slate-100 dark:bg-slate-800" : ""}`}
                     onClick={() => setView("list")}
                   >
                     <LayoutDashboard className="h-4 w-4" />
@@ -1517,7 +1550,7 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={`h-9 w-9 rounded-none ${view === "grid" ? "bg-muted" : ""}`}
+                    className={`h-9 w-9 rounded-none ${view === "grid" ? "bg-slate-100 dark:bg-slate-800" : ""}`}
                     onClick={() => setView("grid")}
                   >
                     <LayoutGrid className="h-4 w-4" />
@@ -1532,16 +1565,19 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
 
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
         </div>
       ) : error ? (
         <Card>
           <CardContent className="py-10">
             <div className="flex flex-col items-center justify-center text-center">
-              <AlertCircle className="h-10 w-10 text-destructive mb-4" />
+              <AlertCircle className="h-10 w-10 text-red-500 mb-4" />
               <h3 className="text-lg font-medium mb-2">Error Loading Locations</h3>
-              <p className="text-muted-foreground">{error}</p>
-              <Button onClick={fetchLocations} className="mt-4">
+              <p className="text-slate-600 dark:text-slate-300">{error}</p>
+              <Button
+                onClick={fetchLocations}
+                className="mt-4 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white border-0"
+              >
                 Try Again
               </Button>
             </div>
@@ -1551,9 +1587,9 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
         <Card className="rounded-xl shadow-md">
           <CardContent className="py-10">
             <div className="flex flex-col items-center justify-center text-center">
-              <Database className="h-10 w-10 text-muted-foreground mb-4" />
+              <Database className="h-10 w-10 text-slate-400 dark:text-slate-500 mb-4" />
               <h3 className="text-lg font-medium mb-2">No Locations Found</h3>
-              <p className="text-muted-foreground">
+              <p className="text-slate-600 dark:text-slate-300">
                 {searchQuery || filterCategory !== "all"
                   ? "No locations match your search criteria. Try adjusting your filters."
                   : "You haven't saved any locations yet. Use the camera recognition feature to identify and save locations."}
@@ -1562,9 +1598,9 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
           </CardContent>
         </Card>
       ) : view === "list" ? (
-        <Card className="border border-border/40 shadow-md rounded-xl overflow-hidden">
+        <Card className="border border-slate-200 dark:border-slate-700 shadow-md rounded-xl overflow-hidden">
           <Table>
-            <TableHeader className="bg-muted/30">
+            <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
               <TableRow>
                 <TableHead className="w-[250px]">
                   <Button variant="ghost" className="p-0 font-medium" onClick={() => toggleSort("name")}>
@@ -1628,7 +1664,7 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
                           className="opacity-70 group-hover:opacity-100 transition-opacity"
                         >
                           {location.isBookmarked ? (
-                            <Heart className="h-4 w-4 fill-primary text-primary" />
+                            <Heart className="h-4 w-4 fill-teal-500 text-teal-500" />
                           ) : (
                             <Heart className="h-4 w-4" />
                           )}
@@ -1669,7 +1705,7 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
               transition={{ delay: index * 0.05 }}
             >
               <Card className="overflow-hidden h-full flex flex-col group hover:shadow-lg transition-shadow rounded-xl">
-                <div className="relative h-40 bg-muted">
+                <div className="relative h-40 bg-slate-100 dark:bg-slate-800">
                   <img
                     src={
                       location.photos?.[0] ||
@@ -1699,7 +1735,7 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
                       onClick={() => handleToggleBookmark(location)}
                     >
                       {location.isBookmarked ? (
-                        <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" />
+                        <Heart className="h-3.5 w-3.5 fill-teal-500 text-teal-500" />
                       ) : (
                         <Heart className="h-3.5 w-3.5" />
                       )}
@@ -1729,7 +1765,7 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
                     <Badge variant="outline" className="text-xs">
                       {location.category || "Unknown"}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
                       {new Date(location.createdAt).toLocaleDateString()}
                     </span>
                   </div>
@@ -1763,7 +1799,7 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="rounded-lg overflow-hidden border h-48"
+                      className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 h-48"
                     >
                       <img
                         src={selectedLocation.photos[0] || "/placeholder.svg"}
@@ -1772,8 +1808,8 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
                       />
                     </motion.div>
                   ) : (
-                    <div className="rounded-lg overflow-hidden border h-48 bg-muted flex items-center justify-center">
-                      <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                    <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 h-48 bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                      <ImageIcon className="h-12 w-12 text-slate-400 dark:text-slate-500" />
                     </div>
                   )}
 
@@ -1782,7 +1818,7 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.2 }}
-                      className="rounded-lg overflow-hidden border h-48"
+                      className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 h-48"
                     >
                       <iframe
                         width="100%"
@@ -1812,14 +1848,14 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
                   {selectedLocation.description && (
                     <div>
                       <h4 className="text-sm font-medium mb-1">Description</h4>
-                      <p className="text-sm text-muted-foreground">{selectedLocation.description}</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-300">{selectedLocation.description}</p>
                     </div>
                   )}
 
                   {selectedLocation.location && (
                     <div>
                       <h4 className="text-sm font-medium mb-1">Coordinates</h4>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-slate-600 dark:text-slate-300">
                         {selectedLocation.location.latitude.toFixed(6)},{" "}
                         {selectedLocation.location.longitude.toFixed(6)}
                       </p>
@@ -1829,29 +1865,29 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
                   {/* Environmental data */}
                   <div className="grid grid-cols-2 gap-2">
                     {selectedLocation.weatherConditions && (
-                      <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
-                        <Cloud className="h-4 w-4 text-primary" />
+                      <div className="flex items-center gap-2 bg-teal-500/5 p-2 rounded-md">
+                        <Cloud className="h-4 w-4 text-teal-500" />
                         <span className="text-xs">{selectedLocation.weatherConditions}</span>
                       </div>
                     )}
 
                     {selectedLocation.airQuality && (
-                      <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
-                        <Wind className="h-4 w-4 text-primary" />
+                      <div className="flex items-center gap-2 bg-teal-500/5 p-2 rounded-md">
+                        <Wind className="h-4 w-4 text-teal-500" />
                         <span className="text-xs">Air: {selectedLocation.airQuality}</span>
                       </div>
                     )}
 
                     {selectedLocation.urbanDensity && (
-                      <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
-                        <Building className="h-4 w-4 text-primary" />
+                      <div className="flex items-center gap-2 bg-teal-500/5 p-2 rounded-md">
+                        <Building className="h-4 w-4 text-teal-500" />
                         <span className="text-xs">{selectedLocation.urbanDensity}</span>
                       </div>
                     )}
 
                     {selectedLocation.vegetationDensity && (
-                      <div className="flex items-center gap-2 bg-primary/5 p-2 rounded-md">
-                        <Trees className="h-4 w-4 text-primary" />
+                      <div className="flex items-center gap-2 bg-teal-500/5 p-2 rounded-md">
+                        <Trees className="h-4 w-4 text-teal-500" />
                         <span className="text-xs">{selectedLocation.vegetationDensity}</span>
                       </div>
                     )}
@@ -1863,36 +1899,38 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         {selectedLocation.geoData.country && (
                           <div>
-                            <span className="text-muted-foreground">Country:</span> {selectedLocation.geoData.country} (
-                            {selectedLocation.geoData.countryCode})
+                            <span className="text-slate-500 dark:text-slate-400">Country:</span>{" "}
+                            {selectedLocation.geoData.country} ({selectedLocation.geoData.countryCode})
                           </div>
                         )}
                         {selectedLocation.geoData.administrativeArea && (
                           <div>
-                            <span className="text-muted-foreground">State/Province:</span>{" "}
+                            <span className="text-slate-500 dark:text-slate-400">State/Province:</span>{" "}
                             {selectedLocation.geoData.administrativeArea}
                           </div>
                         )}
                         {selectedLocation.geoData.locality && (
                           <div>
-                            <span className="text-muted-foreground">City:</span> {selectedLocation.geoData.locality}
+                            <span className="text-slate-500 dark:text-slate-400">City:</span>{" "}
+                            {selectedLocation.geoData.locality}
                           </div>
                         )}
                         {selectedLocation.geoData.postalCode && (
                           <div>
-                            <span className="text-muted-foreground">Postal Code:</span>{" "}
+                            <span className="text-slate-500 dark:text-slate-400">Postal Code:</span>{" "}
                             {selectedLocation.geoData.postalCode}
                           </div>
                         )}
                         {selectedLocation.geoData.elevation && (
                           <div>
-                            <span className="text-muted-foreground">Elevation:</span>{" "}
+                            <span className="text-slate-500 dark:text-slate-400">Elevation:</span>{" "}
                             {selectedLocation.geoData.elevation.toFixed(1)} meters
                           </div>
                         )}
                         {selectedLocation.geoData.timezone && (
                           <div>
-                            <span className="text-muted-foreground">Timezone:</span> {selectedLocation.geoData.timezone}
+                            <span className="text-slate-500 dark:text-slate-400">Timezone:</span>{" "}
+                            {selectedLocation.geoData.timezone}
                           </div>
                         )}
                       </div>
@@ -1920,7 +1958,7 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
                   {selectedLocation.phoneNumber && (
                     <div>
                       <h4 className="text-sm font-medium mb-1">Contact</h4>
-                      <p className="text-sm text-muted-foreground">{selectedLocation.phoneNumber}</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-300">{selectedLocation.phoneNumber}</p>
                     </div>
                   )}
 
@@ -1931,7 +1969,7 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
                         href={selectedLocation.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline"
+                        className="text-sm text-teal-500 hover:underline"
                       >
                         {selectedLocation.website}
                       </a>
@@ -1941,7 +1979,7 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
                   {selectedLocation.historicalInfo && (
                     <div>
                       <h4 className="text-sm font-medium mb-1">Historical Information</h4>
-                      <p className="text-sm text-muted-foreground">{selectedLocation.historicalInfo}</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-300">{selectedLocation.historicalInfo}</p>
                     </div>
                   )}
                 </div>
@@ -1951,7 +1989,7 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
                 <Button variant="outline" onClick={() => handleToggleBookmark(selectedLocation)}>
                   {selectedLocation.isBookmarked ? (
                     <>
-                      <Heart className="mr-2 h-4 w-4 fill-primary text-primary" />
+                      <Heart className="mr-2 h-4 w-4 fill-teal-500 text-teal-500" />
                       Remove Bookmark
                     </>
                   ) : (
@@ -1963,7 +2001,10 @@ const LocationsFeature = ({ filterCategory = "all" }) => {
                 </Button>
 
                 {selectedLocation.mapUrl && (
-                  <Button asChild className="bg-primary hover:bg-primary/90">
+                  <Button
+                    asChild
+                    className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white border-0"
+                  >
                     <a href={selectedLocation.mapUrl} target="_blank" rel="noopener noreferrer">
                       <MapPin className="mr-2 h-4 w-4" />
                       View on Map
@@ -2173,15 +2214,23 @@ const MapFeature = ({ filterCategory = "all" }) => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Map View</h2>
-          <p className="text-muted-foreground">View all your saved locations on a map</p>
+          <p className="text-slate-600 dark:text-slate-300">View all your saved locations on a map</p>
         </div>
 
         <div className="flex gap-2">
-          <Button onClick={toggle3DMode} variant="outline" className="gap-2">
+          <Button
+            onClick={toggle3DMode}
+            variant="outline"
+            className="gap-2 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
             {is3DMode ? <Map className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
             {is3DMode ? "2D Map" : "3D View"}
           </Button>
-          <Button onClick={fetchLocations} variant="outline" className="gap-2">
+          <Button
+            onClick={fetchLocations}
+            variant="outline"
+            className="gap-2 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
             <Loader2 className={`h-4 w-4 ${isLoading ? "animate-spin" : "hidden"}`} />
             Refresh Map
           </Button>
@@ -2189,26 +2238,29 @@ const MapFeature = ({ filterCategory = "all" }) => {
       </div>
 
       {!isGoogleMapsLoaded ? (
-        <Card className="h-[600px] flex items-center justify-center border border-border/40 shadow-md rounded-xl">
+        <Card className="h-[600px] flex items-center justify-center border border-slate-200 dark:border-slate-700 shadow-md rounded-xl">
           <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+            <Loader2 className="h-8 w-8 animate-spin text-teal-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium">Loading Google Maps</h3>
-            <p className="text-muted-foreground">Please wait while we load the map...</p>
+            <p className="text-slate-600 dark:text-slate-300">Please wait while we load the map...</p>
           </div>
         </Card>
       ) : error ? (
-        <Card className="h-[600px] flex items-center justify-center border border-border/40 shadow-md rounded-xl">
+        <Card className="h-[600px] flex items-center justify-center border border-slate-200 dark:border-slate-700 shadow-md rounded-xl">
           <div className="text-center">
-            <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
+            <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">Error Loading Map</h3>
-            <p className="text-muted-foreground">{error}</p>
-            <Button onClick={fetchLocations} className="mt-4">
+            <p className="text-slate-600 dark:text-slate-300">{error}</p>
+            <Button
+              onClick={fetchLocations}
+              className="mt-4 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white border-0"
+            >
               Try Again
             </Button>
           </div>
         </Card>
       ) : is3DMode ? (
-        <Card className="h-[600px] overflow-hidden border border-border/40 shadow-md rounded-xl">
+        <Card className="h-[600px] overflow-hidden border border-slate-200 dark:border-slate-700 shadow-md rounded-xl">
           <div className="w-full h-full">
             <Canvas>
               <PerspectiveCamera makeDefault position={[0, 5, 10]} />
@@ -2271,7 +2323,7 @@ const MapFeature = ({ filterCategory = "all" }) => {
           </div>
         </Card>
       ) : (
-        <Card className="h-[600px] overflow-hidden border border-border/40 shadow-md rounded-xl">
+        <Card className="h-[600px] overflow-hidden border border-slate-200 dark:border-slate-700 shadow-md rounded-xl">
           <GoogleMap
             mapContainerStyle={{ width: "100%", height: "100%" }}
             center={{ lat: mapCenter.latitude, lng: mapCenter.longitude }}
@@ -2354,13 +2406,13 @@ const MapFeature = ({ filterCategory = "all" }) => {
                   <p className="text-xs text-gray-600 mt-1 mb-2">{selectedLocation.address}</p>
                   {selectedLocation.category && (
                     <div className="mb-2">
-                      <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">
+                      <span className="inline-block bg-teal-100 text-teal-800 text-xs px-2 py-0.5 rounded">
                         {selectedLocation.category}
                       </span>
                     </div>
                   )}
                   <button
-                    className="bg-blue-500 hover:bg-blue-600 text-white text-xs py-1 px-2 rounded w-full"
+                    className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white text-xs py-1 px-2 rounded w-full"
                     onClick={() => handleNavigate(selectedLocation)}
                   >
                     Navigate
@@ -2374,37 +2426,37 @@ const MapFeature = ({ filterCategory = "all" }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <Card className="border border-border/40 shadow-md rounded-xl h-full">
-            <CardHeader className="pb-2 bg-muted/30">
+          <Card className="border border-slate-200 dark:border-slate-700 shadow-md rounded-xl h-full">
+            <CardHeader className="pb-2 bg-slate-50 dark:bg-slate-800/50">
               <CardTitle className="text-lg flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" />
+                <BarChart3 className="h-5 w-5 text-teal-500" />
                 Location Stats
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Total Locations:</span>
+                  <span className="text-slate-600 dark:text-slate-300">Total Locations:</span>
                   <span className="font-medium text-lg">{locations.length}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Landmarks:</span>
+                  <span className="text-slate-600 dark:text-slate-300">Landmarks:</span>
                   <Badge variant="outline">{locations.filter((loc) => loc.category === "Landmark").length}</Badge>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Businesses:</span>
+                  <span className="text-slate-600 dark:text-slate-300">Businesses:</span>
                   <Badge variant="outline">{locations.filter((loc) => loc.category === "Business").length}</Badge>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Other:</span>
+                  <span className="text-slate-600 dark:text-slate-300">Other:</span>
                   <Badge variant="outline">
                     {locations.filter((loc) => loc.category !== "Landmark" && loc.category !== "Business").length}
                   </Badge>
                 </div>
                 {userLocation && (
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Your Position:</span>
-                    <span className="text-xs font-mono bg-muted p-1 rounded">
+                    <span className="text-slate-600 dark:text-slate-300">Your Position:</span>
+                    <span className="text-xs font-mono bg-slate-100 dark:bg-slate-800 p-1 rounded">
                       {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
                     </span>
                   </div>
@@ -2415,10 +2467,10 @@ const MapFeature = ({ filterCategory = "all" }) => {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card className="border border-border/40 shadow-md rounded-xl h-full">
-            <CardHeader className="pb-2 bg-muted/30">
+          <Card className="border border-slate-200 dark:border-slate-700 shadow-md rounded-xl h-full">
+            <CardHeader className="pb-2 bg-slate-50 dark:bg-slate-800/50">
               <CardTitle className="text-lg flex items-center gap-2">
-                <GalleryHorizontalEnd className="h-5 w-5 text-primary" />
+                <GalleryHorizontalEnd className="h-5 w-5 text-teal-500" />
                 Map Legend
               </CardTitle>
             </CardHeader>
@@ -2426,23 +2478,23 @@ const MapFeature = ({ filterCategory = "all" }) => {
               <div className="space-y-3">
                 <div className="flex items-center">
                   <div className="w-4 h-4 rounded-full bg-[#4285F4] mr-2"></div>
-                  <span>Your Current Location</span>
+                  <span className="text-slate-600 dark:text-slate-300">Your Current Location</span>
                 </div>
                 <div className="flex items-center">
                   <div className="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
-                  <span>Landmarks</span>
+                  <span className="text-slate-600 dark:text-slate-300">Landmarks</span>
                 </div>
                 <div className="flex items-center">
                   <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
-                  <span>Businesses</span>
+                  <span className="text-slate-600 dark:text-slate-300">Businesses</span>
                 </div>
                 <div className="flex items-center">
                   <div className="w-4 h-4 rounded-full bg-purple-500 mr-2"></div>
-                  <span>Points of Interest</span>
+                  <span className="text-slate-600 dark:text-slate-300">Points of Interest</span>
                 </div>
                 <div className="flex items-center">
                   <div className="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
-                  <span>Other Locations</span>
+                  <span className="text-slate-600 dark:text-slate-300">Other Locations</span>
                 </div>
               </div>
             </CardContent>
@@ -2450,10 +2502,10 @@ const MapFeature = ({ filterCategory = "all" }) => {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card className="border border-border/40 shadow-md rounded-xl h-full">
-            <CardHeader className="pb-2 bg-muted/30">
+          <Card className="border border-slate-200 dark:border-slate-700 shadow-md rounded-xl h-full">
+            <CardHeader className="pb-2 bg-slate-50 dark:bg-slate-800/50">
               <CardTitle className="text-lg flex items-center gap-2">
-                <Settings className="h-5 w-5 text-primary" />
+                <Settings className="h-5 w-5 text-teal-500" />
                 Quick Actions
               </CardTitle>
             </CardHeader>
@@ -2461,7 +2513,7 @@ const MapFeature = ({ filterCategory = "all" }) => {
               <div className="space-y-2">
                 <Button
                   variant="outline"
-                  className="w-full justify-start"
+                  className="w-full justify-start border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                   onClick={() => {
                     if (userLocation) {
                       setMapCenter(userLocation)
@@ -2472,21 +2524,29 @@ const MapFeature = ({ filterCategory = "all" }) => {
                   <MapPin className="mr-2 h-4 w-4" />
                   Center on My Location
                 </Button>
-                <Button variant="outline" className="w-full justify-start" onClick={fetchLocations}>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  onClick={fetchLocations}
+                >
                   <Loader2 className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                   Refresh Locations
                 </Button>
                 {selectedLocation && (
                   <Button
                     variant="outline"
-                    className="w-full justify-start"
+                    className="w-full justify-start border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                     onClick={() => handleNavigate(selectedLocation)}
                   >
                     <Navigation className="mr-2 h-4 w-4" />
                     Navigate to Selected
                   </Button>
                 )}
-                <Button variant="outline" className="w-full justify-start" onClick={toggle3DMode}>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  onClick={toggle3DMode}
+                >
                   {is3DMode ? (
                     <>
                       <Map className="mr-2 h-4 w-4" />
@@ -2521,47 +2581,12 @@ export default function Dashboard() {
   const [error, setError] = useState(null)
   const router = useRouter()
   const isMobile = useIsMobile()
-
-  /* // Fetch user data
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        setLoading(true)
-
-        // Get the JWT token from localStorage
-        const token = localStorage.getItem("token")
-
-        if (!token) {
-          throw new Error("No authentication token found")
-        }
-
-        const response = await fetch("/api/user", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            // Token is invalid or expired, redirect to login
-            router.push("/login")
-            return
-          }
-          throw new Error("Failed to fetch user data")
-        }
-
-        const userData = await response.json()
-        setUser(userData)
-      } catch (err) {
-        console.error("Error fetching user data:", err)
-        setError(err instanceof Error ? err.message : "An error occurred")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchUserData()
-  }, [router]) */
+  const [showHelpCenter, setShowHelpCenter] = useState(false)
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [showAbout, setShowAbout] = useState(false)
+  const [feedbackType, setFeedbackType] = useState("suggestion")
+  const [feedbackMessage, setFeedbackMessage] = useState("")
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false)
 
   // Handle dark mode toggle
   useEffect(() => {
@@ -2624,19 +2649,6 @@ export default function Dashboard() {
       description: "Initiating a new image recognition scan.",
     })
   }
-
-  /* // Handle logout
-  const handleLogout = async () => {
-    try {
-      // Remove the token from localStorage
-      localStorage.removeItem("token")
-
-      // Redirect to login page
-      router.push("/login")
-    } catch (error) {
-      console.error("Error during logout:", error)
-    }
-  } */
 
   // Enhanced Location Recognition Dialog Component
   const LocationRecognitionDialog = ({ open, onOpenChange }) => {
@@ -2771,7 +2783,7 @@ export default function Dashboard() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Camera className="h-5 w-5 text-primary" />
+              <Camera className="h-5 w-5 text-teal-500" />
               Quick Location Scan
             </DialogTitle>
             <DialogDescription>
@@ -2779,7 +2791,7 @@ export default function Dashboard() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="relative h-[300px] bg-muted rounded-lg overflow-hidden border border-border flex items-center justify-center">
+          <div className="relative h-[300px] bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 flex items-center justify-center">
             {/* Camera video feed */}
             <video
               ref={videoRef}
@@ -2800,17 +2812,17 @@ export default function Dashboard() {
 
             {!cameraActive && !previewUrl && (
               <div className="flex flex-col items-center justify-center text-center p-6">
-                <Camera className="w-16 h-16 mb-4 text-primary/70" />
+                <Camera className="w-16 h-16 mb-4 text-teal-500/70" />
                 <h2 className="text-xl font-bold mb-2">Identify Any Location</h2>
-                <p className="text-muted-foreground mb-4">
+                <p className="text-slate-600 dark:text-slate-300 mb-4">
                   Upload a photo or use your camera to instantly recognize places
                 </p>
               </div>
             )}
 
             {isProcessing && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm z-10">
-                <Loader2 className="w-12 h-12 animate-spin text-primary" />
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm z-10">
+                <Loader2 className="w-12 h-12 animate-spin text-teal-500" />
                 <div className="text-sm font-medium mt-4 mb-2">Analyzing image...</div>
               </div>
             )}
@@ -2821,7 +2833,7 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
             <Button
               size="lg"
-              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+              className="flex-1 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white border-0"
               onClick={() => fileInputRef.current?.click()}
             >
               <Upload className="mr-2 h-5 w-5" />
@@ -2830,7 +2842,7 @@ export default function Dashboard() {
             <Button
               size="lg"
               variant="outline"
-              className="flex-1 border-primary/20 hover:bg-primary/5"
+              className="flex-1 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
               onClick={handleCameraCapture}
             >
               <Camera className="mr-2 h-5 w-5" />
@@ -2841,7 +2853,7 @@ export default function Dashboard() {
           {isProcessing && (
             <div className="mt-4">
               <Progress value={progress} className="w-full h-2" />
-              <p className="text-xs text-center text-muted-foreground mt-1">
+              <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-1">
                 {progress < 100 ? "Processing image..." : "Completed!"}
               </p>
             </div>
@@ -2869,9 +2881,9 @@ export default function Dashboard() {
 
   // Navigation items
   const navigationItems = [
-    { id: "recognition", label: "Image Recognition", icon: Camera, color: "text-primary" },
+    { id: "recognition", label: "Image Recognition", icon: Camera, color: "text-teal-500" },
     { id: "locations", label: "Saved Locations", icon: MapPin, color: "text-emerald-500" },
-    { id: "map", label: "Map View", icon: Map, color: "text-indigo-500" },
+    { id: "map", label: "Map View", icon: Map, color: "text-cyan-500" },
     { id: "search", label: "Search", icon: Search, color: "text-amber-500" },
     { id: "bookmarks", label: "Bookmarks", icon: Heart, color: "text-rose-500" },
   ]
@@ -2886,16 +2898,16 @@ export default function Dashboard() {
   // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
+      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-slate-900">
         <div className="text-center space-y-4">
           <div className="relative w-16 h-16 mx-auto">
             <div className="absolute inset-0 flex items-center justify-center">
-              <MapPin className="h-8 w-8 text-primary animate-pulse" />
+              <MapPin className="h-8 w-8 text-teal-500 animate-pulse" />
             </div>
-            <div className="absolute inset-0 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+            <div className="absolute inset-0 border-4 border-teal-500/30 border-t-teal-500 rounded-full animate-spin"></div>
           </div>
           <h2 className="text-xl font-semibold mt-4">Loading Pic2Nav</h2>
-          <p className="text-muted-foreground">Preparing your location dashboard...</p>
+          <p className="text-slate-600 dark:text-slate-300">Preparing your location dashboard...</p>
         </div>
       </div>
     )
@@ -2904,7 +2916,7 @@ export default function Dashboard() {
   // Error state
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
+      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-slate-900">
         <Card className="w-full max-w-md border-none shadow-xl rounded-xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-red-500/10 to-orange-500/10">
             <CardTitle className="text-red-500 flex items-center gap-2">
@@ -2914,12 +2926,12 @@ export default function Dashboard() {
             <CardDescription>We encountered an issue while loading your data</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
-            <p className="text-muted-foreground">{error}</p>
+            <p className="text-slate-600 dark:text-slate-300">{error}</p>
           </CardContent>
-          <CardFooter className="bg-muted/30 flex justify-center">
+          <CardFooter className="bg-slate-50 dark:bg-slate-800/50 flex justify-center">
             <Button
               onClick={() => window.location.reload()}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white border-0"
             >
               <Loader2 className="mr-2 h-4 w-4" />
               Try Again
@@ -2931,9 +2943,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-slate-900 flex flex-col">
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-40 w-full border-b bg-background/90 backdrop-blur-sm">
+      <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm">
         <div className="flex h-16 items-center px-4 md:px-6">
           <div className="flex items-center gap-2 mr-4">
             <TooltipProvider>
@@ -2954,6 +2966,8 @@ export default function Dashboard() {
                       <line x1="3" y1="6" x2="21" y2="6" />
                       <line x1="3" y1="12" x2="21" y2="12" />
                       <line x1="3" y1="18" x2="21" y2="18" />
+                      <line x1="3" y1="12" x2="21" y2="12" />
+                      <line x1="3" y1="18" x2="21" y2="18" />
                     </svg>
                   </Button>
                 </TooltipTrigger>
@@ -2961,20 +2975,20 @@ export default function Dashboard() {
               </Tooltip>
             </TooltipProvider>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <MapPin className="w-4 h-4 text-primary-foreground" />
+              <div className="w-8 h-8 bg-gradient-to-r from-teal-600 to-cyan-600 rounded-lg flex items-center justify-center">
+                <MapPin className="w-4 h-4 text-white" />
               </div>
               <span className="text-xl font-bold hidden sm:inline-block">Pic2Nav</span>
             </div>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="hidden md:flex flex-1 mx-4">
-            <TabsList className="bg-muted/50 p-1">
+            <TabsList className="bg-slate-100 dark:bg-slate-800 p-1">
               {navigationItems.map((item) => (
                 <TabsTrigger
                   key={item.id}
                   value={item.id}
-                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md"
+                  className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 rounded-md"
                 >
                   <item.icon className={`h-4 w-4 mr-2 ${item.color}`} />
                   {item.label}
@@ -3045,7 +3059,7 @@ export default function Dashboard() {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="rounded-full relative">
                   <Bell className="h-4 w-4" />
-                  <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-primary"></span>
+                  <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-teal-500"></span>
                   <span className="sr-only">Notifications</span>
                 </Button>
               </DropdownMenuTrigger>
@@ -3054,38 +3068,40 @@ export default function Dashboard() {
                 <DropdownMenuSeparator />
                 <ScrollArea className="h-[300px]">
                   <div className="p-2 space-y-2">
-                    <div className="flex items-start gap-4 p-3 hover:bg-muted/50 rounded-md">
-                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                        <MapPin className="h-4 w-4 text-primary" />
+                    <div className="flex items-start gap-4 p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md">
+                      <div className="w-8 h-8 bg-teal-500/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <MapPin className="h-4 w-4 text-teal-500" />
                       </div>
                       <div>
                         <p className="text-sm font-medium">New location recognized</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-slate-600 dark:text-slate-300">
                           Empire State Building was added to your locations
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">2 hours ago</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">2 hours ago</p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-4 p-3 hover:bg-muted/50 rounded-md">
+                    <div className="flex items-start gap-4 p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md">
                       <div className="w-8 h-8 bg-amber-500/10 rounded-full flex items-center justify-center flex-shrink-0">
                         <Bell className="h-4 w-4 text-amber-500" />
                       </div>
                       <div>
                         <p className="text-sm font-medium">System update</p>
-                        <p className="text-xs text-muted-foreground">New features have been added to the platform</p>
-                        <p className="text-xs text-muted-foreground mt-1">1 day ago</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-300">
+                          New features have been added to the platform
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">1 day ago</p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-4 p-3 hover:bg-muted/50 rounded-md">
+                    <div className="flex items-start gap-4 p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md">
                       <div className="w-8 h-8 bg-emerald-500/10 rounded-full flex items-center justify-center flex-shrink-0">
                         <ThumbsUp className="h-4 w-4 text-emerald-500" />
                       </div>
                       <div>
                         <p className="text-sm font-medium">Enhanced precision</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-slate-600 dark:text-slate-300">
                           Our location recognition model has been upgraded for better accuracy
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">3 days ago</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">3 days ago</p>
                       </div>
                     </div>
                   </div>
@@ -3104,17 +3120,15 @@ export default function Dashboard() {
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                   <Avatar className="h-9 w-9">
                     <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user?.username || "User"}`} />
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {user?.username?.[0]}
-                    </AvatarFallback>
+                    <AvatarFallback className="bg-teal-500 text-white">{user?.username?.[0] || "U"}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium">{user?.username}</p>
-                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                    <p className="text-sm font-medium">{user?.username || "Guest User"}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{user?.email || "guest@example.com"}</p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
@@ -3127,10 +3141,10 @@ export default function Dashboard() {
                   <span>Settings</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                {/* <DropdownMenuItem onClick={handleLogout} className="gap-2">
+                <DropdownMenuItem className="gap-2">
                   <LogOut className="h-4 w-4" />
                   <span>Log out</span>
-                </DropdownMenuItem> */}
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -3142,15 +3156,17 @@ export default function Dashboard() {
         <SheetContent side="left" className="w-64 pt-10">
           <SheetHeader className="text-left mb-4">
             <SheetTitle className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <MapPin className="w-4 h-4 text-primary-foreground" />
+              <div className="w-8 h-8 bg-gradient-to-r from-teal-600 to-cyan-600 rounded-lg flex items-center justify-center">
+                <MapPin className="w-4 h-4 text-white" />
               </div>
               <span>Pic2Nav</span>
             </SheetTitle>
           </SheetHeader>
           <div className="space-y-4">
             <div className="space-y-1">
-              <h3 className="text-xs font-semibold text-muted-foreground tracking-wider pl-2 mb-1">MAIN NAVIGATION</h3>
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 tracking-wider pl-2 mb-1">
+                MAIN NAVIGATION
+              </h3>
               {navigationItems.map((item) => (
                 <Button
                   key={item.id}
@@ -3161,13 +3177,13 @@ export default function Dashboard() {
                     setIsMenuOpen(false)
                   }}
                 >
-                  <item.icon className={`h-4 w-4 mr-2 ${activeTab === item.id ? "text-primary" : item.color}`} />
+                  <item.icon className={`h-4 w-4 mr-2 ${activeTab === item.id ? "text-teal-500" : item.color}`} />
                   {item.label}
                 </Button>
               ))}
             </div>
             <div>
-              <h3 className="text-xs font-semibold text-muted-foreground tracking-wider pl-2 mb-1 pt-2">
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 tracking-wider pl-2 mb-1 pt-2">
                 ADVANCED FEATURES
               </h3>
               {advancedFeatures.map((item) => (
@@ -3180,25 +3196,25 @@ export default function Dashboard() {
                     setIsMenuOpen(false)
                   }}
                 >
-                  <item.icon className={`h-4 w-4 mr-2 ${activeTab === item.id ? "text-primary" : item.color}`} />
+                  <item.icon className={`h-4 w-4 mr-2 ${activeTab === item.id ? "text-teal-500" : item.color}`} />
                   {item.label}
                 </Button>
               ))}
             </div>
           </div>
           <div className="absolute bottom-4 left-4 right-4">
-            <Card className="bg-muted/50">
+            <Card className="bg-slate-50 dark:bg-slate-800">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-9 w-9">
                     <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${user?.username || "User"}`} />
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {user?.username?.[0]}
-                    </AvatarFallback>
+                    <AvatarFallback className="bg-teal-500 text-white">{user?.username?.[0] || "U"}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 overflow-hidden">
-                    <p className="text-sm font-medium truncate">{user?.username}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                    <p className="text-sm font-medium truncate">{user?.username || "Guest User"}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      {user?.email || "guest@example.com"}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -3220,7 +3236,7 @@ export default function Dashboard() {
                   size="sm"
                   className={cn(
                     "rounded-full gap-2",
-                    activeTab === item.id ? "bg-primary text-primary-foreground" : "",
+                    activeTab === item.id ? "bg-gradient-to-r from-teal-600 to-cyan-600 text-white" : "",
                   )}
                   onClick={() => setActiveTab(item.id)}
                 >
@@ -3235,10 +3251,10 @@ export default function Dashboard() {
         {/* Dashboard Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold">
+            <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-cyan-600 dark:from-teal-400 dark:to-cyan-400">
               {navigationItems.concat(advancedFeatures).find((item) => item.id === activeTab)?.label}
             </h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-slate-600 dark:text-slate-300 mt-1">
               {activeTab === "recognition"
                 ? "Upload or capture images to identify locations"
                 : activeTab === "locations"
@@ -3252,7 +3268,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-2">
+                <Button variant="outline" size="sm" className="h-9 gap-2 border-slate-300 dark:border-slate-700">
                   <Filter className="h-4 w-4" />
                   <span>Filter</span>
                 </Button>
@@ -3281,7 +3297,7 @@ export default function Dashboard() {
 
             <Button
               size="sm"
-              className="h-9 gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+              className="h-9 gap-2 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white border-0"
               onClick={handleNewScan}
             >
               <Camera className="h-4 w-4" />
@@ -3291,44 +3307,36 @@ export default function Dashboard() {
         </div>
 
         {/* Dashboard Content */}
-        <div className="bg-background rounded-xl shadow-md border overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden">
           <div className="p-6">
             {activeTab === "recognition" && <CameraRecognition />}
             {activeTab === "locations" && <LocationsFeature filterCategory={filterCategory} />}
             {activeTab === "map" && <MapFeature filterCategory={filterCategory} />}
             {activeTab === "bookmarks" && (
               <div className="flex items-center justify-center h-64">
-                <p className="text-muted-foreground">Bookmarks feature coming soon</p>
+                <p className="text-slate-600 dark:text-slate-300">Bookmarks feature coming soon</p>
               </div>
             )}
             {activeTab === "search" && (
               <div className="flex items-center justify-center h-64">
-                <p className="text-muted-foreground">Search feature coming soon</p>
+                <p className="text-slate-600 dark:text-slate-300">Search feature coming soon</p>
               </div>
             )}
-            {activeTab === "location-suggestions" && (
-              <LocationSuggestions
-                location={{ lat: 0, lng: 0, name: "Default Location" }}
-                currentLocation={{ lat: 0, lng: 0 }}
-              />
-            )}
-            {activeTab === "image-caption" && <ImageCaptionGenerator />}
-            {activeTab === "ai-content-generator" && <AIContentGenerator />}
           </div>
         </div>
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-          <Card className="border shadow-sm rounded-xl overflow-hidden">
+          <Card className="border border-slate-200 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
             <CardContent className="p-0">
               <div className="flex">
-                <div className="w-3 bg-primary h-full"></div>
+                <div className="w-3 bg-gradient-to-b from-teal-500 to-cyan-500 h-full"></div>
                 <div className="p-4 flex items-center gap-4 flex-1">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <MapPin className="h-6 w-6 text-primary" />
+                  <div className="w-12 h-12 rounded-full bg-teal-500/10 flex items-center justify-center">
+                    <MapPin className="h-6 w-6 text-teal-500" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Locations</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Total Locations</p>
                     <p className="text-2xl font-bold">124</p>
                   </div>
                 </div>
@@ -3336,16 +3344,16 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border shadow-sm rounded-xl overflow-hidden">
+          <Card className="border border-slate-200 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
             <CardContent className="p-0">
               <div className="flex">
-                <div className="w-3 bg-emerald-500 h-full"></div>
+                <div className="w-3 bg-gradient-to-b from-emerald-500 to-teal-500 h-full"></div>
                 <div className="p-4 flex items-center gap-4 flex-1">
                   <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
                     <Camera className="h-6 w-6 text-emerald-500" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Scans This Month</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Scans This Month</p>
                     <p className="text-2xl font-bold">37</p>
                   </div>
                 </div>
@@ -3353,16 +3361,16 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border shadow-sm rounded-xl overflow-hidden">
+          <Card className="border border-slate-200 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
             <CardContent className="p-0">
               <div className="flex">
-                <div className="w-3 bg-purple-500 h-full"></div>
+                <div className="w-3 bg-gradient-to-b from-purple-500 to-indigo-500 h-full"></div>
                 <div className="p-4 flex items-center gap-4 flex-1">
                   <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center">
                     <Heart className="h-6 w-6 text-purple-500" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Bookmarks</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Bookmarks</p>
                     <p className="text-2xl font-bold">18</p>
                   </div>
                 </div>
@@ -3370,16 +3378,16 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border shadow-sm rounded-xl overflow-hidden">
+          <Card className="border border-slate-200 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden">
             <CardContent className="p-0">
               <div className="flex">
-                <div className="w-3 bg-amber-500 h-full"></div>
+                <div className="w-3 bg-gradient-to-b from-amber-500 to-orange-500 h-full"></div>
                 <div className="p-4 flex items-center gap-4 flex-1">
                   <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center">
                     <BarChart3 className="h-6 w-6 text-amber-500" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Accuracy Rate</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Accuracy Rate</p>
                     <p className="text-2xl font-bold">94%</p>
                   </div>
                 </div>
@@ -3389,27 +3397,1099 @@ export default function Dashboard() {
         </div>
 
         {/* Help and Support */}
-        <div className="mt-8 flex justify-center">
-          <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <Button variant="link" size="sm" className="h-auto p-0 text-muted-foreground hover:text-foreground">
-              <HelpCircle className="h-4 w-4 mr-1" />
-              Help Center
-            </Button>
-            <Button variant="link" size="sm" className="h-auto p-0 text-muted-foreground hover:text-foreground">
-              <MessageSquare className="h-4 w-4 mr-1" />
-              Feedback
-            </Button>
-            <Button variant="link" size="sm" className="h-auto p-0 text-muted-foreground hover:text-foreground">
-              <Info className="h-4 w-4 mr-1" />
-              About
-            </Button>
+<div className="mt-8 flex justify-center">
+  <div className="flex items-center gap-6 text-sm">
+    <Button 
+      variant="link" 
+      size="sm" 
+      className="flex items-center h-auto p-0 text-slate-500 dark:text-slate-400 hover:text-teal-500 transition-colors"
+      onClick={() => setShowHelpCenter(true)}
+    >
+      <HelpCircle className="h-4 w-4 mr-1.5" />
+      Help Center
+    </Button>
+    <Button 
+      variant="link" 
+      size="sm" 
+      className="flex items-center h-auto p-0 text-slate-500 dark:text-slate-400 hover:text-teal-500 transition-colors"
+      onClick={() => setShowFeedback(true)}
+    >
+      <MessageSquare className="h-4 w-4 mr-1.5" />
+      Feedback
+    </Button>
+    <Button 
+      variant="link" 
+      size="sm" 
+      className="flex items-center h-auto p-0 text-slate-500 dark:text-slate-400 hover:text-teal-500 transition-colors"
+      onClick={() => setShowAbout(true)}
+    >
+      <Info className="h-4 w-4 mr-1.5" />
+      About
+    </Button>
+  </div>
+</div>
+
+{/* Help Center Dialog */}
+<Dialog open={showHelpCenter} onOpenChange={setShowHelpCenter}>
+  <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+    <DialogHeader className="border-b pb-4">
+      <DialogTitle className="flex items-center gap-2 text-2xl font-bold text-teal-600 dark:text-teal-500">
+        <HelpCircle className="h-6 w-6" />
+        Help Center
+      </DialogTitle>
+      <DialogDescription className="text-slate-600 dark:text-slate-300">
+        Find answers to common questions and learn how to get the most out of Pic2Nav
+      </DialogDescription>
+    </DialogHeader>
+    
+    <Tabs defaultValue="faq" className="flex-1 overflow-hidden mt-2">
+      <TabsList className="grid grid-cols-4 mb-6">
+        <TabsTrigger value="faq" className="gap-1.5">
+          <FileQuestion className="h-4 w-4" />
+          FAQs
+        </TabsTrigger>
+        <TabsTrigger value="guides" className="gap-1.5">
+          <BookOpen className="h-4 w-4" />
+          User Guides
+        </TabsTrigger>
+        <TabsTrigger value="tutorials" className="gap-1.5">
+          <Video className="h-4 w-4" />
+          Tutorials
+        </TabsTrigger>
+        <TabsTrigger value="contact" className="gap-1.5">
+          <HeadphonesIcon className="h-4 w-4" />
+          Support
+        </TabsTrigger>
+      </TabsList>
+      
+      <div className="overflow-y-auto pr-2 h-[calc(100%-50px)]">
+        <TabsContent value="faq" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
+          <div className="flex mb-4">
+            <Input 
+              placeholder="Search FAQs..." 
+              className="max-w-md" 
+              startIcon={<Search className="h-4 w-4 text-slate-400" />}
+            />
           </div>
-        </div>
+          
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="item-1">
+              <AccordionTrigger className="text-base font-medium">
+                How accurate is the location recognition?
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="text-slate-600 dark:text-slate-300 space-y-3">
+                  <p>
+                    Pic2Nav's location recognition accuracy varies depending on several factors:
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>For well-known landmarks and buildings, accuracy is typically <span className="font-medium text-teal-600 dark:text-teal-500">90-95%</span></li>
+                    <li>For less distinctive locations, accuracy may be <span className="font-medium text-teal-600 dark:text-teal-500">70-85%</span></li>
+                    <li>Factors affecting accuracy include image quality, lighting conditions, and uniqueness of the location</li>
+                  </ul>
+                  <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-md border-l-4 border-teal-500 mt-2">
+                    <p className="text-sm">
+                      <span className="font-medium">Pro tip:</span> The confidence score displayed with each recognition gives you an indication of how certain the system is about the identification.
+                    </p>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+            
+            <AccordionItem value="item-2">
+              <AccordionTrigger className="text-base font-medium">
+                Can I use Pic2Nav offline?
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="text-slate-600 dark:text-slate-300 space-y-3">
+                  <p>
+                    Pic2Nav requires an internet connection for most features, including image recognition and map navigation. However, you can:
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Save locations for offline viewing</li>
+                    <li>Download map areas for specific regions <Badge className="ml-1 bg-teal-500">Premium</Badge></li>
+                    <li>Access previously recognized locations from your history</li>
+                  </ul>
+                  <p className="text-sm bg-slate-50 dark:bg-slate-800 p-3 rounded-md">
+                    Full offline functionality is planned for a future update. <Link href="#" className="text-teal-500 hover:underline">Subscribe to our newsletter</Link> to stay informed.
+                  </p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+            
+            <AccordionItem value="item-3">
+              <AccordionTrigger className="text-base font-medium">
+                How do I save a location to my bookmarks?
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="text-slate-600 dark:text-slate-300 space-y-3">
+                  <p>
+                    To bookmark a location:
+                  </p>
+                  <ol className="list-decimal pl-5 space-y-2">
+                    <li>Open the location details by clicking on it in your saved locations or recognition results</li>
+                    <li>Click the bookmark button <BookmarkIcon className="h-4 w-4 inline text-teal-500 mx-1" /> at the top of the details panel</li>
+                    <li>The location will now appear in your Bookmarks tab</li>
+                  </ol>
+                  <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-md border-l-4 border-teal-500 mt-2 flex items-start">
+                    <Lightbulb className="h-5 w-5 text-amber-500 mr-2 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm">
+                      You can also bookmark a location directly from the recognition results by clicking the bookmark icon next to any result.
+                    </p>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+            
+            <AccordionItem value="item-4">
+              <AccordionTrigger className="text-base font-medium">
+                What types of images work best for recognition?
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="text-slate-600 dark:text-slate-300 space-y-3">
+                  <p>
+                    For optimal recognition results:
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-md">
+                      <h4 className="font-medium mb-2 text-teal-600 dark:text-teal-500">Do:</h4>
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>Use clear, well-lit images</li>
+                        <li>Capture distinctive features of the location</li>
+                        <li>Include the entire building or landmark if possible</li>
+                        <li>Take photos during daylight hours when possible</li>
+                      </ul>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-md">
+                      <h4 className="font-medium mb-2 text-rose-600 dark:text-rose-500">Avoid:</h4>
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>Extreme angles or heavily obstructed views</li>
+                        <li>Very low light or night shots</li>
+                        <li>Blurry or low-resolution images</li>
+                        <li>Generic scenery without distinctive features</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <p className="text-sm">
+                    The system works best with architectural landmarks, storefronts, and distinctive natural features.
+                  </p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+            
+            <AccordionItem value="item-5">
+              <AccordionTrigger className="text-base font-medium">
+                Is my data private and secure?
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="text-slate-600 dark:text-slate-300 space-y-3">
+                  <p>
+                    Pic2Nav takes your privacy seriously:
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Images are processed securely and not stored unless you choose to save them</li>
+                    <li>Your location history is stored only on your account</li>
+                    <li>You can delete your data at any time from the Settings page</li>
+                    <li>We do not sell or share your personal data with third parties</li>
+                  </ul>
+                  <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-3 rounded-md mt-2">
+                    <p className="text-sm">
+                      For more details, please review our Privacy Policy.
+                    </p>
+                    <Button variant="outline" size="sm" className="text-teal-600 border-teal-600 hover:bg-teal-50 dark:text-teal-500 dark:border-teal-500 dark:hover:bg-slate-700">
+                      <Shield className="h-4 w-4 mr-1.5" />
+                      Privacy Policy
+                    </Button>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+            
+            <AccordionItem value="item-6">
+              <AccordionTrigger className="text-base font-medium">
+                How do I report an incorrect location?
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="text-slate-600 dark:text-slate-300 space-y-3">
+                  <p>
+                    If you receive an incorrect location match:
+                  </p>
+                  <ol className="list-decimal pl-5 space-y-1">
+                    <li>Open the location details view</li>
+                    <li>Click the "Report Issue" button at the bottom of the details panel</li>
+                    <li>Select "Incorrect Location" from the dropdown menu</li>
+                    <li>Provide additional information about the actual location if known</li>
+                    <li>Submit your report</li>
+                  </ol>
+                  <p className="text-sm bg-slate-50 dark:bg-slate-800 p-3 rounded-md">
+                    Your feedback helps us improve our recognition accuracy for everyone. Thank you for contributing!
+                  </p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </TabsContent>
+        
+        <TabsContent value="guides" className="mt-0 space-y-6 focus-visible:outline-none focus-visible:ring-0">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200">Getting Started</h3>
+              <Button variant="ghost" size="sm" className="text-teal-600 dark:text-teal-500">
+                View All <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+            
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 hover:bg-teal-100">Beginner</Badge>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">5 min read</span>
+                  </div>
+                  <CardTitle className="text-base mt-2">Image Recognition Basics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    Learn how to capture and upload images for optimal location recognition results.
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <FileText className="h-4 w-4 mr-1.5" />
+                    View Guide
+                  </Button>
+                </CardFooter>
+              </Card>
+              
+              <Card className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 hover:bg-teal-100">Beginner</Badge>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">7 min read</span>
+                  </div>
+                  <CardTitle className="text-base mt-2">Navigating to Locations</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    Discover how to get directions to recognized locations using your preferred maps service.
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <FileText className="h-4 w-4 mr-1.5" />
+                    View Guide
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200">Advanced Features</h3>
+              <Button variant="ghost" size="sm" className="text-teal-600 dark:text-teal-500">
+                View All <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+            
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 hover:bg-amber-100">Intermediate</Badge>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">10 min read</span>
+                  </div>
+                  <CardTitle className="text-base mt-2">Managing Your Saved Locations</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    Learn how to organize, filter, and manage your location history and bookmarks.
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <FileText className="h-4 w-4 mr-1.5" />
+                    View Guide
+                  </Button>
+                </CardFooter>
+              </Card>
+              
+              <Card className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 hover:bg-amber-100">Intermediate</Badge>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">8 min read</span>
+                  </div>
+                  <CardTitle className="text-base mt-2">Using the Map View</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    Explore the interactive map features to visualize and navigate to your saved locations.
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <FileText className="h-4 w-4 mr-1.5" />
+                    View Guide
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200">Premium Features</h3>
+              <Badge className="bg-gradient-to-r from-amber-400 to-amber-600 text-white">Premium</Badge>
+            </div>
+            
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card className="hover:shadow-md transition-shadow border-amber-200 dark:border-amber-800">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 hover:bg-purple-100">Advanced</Badge>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">12 min read</span>
+                  </div>
+                  <CardTitle className="text-base mt-2">Offline Maps & Recognition</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    Learn how to download map areas and use Pic2Nav's offline recognition capabilities.
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Lock className="h-4 w-4 mr-1.5" />
+                    Unlock Premium
+                  </Button>
+                </CardFooter>
+              </Card>
+              
+              <Card className="hover:shadow-md transition-shadow border-amber-200 dark:border-amber-800">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 hover:bg-purple-100">Advanced</Badge>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">15 min read</span>
+                  </div>
+                  <CardTitle className="text-base mt-2">Creating Custom Routes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    Master the creation of custom multi-stop routes using your recognized locations.
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Lock className="h-4 w-4 mr-1.5" />
+                    Unlock Premium
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="tutorials" className="mt-0 space-y-6 focus-visible:outline-none focus-visible:ring-0">
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200">Video Tutorials</h3>
+            
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader className="p-0">
+                  <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-t-lg flex items-center justify-center relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                      <div className="bg-white/90 dark:bg-slate-800/90 rounded-full p-2.5 shadow-lg group-hover:scale-110 transition-transform">
+                        <Play className="h-6 w-6 text-teal-600 dark:text-teal-500" />
+                      </div>
+                    </div>
+                    <img 
+                      src="/api/placeholder/640/360" 
+                      alt="Getting started with Pic2Nav" 
+                      className="object-cover"
+                    />
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-3">
+                  <h4 className="font-medium text-base">Getting Started with Pic2Nav</h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
+                    A complete walkthrough of basic features for new users.
+                  </p>
+                  <div className="flex items-center mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    <Clock className="h-3.5 w-3.5 mr-1" />
+                    5:22
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="p-0">
+                  <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-t-lg flex items-center justify-center relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                      <div className="bg-white/90 dark:bg-slate-800/90 rounded-full p-2.5 shadow-lg group-hover:scale-110 transition-transform">
+                        <Play className="h-6 w-6 text-teal-600 dark:text-teal-500" />
+                      </div>
+                    </div>
+                    <img 
+                      src="/api/placeholder/640/360" 
+                      alt="Advanced recognition tips" 
+                      className="object-cover"
+                    />
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-3">
+                  <h4 className="font-medium text-base">Advanced Recognition Tips</h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
+                    Learn how to get the most accurate location matches.
+                  </p>
+                  <div className="flex items-center mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    <Clock className="h-3.5 w-3.5 mr-1" />
+                    7:48
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <div className="grid gap-6 md:grid-cols-3 mt-6">
+              <Card className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-2">
+                  <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                      <Play className="h-8 w-8 text-white/80 group-hover:text-white transition-colors" />
+                    </div>
+                    <img 
+                      src="/api/placeholder/320/180" 
+                      alt="Saving locations" 
+                      className="object-cover"
+                    />
+                  </div>
+                  <CardTitle className="text-base mt-2">Managing Bookmarks</CardTitle>
+                </CardHeader>
+                <CardContent className="pb-2">
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    Learn to organize your saved locations effectively.
+                  </p>
+                </CardContent>
+                <CardFooter className="pt-0">
+                  <div className="flex items-center text-xs text-slate-500 dark:text-slate-400">
+                    <Clock className="h-3.5 w-3.5 mr-1" />
+                    3:42
+                  </div>
+                </CardFooter>
+              </Card>
+              
+              <Card className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-2">
+                  <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                      <Play className="h-8 w-8 text-white/80 group-hover:text-white transition-colors" />
+                    </div>
+                    <img 
+                      src="/api/placeholder/320/180" 
+                      alt="Navigation features" 
+                      className="object-cover"
+                    />
+                  </div>
+                  <CardTitle className="text-base mt-2">Navigation Features</CardTitle>
+                </CardHeader>
+                <CardContent className="pb-2">
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    Get directions to locations using different map providers.
+                  </p>
+                </CardContent>
+                <CardFooter className="pt-0">
+                  <div className="flex items-center text-xs text-slate-500 dark:text-slate-400">
+                    <Clock className="h-3.5 w-3.5 mr-1" />
+                    4:17
+                  </div>
+                </CardFooter>
+              </Card>
+              
+              <Card className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-2">
+                  <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                      <Play className="h-8 w-8 text-white/80 group-hover:text-white transition-colors" />
+                    </div>
+                    <img 
+                      src="/api/placeholder/320/180" 
+                      alt="Account settings" 
+                      className="object-cover"
+                    />
+                  </div>
+                  <CardTitle className="text-base mt-2">Account Settings</CardTitle>
+                </CardHeader>
+                <CardContent className="pb-2">
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    Customize your profile and application preferences.
+                  </p>
+                </CardContent>
+                <CardFooter className="pt-0">
+                  <div className="flex items-center text-xs text-slate-500 dark:text-slate-400">
+                    <Clock className="h-3.5 w-3.5 mr-1" />
+                    2:55
+                  </div>
+                </CardFooter>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="contact" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
+          <Card className="border-0 shadow-none">
+            <CardHeader className="px-0 pt-0">
+              <CardTitle className="text-xl">Contact Support</CardTitle>
+              <CardDescription>
+                Need help with something not covered in our guides or FAQs? Our support team is here to help.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 px-0">
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                  <h3 className="font-medium mb-2 flex items-center text-teal-600 dark:text-teal-500">
+                    <Clock className="h-5 w-5 mr-2" />
+                    Support Hours
+                  </h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-slate-600 dark:text-slate-300">Monday - Friday</span>
+                      <span className="text-sm font-medium">9:00 AM - 8:00 PM EST</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-slate-600 dark:text-slate-300">Saturday</span>
+                      <span className="text-sm font-medium">10:00 AM - 6:00 PM EST</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-slate-600 dark:text-slate-300">Sunday</span>
+                      <span className="text-sm font-medium">Closed</span>
+                      </div>
+                  </div>
+                </div>
+                
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                  <h3 className="font-medium mb-2 flex items-center text-teal-600 dark:text-teal-500">
+                    <MessageSquare className="h-5 w-5 mr-2" />
+                    Response Time
+                  </h3>
+                  <div className="space-y-1">
+                    <div className="flex items-center mb-2">
+                      <span className="text-sm text-slate-600 dark:text-slate-300">We respond to most inquiries within:</span>
+                    </div>
+                    <div className="bg-white dark:bg-slate-700 p-2 rounded flex items-center">
+                      <div className="h-2 w-2 rounded-full bg-green-500 mr-2"></div>
+                      <span className="text-sm font-medium">24 hours</span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                      Premium users receive priority support with response times under 4 hours during business hours.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                <h3 className="font-medium mb-4 flex items-center text-teal-600 dark:text-teal-500">
+                  <Headphones className="h-5 w-5 mr-2" />
+                  Support Channels
+                </h3>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Button className="flex flex-col items-center justify-center h-24 gap-2">
+                    <Mail className="h-6 w-6" />
+                    <div className="flex flex-col items-center">
+                      <span className="font-medium">Email</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">24 hour response</span>
+                    </div>
+                  </Button>
+                  
+                  <Button variant="outline" className="flex flex-col items-center justify-center h-24 gap-2">
+                    <MessageCircle className="h-6 w-6" />
+                    <div className="flex flex-col items-center">
+                      <span className="font-medium">Live Chat</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Business hours only</span>
+                    </div>
+                  </Button>
+                  
+                  <Button variant="outline" className="flex flex-col items-center justify-center h-24 gap-2">
+                    <Phone className="h-6 w-6" />
+                    <div className="flex flex-col items-center">
+                      <span className="font-medium">Phone</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Premium users only</span>
+                    </div>
+                  </Button>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="font-medium mb-4">Submit a Support Request</h3>
+                <form className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName">Full Name</Label>
+                      <Input id="fullName" placeholder="Enter your name" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input id="email" type="email" placeholder="your@email.com" />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Issue Category</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="account">Account Issues</SelectItem>
+                        <SelectItem value="billing">Billing Questions</SelectItem>
+                        <SelectItem value="recognition">Recognition Problems</SelectItem>
+                        <SelectItem value="navigation">Navigation Issues</SelectItem>
+                        <SelectItem value="feature">Feature Requests</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="message">Message</Label>
+                    <Textarea 
+                      id="message" 
+                      placeholder="Please describe your issue in detail" 
+                      className="min-h-[120px]"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="attachments">Attachments (Optional)</Label>
+                    <div className="border-2 border-dashed rounded-lg p-4 text-center border-slate-300 dark:border-slate-700">
+                      <div className="flex flex-col items-center">
+                        <Upload className="h-8 w-8 text-slate-400 mb-2" />
+                        <p className="text-sm text-slate-600 dark:text-slate-300">
+                          Drag files here or click to browse
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Max 5 files, 10MB each
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end">
+                    <Button type="submit" className="gap-2">
+                      <Send className="h-4 w-4" />
+                      Submit Request
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </div>
+    </Tabs>
+  </DialogContent>
+</Dialog>
 
-      {/* Location Recognition Dialog */}
-      <LocationRecognitionDialog open={showLocationRecognitionDialog} onOpenChange={setShowLocationRecognitionDialog} />
+            
+        {/* Feedback Dialog */}
+        <Dialog open={showFeedback} onOpenChange={setShowFeedback}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-teal-500" />
+                Send Feedback
+              </DialogTitle>
+              <DialogDescription>
+                Help us improve Pic2Nav by sharing your thoughts and suggestions
+              </DialogDescription>
+            </DialogHeader>
+            
+            {!feedbackSubmitted ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Feedback Type</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button 
+                      variant={feedbackType === "suggestion" ? "default" : "outline"} 
+                      className={feedbackType === "suggestion" ? "bg-gradient-to-r from-teal-600 to-cyan-600 text-white" : ""}
+                      onClick={() => setFeedbackType("suggestion")}
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Suggestion
+                    </Button>
+                    <Button 
+                      variant={feedbackType === "issue" ? "default" : "outline"}
+                      className={feedbackType === "issue" ? "bg-gradient-to-r from-teal-600 to-cyan-600 text-white" : ""}
+                      onClick={() => setFeedbackType("issue")}
+                    >
+                      <AlertCircle className="h-4 w-4 mr-2" />
+                      Issue
+                    </Button>
+                    <Button 
+                      variant={feedbackType === "praise" ? "default" : "outline"}
+                      className={feedbackType === "praise" ? "bg-gradient-to-r from-teal-600 to-cyan-600 text-white" : ""}
+                      onClick={() => setFeedbackType("praise")}
+                    >
+                      <ThumbsUp className="h-4 w-4 mr-2" />
+                      Praise
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="feedback-message">Your Feedback</Label>
+                  <Textarea 
+                    id="feedback-message" 
+                    placeholder={
+                      feedbackType === "suggestion" 
+                        ? "Share your ideas on how we can improve..." 
+                        : feedbackType === "issue" 
+                          ? "Describe the issue you're experiencing..." 
+                          : "Tell us what you love about Pic2Nav..."
+                    }
+                    rows={5}
+                    value={feedbackMessage}
+                    onChange={(e) => setFeedbackMessage(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2"> 
+                  <Label htmlFor="feedback-email">Your Email (optional)</Label>
+                  <Input 
+                    id="feedback-email" 
+                    type="email"
+                    placeholder="Enter your email for follow-up"
+                  />
+                  <p className="text-xs text-slate-500">We'll only use this to follow up about your feedback if needed</p>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Switch id="include-screenshot" />
+                  <Label htmlFor="include-screenshot">Include screenshot of current view</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch id="include-device-info" defaultChecked />
+                  <Label htmlFor="include-device-info">Include device & app info</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-slate-400 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs max-w-xs">Includes app version, device type, and operating system to help us troubleshoot issues</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                
+                <DialogFooter>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowFeedback(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white border-0"
+                    onClick={() => {
+                      // In a real app, this would send the feedback to support@pic2nav.com
+                      toast({
+                        title: "Feedback Submitted",
+                        description: "Thank you for helping us improve Pic2Nav!",
+                      });
+                      setFeedbackSubmitted(true);
+                      // Reset after a delay
+                      setTimeout(() => {
+                        setFeedbackMessage("");
+                        setFeedbackSubmitted(false);
+                        setShowFeedback(false);
+                      }, 2000);
+                    }}
+                    disabled={!feedbackMessage.trim()}
+                  >
+                    Submit Feedback
+                  </Button>
+                </DialogFooter>
+              </div>
+            ) : (
+              <div className="py-12 text-center space-y-4">
+                <div className="w-16 h-16 bg-teal-100 dark:bg-teal-900/30 rounded-full flex items-center justify-center mx-auto">
+                  <Check className="h-8 w-8 text-teal-600 dark:text-teal-400" />
+                </div>
+                <h3 className="text-lg font-medium">Thank You!</h3>
+                <p className="text-slate-600 dark:text-slate-300">
+                  Your feedback has been submitted successfully to our support team at <span className="font-medium">support@pic2nav.com</span>
+                </p>
+                <p className="text-sm text-slate-500">
+                  Feedback ID: #{Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}
+                </p>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* About Dialog */}
+        <Dialog open={showAbout} onOpenChange={setShowAbout}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Info className="h-5 w-5 text-teal-500" />
+                About Pic2Nav
+              </DialogTitle>
+              <DialogDescription>
+                Image-based navigation made simple
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+                <div className="w-24 h-24 relative">
+                  <div className="w-full h-full bg-gradient-to-r from-teal-600 to-cyan-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <MapPin className="h-12 w-12 text-white" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 bg-teal-500 text-white text-xs px-2 py-1 rounded-full">
+                    Pro
+                  </div>
+                </div>
+                
+                <div className="text-center sm:text-left">
+                  <h3 className="text-xl font-bold mb-2">Pic2Nav</h3>
+                  <p className="text-slate-600 dark:text-slate-300 mb-2">
+                    Version 2.0.1 (Build 2025.03.21)
+                  </p>
+                  <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                    <Badge variant="outline" className="bg-teal-50 dark:bg-teal-900/20">AI-Powered</Badge>
+                    <Badge variant="outline" className="bg-teal-50 dark:bg-teal-900/20">Location Intelligence</Badge>
+                    <Badge variant="outline" className="bg-teal-50 dark:bg-teal-900/20">Navigation</Badge>
+                    <Badge variant="outline" className="bg-cyan-50 dark:bg-cyan-900/20">AR Experience</Badge>
+                  </div>
+                </div>
+              </div>
+              
+              <Tabs defaultValue="about" className="w-full">
+                <TabsList className="grid grid-cols-3 mb-4">
+                  <TabsTrigger value="about">About</TabsTrigger>
+                  <TabsTrigger value="features">Features</TabsTrigger>
+                  <TabsTrigger value="team">Our Team</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="about" className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Our Mission</h4>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                      Pic2Nav is a cutting-edge application that combines advanced image recognition technology with precise 
+                      navigation capabilities. Our mission is to make exploring the world more intuitive by allowing users 
+                      to identify and navigate to any location simply by taking a photo.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Company History</h4>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                      Founded in 2022, Pic2Nav began as a startup focused on solving navigation problems for travelers. 
+                      After securing Series A funding in 2023, we've grown to serve over 2 million users worldwide with offices 
+                      in San Francisco, Toronto, and Singapore.
+                    </p>
+                  </div>
+                  
+                  <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <h4 className="font-medium mb-3">Our Partners</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center h-16 opacity-80 hover:opacity-100 hover:border-teal-500 transition-all">
+                        <img src="/api/placeholder/100/30" alt="Google Maps" />
+                      </div>
+                      <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center h-16 opacity-80 hover:opacity-100 hover:border-teal-500 transition-all">
+                        <img src="/api/placeholder/100/30" alt="OpenStreetMap" />
+                      </div>
+                      <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center h-16 opacity-80 hover:opacity-100 hover:border-teal-500 transition-all">
+                        <img src="/api/placeholder/100/30" alt="TomTom" />
+                      </div>
+                      <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center h-16 opacity-80 hover:opacity-100 hover:border-teal-500 transition-all">
+                        <img src="/api/placeholder/100/30" alt="Mapbox" />
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="features" className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-teal-500" />
+                          Advanced AI Recognition
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-slate-600 dark:text-slate-300">
+                          Our proprietary image recognition technology can identify landmarks, storefronts, and natural features with 95% accuracy.
+                        </p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Globe className="h-4 w-4 text-teal-500" />
+                          Global Coverage
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-slate-600 dark:text-slate-300">
+                          With data from over 200 countries and territories, Pic2Nav can identify locations across six continents.
+                        </p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Navigation className="h-4 w-4 text-teal-500" />
+                          Multi-Provider Navigation
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-slate-600 dark:text-slate-300">
+                          Seamlessly connect with your preferred navigation app or use our built-in directions system.
+                        </p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Compass className="h-4 w-4 text-teal-500" />
+                          Augmented Reality
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-slate-600 dark:text-slate-300">
+                          Experience real-time overlay of location information when pointing your camera at buildings and landmarks.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  
+                  <div className="bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-950/30 dark:to-cyan-950/30 p-4 rounded-lg">
+                    <h4 className="font-medium flex items-center gap-2 mb-2">
+                      <Star className="h-4 w-4 text-amber-500" fill="currentColor" />
+                      Coming Soon
+                    </h4>
+                    <ul className="text-sm space-y-1 text-slate-600 dark:text-slate-300">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-teal-500" />
+                        Offline mode with downloadable region data
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-teal-500" />
+                        Historical location information and virtual tours
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-teal-500" />
+                        Social sharing and community-contributed location data
+                      </li>
+                    </ul>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="team" className="space-y-4">
+                  <div className="grid gap-4 grid-cols-2 sm:grid-cols-3">
+                    <div className="flex flex-col items-center text-center">
+                      <div className="w-16 h-16 rounded-full bg-slate-200 dark:bg-slate-700 mb-2 overflow-hidden">
+                        <img src="/api/placeholder/64/64" alt="Team Member" />
+                      </div>
+                      <h5 className="font-medium text-sm">Sarah Chen</h5>
+                      <p className="text-xs text-slate-500">CEO & Founder</p>
+                    </div>
+                    <div className="flex flex-col items-center text-center">
+                      <div className="w-16 h-16 rounded-full bg-slate-200 dark:bg-slate-700 mb-2 overflow-hidden">
+                        <img src="/api/placeholder/64/64" alt="Team Member" />
+                      </div>
+                      <h5 className="font-medium text-sm">Miguel Rodriguez</h5>
+                      <p className="text-xs text-slate-500">CTO</p>
+                    </div>
+                    <div className="flex flex-col items-center text-center">
+                      <div className="w-16 h-16 rounded-full bg-slate-200 dark:bg-slate-700 mb-2 overflow-hidden">
+                        <img src="/api/placeholder/64/64" alt="Team Member" />
+                      </div>
+                      <h5 className="font-medium text-sm">Aisha Patel</h5>
+                      <p className="text-xs text-slate-500">Head of Design</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-center mt-2">
+                    <Button variant="outline" size="sm" className="text-xs">
+                      <Users className="h-3 w-3 mr-1" />
+                      View Full Team
+                    </Button>
+                  </div>
+                  
+                  <div className="mt-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 text-center">
+                    <h4 className="font-medium mb-2">Join Our Team</h4>
+                    <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">
+                      We're always looking for talented individuals passionate about AI, navigation, and user experience.
+                    </p>
+                    <Button size="sm" className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white border-0">
+                      View Careers
+                    </Button>
+                  </div>
+                </TabsContent>
+              </Tabs>
+              
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <div className="text-center sm:text-left">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    &copy; 2023-2025 Pic2Nav Inc. All rights reserved.
+                  </div>
+                </div>
+                
+                <div className="flex gap-4">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link href="#" className="text-slate-400 hover:text-teal-500">
+                        <FileText className="h-5 w-5" />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Legal Documents</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link href="#" className="text-slate-400 hover:text-teal-500">
+                        <Mail className="h-5 w-5" />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Contact Us</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link href="#" className="text-slate-400 hover:text-teal-500">
+                        <GithubIcon className="h-5 w-5" />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">GitHub</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link href="#" className="text-slate-400 hover:text-teal-500">
+                        <Twitter className="h-5 w-5" />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Twitter</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
-  )
+  );
 }
-
