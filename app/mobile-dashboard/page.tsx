@@ -36,12 +36,10 @@ import {
   Check,
   ArrowLeft,
   UserPlus,
-
-  Linkedin,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
-import { LogIn } from "lucide-react";
+import { LogIn } from "lucide-react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -54,6 +52,9 @@ import { Switch } from "@/components/ui/switch"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useToast } from "@/hooks/use-toast"
 import { useIsMobile } from "@/hooks/use-mobile"
+
+// Import the BusinessInfoDisplay component
+import { BusinessInfoDisplay } from "@/components/enhanced-business-display"
 
 // Location Recognition API Types
 interface Location {
@@ -145,6 +146,7 @@ const ShareLocationDialog = ({
 }) => {
   const [copied, setCopied] = useState(false)
   const shareUrl = location ? `https://pic2nav.com/location/${location.id}` : ""
+  const { toast } = useToast()
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(shareUrl)
@@ -248,8 +250,13 @@ const ShareLocationDialog = ({
               className="flex flex-col items-center py-4 rounded-xl h-auto"
               onClick={() => handleShare("whatsapp")}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-2 text-green-500" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 mb-2 text-green-500"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
               </svg>
               <span className="text-xs">WhatsApp</span>
             </Button>
@@ -258,8 +265,13 @@ const ShareLocationDialog = ({
               className="flex flex-col items-center py-4 rounded-xl h-auto"
               onClick={() => handleShare("linkedin")}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-2 text-blue-700" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 mb-2 text-blue-700"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
               </svg>
               <span className="text-xs">LinkedIn</span>
             </Button>
@@ -293,6 +305,7 @@ const MobileCameraRecognition = () => {
   const [cameraActive, setCameraActive] = useState(false)
   const isMobile = useIsMobile()
   const [showShareDialog, setShowShareDialog] = useState(false)
+  const { toast } = useToast()
 
   // Load recent locations from localStorage on component mount
   useEffect(() => {
@@ -634,140 +647,154 @@ const MobileCameraRecognition = () => {
         {recognitionResult && (
           <div className="absolute inset-0 flex flex-col p-4 overflow-auto">
             {recognitionResult.success ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-xl"
-              >
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
-                    <MapPin className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-xl">{recognitionResult.name || "Unknown Location"}</h3>
-                    {recognitionResult.address && (
-                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{recognitionResult.address}</p>
-                    )}
-                  </div>
-                </div>
-
-                {recognitionResult.confidence && (
-                  <div className="mb-4">
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Recognition confidence</span>
-                      <span className="font-medium">{Math.round(recognitionResult.confidence * 100)}%</span>
+              <>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-6 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 shadow-xl"
+                >
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+                      <MapPin className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
                     </div>
-                    <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${
-                          recognitionResult.confidence > 0.8
-                            ? "bg-green-500"
-                            : recognitionResult.confidence > 0.6
-                              ? "bg-yellow-500"
-                              : "bg-red-500"
-                        }`}
-                        style={{ width: `${Math.round(recognitionResult.confidence * 100)}%` }}
-                      />
+                    <div>
+                      <h3 className="font-bold text-xl">{recognitionResult.name || "Unknown Location"}</h3>
+                      {recognitionResult.address && (
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{recognitionResult.address}</p>
+                      )}
                     </div>
                   </div>
-                )}
 
-                {recognitionResult.confidence && recognitionResult.confidence < 0.7 && (
-                  <div className="mb-4 text-sm bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 p-3 rounded-xl flex items-start">
-                    <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-                    <span>Location may not be accurate. Please verify the details.</span>
-                  </div>
-                )}
-
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {recognitionResult.type && (
-                    <Badge variant="outline" className="bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">
-                      {recognitionResult.type}
-                    </Badge>
-                  )}
-
-                  {recognitionResult.category && recognitionResult.type !== recognitionResult.category && (
-                    <Badge variant="secondary" className="px-3 py-1 rounded-full">
-                      {recognitionResult.category}
-                    </Badge>
-                  )}
-
-                  {recognitionResult.buildingType && (
-                    <Badge variant="outline" className="bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">
-                      {recognitionResult.buildingType}
-                    </Badge>
-                  )}
-                </div>
-
-                {recognitionResult.description && (
-                  <div className="mb-4 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl text-sm">
-                    {recognitionResult.description}
-                  </div>
-                )}
-
-                {/* Display photos if available */}
-                {recognitionResult.photos && recognitionResult.photos.length > 0 && (
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium mb-2">Photos</h4>
-                    <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
-                      {recognitionResult.photos.map((photo, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="relative flex-shrink-0 h-24 w-32 rounded-xl overflow-hidden shadow-sm"
-                        >
-                          <img
-                            src={photo || "/placeholder.svg"}
-                            alt={`${recognitionResult.name} photo ${index + 1}`}
-                            className="h-full w-full object-cover"
-                          />
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Additional information */}
-                {(recognitionResult.weatherConditions || recognitionResult.airQuality) && (
-                  <div className="mb-4 grid grid-cols-2 gap-2">
-                    {recognitionResult.weatherConditions && (
-                      <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl">
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Weather</div>
-                        <div className="text-sm font-medium">{recognitionResult.weatherConditions}</div>
+                  {recognitionResult.confidence && (
+                    <div className="mb-4">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Recognition confidence</span>
+                        <span className="font-medium">{Math.round(recognitionResult.confidence * 100)}%</span>
                       </div>
-                    )}
-                    {recognitionResult.airQuality && (
-                      <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl">
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Air Quality</div>
-                        <div className="text-sm font-medium">{recognitionResult.airQuality}</div>
+                      <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${
+                            recognitionResult.confidence > 0.8
+                              ? "bg-green-500"
+                              : recognitionResult.confidence > 0.6
+                                ? "bg-yellow-500"
+                                : "bg-red-500"
+                          }`}
+                          style={{ width: `${Math.round(recognitionResult.confidence * 100)}%` }}
+                        />
                       </div>
+                    </div>
+                  )}
+
+                  {recognitionResult.confidence && recognitionResult.confidence < 0.7 && (
+                    <div className="mb-4 text-sm bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 p-3 rounded-xl flex items-start">
+                      <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+                      <span>Location may not be accurate. Please verify the details.</span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {recognitionResult.type && (
+                      <Badge variant="outline" className="bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">
+                        {recognitionResult.type}
+                      </Badge>
+                    )}
+
+                    {recognitionResult.category && recognitionResult.type !== recognitionResult.category && (
+                      <Badge variant="secondary" className="px-3 py-1 rounded-full">
+                        {recognitionResult.category}
+                      </Badge>
+                    )}
+
+                    {recognitionResult.buildingType && (
+                      <Badge variant="outline" className="bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full">
+                        {recognitionResult.buildingType}
+                      </Badge>
                     )}
                   </div>
-                )}
 
-                <div className="flex gap-3 mt-5">
-                  <Button variant="outline" size="lg" className="flex-1 rounded-xl h-12" onClick={handleShareLocation}>
-                    <Share2 className="w-5 h-5 mr-2" />
-                    Share
-                  </Button>
-                  {recognitionResult.location && (
+                  {recognitionResult.description && (
+                    <div className="mb-4 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl text-sm">
+                      {recognitionResult.description}
+                    </div>
+                  )}
+
+                  {/* Display photos if available */}
+                  {recognitionResult.photos && recognitionResult.photos.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium mb-2">Photos</h4>
+                      <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                        {recognitionResult.photos.map((photo, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="relative flex-shrink-0 h-24 w-32 rounded-xl overflow-hidden shadow-sm"
+                          >
+                            <img
+                              src={photo || "/placeholder.svg"}
+                              alt={`${recognitionResult.name} photo ${index + 1}`}
+                              className="h-full w-full object-cover"
+                            />
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Additional information */}
+                  {(recognitionResult.weatherConditions || recognitionResult.airQuality) && (
+                    <div className="mb-4 grid grid-cols-2 gap-2">
+                      {recognitionResult.weatherConditions && (
+                        <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl">
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Weather</div>
+                          <div className="text-sm font-medium">{recognitionResult.weatherConditions}</div>
+                        </div>
+                      )}
+                      {recognitionResult.airQuality && (
+                        <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl">
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Air Quality</div>
+                          <div className="text-sm font-medium">{recognitionResult.airQuality}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 mt-5">
                     <Button
-                      variant="default"
+                      variant="outline"
                       size="lg"
-                      className="flex-1 rounded-xl h-12 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 border-0"
-                      asChild
+                      className="flex-1 rounded-xl h-12"
+                      onClick={handleShareLocation}
                     >
-                      <a href={`https://www.google.com/maps?q=${recognitionResult.location.latitude},${recognitionResult.location.longitude}`} target="_blank" rel="noopener noreferrer">
-                        <Map className="w-5 h-5 mr-2" />
-                        View in Map
-                      </a>
+                      <Share2 className="w-5 h-5 mr-2" />
+                      Share
                     </Button>
-                  )}
-                </div>
-              </motion.div>
+                    {recognitionResult.location && (
+                      <Button
+                        variant="default"
+                        size="lg"
+                        className="flex-1 rounded-xl h-12 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 border-0"
+                        asChild
+                      >
+                        <a
+                          href={`https://www.google.com/maps?q=${recognitionResult.location.latitude},${recognitionResult.location.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Map className="w-5 h-5 mr-2" />
+                          View in Map
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </motion.div>
+
+                {/* Add the BusinessInfoDisplay component */}
+                <BusinessInfoDisplay recognitionResult={recognitionResult} />
+              </>
             ) : (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -969,6 +996,7 @@ const MobileLocationsFeature = () => {
   const [showLocationDetails, setShowLocationDetails] = useState(false)
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [showShareDialog, setShowShareDialog] = useState(false)
+  const { toast } = useToast()
 
   // Fetch locations from the API
   const fetchLocations = async () => {
@@ -1442,7 +1470,11 @@ const MobileLocationsFeature = () => {
                     asChild
                     className="rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 border-0"
                   >
-                    <a href={`https://www.google.com/maps?q=${selectedLocation.location?.latitude || selectedLocation.latitude},${selectedLocation.location?.longitude || selectedLocation.longitude}`} target="_blank" rel="noopener noreferrer">
+                    <a
+                      href={`https://www.google.com/maps?q=${selectedLocation.location?.latitude || selectedLocation.latitude},${selectedLocation.location?.longitude || selectedLocation.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <Map className="mr-2 h-5 w-5" />
                       View in Map
                     </a>
