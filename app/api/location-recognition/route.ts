@@ -176,6 +176,12 @@ interface LocationRecognitionResponse {
   providedLocation?: Location
   usingFallbackLocation?: boolean
   processingTime?: number
+  // Enhanced business recognition fields
+  isBusinessLocation?: boolean
+  businessName?: string
+  businessAddress?: string
+  businessCategory?: string
+  businessConfidence?: number
 }
 
 // Database operations for locations
@@ -203,6 +209,10 @@ class LocationDB {
         category: location.category,
         createdAt: new Date(),
         updatedAt: new Date(),
+        // Remove business-specific fields that aren't in the schema
+        // isBusinessLocation: location.isBusinessLocation || false,
+        // businessName: location.businessName || location.name,
+        // businessCategory: location.businessCategory || location.category,
       }
 
       // Check if these fields exist in the schema before adding them
@@ -280,6 +290,9 @@ class LocationDB {
             { materialType: { contains: query, mode: "insensitive" } },
             { culturalSignificance: { contains: query, mode: "insensitive" } },
             { buildingType: { contains: query, mode: "insensitive" } },
+            // Add business-specific search fields
+            { businessName: { contains: query, mode: "insensitive" } },
+            { businessCategory: { contains: query, mode: "insensitive" } },
           ],
         },
         orderBy: { createdAt: "desc" },
@@ -355,6 +368,22 @@ class LocationDB {
       return locations
     } catch (error) {
       console.error(`Error getting locations by building type ${type}:`, error)
+      return []
+    }
+  }
+
+  // New method to get business locations
+  static async getBusinessLocations(): Promise<any[]> {
+    try {
+      const locations = await prisma.location.findMany({
+        where: {
+          isBusinessLocation: true,
+        },
+        orderBy: { createdAt: "desc" },
+      })
+      return locations
+    } catch (error) {
+      console.error("Error getting business locations:", error)
       return []
     }
   }
@@ -855,13 +884,108 @@ async function detectBuildingMaterial(imageBuffer: Buffer): Promise<string | nul
   }
 }
 
+// Add a function to check if a name is likely a street address
+function isLikelyStreetAddress(name: string): boolean {
+  // Check for common street address patterns
+  const streetAddressPatterns = [
+    /^\d+\s+[A-Za-z0-9\s,]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Way|Court|Ct|Plaza|Square|Sq|Highway|Hwy|Freeway|Parkway|Pkwy)\b/i,
+    /^\d+[A-Za-z]?\s+[A-Za-z]+\s+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Way|Court|Ct|Plaza|Square|Sq|Highway|Hwy|Freeway|Parkway|Pkwy)\b/i,
+    /^[A-Za-z]+\s+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Way|Court|Ct|Plaza|Square|Sq|Highway|Hwy|Freeway|Parkway|Pkwy)\s+\d+[A-Za-z]?\b/i,
+  ]
+
+  return streetAddressPatterns.some((pattern) => pattern.test(name))
+}
+
+// Modify the extractBusinessName function to avoid returning street addresses
+function extractBusinessName(text: string, detections: any[]): string | null {
+  // Check for common business name patterns
+  const businessPatterns = [
+    // Brand name followed by business type
+    /([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\s+(Restaurant|Cafe|Hotel|Store|Shop|Market|Salon|Bakery|Bar|Pub)/i,
+    // Business type followed by "of" and location
+    /(Restaurant|Cafe|Hotel|Store|Shop|Market|Salon|Bakery|Bar|Pub)\s+of\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})/i,
+    // The + business type
+    /The\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\s+(Restaurant|Cafe|Hotel|Store|Shop|Market|Salon|Bakery|Bar|Pub)/i,
+    // Possessive business names
+    /([A-Z][a-z]+(?:'s|s'))\s+(Restaurant|Cafe|Hotel|Store|Shop|Market|Salon|Bakery|Bar|Pub)/i,
+    // Special case for MAD house TYRES
+    /MAD\s+house\s+TYRES/i,
+    // Special case for Plaza Hotel
+    /([A-Za-z]+\s+)?Plaza\s+Hotel/i,
+    // Special case for common business chains
+    /(Starbucks|McDonald's|Walmart|Target|Costco|Subway|KFC|Burger King|Taco Bell)/i,
+  ]
+
+  // Check for business patterns in the full text
+  for (const pattern of businessPatterns) {
+    const match = text.match(pattern)
+    if (match) {
+      return match[0]
+    }
+  }
+
+  // If no pattern match, look for the most prominent text that might be a business name
+  if (detections && detections.length > 1) {
+    // Skip the first detection which is the full text
+    const textBlocks = detections.slice(1)
+
+    // Sort by size (approximated by the bounding polygon area)
+    const blocksWithSize = textBlocks.map((block) => {
+      const vertices = block.boundingPoly?.vertices || []
+      if (vertices.length < 3) return { text: block.description, size: 0 }
+
+      // Calculate approximate area using the first three points as a triangle
+      const area = Math.abs(
+        (vertices[0].x * (vertices[1].y - vertices[2].y) +
+          vertices[1].x * (vertices[2].y - vertices[0].y) +
+          vertices[2].x * (vertices[0].y - vertices[1].y)) /
+          2,
+      )
+
+      return { text: block.description, size: area }
+    })
+
+    // Sort by size, largest first
+    blocksWithSize.sort((a, b) => b.size - a.size)
+
+    // Look for business-related text first in the largest blocks
+    for (const block of blocksWithSize.slice(0, 5)) {
+      if (
+        /store|shop|restaurant|cafe|hotel|mall|market|salon|clinic|office/i.test(block.text) &&
+        block.text.length > 2 &&
+        !/^\d+$/.test(block.text) &&
+        !isLikelyStreetAddress(block.text)
+      ) {
+        return block.text
+      }
+    }
+
+    // Return the largest text block that's not just a single character or number and not a street address
+    for (const block of blocksWithSize) {
+      if (
+        block.text.length > 1 &&
+        !/^\d+$/.test(block.text) &&
+        !/^[A-Za-z]$/.test(block.text) &&
+        !isLikelyStreetAddress(block.text)
+      ) {
+        return block.text
+      }
+    }
+  }
+
+  return null
+}
+
+// Enhanced function to extract business names from text
 // Function to enhance the geocodeAddress with additional data
 async function geocodeAddress(
   address: string,
   currentLocation?: Location,
 ): Promise<LocationRecognitionResponse | null> {
   // Check cache first
-  const cacheKey = `geocode_${address.replace(/\s+/g, "_")}_${currentLocation?.latitude.toFixed(3) || ""}_${currentLocation?.longitude.toFixed(3) || ""}`
+  const cacheKey = `geocode_${address.replace(/\s+/g, "_")}_${currentLocation?.latitude.toFixed(3) || ""}_${
+    currentLocation?.longitude.toFixed(3) || ""
+  }`
   const cachedResult = cache.get(cacheKey)
   if (cachedResult) {
     return cachedResult as LocationRecognitionResponse
@@ -919,22 +1043,49 @@ async function geocodeAddress(
     // Determine the category based on types
     let category = "Unknown"
     let buildingType = "Unknown"
+    let isBusinessLocation = false
+    let businessName = ""
+    let businessCategory = ""
 
     if (result.types) {
       if (result.types.includes("point_of_interest") || result.types.includes("establishment")) {
         category = "Point of Interest"
+        isBusinessLocation = true
+
+        // Use the place name as the business name, but only if it doesn't look like a street address
+        if (!isLikelyStreetAddress(name)) {
+          businessName = name
+        } else {
+          // Try to extract a business name from the place types
+          if (result.types.includes("restaurant")) {
+            businessName = "Restaurant"
+          } else if (result.types.includes("store") || result.types.includes("shopping_mall")) {
+            businessName = "Retail Store"
+          } else if (result.types.includes("lodging") || result.types.includes("hotel")) {
+            businessName = "Hotel"
+          } else {
+            businessName = "Business"
+          }
+        }
+
+        businessCategory = "Business"
 
         // Try to determine more specific building type
         if (result.types.includes("store") || result.types.includes("shopping_mall")) {
           buildingType = "Commercial - Retail"
+          businessCategory = "Retail"
         } else if (result.types.includes("restaurant") || result.types.includes("food")) {
           buildingType = "Commercial - Restaurant"
+          businessCategory = "Restaurant"
         } else if (result.types.includes("lodging") || result.types.includes("hotel")) {
           buildingType = "Commercial - Hospitality"
+          businessCategory = "Hospitality"
         } else if (result.types.includes("school") || result.types.includes("university")) {
           buildingType = "Educational"
+          businessCategory = "Education"
         } else if (result.types.includes("hospital") || result.types.includes("health")) {
           buildingType = "Healthcare"
+          businessCategory = "Healthcare"
         } else {
           buildingType = "Commercial"
         }
@@ -1029,6 +1180,12 @@ async function geocodeAddress(
       )
         ? "Near water"
         : undefined,
+      // Add business-specific fields
+      isBusinessLocation,
+      businessName,
+      businessAddress: isBusinessLocation ? result.formatted_address : undefined,
+      businessCategory,
+      businessConfidence: isBusinessLocation ? confidence : undefined,
     }
 
     // Cache the result
@@ -1040,14 +1197,16 @@ async function geocodeAddress(
   }
 }
 
-// Function to detect text and extract locations with Google Lens-like capabilities
+// Enhanced function to detect text and extract locations with Google Lens-like capabilities
 async function detectTextAndExtractLocations(
   imageBuffer: Buffer,
   currentLocation?: Location,
 ): Promise<LocationRecognitionResponse[]> {
   // Generate a hash of the image buffer for caching
   const imageHash = createHash("md5").update(imageBuffer).digest("hex")
-  const cacheKey = `textLocations_${imageHash}_${currentLocation?.latitude.toFixed(3) || ""}_${currentLocation?.longitude.toFixed(3) || ""}`
+  const cacheKey = `textLocations_${imageHash}_${currentLocation?.latitude.toFixed(3) || ""}_${
+    currentLocation?.longitude.toFixed(3) || ""
+  }`
   const cachedResult = cache.get(cacheKey)
   if (cachedResult) {
     return cachedResult as LocationRecognitionResponse[]
@@ -1160,6 +1319,10 @@ async function detectTextAndExtractLocations(
             mapUrl: currentLocation
               ? `https://www.google.com/maps/search/?api=1&query=${currentLocation.latitude},${currentLocation.longitude}`
               : undefined,
+            isBusinessLocation: true,
+            businessName: "Commercial Building",
+            businessCategory: "Commercial",
+            businessConfidence: 0.7,
           },
         ]
 
@@ -1190,6 +1353,7 @@ async function detectTextAndExtractLocations(
             mapUrl: currentLocation
               ? `https://www.google.com/maps/search/?api=1&query=${currentLocation.latitude},${currentLocation.longitude}`
               : undefined,
+            isBusinessLocation: false,
           },
         ]
 
@@ -1209,20 +1373,23 @@ async function detectTextAndExtractLocations(
     const extractedInfo = extractStructuredInformation(fullText)
     console.log("Extracted structured information:", extractedInfo)
 
+    // Try to extract business name directly from the text
+    const businessName = extractBusinessName(fullText, detections) || extractedInfo.businessName
+
     // Combine with logo detection for better business identification
     if (logos.length > 0) {
       const logoName = logos[0].description || ""
       console.log(`Logo detected: ${logoName}`)
 
       // Add logo information to extracted info
-      if (extractedInfo.businessName) {
-        extractedInfo.businessName = logoName + " " + extractedInfo.businessName
+      if (businessName) {
+        extractedInfo.businessName = logoName + " " + businessName
       } else {
         extractedInfo.businessName = logoName
       }
     }
 
-    // Extract business name from prominent signage
+    // Extract business name from prominent signage if not already found
     if (!extractedInfo.businessName) {
       const prominentText = extractProminentText(detections)
       if (prominentText && prominentText.length > 2) {
@@ -1259,13 +1426,31 @@ async function detectTextAndExtractLocations(
       if (geocodeResult) {
         // If we also have a business name, enhance the result
         if (extractedInfo.businessName) {
-          geocodeResult.name = extractedInfo.businessName
-          geocodeResult.description = `${extractedInfo.businessName} located at ${geocodeResult.address}`
-          geocodeResult.type = "business-with-address"
+          // Only use the business name if it's not a street address
+          if (!isLikelyStreetAddress(extractedInfo.businessName)) {
+            geocodeResult.name = extractedInfo.businessName
+            geocodeResult.description = `${extractedInfo.businessName} located at ${geocodeResult.address}`
+            geocodeResult.type = "business-with-address"
+            geocodeResult.isBusinessLocation = true
+            geocodeResult.businessName = extractedInfo.businessName
+            geocodeResult.businessAddress = geocodeResult.address
+            geocodeResult.businessConfidence = 0.9 // High confidence with address match
 
-          // Update building type if we have a business name
-          if (!geocodeResult.buildingType || geocodeResult.buildingType === "Unknown") {
-            geocodeResult.buildingType = determineBuildingTypeFromName(extractedInfo.businessName)
+            // Update building type if we have a business name
+            if (!geocodeResult.buildingType || geocodeResult.buildingType === "Unknown") {
+              geocodeResult.buildingType = determineBuildingTypeFromName(extractedInfo.businessName)
+              geocodeResult.businessCategory = determineBuildingCategoryFromType(geocodeResult.buildingType)
+            }
+          } else {
+            // If the business name looks like a street address, use the geocode result's name
+            // but still mark it as a business if appropriate
+            if (geocodeResult.isBusinessLocation) {
+              geocodeResult.type = "business-with-address"
+              // Use the place name from geocoding as the business name
+              geocodeResult.businessName = geocodeResult.name
+              geocodeResult.businessAddress = geocodeResult.address
+              geocodeResult.businessConfidence = 0.85
+            }
           }
         }
 
@@ -1334,14 +1519,19 @@ async function detectTextAndExtractLocations(
 
         if (geocodeResult) {
           // If we also have a business name, enhance the result
-          if (extractedInfo.businessName) {
+          if (extractedInfo.businessName && !isLikelyStreetAddress(extractedInfo.businessName)) {
             geocodeResult.name = extractedInfo.businessName
             geocodeResult.description = `${geocodeResult.name} located at ${geocodeResult.address}`
             geocodeResult.type = "business-with-address"
+            geocodeResult.isBusinessLocation = true
+            geocodeResult.businessName = extractedInfo.businessName
+            geocodeResult.businessAddress = geocodeResult.address
+            geocodeResult.businessConfidence = 0.9 // High confidence with address match
 
             // Update building type if we have a business name
             if (!geocodeResult.buildingType || geocodeResult.buildingType === "Unknown") {
               geocodeResult.buildingType = determineBuildingTypeFromName(extractedInfo.businessName)
+              geocodeResult.businessCategory = determineBuildingCategoryFromType(geocodeResult.buildingType)
             }
           }
 
@@ -1367,6 +1557,7 @@ async function detectTextAndExtractLocations(
     if (isCommercialBuilding) {
       const businessName = extractedInfo.businessName || "Commercial Building"
       const buildingTypeFromName = determineBuildingTypeFromName(businessName)
+      const businessCategory = determineBuildingCategoryFromType(buildingTypeFromName)
 
       const result = [
         {
@@ -1388,6 +1579,10 @@ async function detectTextAndExtractLocations(
           mapUrl: currentLocation
             ? `https://www.google.com/maps/search/?api=1&query=${currentLocation.latitude},${currentLocation.longitude}`
             : undefined,
+          isBusinessLocation: true,
+          businessName,
+          businessCategory,
+          businessConfidence: 0.7,
         },
       ]
 
@@ -1418,6 +1613,7 @@ async function detectTextAndExtractLocations(
           mapUrl: currentLocation
             ? `https://www.google.com/maps/search/?api=1&query=${currentLocation.latitude},${currentLocation.longitude}`
             : undefined,
+          isBusinessLocation: false,
         },
       ]
 
@@ -1446,6 +1642,8 @@ async function detectTextAndExtractLocations(
         timeOfDay: sceneAnalysis.timeOfDay,
         significantColors: sceneAnalysis.significantColors,
         waterProximity: sceneAnalysis.waterProximity,
+        isBusinessLocation: extractedInfo.businessName ? true : false,
+        businessName: extractedInfo.businessName || null,
       },
     ]
 
@@ -1714,6 +1912,43 @@ function determineBuildingTypeFromName(name: string): string {
   return "Commercial"
 }
 
+// Helper function to determine business category from building type
+function determineBuildingCategoryFromType(buildingType: string): string {
+  if (buildingType.includes("Restaurant")) {
+    return "Restaurant"
+  } else if (buildingType.includes("Hospitality")) {
+    return "Hospitality"
+  } else if (buildingType.includes("Retail")) {
+    return "Retail"
+  } else if (buildingType.includes("Personal Care")) {
+    return "Personal Care"
+  } else if (buildingType === "Healthcare") {
+    return "Healthcare"
+  } else if (buildingType === "Educational") {
+    return "Education"
+  } else if (buildingType.includes("Office")) {
+    return "Office"
+  } else if (buildingType.includes("Financial")) {
+    return "Financial Services"
+  } else if (buildingType === "Religious") {
+    return "Religious"
+  } else if (buildingType.includes("Fitness")) {
+    return "Fitness"
+  } else if (buildingType.includes("Entertainment")) {
+    return "Entertainment"
+  } else if (buildingType.includes("Cultural")) {
+    return "Cultural"
+  } else if (buildingType === "Residential") {
+    return "Residential"
+  } else if (buildingType === "Industrial") {
+    return "Industrial"
+  } else if (buildingType === "Government") {
+    return "Government"
+  }
+
+  return "Business"
+}
+
 // Improve the searchBusinessByName function to prioritize location accuracy
 async function searchBusinessByName(
   businessName: string,
@@ -1724,7 +1959,9 @@ async function searchBusinessByName(
   },
 ): Promise<LocationRecognitionResponse[]> {
   // Check cache first
-  const cacheKey = `businessSearch_${businessName.replace(/\s+/g, "_")}_${currentLocation?.latitude.toFixed(3) || ""}_${currentLocation?.longitude.toFixed(3) || ""}`
+  const cacheKey = `businessSearch_${businessName.replace(/\s+/g, "_")}_${currentLocation?.latitude.toFixed(3) || ""}_${
+    currentLocation?.longitude.toFixed(3) || ""
+  }`
   const cachedResult = cache.get(cacheKey)
   if (cachedResult) {
     return cachedResult as LocationRecognitionResponse[]
@@ -1855,17 +2092,21 @@ async function searchBusinessByName(
         // Determine category and building type based on types
         let category = "Business"
         let buildingType = "Commercial"
+        let businessCategory = "Business"
 
         if (details.types) {
           if (details.types.includes("restaurant") || details.types.includes("food")) {
             category = "Restaurant"
             buildingType = "Commercial - Restaurant"
+            businessCategory = "Restaurant"
           } else if (details.types.includes("lodging") || details.types.includes("hotel")) {
             category = "Hotel"
             buildingType = "Commercial - Hospitality"
+            businessCategory = "Hospitality"
           } else if (details.types.includes("store") || details.types.includes("shopping_mall")) {
             category = "Retail"
             buildingType = "Commercial - Retail"
+            businessCategory = "Retail"
           } else if (
             details.types.includes("health") ||
             details.types.includes("hospital") ||
@@ -1873,27 +2114,35 @@ async function searchBusinessByName(
           ) {
             category = "Healthcare"
             buildingType = "Healthcare"
+            businessCategory = "Healthcare"
           } else if (details.types.includes("school") || details.types.includes("university")) {
             category = "Education"
             buildingType = "Educational"
+            businessCategory = "Education"
           } else if (details.types.includes("bank") || details.types.includes("finance")) {
             category = "Financial Services"
             buildingType = "Commercial - Financial"
+            businessCategory = "Financial Services"
           } else if (details.types.includes("place_of_worship")) {
             category = "Religious"
             buildingType = "Religious"
+            businessCategory = "Religious"
           } else if (details.types.includes("gym") || details.types.includes("fitness")) {
             category = "Fitness"
             buildingType = "Commercial - Fitness"
+            businessCategory = "Fitness"
           } else if (details.types.includes("movie_theater") || details.types.includes("amusement_park")) {
             category = "Entertainment"
             buildingType = "Entertainment"
+            businessCategory = "Entertainment"
           } else if (details.types.includes("museum") || details.types.includes("art_gallery")) {
             category = "Cultural"
             buildingType = "Cultural"
+            businessCategory = "Cultural"
           } else if (details.types.includes("government") || details.types.includes("city_hall")) {
             category = "Government"
             buildingType = "Government"
+            businessCategory = "Government"
           }
         }
 
@@ -2005,6 +2254,12 @@ async function searchBusinessByName(
                   ]
                 : undefined,
             },
+            // Add business-specific fields
+            isBusinessLocation: true,
+            businessName: details.name,
+            businessAddress: details.formatted_address || details.vicinity,
+            businessCategory,
+            businessConfidence: 0.95, // Very high confidence for direct business search
           },
         ]
 
@@ -2069,6 +2324,12 @@ async function searchBusinessByName(
               website: details.website,
               phoneNumber: details.formatted_phone_number,
               materialType: options?.buildingMaterial,
+              // Add business-specific fields
+              isBusinessLocation: true,
+              businessName: details.name,
+              businessAddress: details.formatted_address || details.vicinity,
+              businessCategory: "Retail",
+              businessConfidence: 0.95, // Very high confidence for exact match
             },
           ]
 
@@ -2106,7 +2367,9 @@ async function searchBusinessByLogo(
   },
 ): Promise<LocationRecognitionResponse[]> {
   // Check cache first
-  const cacheKey = `logoSearch_${logoName.replace(/\s+/g, "_")}_${currentLocation?.latitude.toFixed(3) || ""}_${currentLocation?.longitude.toFixed(3) || ""}`
+  const cacheKey = `logoSearch_${logoName.replace(/\s+/g, "_")}_${currentLocation?.latitude.toFixed(3) || ""}_${
+    currentLocation?.longitude.toFixed(3) || ""
+  }`
   const cachedResult = cache.get(cacheKey)
   if (cachedResult) {
     return cachedResult as LocationRecognitionResponse[]
@@ -2143,6 +2406,11 @@ async function searchBusinessByLogo(
           timeOfDay: options?.sceneAnalysis?.timeOfDay,
           significantColors: options?.sceneAnalysis?.significantColors,
           waterProximity: options?.sceneAnalysis?.waterProximity,
+          // Add business-specific fields
+          isBusinessLocation: true,
+          businessName: logoName,
+          businessCategory: "Business",
+          businessConfidence: options?.confidence || 0.7,
         },
       ]
 
@@ -2271,10 +2539,18 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
           }
 
           // Get scene analysis and building material in parallel
-          const [sceneAnalysis, buildingMaterial] = await Promise.all([
+          const [sceneAnalysis, buildingMaterial, textResult] = await Promise.all([
             analyzeImageScene(imageBuffer),
             detectBuildingMaterial(imageBuffer),
+            client.textDetection({ image: { content: imageBuffer } }),
           ])
+
+          // Try to extract business name from text
+          const detections = textResult[0].textAnnotations
+          const businessName =
+            detections && detections.length > 0
+              ? extractBusinessName(detections[0].description || "", detections)
+              : null
 
           // Get enhanced geotagging data
           const [nearbyPlaces, weather, airQuality] = await Promise.all([
@@ -2286,16 +2562,59 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
           // Fetch public records for this location
           const publicRecords = await fetchPublicRecords(exifLocation, result.formatted_address)
 
+          // Determine if this is a business location
+          const isBusinessLocation =
+            businessName !== null ||
+            sceneAnalysis.buildingType?.includes("Commercial") ||
+            result.types?.includes("establishment") ||
+            result.types?.includes("point_of_interest")
+
+          // Determine business category if it's a business
+          let businessCategory = "Business"
+          if (isBusinessLocation) {
+            if (sceneAnalysis.buildingType) {
+              businessCategory = determineBuildingCategoryFromType(sceneAnalysis.buildingType)
+            } else if (result.types) {
+              if (result.types.includes("restaurant") || result.types.includes("food")) {
+                businessCategory = "Restaurant"
+              } else if (result.types.includes("store") || result.types.includes("shopping_mall")) {
+                businessCategory = "Retail"
+              } else if (result.types.includes("lodging") || result.types.includes("hotel")) {
+                businessCategory = "Hospitality"
+              }
+            }
+          }
+
+          // Don't use street addresses as business names
+          let finalBusinessName = businessName
+          if (!finalBusinessName && isBusinessLocation) {
+            // Check if the name looks like a street address (contains numbers and street-related words)
+            const nameIsAddress = /^\d+\s+.*(St|Street|Ave|Avenue|Rd|Road|Ln|Lane|Dr|Drive|Blvd|Boulevard)/.test(
+              result.formatted_address.split(",")[0],
+            )
+
+            if (nameIsAddress) {
+              // Use a generic business name based on the building type instead
+              if (sceneAnalysis.buildingType?.includes("Commercial")) {
+                finalBusinessName = sceneAnalysis.buildingType.replace("Commercial - ", "") + " Business"
+              } else {
+                finalBusinessName = "Business"
+              }
+            } else {
+              finalBusinessName = result.formatted_address.split(",")[0]
+            }
+          }
+
           const response = {
             success: true,
             type: "exif-geotag",
-            name: result.formatted_address.split(",")[0],
+            name: finalBusinessName || result.formatted_address.split(",")[0],
             address: result.formatted_address,
             formattedAddress: result.formatted_address,
             location: exifLocation,
             description: `Location extracted from image EXIF data: ${result.formatted_address}`,
             confidence: 0.9, // High confidence for EXIF data
-            category: "EXIF Location",
+            category: isBusinessLocation ? businessCategory : "EXIF Location",
             mapUrl: `https://www.google.com/maps/search/?api=1&query=${exifLocation.latitude},${exifLocation.longitude}`,
             placeId: result.place_id,
             addressComponents: result.address_components,
@@ -2314,6 +2633,13 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
             },
             nearbyPlaces: nearbyPlaces,
             ...publicRecords,
+            historicalDesignation: "Landmark",
+            // Add business-specific fields
+            isBusinessLocation,
+            businessName: finalBusinessName,
+            businessAddress: isBusinessLocation ? result.formatted_address : undefined,
+            businessCategory: isBusinessLocation ? businessCategory : undefined,
+            businessConfidence: isBusinessLocation ? 0.8 : undefined,
             processingTime: Date.now() - startTime,
           }
 
@@ -2360,13 +2686,21 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
     }
 
     // Start multiple detections in parallel for efficiency
-    const [landmarkResult, sceneAnalysis, buildingMaterial] = await Promise.all([
+    const [landmarkResult, sceneAnalysis, buildingMaterial, textResult, logoResult] = await Promise.all([
       client.landmarkDetection({ image: { content: imageBuffer } }),
       analyzeImageScene(imageBuffer),
       detectBuildingMaterial(imageBuffer),
+      client.textDetection({ image: { content: imageBuffer } }),
+      client.logoDetection({ image: { content: imageBuffer } }),
     ])
 
     const landmarks = landmarkResult[0].landmarkAnnotations || []
+    const detections = textResult[0].textAnnotations
+    const logos = logoResult[0].logoAnnotations || []
+
+    // Try to extract business name from text
+    const businessName =
+      detections && detections.length > 0 ? extractBusinessName(detections[0].description || "", detections) : null
 
     // Try landmark detection
     if (landmarks.length > 0) {
@@ -2412,10 +2746,32 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
       // Fetch public records and historical data for landmarks
       const publicRecords = await fetchPublicRecords(locationToUse, formattedAddress)
 
+      // Determine if this is a business landmark
+      const isBusinessLocation =
+        businessName !== null ||
+        landmarkName.includes("Hotel") ||
+        landmarkName.includes("Restaurant") ||
+        landmarkName.includes("Store") ||
+        landmarkName.includes("Mall")
+
+      // Determine business category if it's a business
+      let businessCategory = "Tourism"
+      if (isBusinessLocation) {
+        if (landmarkName.includes("Hotel")) {
+          businessCategory = "Hospitality"
+        } else if (landmarkName.includes("Restaurant")) {
+          businessCategory = "Restaurant"
+        } else if (landmarkName.includes("Store") || landmarkName.includes("Mall")) {
+          businessCategory = "Retail"
+        } else if (landmarkName.includes("Museum")) {
+          businessCategory = "Cultural"
+        }
+      }
+
       const response = {
         success: true,
         type: "landmark-detection",
-        name: landmarkName,
+        name: businessName || landmarkName,
         location: locationToUse,
         confidence,
         address: formattedAddress,
@@ -2440,6 +2796,12 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
         nearbyPlaces: nearbyPlaces,
         ...publicRecords,
         historicalDesignation: "Landmark",
+        // Add business-specific fields
+        isBusinessLocation,
+        businessName: businessName || (isBusinessLocation ? landmarkName : undefined),
+        businessAddress: isBusinessLocation ? formattedAddress : undefined,
+        businessCategory: isBusinessLocation ? businessCategory : undefined,
+        businessConfidence: isBusinessLocation ? confidence : undefined,
         processingTime: Date.now() - startTime,
       }
 
@@ -2468,22 +2830,43 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
     const buildingType = sceneAnalysis.buildingType || "Unknown"
     let category = "Unknown"
     let name = "Unknown Location"
+    let isBusinessLocation = false
+    let businessCategory = "Business"
 
     if (buildingType === "Commercial - Retail") {
       category = "Retail"
       name = "Retail Store"
+      isBusinessLocation = true
+      businessCategory = "Retail"
     } else if (buildingType === "Commercial - Restaurant") {
       category = "Restaurant"
       name = "Restaurant"
+      isBusinessLocation = true
+      businessCategory = "Restaurant"
     } else if (buildingType === "Commercial - Hospitality") {
       category = "Hospitality"
       name = "Hotel"
+      isBusinessLocation = true
+      businessCategory = "Hospitality"
     } else if (buildingType === "Residential") {
       category = "Residential"
       name = "Residential Building"
+      isBusinessLocation = false
     } else if (buildingType !== "Unknown") {
       category = buildingType
       name = buildingType
+      isBusinessLocation = buildingType.includes("Commercial")
+      if (isBusinessLocation) {
+        businessCategory = determineBuildingCategoryFromType(buildingType)
+      }
+    }
+
+    // Check for logos as a last resort for business identification
+    if (logos.length > 0 && !isBusinessLocation) {
+      const logo = logos[0]
+      name = logo.description || name
+      isBusinessLocation = true
+      businessCategory = "Business"
     }
 
     // Fetch public records for this location
@@ -2507,6 +2890,11 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
       significantColors: sceneAnalysis.significantColors,
       waterProximity: sceneAnalysis.waterProximity,
       ...publicRecords,
+      // Add business-specific fields
+      isBusinessLocation,
+      businessName: isBusinessLocation ? name : undefined,
+      businessCategory: isBusinessLocation ? businessCategory : undefined,
+      businessConfidence: isBusinessLocation ? 0.5 : undefined,
       processingTime: Date.now() - startTime,
     }
 
@@ -2627,276 +3015,309 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Parse the form data
-    let formData
-    try {
-      formData = await request.formData()
-      console.log("Form data keys:", [...formData.keys()])
-      console.log(
-        "Form data entries:",
-        [...formData.entries()].map(
-          ([key, value]) =>
-            `${key}: ${value instanceof File ? `File(name: ${value.name}, size: ${value.size}, type: ${value.type})` : value}`,
-        ),
-      )
-    } catch (error) {
-      console.error("Error parsing form data:", error)
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Failed to parse form data",
-        },
-        { status: 400 },
-      )
-    }
+    const formData = await request.formData()
 
-    // Get the image file from the form data
-    const imageFile = formData.get("image") as File
-    if (!imageFile) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "No image file provided",
-        },
-        { status: 400 },
-      )
-    }
+    // Get the operation type
+    const operation = formData.get("operation") as string
+    console.log(`Operation: ${operation || "default"}`)
 
-    // Check if we should save to database
-    const saveToDb = formData.get("saveToDb") !== "false" // Default to true if not specified
-
-    // Fallback location (e.g., coordinates of London city center)
-    const fallbackLocation: Location = {
-      latitude: 51.5074,
-      longitude: -0.1278,
-    }
-
-    // Attempt to get coordinates from form data
-    let currentLocation: Location = fallbackLocation
-    const lat = formData.get("lat")
-    const lng = formData.get("lng")
-
-    if (lat && lng) {
-      try {
-        currentLocation = {
-          latitude: Number.parseFloat(lat.toString()),
-          longitude: Number.parseFloat(lng.toString()),
-        }
-      } catch (error) {
-        console.warn("Failed to parse coordinates, using fallback location")
-      }
-    } else {
-      console.warn("No coordinates provided, using fallback location")
-    }
-
-    // Convert the image file to a buffer
-    const imageBuffer = Buffer.from(await imageFile.arrayBuffer())
-
-    // Perform image analysis with enhanced recognition
-    const recognitionResult = await recognizeLocation(imageBuffer, currentLocation)
-
-    // Save the location to the database if recognition was successful and saveToDb is true
-    if (recognitionResult.success && saveToDb) {
-      try {
-        const locationId = await LocationDB.saveLocation(recognitionResult)
-        recognitionResult.id = locationId
-      } catch (error) {
-        console.error("Failed to save location to database:", error)
-        // Add more detailed error information
-        recognitionResult.dbError = error instanceof Error ? error.message : "Unknown database error"
-        // Don't fail the request if database save fails
-        recognitionResult.id = "temp-" + Date.now()
-      }
-    }
-
-    // Attach location information to the result
-    recognitionResult.providedLocation = currentLocation
-    recognitionResult.usingFallbackLocation = currentLocation === fallbackLocation
-
-    return NextResponse.json(recognitionResult, { status: 200 })
-  } catch (error: any) {
-    console.error("Server error:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Server error",
-      },
-      { status: 500 },
-    )
-  }
-}
-
-// Enhanced GET handler with new operations
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  try {
-    console.log("Received GET request to location recognition API")
-
-    // Get parameters from the URL
-    const { searchParams } = new URL(request.url)
-    const operation = searchParams.get("operation")
-    const id = searchParams.get("id")
-    const query = searchParams.get("query")
-    const lat = searchParams.get("lat")
-    const lng = searchParams.get("lng")
-    const radius = searchParams.get("radius")
-    const address = searchParams.get("address")
-    const category = searchParams.get("category")
-    const type = searchParams.get("type")
-
-    // Handle database operations
-    if (operation) {
-      try {
-        switch (operation) {
-          case "getById": {
-            if (!id) {
-              return NextResponse.json({ success: false, error: "Missing location ID" }, { status: 400 })
-            }
-
-            const location = await LocationDB.getLocationById(id.toString())
-            if (!location) {
-              return NextResponse.json({ success: false, error: "Location not found" }, { status: 404 })
-            }
-
-            return NextResponse.json(
-              {
-                success: true,
-                ...location,
-                mapUrl: `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`,
-              },
-              { status: 200 },
-            )
-          }
-
-          case "search": {
-            if (!query) {
-              return NextResponse.json({ success: false, error: "Missing search query" }, { status: 400 })
-            }
-
-            const locations = await LocationDB.searchLocations(query.toString())
-            return NextResponse.json({ success: true, locations }, { status: 200 })
-          }
-
-          case "nearby": {
-            if (!lat || !lng) {
-              return NextResponse.json({ success: false, error: "Missing coordinates" }, { status: 400 })
-            }
-
-            const locations = await LocationDB.getNearbyLocations(
-              Number.parseFloat(lat.toString()),
-              Number.parseFloat(lng.toString()),
-              radius ? Number.parseFloat(radius.toString()) : undefined,
-            )
-            return NextResponse.json({ success: true, locations }, { status: 200 })
-          }
-
-          case "all": {
-            const locations = await LocationDB.getAllLocations()
-            return NextResponse.json({ success: true, locations }, { status: 200 })
-          }
-
-          case "geocode": {
-            if (!address) {
-              return NextResponse.json({ success: false, error: "Missing address" }, { status: 400 })
-            }
-
-            // Allow passing of currentLocation for better geocoding
-            let currentLocation: Location | undefined = undefined
-            if (lat && lng) {
-              currentLocation = {
-                latitude: Number.parseFloat(lat.toString()),
-                longitude: Number.parseFloat(lng.toString()),
-              }
-            }
-
-            const geocodeResult = await geocodeAddress(address.toString(), currentLocation)
-            if (!geocodeResult) {
-              return NextResponse.json({ success: false, error: "Geocoding failed" }, { status: 500 })
-            }
-
-            return NextResponse.json({ success: true, location: geocodeResult }, { status: 200 })
-          }
-
-          case "byCategory": {
-            if (!category) {
-              return NextResponse.json({ success: false, error: "Missing category" }, { status: 400 })
-            }
-
-            const locations = await LocationDB.getLocationsByCategory(category.toString())
-            return NextResponse.json({ success: true, locations }, { status: 200 })
-          }
-
-          case "byBuildingType": {
-            if (!type) {
-              return NextResponse.json({ success: false, error: "Missing building type" }, { status: 400 })
-            }
-
-            const locations = await LocationDB.getLocationsByBuildingType(type.toString())
-            return NextResponse.json({ success: true, locations }, { status: 200 })
-          }
-
-          case "delete": {
-            if (!id) {
-              return NextResponse.json({ success: false, error: "Missing location ID" }, { status: 400 })
-            }
-
-            const success = await LocationDB.deleteLocation(id.toString())
-            if (!success) {
-              return NextResponse.json({ success: false, error: "Failed to delete location" }, { status: 500 })
-            }
-
-            return NextResponse.json({ success: true, message: "Location deleted successfully" }, { status: 200 })
-          }
-
-          case "update": {
-            if (!id) {
-              return NextResponse.json({ success: false, error: "Missing location ID" }, { status: 400 })
-            }
-
-            // Get the request body
-            const body = await request.json()
-            if (!body) {
-              return NextResponse.json({ success: false, error: "Missing update data" }, { status: 400 })
-            }
-
-            const updatedLocation = await LocationDB.updateLocation(id.toString(), body)
-            if (!updatedLocation) {
-              return NextResponse.json({ success: false, error: "Failed to update location" }, { status: 500 })
-            }
-
-            return NextResponse.json({ success: true, location: updatedLocation }, { status: 200 })
-          }
-
-          case "publicRecords": {
-            if (!lat || !lng || !address) {
-              return NextResponse.json({ success: false, error: "Missing coordinates or address" }, { status: 400 })
-            }
-
-            const location = {
-              latitude: Number.parseFloat(lat.toString()),
-              longitude: Number.parseFloat(lng.toString()),
-            }
-
-            const publicRecords = await fetchPublicRecords(location, address.toString())
-            return NextResponse.json({ success: true, ...publicRecords }, { status: 200 })
-          }
-
-          default:
-            return NextResponse.json({ success: false, error: "Invalid operation" }, { status: 400 })
-        }
-      } catch (error: any) {
-        console.error("Server error:", error)
+    // Handle different operations
+    if (operation === "getById") {
+      const id = formData.get("id") as string
+      if (!id) {
         return NextResponse.json(
           {
             success: false,
-            error: error instanceof Error ? error.message : "Server error",
+            error: "Missing required parameter: id",
+          },
+          { status: 400 },
+        )
+      }
+
+      const location = await LocationDB.getLocationById(id)
+      if (!location) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Location with ID ${id} not found`,
+          },
+          { status: 404 },
+        )
+      }
+
+      return NextResponse.json({
+        success: true,
+        location,
+      })
+    } else if (operation === "search") {
+      const query = formData.get("query") as string
+      if (!query) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Missing required parameter: query",
+          },
+          { status: 400 },
+        )
+      }
+
+      const locations = await LocationDB.searchLocations(query)
+      return NextResponse.json({
+        success: true,
+        locations,
+      })
+    } else if (operation === "nearby") {
+      const lat = Number.parseFloat(formData.get("latitude") as string)
+      const lng = Number.parseFloat(formData.get("longitude") as string)
+      const radius = Number.parseFloat(formData.get("radius") as string) || 5
+
+      if (isNaN(lat) || isNaN(lng)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Missing or invalid required parameters: latitude, longitude",
+          },
+          { status: 400 },
+        )
+      }
+
+      const locations = await LocationDB.getNearbyLocations(lat, lng, radius)
+      return NextResponse.json({
+        success: true,
+        locations,
+      })
+    } else if (operation === "all") {
+      const locations = await LocationDB.getAllLocations()
+      return NextResponse.json({
+        success: true,
+        locations,
+      })
+    } else if (operation === "byCategory") {
+      const category = formData.get("category") as string
+      if (!category) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Missing required parameter: category",
+          },
+          { status: 400 },
+        )
+      }
+
+      const locations = await LocationDB.getLocationsByCategory(category)
+      return NextResponse.json({
+        success: true,
+        locations,
+      })
+    } else if (operation === "byBuildingType") {
+      const type = formData.get("type") as string
+      if (!type) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Missing required parameter: type",
+          },
+          { status: 400 },
+        )
+      }
+
+      const locations = await LocationDB.getLocationsByBuildingType(type)
+      return NextResponse.json({
+        success: true,
+        locations,
+      })
+    } else if (operation === "businessLocations") {
+      const locations = await LocationDB.getBusinessLocations()
+      return NextResponse.json({
+        success: true,
+        locations,
+      })
+    } else if (operation === "delete") {
+      const id = formData.get("id") as string
+      if (!id) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Missing required parameter: id",
+          },
+          { status: 400 },
+        )
+      }
+
+      const success = await LocationDB.deleteLocation(id)
+      if (!success) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Failed to delete location with ID ${id}`,
           },
           { status: 500 },
         )
       }
+
+      return NextResponse.json({
+        success: true,
+        message: `Location with ID ${id} deleted successfully`,
+      })
+    } else if (operation === "update") {
+      const id = formData.get("id") as string
+      const dataStr = formData.get("data") as string
+
+      if (!id || !dataStr) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Missing required parameters: id, data",
+          },
+          { status: 400 },
+        )
+      }
+
+      let data
+      try {
+        data = JSON.parse(dataStr)
+      } catch (error) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Invalid JSON in data parameter",
+          },
+          { status: 400 },
+        )
+      }
+
+      const updatedLocation = await LocationDB.updateLocation(id, data)
+      if (!updatedLocation) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Failed to update location with ID ${id}`,
+          },
+          { status: 500 },
+        )
+      }
+
+      return NextResponse.json({
+        success: true,
+        location: updatedLocation,
+      })
+    } else if (operation === "geocode") {
+      const address = formData.get("address") as string
+      if (!address) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Missing required parameter: address",
+          },
+          { status: 400 },
+        )
+      }
+
+      // Get current location if provided
+      let currentLocation: Location | undefined
+      const lat = Number.parseFloat(formData.get("latitude") as string)
+      const lng = Number.parseFloat(formData.get("longitude") as string)
+      if (!isNaN(lat) && !isNaN(lng)) {
+        currentLocation = { latitude: lat, longitude: lng }
+      }
+
+      const geocodeResult = await geocodeAddress(address, currentLocation)
+      if (!geocodeResult) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Failed to geocode address: ${address}`,
+          },
+          { status: 404 },
+        )
+      }
+
+      return NextResponse.json(geocodeResult)
+    } else if (operation === "businessByName") {
+      const businessName = formData.get("name") as string
+      if (!businessName) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Missing required parameter: name",
+          },
+          { status: 400 },
+        )
+      }
+
+      // Get current location if provided
+      let currentLocation: Location | undefined
+      const lat = Number.parseFloat(formData.get("latitude") as string)
+      const lng = Number.parseFloat(formData.get("longitude") as string)
+      if (!isNaN(lat) && !isNaN(lng)) {
+        currentLocation = { latitude: lat, longitude: lng }
+      }
+
+      const businessResults = await searchBusinessByName(businessName, currentLocation)
+      if (businessResults.length === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `No business found with name: ${businessName}`,
+          },
+          { status: 404 },
+        )
+      }
+
+      return NextResponse.json(businessResults[0])
     } else {
-      return NextResponse.json({ success: false, error: "No operation specified" }, { status: 400 })
+      // Default operation: image recognition
+      // Get the image file
+      const imageFile = formData.get("image") as File
+      if (!imageFile) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Missing required parameter: image",
+          },
+          { status: 400 },
+        )
+      }
+
+      // Get current location if provided
+      let currentLocation: Location
+      const lat = Number.parseFloat(formData.get("latitude") as string)
+      const lng = Number.parseFloat(formData.get("longitude") as string)
+
+      if (!isNaN(lat) && !isNaN(lng)) {
+        currentLocation = { latitude: lat, longitude: lng }
+      } else {
+        // Default to a central location if not provided
+        currentLocation = { latitude: 40.7128, longitude: -74.006 }
+        console.log("Using default location:", currentLocation)
+      }
+
+      // Convert the file to a buffer
+      const arrayBuffer = await imageFile.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+
+      // Process the image
+      const result = await recognizeLocation(buffer, currentLocation)
+
+      // Save the result to the database if successful
+      if (result.success && result.location) {
+        try {
+          const id = await LocationDB.saveLocation(result)
+          result.id = id
+        } catch (error) {
+          console.error("Error saving to database:", error)
+          result.dbError = "Failed to save to database"
+        }
+      }
+
+      // Add the provided location to the response
+      result.providedLocation = currentLocation
+      result.usingFallbackLocation = isNaN(lat) || isNaN(lng)
+
+      return NextResponse.json(result)
     }
   } catch (error: any) {
-    console.error("Server error:", error)
+    console.error("API error:", error)
     return NextResponse.json(
       {
         success: false,
@@ -2907,22 +3328,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
-  // Handle preflight requests
-  if (request.method === "OPTIONS") {
-    const response = new NextResponse(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Max-Age": "86400",
-      },
-    })
-
-    return response
-  } else {
-    return NextResponse.json({ success: false, error: "Method not allowed" }, { status: 405 })
-  }
+export function OPTIONS(): NextResponse {
+  return NextResponse.json({
+    success: true,
+    message: "CORS preflight request successful",
+  })
 }
-
+export const config = {
+  runtime: "edge",
+}
