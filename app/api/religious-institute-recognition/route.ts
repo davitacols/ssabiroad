@@ -2743,7 +2743,7 @@ async function recognizeLocationMain(
             crowdDensity: sceneAnalysis.crowdDensity,
             timeOfDay: sceneAnalysis.timeOfDay,
             significantColors: sceneAnalysis.significantColors,
-            // waterProximity: waterProximity,
+            waterProximity: waterProximity,
             weatherConditions: weather,
             airQuality: airQuality,
             geoData: {
