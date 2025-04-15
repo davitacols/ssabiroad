@@ -3,7 +3,7 @@
  */
 
 // Regular expressions for common address patterns
-const ADDRESS_PATTERNS = [
+export const ADDRESS_PATTERNS = [
     // Street address with number
     /\b\d+\s+[A-Za-z0-9\s,]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Way|Court|Ct|Plaza|Square|Sq|Highway|Hwy|Freeway|Parkway|Pkwy)\b/gi,
   
@@ -22,7 +22,7 @@ const ADDRESS_PATTERNS = [
     /\b[ABCEGHJKLMNPRSTVXY]\d[ABCEGHJ-NPRSTV-Z]\s?\d[ABCEGHJ-NPRSTV-Z]\d\b/g, // Canadian postal code
   
     // Landmark names
-    /\b(?:Statue of|Mount|Mt\.|Tower|Cathedral|Church|Temple|Mosque|Palace|Castle|Fort|Bridge|Square|Park|Garden|Museum|Gallery|Theater|Stadium|Arena|University|College|Hospital|Airport|Station|Terminal|Port|Harbor|Beach|Lake|River|Mountain|Hill|Valley|Canyon|Forest|Desert|Island)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g,
+    /\b(?:Statue of|Mount|Mt\.|Tower|Cathedral|Church|Temple|Mosque|Palace|Castle|Fort|Bridge|Square)\b/g,
   
     // Hotel and accommodation patterns
     /\b(?:Hotel|Plaza|Suites|Inn|Resort|Apartments|Towers|Motel|Lodge|Hostel)\b/gi,
@@ -38,10 +38,25 @@ const ADDRESS_PATTERNS = [
     
     // Entertainment and leisure patterns
     /\b(?:Cinema|Theater|Theatre|Club|Lounge|Spa|Gym|Fitness|Studio|Arena|Stadium)\b/gi
-  ]
+]
+
+// Regular expressions for UK phone numbers
+const PHONE_PATTERNS = [
+  // Format: 020X XXX XXXX (London)
+  /\b(?:0207|0208|0203)\s*\d{3}\s*\d{4}\b/g,
   
-  // List of common location keywords
-  const LOCATION_KEYWORDS = [
+  // Format: 0XXXX XXXXXX (Outside London)
+  /\b0\d{4}\s*\d{6}\b/g,
+  
+  // Format: +44 XXX XXX XXXX (International)
+  /\b(?:\+44|0044)\s*\d{3}\s*\d{3}\s*\d{4}\b/g,
+  
+  // Format with period prefix: t.0207 XXX XXXX
+  /\bt\.*\s*(?:0207|0208|0203)\s*\d{3}\s*\d{4}\b/g
+]
+
+// List of common location keywords
+const LOCATION_KEYWORDS = [
     "located",
     "location",
     "address",
@@ -63,21 +78,21 @@ const ADDRESS_PATTERNS = [
     "area",
     "region",
     "north",
-    "south",
+    "south", 
     "east",
     "west",
     "northeast",
     "northwest",
     "southeast",
     "southwest",
-  ]
-  
-  /**
-   * Extract potential addresses from text
-   * @param text The text to analyze
-   * @returns Array of potential addresses
-   */
-  export function extractAddressFromText(text: string): string[] {
+]
+
+/**
+ * Extract addresses from text
+ * @param text The text to analyze
+ * @returns Array of potential addresses
+ */
+export function extractAddressFromText(text: string): string[] {
     const addresses: string[] = []
   
     // Apply each regex pattern to find potential addresses
@@ -93,14 +108,38 @@ const ADDRESS_PATTERNS = [
     })
   
     return addresses
-  }
-  
-  /**
-   * Extract potential location names from text
-   * @param text The text to analyze
-   * @returns Array of potential location names
-   */
-  export function extractPotentialLocations(text: string): string[] {
+}
+
+/**
+ * Extract phone numbers from text
+ * @param text The text to analyze
+ * @returns Array of found phone numbers
+ */
+export function extractPhoneNumbers(text: string): string[] {
+    const phoneNumbers: string[] = [];
+    
+    PHONE_PATTERNS.forEach(pattern => {
+      const matches = text.match(pattern);
+      if (matches) {
+        matches.forEach(match => {
+          // Clean up the phone number by removing 't.' prefix and standardizing spaces
+          const cleaned = match.replace(/^t\.*\s*/, '').replace(/\s+/g, ' ').trim();
+          if (!phoneNumbers.includes(cleaned)) {
+            phoneNumbers.push(cleaned);
+          }
+        });
+      }
+    });
+    
+    return phoneNumbers;
+}
+
+/**
+ * Extract potential location names from text
+ * @param text The text to analyze
+ * @returns Array of potential location names
+ */
+export function extractPotentialLocations(text: string): string[] {
     const locations: string[] = []
     const sentences = text
       .split(/[.!?]+/)
@@ -147,25 +186,28 @@ const ADDRESS_PATTERNS = [
     })
   
     return locations
-  }
-  
-  /**
-   * Analyze text to determine if it contains location information
-   * @param text The text to analyze
-   * @returns Score indicating likelihood of containing location info (0-1)
-   */
-  export function getLocationRelevanceScore(text: string): number {
+}
+
+/**
+ * Analyze text to determine if it contains location information 
+ * @param text The text to analyze
+ * @returns Score indicating likelihood of containing location info (0-1)
+ */
+export function getLocationRelevanceScore(text: string): number {
     let score = 0
     const lowerText = text.toLowerCase()
   
     // Check for location keywords
     LOCATION_KEYWORDS.forEach((keyword) => {
       if (lowerText.includes(keyword.toLowerCase())) {
-        score += 0.1 // Add 0.1 for each keyword found
+        score += 0.1
       }
     })
   
-    // Cap the score at 1.0
-    return Math.min(score, 1.0)
-  }
+    // Check for address patterns
+    const addresses = extractAddressFromText(lowerText)
+    score += addresses.length * 0.2
   
+    // Cap score at 1.0
+    return Math.min(score, 1.0)
+}

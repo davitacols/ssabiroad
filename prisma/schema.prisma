@@ -8,6 +8,26 @@ datasource db {
   directUrl  = env("POSTGRES_URL_NON_POOLING")
 }
 
+// Define Job model first since it's referenced by User and Location
+model Job {
+  id        String     @id @default(uuid())
+  status    String
+  progress  Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  imageHash String?    
+  error     String?
+  result    Json?
+  locations Location[]
+  
+  // Relation to User (optional)
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([status])
+}
+
 model User {
   id             String          @id @default(uuid())
   email          String          @unique
@@ -26,8 +46,72 @@ model User {
   savedLocations SavedLocation[]
   buildings      Building[]
   locations      Location[]
+  jobs           Job[]           
 }
 
+// Rest of your models...
+
+model Location {
+  id                   String    @id @default(cuid())
+  name                 String
+  address              String
+  latitude             Float?
+  longitude            Float?
+  confidence           Float?
+  recognitionType      String    @default("unknown")
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  description          String?
+  category             String?
+  buildingType         String?
+  architecturalStyle   String?
+  yearBuilt            String?
+  materialType         String?
+  culturalSignificance String?
+  website              String?
+  phoneNumber          String?
+  weatherConditions    String?
+  airQuality           String?
+  
+  // Additional fields that might be used in the API
+  formattedAddress     String?
+  placeId              String?
+  mapUrl               String?
+  photos               String[]  @default([])
+  rating               Float?
+  priceLevel           Int?
+  urbanDensity         String?
+  vegetationDensity    String?
+  crowdDensity         String?
+  timeOfDay            String?
+  significantColors    String[]  @default([])
+  waterProximity       String?
+  safetyScore          Float?
+  noiseLevel           String?
+  
+  // New fields added for walkability metrics
+  walkScore            Int?
+  bikeScore            Int?
+  
+  // Missing fields that were causing the error
+  energyEfficiency     String?
+  floodZone            String?
+  seismicRisk          String?
+  
+  // Relation to User (optional)
+  userId               String?
+  user                 User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Relation to Job (optional)
+  jobId                String?
+  job                  Job?      @relation(fields: [jobId], references: [id])
+
+  @@index([latitude, longitude])
+  @@index([userId])
+  @@index([jobId])
+}
+
+// Include the rest of your models here...
 model Bookmark {
   id         String   @id @default(cuid())
   locationId String
@@ -141,54 +225,4 @@ model BuildingSimilarity {
   @@unique([buildingId, similarToId])
   @@index([buildingId])
   @@index([similarToId])
-}
-
-model Location {
-  id                   String    @id @default(cuid())
-  name                 String
-  address              String
-  latitude             Float?
-  longitude            Float?
-  confidence           Float?
-  recognitionType      String    @default("unknown")
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-  description          String?
-  category             String?
-  buildingType         String?
-  architecturalStyle   String?
-  yearBuilt            String?
-  materialType         String?
-  culturalSignificance String?
-  website              String?
-  phoneNumber          String?
-  weatherConditions    String?
-  airQuality           String?
-  
-  // Additional fields that might be used in the API
-  formattedAddress     String?
-  placeId              String?
-  mapUrl               String?
-  photos               String[]  @default([])
-  rating               Float?
-  priceLevel           Int?
-  urbanDensity         String?
-  vegetationDensity    String?
-  crowdDensity         String?
-  timeOfDay            String?
-  significantColors    String[]  @default([])
-  waterProximity       String?
-  safetyScore          Float?
-  noiseLevel           String?
-  
-  // New fields added for walkability metrics
-  walkScore            Int?
-  bikeScore            Int?
-  
-  // Relation to User (optional)
-  userId               String?
-  user                 User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([latitude, longitude])
-  @@index([userId])
 }

@@ -1,0 +1,410 @@
+# Directory Structure: ssabiroad
+
+## Statistics
+
+- Total directories: 115
+- Total files: 259
+
+### File Extensions
+
+- .tsx: 110 files
+- .ts: 79 files
+- .png: 16 files
+- .jpg: 14 files
+- .sql: 11 files
+- .json: 6 files
+- .yml: 3 files
+- .txt: 2 files
+- .cjs: 2 files
+- .woff: 2 files
+- .mjs: 2 files
+- .sqlite: 1 files
+- .gz: 1 files
+- .bak: 1 files
+- .py: 1 files
+- .ico: 1 files
+- .css: 1 files
+- .toml: 1 files
+- .prisma: 1 files
+- .md: 1 files
+- .lock: 1 files
+
+## Directory Structure
+
+```
+└── ssabiroad/
+    ├── .github/
+    │   └── workflows/
+    │       └── nextjs.yml
+    ├── .qodo/
+    │   └── history.sqlite
+    ├── .vercel/
+    │   ├── project.json
+    │   └── README.txt
+    ├── .vscode/
+    │   └── settings.json
+    ├── .yarn/
+    │   ├── releases/
+    │   │   ├── yarn-1.22.22.cjs
+    │   │   └── yarn-classic.cjs
+    │   └── install-state.gz
+    ├── @types/
+    │   └── heroicons__react/
+    │       └── index.d.ts
+    ├── app/
+    │   ├── about/
+    │   │   └── page.tsx
+    │   ├── actions/
+    │   │   └── places-api.ts
+    │   ├── api/
+    │   │   ├── accessibility/
+    │   │   │   └── route.ts
+    │   │   ├── ai-descriptions/
+    │   │   │   └── route.ts
+    │   │   ├── analytics/
+    │   │   ├── auth/
+    │   │   │   ├── [...nextauth]/
+    │   │   │   │   └── route.ts
+    │   │   │   ├── google/
+    │   │   │   │   └── route.ts
+    │   │   │   ├── login/
+    │   │   │   │   └── route.ts
+    │   │   │   ├── logout/
+    │   │   │   │   └── route.ts
+    │   │   │   ├── refresh/
+    │   │   │   ├── register/
+    │   │   │   │   └── google/
+    │   │   │   │       └── route.ts
+    │   │   │   ├── signup/
+    │   │   │   │   └── route.ts
+    │   │   │   └── verify/
+    │   │   │       └── route.ts
+    │   │   ├── bookmarks/
+    │   │   │   ├── {id}/
+    │   │   │   │   └── route.ts
+    │   │   │   └── route.ts
+    │   │   ├── db-test/
+    │   │   │   └── route.ts
+    │   │   ├── debug-env/
+    │   │   │   └── route.ts
+    │   │   ├── environmental-data/
+    │   │   │   └── route.ts
+    │   │   ├── fetchUserData/
+    │   │   │   └── route.ts
+    │   │   ├── geocode/
+    │   │   │   └── route.ts
+    │   │   ├── government-data/
+    │   │   │   └── route.ts
+    │   │   ├── historical-data/
+    │   │   │   └── route.ts
+    │   │   ├── image-caption/
+    │   │   │   └── route.ts
+    │   │   ├── location-diagnostic/
+    │   │   │   └── route.ts
+    │   │   ├── location-enhancement/
+    │   │   │   └── route.ts
+    │   │   ├── location-recognition/
+    │   │   │   ├── [jobId]/
+    │   │   │   │   └── route.ts
+    │   │   │   ├── route.ts
+    │   │   │   └── types.ts
+    │   │   ├── location-search/
+    │   │   │   └── route.ts
+    │   │   ├── location-suggestions/
+    │   │   │   └── route.ts
+    │   │   ├── nearby-places/
+    │   │   │   └── route.ts
+    │   │   ├── place-details/
+    │   │   │   └── route.ts
+    │   │   ├── placeholder/
+    │   │   │   └── route.ts
+    │   │   ├── places/
+    │   │   │   └── search/
+    │   │   │       └── route.ts
+    │   │   ├── property-data/
+    │   │   │   └── route.ts
+    │   │   ├── public-records/
+    │   │   │   └── route.ts
+    │   │   ├── recent-detections/
+    │   │   │   └── route.ts
+    │   │   ├── reverse-geocode/
+    │   │   │   └── route.ts
+    │   │   ├── satelite-imagery/
+    │   │   │   └── route.ts
+    │   │   ├── save-detection/
+    │   │   │   └── route.ts
+    │   │   ├── saved-locations/
+    │   │   │   └── route.ts
+    │   │   ├── statistics/
+    │   │   │   └── route.ts
+    │   │   ├── stats/
+    │   │   │   └── route.ts
+    │   │   ├── transit-data/
+    │   │   │   └── route.ts
+    │   │   ├── usage-data/
+    │   │   │   └── route.ts
+    │   │   ├── usage-stats/
+    │   │   │   └── route.ts
+    │   │   ├── user/
+    │   │   │   ├── settings/
+    │   │   │   │   └── route.ts
+    │   │   │   └── route.ts
+    │   │   ├── user-settings/
+    │   │   ├── weather/
+    │   │   │   └── route.ts
+    │   │   └── zoning-info/
+    │   │       └── route.ts
+    │   ├── api-doc/
+    │   │   └── page.tsx
+    │   ├── blog/
+    │   │   └── page.tsx
+    │   ├── dashboard/
+    │   │   ├── components/
+    │   │   │   ├── ActivityChart.tsx
+    │   │   │   ├── app-sidebar.tsx
+    │   │   │   ├── AppSidebar.tsx
+    │   │   │   ├── BuildingDetector.tsx
+    │   │   │   ├── BuildingInfoCard.tsx
+    │   │   │   ├── DashboardHeader.tsx
+    │   │   │   ├── DetectionResultDialog.tsx
+    │   │   │   ├── LocationInfoCard.tsx
+    │   │   │   ├── RecentDetectionsCard.tsx
+    │   │   │   ├── Sidebar.tsx
+    │   │   │   └── StatsGrid.tsx
+    │   │   ├── utils/
+    │   │   │   ├── api.ts
+    │   │   │   ├── dataHelpers.ts
+    │   │   │   └── googleMaps.ts
+    │   │   └── page.tsx
+    │   ├── docs/
+    │   │   └── page.tsx
+    │   ├── examples/
+    │   │   └── page.tsx
+    │   ├── explore/
+    │   │   └── page.tsx
+    │   ├── fonts/
+    │   │   ├── GeistMonoVF.woff
+    │   │   └── GeistVF.woff
+    │   ├── history/
+    │   │   └── page.tsx
+    │   ├── journey/
+    │   │   └── page.tsx
+    │   ├── location-analyzer/
+    │   │   └── page.tsx
+    │   ├── location-test/
+    │   │   ├── loading.tsx
+    │   │   └── page.tsx
+    │   ├── locations/
+    │   │   └── page.tsx
+    │   ├── login/
+    │   │   └── page.tsx
+    │   ├── map/
+    │   │   └── page.tsx
+    │   ├── mobile-dashboard/
+    │   │   ├── bookmarks.tsx
+    │   │   ├── page.tsx
+    │   │   ├── page.tsx.bak
+    │   │   └── search.tsx
+    │   ├── mobile-home-page/
+    │   │   └── page.tsx
+    │   ├── placeholder.svg/
+    │   │   └── route.ts
+    │   ├── profile/
+    │   │   └── page.tsx
+    │   ├── settings/
+    │   │   └── page.tsx
+    │   ├── signin/
+    │   │   └── page.tsx
+    │   ├── signup/
+    │   │   └── page.tsx
+    │   ├── calc.py
+    │   ├── error-constants.ts
+    │   ├── favicon.ico
+    │   ├── globals.css
+    │   ├── layout.tsx
+    │   ├── middleware-error-handler.ts
+    │   ├── middleware.ts
+    │   ├── page.tsx
+    │   └── providers.tsx
+    ├── components/
+    │   ├── pic2nav/
+    │   │   ├── bookmarks-panel.tsx
+    │   │   ├── business-info-display.tsx
+    │   │   ├── camera-recognition.tsx
+    │   │   ├── dashboard.tsx
+    │   │   ├── map-view.tsx
+    │   │   ├── metadata-dialog.tsx
+    │   │   ├── recent-locations.tsx
+    │   │   ├── search-panel.tsx
+    │   │   └── simple-business-display.tsx
+    │   ├── ui/
+    │   │   ├── accordion.tsx
+    │   │   ├── alert.tsx
+    │   │   ├── avatar.tsx
+    │   │   ├── badge.tsx
+    │   │   ├── button.tsx
+    │   │   ├── card.tsx
+    │   │   ├── carousel.tsx
+    │   │   ├── checkbox.tsx
+    │   │   ├── combobox.tsx
+    │   │   ├── command.tsx
+    │   │   ├── dialog.tsx
+    │   │   ├── drawer.tsx
+    │   │   ├── dropdown-menu.tsx
+    │   │   ├── feedback.tsx
+    │   │   ├── help-feedback-about-dialog.tsx
+    │   │   ├── input.tsx
+    │   │   ├── label.tsx
+    │   │   ├── navigation-menu.tsx
+    │   │   ├── progress.tsx
+    │   │   ├── radio-group.tsx
+    │   │   ├── scroll-area.tsx
+    │   │   ├── select.tsx
+    │   │   ├── separator.tsx
+    │   │   ├── sheet.tsx
+    │   │   ├── sidebar-group.tsx
+    │   │   ├── sidebar-menu.tsx
+    │   │   ├── sidebar.tsx
+    │   │   ├── skeleton.tsx
+    │   │   ├── slider.tsx
+    │   │   ├── switch.tsx
+    │   │   ├── table.tsx
+    │   │   ├── tabs.tsx
+    │   │   ├── textarea.tsx
+    │   │   ├── toast.tsx
+    │   │   ├── toaster.tsx
+    │   │   ├── tooltip.tsx
+    │   │   └── use-toast.ts
+    │   ├── about-dialog.tsx
+    │   ├── ai-content-generator.tsx
+    │   ├── app-navbar.tsx
+    │   ├── AuthContext.tsx
+    │   ├── bookmarks-feature.tsx
+    │   ├── CameraCapture.tsx
+    │   ├── enhanced-business-display.tsx
+    │   ├── feedback-dialog.tsx
+    │   ├── Footer.tsx
+    │   ├── Header.tsx
+    │   ├── help-and-support.tsx
+    │   ├── help-center-dialog.tsx
+    │   ├── image-caption-generator.tsx
+    │   ├── ImageUpload.tsx
+    │   ├── location-analyzer.tsx
+    │   ├── location-map.tsx
+    │   ├── location-search.tsx
+    │   ├── location-suggestions.tsx
+    │   ├── Map.tsx
+    │   ├── MapDisplay.tsx
+    │   ├── mode-toggle.tsx
+    │   ├── places-autocomplete.tsx
+    │   ├── profile.tsx
+    │   ├── search-feature.tsx
+    │   ├── SearchBar.tsx
+    │   ├── SearchFeature.tsx
+    │   ├── settings.tsx
+    │   └── TrialSection.tsx
+    ├── hooks/
+    │   ├── use-debounce.ts
+    │   ├── use-google-maps-script.ts
+    │   ├── use-media-querry.ts
+    │   ├── use-mobile.ts
+    │   └── use-toast.ts
+    ├── lib/
+    │   ├── address-parser.ts
+    │   ├── auth.ts
+    │   ├── db.ts
+    │   ├── enhanced-geocoding.ts
+    │   ├── geocoding.ts
+    │   ├── prisma-client.ts
+    │   ├── prisma.ts
+    │   ├── text-analysis.ts
+    │   ├── text-extraction.ts
+    │   ├── uk-address-parser.ts
+    │   ├── utils.ts
+    │   ├── validation.ts
+    │   └── zoopla-service.ts
+    ├── prisma/
+    │   ├── migrations/
+    │   │   ├── 20250201044945_init/
+    │   │   │   └── migration.sql
+    │   │   ├── 20250201051922_add_bio_field/
+    │   │   │   └── migration.sql
+    │   │   ├── 20250219005822_save_model/
+    │   │   │   └── migration.sql
+    │   │   ├── 20250310084719_fix_create_error/
+    │   │   │   └── migration.sql
+    │   │   ├── 20250313114719_add_bookmark_model/
+    │   │   │   └── migration.sql
+    │   │   ├── 20250317051846_add_location_fields/
+    │   │   │   └── migration.sql
+    │   │   ├── 20250318122017_add_description_to_location/
+    │   │   │   └── migration.sql
+    │   │   ├── 20250322070313_add_bookmark_model/
+    │   │   │   └── migration.sql
+    │   │   ├── 20250401131217_add_walk_bike_scores/
+    │   │   │   └── migration.sql
+    │   │   ├── 20250405053319_add_job_model/
+    │   │   │   └── migration.sql
+    │   │   ├── 20250406041315_add_job_model2/
+    │   │   │   └── migration.sql
+    │   │   └── migration_lock.toml
+    │   ├── schema.prisma
+    │   └── seed.ts
+    ├── public/
+    │   ├── assets/
+    │   │   └── 3d/
+    │   │       └── texture_earth.jpg
+    │   ├── avatars/
+    │   │   ├── avatar1.jpg
+    │   │   ├── avatar2.jpg
+    │   │   └── avatar3.jpg
+    │   ├── buildings/
+    │   │   ├── chrysler.jpg
+    │   │   ├── empire-state.jpg
+    │   │   └── flatiron.jpg
+    │   ├── images/
+    │   │   ├── app-screenshot-1.jpg
+    │   │   ├── app-screenshot-2.jpg
+    │   │   ├── app-screenshot-3.jpg
+    │   │   ├── app-screenshot-4.jpg
+    │   │   ├── app-screenshot-5.jpg
+    │   │   ├── app-screenshot-6.jpg
+    │   │   └── app-screenshot-7.jpg
+    │   ├── logos/
+    │   │   ├── apple.png
+    │   │   ├── cloudflare.png
+    │   │   ├── garmin.png
+    │   │   ├── google.png
+    │   │   ├── logo.png
+    │   │   ├── mapbox.png
+    │   │   ├── microsoft.png
+    │   │   ├── openai.png
+    │   │   └── tomtom.png
+    │   ├── screenshots/
+    │   │   ├── screenshot1.png
+    │   │   ├── screenshot2.png
+    │   │   ├── screenshot3.png
+    │   │   ├── screenshot4.png
+    │   │   ├── screenshot5.png
+    │   │   └── screenshot6.png
+    │   └── download.png
+    ├── types/
+    │   ├── exif-parser.d.ts
+    │   └── google-maps.d.ts
+    ├── .cpanel.yml
+    ├── .eslintrc.json
+    ├── .gitignore
+    ├── .yarnrc
+    ├── .yarnrc.yml
+    ├── components.json
+    ├── encoded-service-account.txt
+    ├── next-env.d.ts
+    ├── next.config.mjs
+    ├── package.json
+    ├── postcss.config.mjs
+    ├── README.md
+    ├── tailwind.config.ts
+    ├── tsconfig.json
+    └── yarn.lock
+```
+
