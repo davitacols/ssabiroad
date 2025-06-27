@@ -1,4 +1,5 @@
 "use client"
+import * as React from "react"
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,9 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [enrichedData, setEnrichedData] = useState(null)
+  const [nearbyPlaces, setNearbyPlaces] = useState([])
+  const [isLoadingNearby, setIsLoadingNearby] = useState(false)
+  const [buildingPhotos, setBuildingPhotos] = useState([])
 
   // Extract metadata from file and recognition result using memoization
   const metadata = useMemo(() => extractMetadata(selectedFile, recognitionResult, enrichedData), 
@@ -47,12 +51,14 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
   useEffect(() => {
     if (open && recognitionResult && recognitionResult.placeId) {
       fetchAdditionalInformation(recognitionResult)
+      fetchNearbyPlaces(recognitionResult)
+      fetchBuildingPhotos(recognitionResult)
     }
   }, [open, recognitionResult])
 
   // Function to fetch additional public information
   const fetchAdditionalInformation = async (recognitionData) => {
-    if (!recognitionData || !recognitionData.placeId) return
+    if (!recognitionData) return
     
     setIsLoading(true)
     setError(null)
@@ -63,12 +69,29 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
       const coordinates = recognitionData.location ? 
         `${recognitionData.location.latitude},${recognitionData.location.longitude}` : null
       
+      // Import the Google Places API functions
+      const { fetchLocationPhotos, fetchNearbyPlaces } = await import('@/lib/google-places')
+      
+      // Get location photos from Google Places API
+      let locationPhotos = []
+      if (recognitionData.name) {
+        locationPhotos = await fetchLocationPhotos(
+          recognitionData.name,
+          recognitionData.location?.latitude,
+          recognitionData.location?.longitude
+        )
+      }
+      
       // Make multiple API calls in parallel for different types of data
-      const [placeDetails, newsArticles, reviews, additionalInfo] = await Promise.all([
-        fetchPlaceDetails(placeId),
+      const [placeDetails, newsArticles, reviews, additionalInfo, nearbyPlacesData] = await Promise.all([
+        fetchPlaceDetails(placeId, locationPhotos),
         fetchNewsArticles(recognitionData.name || recognitionData.businessName),
         fetchPlaceReviews(placeId),
-        fetchAdditionalPlaceInfo(placeId, coordinates)
+        fetchAdditionalPlaceInfo(placeId, coordinates),
+        recognitionData.location ? fetchNearbyPlaces(
+          recognitionData.location.latitude,
+          recognitionData.location.longitude
+        ) : []
       ])
       
       // Combine the enriched data
@@ -77,6 +100,7 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
         newsArticles,
         reviews,
         additionalInfo,
+        nearbyPlaces: nearbyPlacesData,
         lastUpdated: new Date().toISOString()
       }
       
@@ -89,16 +113,136 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
     }
   }
   
+  // Function to fetch nearby places
+  const fetchNearbyPlaces = async (recognitionData) => {
+    if (!recognitionData || !recognitionData.location) return
+    
+    setIsLoadingNearby(true)
+    
+    try {
+      // Simulating API response delay
+      await new Promise(resolve => setTimeout(resolve, 600))
+      
+      // Use actual photos from the recognition result for nearby places
+      // In a real implementation, this would come from a Places API
+      const photos = recognitionData.photos || []
+      
+      // Create nearby places using the actual location data and photos
+      const places = [
+        {
+          name: "Local Park",
+          type: "Park",
+          distance: "120",
+          photos: [
+            photos[1] || photos[0],
+            photos[2] || photos[0]
+          ],
+          description: "A park near " + (recognitionData.name || "this location")
+        },
+        {
+          name: "City Museum",
+          type: "Museum",
+          distance: "250",
+          photos: [
+            photos[2] || photos[0]
+          ],
+          description: "Historical museum featuring local artifacts and exhibitions."
+        },
+        {
+          name: "Local Cafe",
+          type: "Restaurant",
+          distance: "180",
+          photos: [
+            photos[3] || photos[0],
+            photos[1] || photos[0]
+          ],
+          description: "Cafe near " + (recognitionData.name || "this location")
+        }
+      ]
+      
+      setNearbyPlaces(places)
+    } catch (err) {
+      console.error("Error fetching nearby places:", err)
+    } finally {
+      setIsLoadingNearby(false)
+    }
+  }
+  
+  // Function to fetch additional building photos
+  const fetchBuildingPhotos = async (recognitionData) => {
+    if (!recognitionData || !recognitionData.placeId) return
+    
+    try {
+      // Simulating API response delay
+      await new Promise(resolve => setTimeout(resolve, 700))
+      
+      // Use actual photos from the recognition result
+      const actualPhotos = recognitionData.photos || []
+      
+      if (actualPhotos.length > 0) {
+        // Create photo objects using the actual photos
+        const photos = actualPhotos.map((url, index) => {
+          const captions = [
+            "Front view of the building",
+            "Side entrance",
+            "Full view of the location",
+            "Interior view"
+          ]
+          
+          const sources = [
+            "Location Database",
+            "Architecture Archive",
+            "Location Photos",
+            "Building Database"
+          ]
+          
+          return {
+            url: url,
+            caption: captions[index % captions.length],
+            source: sources[index % sources.length]
+          }
+        })
+        
+        setBuildingPhotos(photos)
+      } else {
+        setBuildingPhotos([])
+      }
+    } catch (err) {
+      console.error("Error fetching building photos:", err)
+    }
+  }
+  
   // Mock functions for API calls (replace with actual API calls in production)
-  const fetchPlaceDetails = async (placeId) => {
+  const fetchPlaceDetails = async (placeId, locationPhotos = []) => {
     // In a real implementation, this would call an API
     // Example: return await fetch(`/api/place-details/${placeId}`).then(res => res.json())
     
     // Simulating API response delay
     await new Promise(resolve => setTimeout(resolve, 500))
     
+    // Use photos from Google Places API if available, otherwise use recognition result photos
+    const photos = locationPhotos.length > 0 
+      ? locationPhotos 
+      : (recognitionResult.photos || [])
+    
+    // Create photo objects with captions
+    const photoObjects = photos.map((url, index) => {
+      const captions = [
+        "Front view of " + (recognitionResult.name || "the building"),
+        "Side entrance of " + (recognitionResult.name || "the building"),
+        "Full view of " + (recognitionResult.name || "the location"),
+        "Interior view of " + (recognitionResult.name || "the building")
+      ]
+      
+      return {
+        url: url,
+        attribution: "Photo of " + (recognitionResult.name || "location"),
+        caption: captions[index % captions.length]
+      }
+    })
+    
     return {
-      description: "Extended description of the location that would be fetched from a public API.",
+      description: "Extended description of " + (recognitionResult.name || "this location") + " with additional details about its architecture and history.",
       popularTimes: {
         monday: [10, 20, 45, 60, 80, 70, 40, 30],
         tuesday: [15, 25, 50, 65, 85, 75, 45, 35],
@@ -106,10 +250,7 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
       },
       accessibility: ["Wheelchair accessible", "Elevator access"],
       establishedYear: "1985",
-      photos: [
-        { url: "/api/placeholder/800/600", attribution: "Photo by User" },
-        { url: "/api/placeholder/800/600", attribution: "Photo by Another User" }
-      ]
+      photos: photoObjects
     }
   }
   
@@ -261,7 +402,7 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
         )}
 
         <Tabs defaultValue="location" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-5 mb-4">
+          <TabsList className="grid grid-cols-6 mb-4">
             <TabsTrigger value="location">
               <MapPin className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Location</span>
@@ -269,6 +410,10 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
             <TabsTrigger value="business">
               <Building className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Business</span>
+            </TabsTrigger>
+            <TabsTrigger value="nearby">
+              <Landmark className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Nearby</span>
             </TabsTrigger>
             <TabsTrigger value="environment">
               <Leaf className="h-4 w-4 mr-2" />
@@ -314,24 +459,12 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
                 </div>
               </div>
 
-              {/* Nearby Places */}
-              {metadata.nearbyPlaces && metadata.nearbyPlaces.length > 0 && (
+              {/* Historical Information */}
+              {metadata.historicalInfo && metadata.historicalInfo !== "N/A" && (
                 <div>
-                  <SectionHeader icon={Landmark} title="Nearby Places" />
-                  <div className="space-y-2">
-                    {metadata.nearbyPlaces.map((place, index) => (
-                      <div key={index} className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <span className="text-xs font-medium">{place.name}</span>
-                            <p className="text-xs text-slate-600 dark:text-slate-300">{place.type}</p>
-                          </div>
-                          <Badge variant="outline" className="text-xs">
-                            {place.distance}m
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
+                  <SectionHeader icon={History} title="Historical Information" />
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-md">
+                    <p className="text-xs text-slate-600 dark:text-slate-300">{metadata.historicalInfo}</p>
                   </div>
                 </div>
               )}
@@ -360,6 +493,8 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
                   {metadata.businessInfo.established !== "N/A" && (
                     <MetadataField label="Established" value={metadata.businessInfo.established} />
                   )}
+                  <MetadataField label="Chain" value={metadata.businessInfo.chain || "N/A"} />
+                  <MetadataField label="Owner" value={metadata.businessInfo.owner || "N/A"} />
                 </div>
               </div>
 
@@ -369,6 +504,8 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <MetadataField label="Phone Number" value={metadata.businessInfo.phoneNumber} />
                   <MetadataField label="Website" value={metadata.businessInfo.website} />
+                  <MetadataField label="Email" value={metadata.businessInfo.email || "N/A"} />
+                  <MetadataField label="Social Media" value={metadata.businessInfo.socialMedia || "N/A"} />
                 </div>
               </div>
 
@@ -378,6 +515,8 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <MetadataField label="Rating" value={metadata.businessInfo.rating} />
                   <MetadataField label="Price Level" value={metadata.businessInfo.priceLevel} />
+                  <MetadataField label="Review Count" value={metadata.businessInfo.reviewCount || "N/A"} />
+                  <MetadataField label="Popularity Rank" value={metadata.businessInfo.popularityRank || "N/A"} />
                   <MetadataField
                     label="Opening Hours"
                     value={
@@ -464,15 +603,103 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
             </TabsContent>
 
             {/* Environmental Data Tab */}
+            {/* Nearby Places Tab (NEW) */}
+            <TabsContent value="nearby" className="space-y-4">
+              {/* Nearby Places */}
+              <div>
+                <SectionHeader icon={Landmark} title="Nearby Places" onRefresh={() => fetchNearbyPlaces(recognitionResult)} />
+                {isLoadingNearby ? (
+                  <div className="flex items-center justify-center py-8">
+                    <RefreshCw className="h-5 w-5 animate-spin mr-2 text-teal-500" />
+                    <span className="text-sm text-slate-500">Loading nearby places...</span>
+                  </div>
+                ) : nearbyPlaces.length > 0 ? (
+                  <div className="space-y-3">
+                    {nearbyPlaces.map((place, index) => (
+                      <div key={index} className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-md">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <span className="text-sm font-medium">{place.name}</span>
+                            <p className="text-xs text-slate-600 dark:text-slate-300">{place.type}</p>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {place.distance}m
+                          </Badge>
+                        </div>
+                        
+                        {place.description && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">{place.description}</p>
+                        )}
+                        
+                        {place.photos && place.photos.length > 0 && (
+                          <div className="grid grid-cols-2 gap-1 mt-2">
+                            {place.photos.map((photo, photoIndex) => (
+                              <div key={photoIndex} className="aspect-video rounded-sm overflow-hidden">
+                                <img 
+                                  src={photo} 
+                                  alt={`${place.name} - Photo ${photoIndex + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-md text-center">
+                    <p className="text-sm text-slate-500">No nearby places found</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => fetchNearbyPlaces(recognitionResult)} 
+                      className="mt-2"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Refresh
+                    </Button>
+                  </div>
+                )}
+              </div>
+              
+              {/* Building Photos */}
+              <div>
+                <SectionHeader icon={ImageIcon} title="Building Photos" />
+                <div className="grid grid-cols-2 gap-2">
+                  {buildingPhotos.length > 0 ? (
+                    buildingPhotos.map((photo, index) => (
+                      <div key={index} className="bg-slate-50 dark:bg-slate-800/50 rounded-md overflow-hidden">
+                        <img src={photo.url} alt={photo.caption} className="w-full h-32 object-cover" />
+                        <div className="p-2">
+                          <p className="text-xs font-medium">{photo.caption}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">Source: {photo.source}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-2 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-md text-center">
+                      <p className="text-sm text-slate-500">No building photos available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+            
             <TabsContent value="environment" className="space-y-4">
               {/* Weather & Air */}
               <div>
                 <SectionHeader icon={Cloud} title="Weather & Air Quality" />
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <MetadataField label="Weather Conditions" value={metadata.environmentalData.weatherConditions} />
+                  <MetadataField label="Temperature" value={metadata.environmentalData.temperature} />
+                  <MetadataField label="Humidity" value={metadata.environmentalData.humidity} />
                   <MetadataField label="Air Quality" value={metadata.environmentalData.airQuality} />
                   <MetadataField label="Air Quality Index" value={metadata.environmentalData.airQualityIndex} />
                   <MetadataField label="Time of Day" value={metadata.environmentalData.timeOfDay} />
+                  <MetadataField label="Sunrise" value={metadata.environmentalData.sunriseTime} />
+                  <MetadataField label="Sunset" value={metadata.environmentalData.sunsetTime} />
+                  <MetadataField label="Light Conditions" value={metadata.environmentalData.lightConditions} />
                 </div>
               </div>
 
@@ -484,6 +711,8 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
                   <MetadataField label="Crowd Density" value={metadata.environmentalData.crowdDensity} />
                   <MetadataField label="Noise Level" value={metadata.environmentalData.noiseLevel} />
                   <MetadataField label="Building Material" value={metadata.environmentalData.materialType} />
+                  <MetadataField label="Building Age" value={metadata.environmentalData.buildingAge || "N/A"} />
+                  <MetadataField label="Architecture Style" value={metadata.environmentalData.architectureStyle || "N/A"} />
                 </div>
               </div>
 
@@ -498,7 +727,23 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
                     value={metadata.environmentalData.greenSpaceProximity} 
                     colSpan={2} 
                   />
+                  <MetadataField label="Terrain Type" value={metadata.environmentalData.terrainType || "N/A"} />
+                  <MetadataField label="Elevation" value={metadata.geoData.elevation || "N/A"} />
                 </div>
+                
+                {metadata.environmentalData.seasonalFeatures && 
+                 metadata.environmentalData.seasonalFeatures.length > 0 && (
+                  <div className="mt-2">
+                    <span className="text-xs font-medium">Seasonal Features</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {metadata.environmentalData.seasonalFeatures.map((feature, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {feature}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Safety Data */}
@@ -568,6 +813,75 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
                     <p className="text-xs text-slate-600 dark:text-slate-300">
                       {enrichedData.placeDetails.description}
                     </p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Cultural Information */}
+              {(metadata.culturalInfo.localLanguages.length > 0 || 
+                metadata.culturalInfo.culturalSignificance !== "N/A" ||
+                metadata.culturalInfo.localCuisine.length > 0) && (
+                <div>
+                  <SectionHeader icon={Globe} title="Cultural Information" />
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {metadata.culturalInfo.culturalSignificance !== "N/A" && (
+                      <MetadataField 
+                        label="Cultural Significance" 
+                        value={metadata.culturalInfo.culturalSignificance}
+                        colSpan={2} 
+                      />
+                    )}
+                    
+                    {metadata.culturalInfo.localLanguages.length > 0 && (
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
+                        <span className="text-xs font-medium">Local Languages</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {metadata.culturalInfo.localLanguages.map((language, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {language}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {metadata.culturalInfo.localCuisine.length > 0 && (
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
+                        <span className="text-xs font-medium">Local Cuisine</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {metadata.culturalInfo.localCuisine.map((cuisine, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {cuisine}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Travel Information */}
+              {(metadata.travelInfo.touristRating !== "N/A" || 
+                metadata.travelInfo.bestTimeToVisit !== "N/A" ||
+                metadata.travelInfo.travelTips.length > 0) && (
+                <div>
+                  <SectionHeader icon={MapIcon} title="Travel Information" />
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <MetadataField label="Tourist Rating" value={metadata.travelInfo.touristRating} />
+                    <MetadataField label="Best Time to Visit" value={metadata.travelInfo.bestTimeToVisit} />
+                    <MetadataField label="Visa Requirements" value={metadata.travelInfo.visaRequirements} colSpan={2} />
+                    
+                    {metadata.travelInfo.travelTips.length > 0 && (
+                      <div className="col-span-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md">
+                        <span className="text-xs font-medium">Travel Tips</span>
+                        <ul className="text-xs text-slate-600 dark:text-slate-300 pl-4 list-disc mt-1">
+                          {metadata.travelInfo.travelTips.map((tip, index) => (
+                            <li key={index}>{tip}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -667,7 +981,36 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
                 </div>
               )}
 
-              {/* Photos */}
+              {/* Building Photos */}
+              <div>
+                <SectionHeader icon={ImageIcon} title="Building Photos" />
+                <div className="grid grid-cols-2 gap-2">
+                  {buildingPhotos.length > 0 ? (
+                    buildingPhotos.map((photo, index) => (
+                      <div key={index} className="bg-slate-50 dark:bg-slate-800/50 rounded-md overflow-hidden">
+                        <img src={photo.url} alt={photo.caption} className="w-full h-32 object-cover" />
+                        <div className="p-2">
+                          <p className="text-xs font-medium">{photo.caption}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">Source: {photo.source}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : enrichedData?.placeDetails?.photos && enrichedData.placeDetails.photos.length > 0 ? (
+                    enrichedData.placeDetails.photos.map((photo, index) => (
+                      <div key={index} className="bg-slate-50 dark:bg-slate-800/50 rounded-md overflow-hidden">
+                        <img src={photo.url} alt={`Photo ${index+1}`} className="w-full h-32 object-cover" />
+                        <p className="text-xs text-slate-500 dark:text-slate-400 p-2">{photo.attribution}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-2 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-md text-center">
+                      <p className="text-sm text-slate-500">No building photos available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Public Photos */}
               {enrichedData?.placeDetails?.photos && enrichedData.placeDetails.photos.length > 0 && (
                 <div>
                   <SectionHeader icon={ImageIcon} title="Public Photos" />
@@ -689,10 +1032,12 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
               <div>
                 <SectionHeader icon={ImageIcon} title="Image Information" />
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                <MetadataField label="File Name" value={metadata.imageInfo.fileName} />
+                  <MetadataField label="File Name" value={metadata.imageInfo.fileName} />
                   <MetadataField label="File Size" value={metadata.imageInfo.fileSize} />
                   <MetadataField label="Dimensions" value={metadata.imageInfo.dimensions} />
                   <MetadataField label="Format" value={metadata.imageInfo.format} />
+                  <MetadataField label="Color Profile" value={metadata.imageInfo.colorProfile || "N/A"} />
+                  <MetadataField label="Bit Depth" value={metadata.imageInfo.bitDepth || "N/A"} />
                 </div>
               </div>
 
@@ -708,6 +1053,9 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
                     <MetadataField label="Aperture" value={metadata.imageInfo.camera.aperture} />
                     <MetadataField label="ISO" value={metadata.imageInfo.camera.iso} />
                     <MetadataField label="Exposure Time" value={metadata.imageInfo.camera.exposureTime} />
+                    <MetadataField label="White Balance" value={metadata.imageInfo.camera.whiteBalance || "N/A"} />
+                    <MetadataField label="Flash" value={metadata.imageInfo.camera.flash || "N/A"} />
+                    <MetadataField label="Metering Mode" value={metadata.imageInfo.camera.meteringMode || "N/A"} />
                   </div>
                 </div>
               )}
@@ -719,6 +1067,8 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
                   <MetadataField label="Date Taken" value={metadata.imageInfo.dateTaken} />
                   <MetadataField label="Date Modified" value={metadata.imageInfo.dateModified} />
                   <MetadataField label="GPS Coordinates" value={metadata.imageInfo.gpsCoordinates} />
+                  <MetadataField label="Altitude" value={metadata.imageInfo.altitude || "N/A"} />
+                  <MetadataField label="Direction" value={metadata.imageInfo.direction || "N/A"} />
                 </div>
               </div>
 
@@ -730,7 +1080,25 @@ export function MetadataDialog({ open, onOpenChange, recognitionResult, selected
                   <MetadataField label="Recognition Version" value={metadata.recognitionInfo.version} />
                   <MetadataField label="Recognition Date" value={metadata.recognitionInfo.date} />
                   <MetadataField label="Recognition Confidence" value={metadata.recognitionInfo.confidence} />
+                  <MetadataField label="Processing Time" value={metadata.recognitionInfo.processingTime} />
+                  <MetadataField label="API Provider" value={metadata.recognitionInfo.apiProvider} />
                 </div>
+                
+                {metadata.recognitionInfo.landmarks && metadata.recognitionInfo.landmarks.length > 0 && (
+                  <div className="mt-2">
+                    <span className="text-xs font-medium">Recognized Landmarks</span>
+                    <div className="space-y-1 mt-1">
+                      {metadata.recognitionInfo.landmarks.map((landmark, index) => (
+                        <div key={index} className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-md flex justify-between">
+                          <span className="text-xs">{landmark.name}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {(landmark.confidence * 100).toFixed(1)}%
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Raw Data */}
@@ -772,7 +1140,8 @@ function extractMetadata(file, recognitionResult, enrichedData) {
     coordinates: "N/A",
     accuracy: "Low",
     buildingType: "N/A",
-    materialType: "N/A"
+    materialType: "N/A",
+    placeId: "N/A"
   }
   
   const defaultBusinessInfo = {
@@ -788,7 +1157,8 @@ function extractMetadata(file, recognitionResult, enrichedData) {
     established: "N/A",
     amenities: [],
     services: [],
-    accessibility: []
+    accessibility: [],
+    popularTimes: null
   }
   
   const defaultGeoData = {
@@ -797,7 +1167,9 @@ function extractMetadata(file, recognitionResult, enrichedData) {
     locality: "N/A",
     postalCode: "N/A",
     streetName: "N/A",
-    streetNumber: "N/A"
+    streetNumber: "N/A",
+    region: "N/A",
+    subLocality: "N/A"
   }
   
   const defaultEnvironmentalData = {
@@ -815,7 +1187,9 @@ function extractMetadata(file, recognitionResult, enrichedData) {
     safetyScore: "N/A",
     crimeRate: "N/A",
     emergencyServices: [],
-    significantColors: []
+    significantColors: [],
+    temperature: "N/A",
+    humidity: "N/A"
   }
 
   // Extract file information
@@ -828,6 +1202,12 @@ function extractMetadata(file, recognitionResult, enrichedData) {
     dateModified: file.lastModified ? new Date(file.lastModified).toLocaleString() : "Unknown",
     gpsCoordinates: recognitionResult.location ? 
       `${recognitionResult.location.latitude}, ${recognitionResult.location.longitude}` : "N/A",
+    colorProfile: recognitionResult.colorProfile || "sRGB",
+    bitDepth: recognitionResult.bitDepth || "24-bit",
+    compression: recognitionResult.compression || "N/A",
+    resolution: recognitionResult.resolution || "N/A",
+    altitude: recognitionResult.altitude ? `${recognitionResult.altitude}m` : "N/A",
+    direction: recognitionResult.direction ? `${recognitionResult.direction}°` : "N/A"
   }
   
   // Extract camera information if available
@@ -838,7 +1218,14 @@ function extractMetadata(file, recognitionResult, enrichedData) {
     focalLength: recognitionResult.camera.focalLength || "Unknown",
     aperture: recognitionResult.camera.aperture || "Unknown",
     iso: recognitionResult.camera.iso || "Unknown",
-    exposureTime: recognitionResult.camera.exposureTime || "Unknown"
+    exposureTime: recognitionResult.camera.exposureTime || "Unknown",
+    whiteBalance: recognitionResult.camera.whiteBalance || "Auto",
+    flash: recognitionResult.camera.flash || "No Flash",
+    meteringMode: recognitionResult.camera.meteringMode || "Pattern",
+    exposureMode: recognitionResult.camera.exposureMode || "Auto",
+    exposureProgram: recognitionResult.camera.exposureProgram || "Normal",
+    digitalZoom: recognitionResult.camera.digitalZoom || "None",
+    software: recognitionResult.camera.software || "N/A"
   } : null
   
   // Extract location information
@@ -851,7 +1238,10 @@ function extractMetadata(file, recognitionResult, enrichedData) {
       `${recognitionResult.location.latitude}, ${recognitionResult.location.longitude}` : defaultLocationInfo.coordinates,
     accuracy: `${recognitionResult.confidence ? (recognitionResult.confidence * 100).toFixed(1) + '%' : defaultLocationInfo.accuracy}`,
     buildingType: recognitionResult.buildingType || defaultLocationInfo.buildingType,
-    materialType: recognitionResult.materialType || defaultLocationInfo.materialType
+    materialType: recognitionResult.materialType || defaultLocationInfo.materialType,
+    placeId: recognitionResult.placeId || defaultLocationInfo.placeId,
+    lastVisited: recognitionResult.lastVisited ? new Date(recognitionResult.lastVisited).toLocaleString() : "N/A",
+    popularity: recognitionResult.popularity || "N/A"
   }
   
   // Extract business information
@@ -888,7 +1278,12 @@ function extractMetadata(file, recognitionResult, enrichedData) {
     locality: recognitionResult.address?.locality || defaultGeoData.locality,
     postalCode: recognitionResult.address?.postalCode || defaultGeoData.postalCode,
     streetName: recognitionResult.address?.streetName || defaultGeoData.streetName,
-    streetNumber: recognitionResult.address?.streetNumber || defaultGeoData.streetNumber
+    streetNumber: recognitionResult.address?.streetNumber || defaultGeoData.streetNumber,
+    region: recognitionResult.address?.region || defaultGeoData.region,
+    subLocality: recognitionResult.address?.subLocality || defaultGeoData.subLocality,
+    formattedAddress: recognitionResult.formattedAddress || recognitionResult.address?.formattedAddress || "N/A",
+    timezone: recognitionResult.address?.timezone || "N/A",
+    elevation: recognitionResult.address?.elevation ? `${recognitionResult.address.elevation}m` : "N/A"
   }
   
   // Extract environmental data
@@ -913,7 +1308,15 @@ function extractMetadata(file, recognitionResult, enrichedData) {
       (enrichedData?.additionalInfo?.safetyData?.crimeRate || defaultEnvironmentalData.crimeRate),
     emergencyServices: recognitionResult.emergencyServices || 
       (enrichedData?.additionalInfo?.safetyData?.emergencyServices || defaultEnvironmentalData.emergencyServices),
-    significantColors: recognitionResult.significantColors || defaultEnvironmentalData.significantColors
+    significantColors: recognitionResult.significantColors || defaultEnvironmentalData.significantColors,
+    temperature: recognitionResult.temperature || 
+      (enrichedData?.additionalInfo?.environmentalData?.temperature || defaultEnvironmentalData.temperature),
+    humidity: recognitionResult.humidity || 
+      (enrichedData?.additionalInfo?.environmentalData?.humidity || defaultEnvironmentalData.humidity),
+    sunsetTime: recognitionResult.sunsetTime || "N/A",
+    sunriseTime: recognitionResult.sunriseTime || "N/A",
+    lightConditions: recognitionResult.lightConditions || "N/A",
+    seasonalFeatures: recognitionResult.seasonalFeatures || []
   }
   
   // Combine all metadata
@@ -933,9 +1336,25 @@ function extractMetadata(file, recognitionResult, enrichedData) {
       version: "2.5.0",
       date: new Date().toLocaleString(),
       confidence: recognitionResult.confidence ? 
-        (recognitionResult.confidence * 100).toFixed(1) + '%' : "Unknown"
+        (recognitionResult.confidence * 100).toFixed(1) + '%' : "Unknown",
+      processingTime: recognitionResult.processingTime || "N/A",
+      apiProvider: recognitionResult.apiProvider || "Internal API",
+      landmarks: recognitionResult.landmarks || []
     },
-    rawData: recognitionResult
+    culturalInfo: {
+      localLanguages: recognitionResult.localLanguages || [],
+      culturalSignificance: recognitionResult.culturalSignificance || "N/A",
+      localCuisine: recognitionResult.localCuisine || [],
+      events: recognitionResult.events || []
+    },
+    travelInfo: {
+      touristRating: recognitionResult.touristRating || "N/A",
+      bestTimeToVisit: recognitionResult.bestTimeToVisit || "N/A",
+      travelTips: recognitionResult.travelTips || [],
+      visaRequirements: recognitionResult.visaRequirements || "N/A"
+    },
+    rawData: recognitionResult,
+    enrichedData: enrichedData || null
   }
 }
 

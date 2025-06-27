@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Navigation } from "lucide-react"
+import { ModeToggle } from "@/components/mode-toggle"
 
 interface HeaderProps {
   userName: string
@@ -9,7 +10,7 @@ interface HeaderProps {
 
 export function Header({ userName, onLogout }: HeaderProps) {
   return (
-    <header className="bg-white shadow">
+    <header className="bg-white dark:bg-slate-900 shadow">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
@@ -23,7 +24,8 @@ export function Header({ userName, onLogout }: HeaderProps) {
             </Link>
           </div>
           <div className="flex items-center space-x-4">
-            <span className="text-gray-700">Welcome, {userName}</span>
+            <span className="text-gray-700 dark:text-gray-300">Welcome, {userName}</span>
+            <ModeToggle />
             <Button onClick={onLogout} variant="outline">
               Logout
             </Button>

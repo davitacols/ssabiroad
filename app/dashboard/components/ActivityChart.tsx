@@ -1,137 +1,98 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Info, Loader2 } from "lucide-react";
+"use client"
 
-interface ActivityChartProps {
-  data: Array<{ day: string; detections: number }>;
-  isLoading?: boolean;
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Activity } from "lucide-react"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts'
+
+interface ActivityData {
+  day: string
+  detections: number
 }
 
-export default function ActivityChart({ data, isLoading = false }: ActivityChartProps) {
-  const [timeRange, setTimeRange] = useState<'day' | 'week' | 'month'>('day');
-  const [isMobile, setIsMobile] = useState(false);
+interface ActivityChartProps {
+  data: ActivityData[]
+  loading?: boolean
+}
 
-  // Handle responsive layout detection
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  const ranges = {
-    day: { label: 'Day', color: 'from-blue-500 via-purple-500 to-pink-500' },
-    week: { label: 'Week', color: 'from-green-500 via-teal-500 to-blue-500' },
-    month: { label: 'Month', color: 'from-orange-500 via-red-500 to-purple-500' }
-  };
-
-  if (isLoading) {
+export function ActivityChart({ data, loading = false }: ActivityChartProps) {
+  if (loading || data.length === 0) {
     return (
-      <Card className="bg-gradient-to-br from-gray-100 to-gray-200 shadow-lg rounded-xl">
-        <CardContent className="h-[300px] md:h-[400px] flex items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-            <p className="text-gray-500">Loading activity data...</p>
+      <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+            <Activity className="h-5 w-5 text-blue-600" />
+            Weekly Activity
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-64 flex items-center justify-center">
+            <div className="animate-pulse text-slate-400">Loading activity data...</div>
           </div>
         </CardContent>
       </Card>
-    );
+    )
   }
 
+  const maxValue = Math.max(...data.map(d => d.detections))
+  
   return (
-    <Card className={`bg-gradient-to-br ${ranges[timeRange].color} text-white shadow-lg rounded-xl transition-all duration-300`}>
-      <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 md:p-6 gap-4 md:gap-2">
-        <div className="flex items-center gap-2">
-          <CardTitle className="text-lg md:text-xl font-bold">Detection Activity</CardTitle>
-          <div className="group relative">
-            <Info className="w-4 h-4 cursor-help opacity-70 hover:opacity-100 transition-opacity" />
-            <div className="invisible group-hover:visible absolute left-0 md:left-auto md:right-0 top-6 w-64 p-2 bg-white text-gray-800 text-sm rounded-lg shadow-lg z-10">
-              This chart shows the number of detections over time. Toggle between different time ranges to analyze trends.
-            </div>
+    <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border-0 shadow-lg">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+          <Activity className="h-5 w-5 text-blue-600" />
+          Weekly Activity
+          <div className="ml-auto text-sm font-normal text-slate-500">
+            {data.reduce((sum, d) => sum + d.detections, 0)} total detections
           </div>
-        </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          {Object.entries(ranges).map(([key, value]) => (
-            <Button
-              key={key}
-              variant={timeRange === key ? "secondary" : "ghost"}
-              size={isMobile ? "default" : "sm"}
-              onClick={() => setTimeRange(key as 'day' | 'week' | 'month')}
-              className={`
-                flex-1 md:flex-none
-                text-white border-white/20 hover:bg-white/20 
-                ${timeRange === key ? 'bg-white/30' : ''}
-                transition-all duration-200
-                text-sm md:text-base
-              `}
-            >
-              {value.label}
-            </Button>
-          ))}
-        </div>
+        </CardTitle>
       </CardHeader>
-      <CardContent className="p-2 md:p-6">
-        <div className="h-[250px] md:h-[300px]">
+      <CardContent>
+        <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart 
-              data={data}
-              margin={{
-                top: 5,
-                right: isMobile ? 10 : 20,
-                left: isMobile ? -20 : 0,
-                bottom: 5,
-              }}
-            >
-              <CartesianGrid 
-                strokeDasharray="3 3" 
-                stroke="rgba(255, 255, 255, 0.1)" 
-                vertical={false}
-              />
+            <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorDetections" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
               <XAxis 
                 dataKey="day" 
-                stroke="rgba(255, 255, 255, 0.8)"
-                tickMargin={8}
-                tick={{ fontSize: isMobile ? 10 : 12 }}
-                interval={isMobile ? 1 : 0}
+                className="text-xs text-slate-600 dark:text-slate-400"
+                axisLine={false}
+                tickLine={false}
               />
               <YAxis 
-                stroke="rgba(255, 255, 255, 0.8)"
-                tickMargin={8}
-                tick={{ fontSize: isMobile ? 10 : 12 }}
-                width={isMobile ? 30 : 40}
+                className="text-xs text-slate-600 dark:text-slate-400"
+                axisLine={false}
+                tickLine={false}
+                domain={[0, maxValue + 2]}
               />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "rgba(255, 255, 255, 0.95)",
-                  borderRadius: "8px",
-                  border: "none",
-                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                  padding: "12px",
-                  fontSize: isMobile ? "12px" : "14px",
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                  border: 'none', 
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                  backdropFilter: 'blur(10px)'
                 }}
-                labelStyle={{ color: "#374151", fontWeight: "bold" }}
-                itemStyle={{ color: "#374151" }}
-                formatter={(value: number) => [`${value} detections`, "Activity"]}
-                wrapperStyle={{ outline: 'none' }}
+                labelStyle={{ color: '#374151', fontWeight: '600' }}
+                formatter={(value: number) => [value, 'Detections']}
               />
-              <Line
+              <Area
                 type="monotone"
                 dataKey="detections"
-                stroke="#ffffff"
-                strokeWidth={isMobile ? 2 : 3}
-                dot={{ fill: "#ffffff", r: isMobile ? 3 : 4, strokeWidth: 2 }}
-                activeDot={{ r: isMobile ? 6 : 8, fill: "#ffffff" }}
-                animationDuration={500}
+                stroke="#3b82f6"
+                strokeWidth={3}
+                fill="url(#colorDetections)"
+                dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2, fill: '#ffffff' }}
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }
