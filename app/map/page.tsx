@@ -23,10 +23,16 @@ function MapsContent() {
   const searchParams = useSearchParams();
   const [fromCoords, setFromCoords] = useState<Coordinates | null>(null);
   const [toCoords, setToCoords] = useState<Coordinates | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   useEffect(() => {
     const from = searchParams.get("from");
     const to = searchParams.get("to");
+    const query = searchParams.get("query");
+
+    if (query) {
+      setSearchQuery(decodeURIComponent(query));
+    }
 
     if (from && to) {
       const [fromLat, fromLng] = from.split(",").map(Number);
@@ -37,11 +43,27 @@ function MapsContent() {
     }
   }, [searchParams]);
 
+  const openInGoogleMaps = () => {
+    if (searchQuery) {
+      const encodedQuery = encodeURIComponent(searchQuery);
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodedQuery}`, "_blank");
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-3xl">
+      {searchQuery && (
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold mb-2">Search Results for: {searchQuery}</h1>
+          <Button onClick={openInGoogleMaps} className="mb-4">
+            <Navigation className="w-4 h-4 mr-2" />
+            Open in Google Maps
+          </Button>
+        </div>
+      )}
       <Card className="bg-white">
         <div className="bg-gray-50 h-[300px] flex items-center justify-center text-gray-500">
-          Map visualization would appear here
+          {searchQuery ? `Map showing results for: ${searchQuery}` : "Map visualization would appear here"}
         </div>
 
         <div className="p-6 space-y-6">

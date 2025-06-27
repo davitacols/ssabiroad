@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Camera, Navigation, MapPin, Upload, Play, Star, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 
 export default function HomePage() {
   const [searchValue, setSearchValue] = useState("")
+  const router = useRouter()
 
   const features = [
     {
@@ -39,7 +41,7 @@ export default function HomePage() {
   const handleSearch = (place: string) => {
     if (place.trim()) {
       const encodedPlace = encodeURIComponent(place)
-      window.open(`https://www.google.com/maps/search/?api=1&query=${encodedPlace}`, "_blank")
+      router.push(`/map?query=${encodedPlace}`)
     }
   }
 
