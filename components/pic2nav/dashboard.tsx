@@ -24,7 +24,12 @@ import { RecentLocationsPanel } from "@/components/pic2nav/recent-locations"
 import { SearchPanel } from "@/components/pic2nav/search-panel"
 import { BookmarksPanel } from "@/components/pic2nav/bookmarks-panel"
 import { Badge } from "@/components/ui/badge"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
 
 export function Pic2NavDashboard() {
   const [activeView, setActiveView] = useState("upload")
@@ -33,6 +38,8 @@ export function Pic2NavDashboard() {
   const [recentLocations, setRecentLocations] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [showAnalytics, setShowAnalytics] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   useEffect(() => {
     // Fetch global stats and recent locations
@@ -140,11 +147,21 @@ export function Pic2NavDashboard() {
           </div>
           
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border-white/20 dark:border-slate-700/50 shadow-xl hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-300">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border-white/20 dark:border-slate-700/50 shadow-xl hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-300"
+              onClick={() => setShowAnalytics(true)}
+            >
               <BarChart3 className="h-4 w-4 mr-2" />
               Analytics
             </Button>
-            <Button variant="outline" size="sm" className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border-white/20 dark:border-slate-700/50 shadow-xl hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-300">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border-white/20 dark:border-slate-700/50 shadow-xl hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-300"
+              onClick={() => setShowSettings(true)}
+            >
               <Settings className="h-4 w-4 mr-2" />
               Settings
             </Button>
@@ -339,6 +356,169 @@ export function Pic2NavDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Analytics Modal */}
+        <Dialog open={showAnalytics} onOpenChange={setShowAnalytics}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Analytics Dashboard
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm">Weekly Activity</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <LineChart data={[
+                        { day: 'Mon', detections: 12 },
+                        { day: 'Tue', detections: 19 },
+                        { day: 'Wed', detections: 8 },
+                        { day: 'Thu', detections: 25 },
+                        { day: 'Fri', detections: 22 },
+                        { day: 'Sat', detections: 30 },
+                        { day: 'Sun', detections: 18 }
+                      ]}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="day" />
+                        <YAxis />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="detections" stroke="#8884d8" strokeWidth={2} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm">Detection Types</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Buildings', value: 45, color: '#8884d8' },
+                            { name: 'Landmarks', value: 30, color: '#82ca9d' },
+                            { name: 'Streets', value: 25, color: '#ffc658' }
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          dataKey="value"
+                        >
+                          {[
+                            { name: 'Buildings', value: 45, color: '#8884d8' },
+                            { name: 'Landmarks', value: 30, color: '#82ca9d' },
+                            { name: 'Streets', value: 25, color: '#ffc658' }
+                          ].map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Monthly Performance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={[
+                      { month: 'Jan', detections: 65, accuracy: 85 },
+                      { month: 'Feb', detections: 78, accuracy: 88 },
+                      { month: 'Mar', detections: 90, accuracy: 92 },
+                      { month: 'Apr', detections: 85, accuracy: 90 },
+                      { month: 'May', detections: 95, accuracy: 94 },
+                      { month: 'Jun', detections: 110, accuracy: 96 }
+                    ]}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="detections" fill="#8884d8" />
+                      <Bar dataKey="accuracy" fill="#82ca9d" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Settings Modal */}
+        <Dialog open={showSettings} onOpenChange={setShowSettings}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Settings
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Detection Preferences</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="auto-save">Auto-save detections</Label>
+                    <Switch id="auto-save" defaultChecked />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="notifications">Push notifications</Label>
+                    <Switch id="notifications" defaultChecked />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="location-sharing">Share location data</Label>
+                    <Switch id="location-sharing" />
+                  </div>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">API Configuration</h3>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="confidence-threshold">Confidence Threshold (%)</Label>
+                    <Input id="confidence-threshold" type="number" defaultValue="85" min="0" max="100" />
+                  </div>
+                  <div>
+                    <Label htmlFor="max-results">Max Results per Query</Label>
+                    <Input id="max-results" type="number" defaultValue="10" min="1" max="50" />
+                  </div>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Privacy & Data</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="analytics">Usage analytics</Label>
+                    <Switch id="analytics" defaultChecked />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="data-retention">Data retention (30 days)</Label>
+                    <Switch id="data-retention" defaultChecked />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setShowSettings(false)}>Cancel</Button>
+                <Button onClick={() => setShowSettings(false)}>Save Changes</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

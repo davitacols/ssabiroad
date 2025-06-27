@@ -38,9 +38,10 @@ export default function HomePage() {
     { step: 3, title: "Navigate", description: "Get directions to your destination" }
   ]
 
-  const handleSearch = (place: string) => {
-    if (place.trim()) {
-      const encodedPlace = encodeURIComponent(place)
+  const handleSearch = (place: string | any) => {
+    const searchTerm = typeof place === 'string' ? place : (place?.formatted_address || place?.name || '')
+    if (searchTerm.trim()) {
+      const encodedPlace = encodeURIComponent(searchTerm)
       router.push(`/map?query=${encodedPlace}`)
     }
   }
@@ -72,7 +73,7 @@ export default function HomePage() {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-                <Button size="lg" className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700">
+                <Button size="lg" className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700" onClick={() => router.push('/camera')}>
                   <Upload className="mr-2 h-5 w-5" />
                   Upload Photo
                 </Button>
@@ -90,21 +91,34 @@ export default function HomePage() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="max-w-2xl mx-auto"
             >
-              <div className="relative">
-                <PlacesAutocomplete
-                  placeholder="Search for a place or upload a photo..."
-                  className="w-full h-14 pl-12 pr-4 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-lg"
-                  onPlaceSelect={handleSearch}
-                  renderInput={(props) => (
-                    <input
-                      {...props}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSearch(props.value)
-                      }}
-                    />
-                  )}
-                />
-                <Camera className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200/50 dark:border-slate-700/50 p-2">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-xl">
+                    <MapPin className="h-5 w-5 text-white" />
+                  </div>
+                  <PlacesAutocomplete
+                    placeholder="Where do you want to go?"
+                    className="flex-1 h-10 border-0 bg-transparent text-lg placeholder:text-slate-400 focus:ring-0 focus:outline-none"
+                    onPlaceSelect={handleSearch}
+                    onValueChange={setSearchValue}
+                    renderInput={(props) => (
+                      <input
+                        {...props}
+                        className="flex-1 h-10 border-0 bg-transparent text-lg placeholder:text-slate-400 focus:ring-0 focus:outline-none"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSearch(props.value)
+                        }}
+                      />
+                    )}
+                  />
+                  <Button 
+                    size="sm" 
+                    className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 rounded-xl px-6"
+                    onClick={() => handleSearch(searchValue)}
+                  >
+                    Search
+                  </Button>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -191,7 +205,7 @@ export default function HomePage() {
             Join thousands of users who navigate smarter with AI-powered photo recognition.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700">
+            <Button size="lg" className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700" onClick={() => router.push('/camera')}>
               <Upload className="mr-2 h-5 w-5" />
               Get Started Free
             </Button>

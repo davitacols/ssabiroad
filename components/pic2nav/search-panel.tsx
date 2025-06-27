@@ -4,7 +4,9 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LocationCard } from "./location-card";
-import { Search, MapPin, History } from "lucide-react";
+import { PlacesAutocomplete } from "@/components/places-autocomplete";
+import { Search, MapPin, History, Navigation } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface SearchPanelProps {
   onLocationSelect?: (location: any) => void;
@@ -14,6 +16,7 @@ export function SearchPanel({ onLocationSelect }: SearchPanelProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const router = useRouter();
   
   // Mock search history
   const searchHistory = [
@@ -23,36 +26,54 @@ export function SearchPanel({ onLocationSelect }: SearchPanelProps) {
     "Brooklyn Bridge"
   ];
   
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
+  const handleSearch = async (query: string) => {
+    if (!query.trim()) return;
     
     setIsSearching(true);
     
-    // Mock search results - in a real app, this would be an API call
-    setTimeout(() => {
-      const mockResults = [
-        {
-          id: "search1",
-          name: `${searchQuery} Building`,
-          address: "123 Main St, New York, NY",
-          category: "Building",
-          createdAt: new Date().toISOString(),
-          mapUrl: `https://maps.google.com/?q=${searchQuery}`
-        },
-        {
-          id: "search2",
-          name: `${searchQuery} Park`,
-          address: "456 Park Ave, New York, NY",
-          category: "Park",
-          createdAt: new Date().toISOString(),
-          mapUrl: `https://maps.google.com/?q=${searchQuery}+Park`
-        }
-      ];
-      
-      setSearchResults(mockResults);
+    try {
+      const response = await fetch(`/api/location-search?q=${encodeURIComponent(query)}`);
+      if (response.ok) {
+        const results = await response.json();
+        setSearchResults(results.slice(0, 5));
+      } else {
+        // Fallback to mock results
+        const mockResults = [
+          {
+            id: "search1",
+            name: `${query}`,
+            address: "Search result location",
+            category: "Place",
+            createdAt: new Date().toISOString(),
+            mapUrl: `https://maps.google.com/?q=${query}`
+          }
+        ];
+        setSearchResults(mockResults);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+    } finally {
       setIsSearching(false);
-    }, 1000);
+    }
+  };
+  
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSearch(searchQuery);
+  };
+  
+  const handlePlaceSelect = (place: any) => {
+    const searchTerm = typeof place === 'string' ? place : (place?.formatted_address || place?.name || '');
+    if (searchTerm) {
+      setSearchQuery(searchTerm);
+      handleSearch(searchTerm);
+    }
+  };
+  
+  const navigateToMaps = (location: any) => {
+    const query = location.name || location.address || searchQuery;
+    router.push(`/map?query=${encodeURIComponent(query)}`);
   };
   
   const handleLocationClick = (location: any) => {
@@ -63,19 +84,21 @@ export function SearchPanel({ onLocationSelect }: SearchPanelProps) {
   
   return (
     <div className="space-y-6">
-      <form onSubmit={handleSearch} className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search locations..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      <form onSubmit={handleFormSubmit} className="space-y-4">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <PlacesAutocomplete
+              placeholder="Search for places, addresses, landmarks..."
+              className="pl-8"
+              onPlaceSelect={handlePlaceSelect}
+              onValueChange={setSearchQuery}
+            />
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+          </div>
+          <Button type="submit" disabled={isSearching}>
+            {isSearching ? "Searching..." : "Search"}
+          </Button>
         </div>
-        <Button type="submit" disabled={isSearching}>
-          {isSearching ? "Searching..." : "Search"}
-        </Button>
       </form>
       
       {searchResults.length > 0 ? (
@@ -83,8 +106,30 @@ export function SearchPanel({ onLocationSelect }: SearchPanelProps) {
           <h3 className="text-sm font-medium">Search Results</h3>
           <div className="space-y-3">
             {searchResults.map(location => (
-              <div key={location.id} onClick={() => handleLocationClick(location)}>
-                <LocationCard location={location} />
+              <div key={location.id} className="group">
+                <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer" onClick={() => handleLocationClick(location)}>
+                  <div className="flex-1">
+                    <h4 className="font-medium">{location.name}</h4>
+                    <p className="text-sm text-muted-foreground">{location.address}</p>
+                    {location.category && (
+                      <span className="inline-block px-2 py-1 text-xs bg-primary/10 text-primary rounded-full mt-1">
+                        {location.category}
+                      </span>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigateToMaps(location);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Navigation className="h-4 w-4 mr-1" />
+                    Navigate
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -102,7 +147,10 @@ export function SearchPanel({ onLocationSelect }: SearchPanelProps) {
                 variant="outline" 
                 size="sm" 
                 className="flex items-center"
-                onClick={() => setSearchQuery(term)}
+                onClick={() => {
+                  setSearchQuery(term);
+                  handleSearch(term);
+                }}
               >
                 <MapPin className="h-3 w-3 mr-1" />
                 {term}

@@ -1,5 +1,5 @@
-export * from "./camera-recognition"
-export * from "./camera-recognition-simple"
+export { CameraRecognition } from "./camera-recognition"
+export { CameraRecognition as CameraRecognitionSimple } from "./camera-recognition-simple"
 export * from "./location-details"
 export * from "./metadata-dialog"
 export * from "./map-view"

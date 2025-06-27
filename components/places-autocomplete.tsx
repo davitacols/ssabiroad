@@ -11,6 +11,7 @@ interface PlacesAutocompleteProps {
   placeholder: string
   className?: string
   onPlaceSelect?: (place: any) => void
+  onValueChange?: (value: string) => void
   renderInput?: (props: { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void }) => React.ReactNode
 }
 
@@ -21,7 +22,7 @@ declare global {
   }
 }
 
-export const PlacesAutocomplete = ({ placeholder, className, onPlaceSelect, renderInput }: PlacesAutocompleteProps) => {
+export const PlacesAutocomplete = ({ placeholder, className, onPlaceSelect, onValueChange, renderInput }: PlacesAutocompleteProps) => {
   const [inputValue, setInputValue] = useState("")
   const autoCompleteRef = useRef<HTMLInputElement>(null)
   const [predictions, setPredictions] = useState<any[]>([])
@@ -168,6 +169,7 @@ export const PlacesAutocomplete = ({ placeholder, className, onPlaceSelect, rend
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setInputValue(value)
+    onValueChange?.(value)
 
     if ((apiError || !autocompleteService) && value.length > 0) {
       // Use fallback predictions when API has errors
@@ -263,7 +265,7 @@ export const PlacesAutocomplete = ({ placeholder, className, onPlaceSelect, rend
   }, [])
 
   return (
-    <div className="relative w-full" ref={autoCompleteRef}>
+    <div className="relative w-full z-[10000]" ref={autoCompleteRef}>
       <div className="relative">
         {renderInput ? (
           renderInput({
@@ -295,7 +297,7 @@ export const PlacesAutocomplete = ({ placeholder, className, onPlaceSelect, rend
       </div>
 
       {showPredictions && predictions.length > 0 && (
-        <div className="absolute z-[9999] mt-1 w-full bg-background/95 backdrop-blur-sm border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-[10001] mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-auto">
           {apiError === "billing_not_enabled" && (
             <div className="px-3 py-2 text-xs text-amber-500 bg-amber-50/30 dark:bg-amber-950/30 border-b border-border">
               <div className="flex items-center">
