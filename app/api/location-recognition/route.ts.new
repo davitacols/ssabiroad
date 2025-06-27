@@ -1,0 +1,284 @@
+import { type NextRequest, NextResponse } from "next/server"
+import * as vision from "@google-cloud/vision"
+import axios from "axios"
+import * as exifParser from "exif-parser"
+import NodeCache from "node-cache"
+import prisma from "@/lib/db"
+import { Worker } from "worker_threads"
+import { createHash } from "crypto"
+
+// Import new recognition modules
+import { detectArchitecturalStyle } from "./architectural-recognition"
+import { detectHistoricalLandmark } from "./historical-recognition"
+import { detectBusinessSignage } from "./business-recognition"
+
+// Cache configuration with improved settings
+const cache = new NodeCache({
+  stdTTL: 86400, // 24 hour cache for better performance
+  checkperiod: 600, // Check for expired keys every 10 minutes
+  useClones: false, // Disable cloning for better performance with large objects
+  maxKeys: 1000, // Limit cache size to prevent memory issues
+})
+
+// Import environment utility
+import { getEnv } from "../utils/env";
+
+// Basic interfaces
+interface Location {
+  latitude: number
+  longitude: number
+}
+
+interface LocationRecognitionResponse {
+  success: boolean
+  type: string
+  name?: string
+  address?: string
+  location?: Location
+  description?: string
+  confidence?: number
+  category?: string
+  error?: string
+  mapUrl?: string
+  id?: string
+  formattedAddress?: string
+  placeId?: string
+  addressComponents?: any[]
+  photos?: string[]
+  rating?: number
+  openingHours?: any
+  website?: string
+  phoneNumber?: string
+  priceLevel?: number
+  buildingType?: string
+  historicalInfo?: string
+  materialType?: string
+  architecturalStyle?: string
+  yearBuilt?: string
+  culturalSignificance?: string
+  amenities?: string[]
+  accessibility?: string[]
+  geoData?: {
+    country?: string
+    countryCode?: string
+    administrativeArea?: string
+    locality?: string
+    subLocality?: string
+    postalCode?: string
+    streetName?: string
+    streetNumber?: string
+    formattedAddress?: string
+    timezone?: string
+    elevation?: number
+    osmSource?: boolean
+  }
+  nearbyPlaces?: {
+    name: string
+    type: string
+    distance: number
+    location: Location
+  }[]
+  weatherConditions?: string
+  airQuality?: string
+  urbanDensity?: string
+  vegetationDensity?: string
+  crowdDensity?: string
+  timeOfDay?: string
+  significantColors?: string[]
+  waterProximity?: string
+  transportationAccess?: string[]
+  safetyScore?: number
+  noiseLevel?: string
+  specialEvents?: string
+  // Enhanced data fields
+  propertyRecords?: {
+    parcelId?: string
+    ownerName?: string
+    lastSaleDate?: string
+    lastSalePrice?: string
+    assessedValue?: string
+    taxInfo?: string
+    lotSize?: string
+    yearBuilt?: string
+    zoning?: string
+  }
+  buildingPermits?: {
+    permitId: string
+    type: string
+    status: string
+    issueDate: string
+    description: string
+  }[]
+  historicalDesignation?: string
+  constructionDetails?: {
+    foundation?: string
+    roofType?: string
+    exteriorWalls?: string
+    stories?: number
+    totalArea?: string
+  }
+  energyEfficiency?: string
+  floodZone?: string
+  seismicRisk?: string
+  publicTransitAccess?: {
+    type: string
+    name: string
+    distance: number
+    schedule?: string
+  }[]
+  walkScore?: number
+  bikeScore?: number
+  schoolDistrict?: string
+  nearbySchools?: {
+    name: string
+    type: string
+    rating?: number
+    distance: number
+  }[]
+  crimeStat?: {
+    level: string
+    details?: string
+  }
+  demographicData?: {
+    population?: number
+    medianAge?: number
+    medianIncome?: string
+    educationLevel?: string
+  }
+  businessDetails?: {
+    type?: string
+    established?: string
+    hours?: string
+    services?: string[]
+    products?: string[]
+    reviews?: {
+      rating: number
+      count: number
+      source: string
+    }[]
+  }
+  dbError?: string
+  providedLocation?: Location
+  usingFallbackLocation?: boolean
+  processingTime?: number
+  // Enhanced business recognition fields
+  isBusinessLocation?: boolean
+  businessName?: string
+  businessAddress?: string
+  businessCategory?: string
+  businessConfidence?: number
+  extractedAddress?: string
+  osmFormattedAddress?: string
+  addressSource?: string
+  // New architectural recognition fields
+  architecturalPeriod?: string
+  architecturalFeatures?: string[]
+  architecturalDetails?: {
+    windows?: string
+    roof?: string
+    facade?: string
+    columns?: string
+    ornaments?: string
+  }
+  // New historical recognition fields
+  isHistoricalLandmark?: boolean
+  historicalPeriod?: string
+  historicalSignificance?: string
+  historicalDetails?: {
+    yearBuilt?: string
+    architect?: string
+    historicalEvents?: string[]
+    preservation?: string
+    designation?: string
+  }
+  // New business recognition fields
+  businessChain?: boolean
+  businessSignageType?: string
+  businessOperationalStatus?: string
+  enhancedBusinessDetails?: {
+    logo?: boolean
+    openStatus?: string
+    businessHours?: string
+    contactInfo?: string
+    services?: string[]
+    amenities?: string[]
+    accessibility?: string[]
+  }
+}
+
+// Database operations for locations
+class LocationDB {
+  // ... (keep existing LocationDB implementation)
+}
+
+// Helper functions
+// ... (keep existing helper functions)
+
+// Main recognition function
+async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location): Promise<LocationRecognitionResponse> {
+  // Initialize Vision client
+  let client: vision.ImageAnnotatorClient
+  try {
+    const base64Credentials = getEnv("GCLOUD_CREDENTIALS")
+    if (!base64Credentials) {
+      throw new Error("GCLOUD_CREDENTIALS environment variable is not set.")
+    }
+    const credentialsBuffer = Buffer.from(base64Credentials, "base64")
+    const credentialsJson = credentialsBuffer.toString("utf8")
+    const serviceAccount = JSON.parse(credentialsJson)
+    client = new vision.ImageAnnotatorClient({
+      credentials: {
+        client_email: serviceAccount.client_email,
+        private_key: serviceAccount.private_key,
+      },
+      projectId: serviceAccount.project_id,
+    })
+  } catch (error) {
+    console.error("Failed to initialize Vision client:", error)
+    throw new Error("Vision API initialization failed")
+  }
+
+  // Run all recognition methods in parallel
+  const [
+    mainResult,
+    architecturalResult,
+    historicalResult,
+    businessResult
+  ] = await Promise.all([
+    recognizeLocationMain(imageBuffer, currentLocation),
+    detectArchitecturalStyle(client, imageBuffer),
+    detectHistoricalLandmark(client, imageBuffer, currentLocation),
+    detectBusinessSignage(client, imageBuffer, currentLocation)
+  ])
+
+  // Merge results
+  const enhancedResult: LocationRecognitionResponse = {
+    ...mainResult,
+    architecturalStyle: architecturalResult?.style,
+    architecturalPeriod: architecturalResult?.period,
+    architecturalFeatures: architecturalResult?.features,
+    architecturalDetails: architecturalResult?.details,
+    isHistoricalLandmark: historicalResult?.isHistorical || false,
+    historicalPeriod: historicalResult?.period,
+    historicalSignificance: historicalResult?.significance,
+    historicalDetails: historicalResult?.details,
+    isBusinessLocation: businessResult?.isBusinessLocation || false,
+    businessName: businessResult?.name,
+    businessType: businessResult?.type,
+    businessChain: businessResult?.chain,
+    businessSignageType: businessResult?.signageType,
+    businessOperationalStatus: businessResult?.operationalStatus,
+    businessDetails: businessResult?.details,
+  }
+
+  return enhancedResult
+}
+
+// API route handler
+export async function POST(request: NextRequest) {
+  // ... (keep existing POST implementation)
+}
+
+export async function GET(request: NextRequest) {
+  // ... (keep existing GET implementation)
+}

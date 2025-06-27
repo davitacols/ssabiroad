@@ -44,3 +44,5 @@ sabiroad-434310-*.json
 # Ignore all JSON except package.json
 !package.json
 .qodo
+.vercel
+.env*.local

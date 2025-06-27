@@ -1,30 +1,62 @@
-// /app/api/place-details/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyC56tMVTlDcInBCHog0YqkuQ2cgH9JJuhU";
+import { NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const placeId = searchParams.get('place_id');
-  
-  if (!placeId) {
-    return NextResponse.json({ error: 'place_id parameter is required' }, { status: 400 });
-  }
-  
   try {
-    const response = await fetch(
-      `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=address_component,adr_address,business_status,formatted_address,geometry,icon,name,photo,place_id,plus_code,type,url,utc_offset,vicinity,formatted_phone_number,international_phone_number,opening_hours,website,price_level,rating,review,user_ratings_total&key=${GOOGLE_MAPS_API_KEY}`
-    );
+    const { searchParams } = new URL(request.url)
+    const placeId = searchParams.get("placeId")
     
-    const data = await response.json();
-    
-    if (data.status !== 'OK') {
-      throw new Error(`Google API error: ${data.status}`);
+    if (!placeId) {
+      return NextResponse.json({ error: "Place ID required" }, { status: 400 })
     }
+
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    if (!apiKey) {
+      return NextResponse.json({ error: "API key not configured" }, { status: 500 })
+    }
+
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=photos,rating,website,formatted_phone_number,opening_hours,reviews,price_level,business_status,types,user_ratings_total&key=${apiKey}`
+    )
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch place details")
+    }
+
+    const data = await response.json()
     
-    return NextResponse.json(data.result || {});
+    if (data.status !== "OK") {
+      throw new Error(data.error_message || "Place details not found")
+    }
+
+    const result = data.result
+    const photos = result.photos?.slice(0, 6).map((photo: any) => 
+      `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${apiKey}`
+    ) || []
+
+    const reviews = result.reviews?.slice(0, 5).map((review: any) => ({
+      author: review.author_name,
+      rating: review.rating,
+      text: review.text,
+      time: review.relative_time_description,
+    })) || []
+
+    return NextResponse.json({
+      photos,
+      rating: result.rating,
+      website: result.website,
+      phoneNumber: result.formatted_phone_number,
+      openingHours: result.opening_hours?.open_now,
+      reviews,
+      priceLevel: result.price_level,
+      businessStatus: result.business_status,
+      types: result.types,
+      userRatingsTotal: result.user_ratings_total,
+    })
   } catch (error) {
-    console.error('Error fetching place details:', error);
-    return NextResponse.json({ error: 'Failed to fetch place details' }, { status: 500 });
+    console.error("Place details error:", error)
+    return NextResponse.json(
+      { error: "Failed to fetch place details" },
+      { status: 500 }
+    )
   }
 }

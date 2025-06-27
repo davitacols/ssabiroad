@@ -4,6 +4,7 @@ import Link from "next/link"
 import * as LucideIcons from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
+import { ModeToggle } from "@/components/mode-toggle"
 
 export const AppNavbar = () => {
   const [loading, setLoading] = useState(false)
@@ -28,6 +29,7 @@ export const AppNavbar = () => {
           </span>
         </Link>
         <div className="flex items-center gap-4">
+          <ModeToggle />
           <Button
             size="sm"
             onClick={() => handleNavigation("/dashboard")}
