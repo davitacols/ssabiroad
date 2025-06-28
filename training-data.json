@@ -1,0 +1,1963 @@
+{
+  "queries": [],
+  "results": [],
+  "feedback": [
+    {
+      "query": "JANIBA GINGER LIMITED",
+      "result": {
+        "success": true,
+        "type": "web-search",
+        "name": "JANIBA GINGER LIMITED",
+        "address": "National Assembly Quarters, District, Zone A Dennis Osadebay. Apo, Abuja 900001, Federal Capital Territory, Nigeria",
+        "formattedAddress": "National Assembly Quarters, District, Zone A Dennis Osadebay. Apo, Abuja 900001, Federal Capital Territory, Nigeria",
+        "location": {
+          "latitude": 9.015351599999999,
+          "longitude": 7.4818185
+        },
+        "description": "Business found via web search: JANIBA GINGER LIMITED",
+        "confidence": 0.8,
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=9.015351599999999,7.4818185",
+        "isBusinessLocation": true,
+        "businessName": "JANIBA GINGER LIMITED",
+        "businessAddress": "National Assembly Quarters, District, Zone A Dennis Osadebay. Apo, Abuja 900001, Federal Capital Territory, Nigeria",
+        "businessCategory": "Business",
+        "businessConfidence": 0.8,
+        "processingTime": 3420,
+        "id": "temp-1751078961810",
+        "nearbyPlaces": [
+          {
+            "name": "Enterprise Bank - Abuja Central 1",
+            "type": "atm",
+            "distance": 131
+          },
+          {
+            "name": "Unity Bank - Trafford Hotel",
+            "type": "bank",
+            "distance": 210
+          },
+          {
+            "name": "Polaris Bank",
+            "type": "atm",
+            "distance": 210
+          },
+          {
+            "name": "TotalEnergies Lugbe Service Station",
+            "type": "gas station",
+            "distance": 210
+          },
+          {
+            "name": "Polaris Bank - CBD 2 ATM 2",
+            "type": "atm",
+            "distance": 210
+          },
+          {
+            "name": "Defence Health Maintenance Limited (DHML)",
+            "type": "insurance agency",
+            "distance": 465
+          },
+          {
+            "name": "LuvBeing World",
+            "type": "point of interest",
+            "distance": 490
+          },
+          {
+            "name": "Super Structures construction and realtyLtd.",
+            "type": "real estate agency",
+            "distance": 518
+          },
+          {
+            "name": "Apo Apartments",
+            "type": "bar",
+            "distance": 662
+          },
+          {
+            "name": "Abuja",
+            "type": "locality",
+            "distance": 4905
+          }
+        ],
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpe1OTiKoF2gwRYznQv74BapkdxCCVytKHkVKAQt3JdGcRqUtovb--A2fFr388dXhl1jZflN1K4dVCjiTgta_g8Og3Q7X-uB5Sbl1fvKo-et5-9tBMDx1kwPILLtinWq0tlzcEb0iSAYjjAaenV6WCzPt8kPLbsmFYJE4Ivh8cpdyOJet7bKns1RDtC0ejVqVhI14yKteMWk4bDRNnmkCPo30717dAlw5qk1tULP4onft_zZ29KkZQHAUUMItAH57m5tL2NFiZkVy_MajykYUv8YE_4YNflIqZc2jafgPjfP1M2w0joBemjbRrdH92L4_as7F-hIbpwJhtVv3mMsuOYgtkxJVzdfRQcmFc0lflCCnnyM-Hto1hTOnjUgmV_OEZeIl5PZA5nsy05Eh8jaCrXc7x0ByhLWvCpGqYR3OPKmJSOke-8Ln1LqZXGt_hFRqSMDceZJMPXoEdwNfs6z39DssBlTiJRpgUY1_aA2hsqJCIfDI2pnRFzGDF_ep-sYwwShjtKJZ0VYIZhgew5DApK4d_kr_ohKKlFpHQZyUHMLzJXbGpjeXpWfBDIbt73SVwpvooWZK7SdPA&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcESL0PmtrDxoQ-ZuBpjyzNM6X9NE5qb8neN-UKRyjXTRYUX4-bhRc5cB9e1ngiM978T6BRhXqD7sX7m-M0OQBAeDU9rqUwdQKose9PXcYJtye-cXGn25Ppe2rz47cdCaU3PqRl3dQy5b0wQg4Ol2KOdW1ZQPeqgXzquJyCu_bnOiGShfLkv38ZXGBqg5E4yIvWcRKtsmgFamtt5RJVcv65z2bD0GCJa1TxPusZYkBQWI9SOKV1TktdGx4BAm6DsyV9LJZo9RkFcBP-sOuBsw4QjKSjYFblfMU2LvHs_559gfJ96ek&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpclp2juDChX79yFQKMqc-xo0acdwGPCK6FfrqJc9d5KsEZ1wo_DF-ktBYjATkDTKCqeZnZC5UJQ4337vVOR7HSqAUM2AAY3jKj_Qssukf1wWxMMZy09lWHL_vDqndS7lTb7Xse92uYKp-JrOjR9oOLtwH4KQ8PdXCsbwT8lZyphI0dDwXW3cp1-gegEBt4Phv311pWb-g9FEaxiZrWOJEgVYIQWhooOGjdmwH7iP9Cu369HDuIhy9lTDijccWXC3ZsCm8mp70_2bQ5S_UkI5qQaVRG9fJkSkbZf6i2UrM_xhnODe8o&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpd8d6hldNTVEUtv9XMdS9ppoOMrA61ZqCxLexLwSY0H-M8JHOOgn8ysi0tBtuFzMvO5n1Mvh-H_VZt6wjf9jiVANz_rb5aWRUMH8NJWuR0mi8wGKVQei8XBzw1lzF2vNV0jJFmXb6lNpIqR6aDiNQtQVLYYAYNe_zPMaCA30ywbAX19rWJps9xw4tobAlXVElch8OiyGSyw78Xob2lCt5bySuJ3lCN7JLuzaFskRIjyvT6qy7EVRN0c4RdwQqv-EcVsIXaBVRvPPtFlf8MmKYlp0ALLGeXzEtAZPUjC_WuK7he7avw&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpeZ4gC05Ej4GpFTw5JObffSDE_mSX7T3wADRjpJUE0Y5HFPfGeLfpPuhobdhC2EfMiuKVBwoAsYer7YVX5unNU6Ly3ItaciN9aVJq9MqUm6CPYVLCtRiQPaF9q9G6rWCjN0Clp400xPUl4udeVOhv6GBG8Y5D-iLHjpo25MPwyU2kvN-E_CEkZ5nogmLhcNUdXOw7lork1RzE9O8h1zuz8pIKveioK8DnnGwYeqKhGqI8zrm4LCVNW_FiDhc3-B6sNPOuv0mr5xArAKdiZX0lDFPH3kK0Ppn-2pPFLXLuyN1hMeeMTUXdymgbSCiyML4YwV76o2fH0vHzXgoNy5m_5X0GULQtpnFzZKLLGnLuT-7Rx_vuN8EGntzLO-4txOKFiIumjYh52EQKHgxYAET1vYK1mK2_e4q75RMZFftQFc6ztEDioMTcGhuQ10k_oXFGlMaqrMv39yVpOTV48oVSmUPtVIp8HpviaelpMe0jIPv9WgRe4Xk-rRDvJBg2cJMZ77O3ZM6yPTKg7y2Kbq5ifxOMMlzQQj0GYBI1MXnMr6USldX1Fg0djN45hYYzPMdlEALcC3BejNCA&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ]
+      },
+      "isCorrect": true,
+      "timestamp": 1751079047062
+    },
+    {
+      "query": "TORTOISE",
+      "result": {
+        "success": true,
+        "type": "web-search",
+        "name": "TORTOISE",
+        "address": "3MH2+38G Petrolex, Bonabéri, Cameroon",
+        "formattedAddress": "3MH2+38G Petrolex, Bonabéri, Cameroon",
+        "location": {
+          "latitude": 4.0776879,
+          "longitude": 9.6508401
+        },
+        "description": "Business found via web search: TORTOISE",
+        "confidence": 0.8,
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=4.0776879,9.6508401",
+        "isBusinessLocation": true,
+        "businessName": "TORTOISE",
+        "businessAddress": "3MH2+38G Petrolex, Bonabéri, Cameroon",
+        "businessCategory": "Business",
+        "businessConfidence": 0.8,
+        "processingTime": 3731,
+        "id": "temp-1751079300840",
+        "nearbyPlaces": [
+          {
+            "name": "AGROCOP GROUP",
+            "type": "point of interest",
+            "distance": 0
+          },
+          {
+            "name": "NKAMBE GOLD COMPANY LTD",
+            "type": "point of interest",
+            "distance": 0
+          },
+          {
+            "name": "We Care Foundation",
+            "type": "point of interest",
+            "distance": 0
+          },
+          {
+            "name": "Marché de bagam bonaberi",
+            "type": "point of interest",
+            "distance": 0
+          },
+          {
+            "name": "Pont de bois",
+            "type": "point of interest",
+            "distance": 0
+          },
+          {
+            "name": "EtsTonga",
+            "type": "point of interest",
+            "distance": 0
+          },
+          {
+            "name": "overseas music",
+            "type": "store",
+            "distance": 2
+          },
+          {
+            "name": "Ecobank - Agence de Bonabéri",
+            "type": "bank",
+            "distance": 2
+          },
+          {
+            "name": "Billets de Mariage et accessoires 237",
+            "type": "store",
+            "distance": 3
+          },
+          {
+            "name": "Bonabéri",
+            "type": "locality",
+            "distance": 1799
+          }
+        ],
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfa2jmwgfEQSnD1FaB3-3PGpmcEhQp_59KHyh8harntgqS9xqEowPEVk_uiESIilgPvSo8UPCuWCMZ68SaTpHg7i66DZ29SH1n4Oethq9jWB2tUwqA6gQNWzzuyYIOaQxjGTosOLCKfNHd-c7EhFeQW9leDS4cdWgjppoC_mTayHRPjOLHW-86PTVChDnsEYWiXFpIX3KHrGUWo3TNTtHisTiuRpqswg-kCU5nLDCQ11L-ouM5TrjXStU2zUr0_OTsip415S-quRT54i_Bi6NYZ9qbNoS7MlmfbkE9kmbI_4d0U3Do&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpejrIsltt30w-PttZEdjimqG6FxBx83Bj9vS3a2CgjoeCKXoIZXB0wOOJ_PFJSwz2n-2E-VDthBERtZjaF2M7sYZikxvUBDhse3nTb8at5AJ8NzFx_l9rMJi-zr7o3qAwp3jGdQItTM9pC5qCoX2u_bLTNYOwNWuGCpGUVZB7-LpnElhg2hJ3DP1ozKeiYBOGDj8IASewIic2R8ETugWkf9ReqgFEXXS0PKBNYdGRbbxddLe_hdAJ8t3hn1dw8Lk5ltXdmSNHTCWvlM9u48wraRGYnmGUe10cDmlo72HA9yfcG2CnNRT2cPQUBI-wo3gWVhveamSZf6LgSHEovNouoeD_9AfEIfivwG0kr1YzCTVlJ-X3kOFDxQS9hJ0_TbYTFVcgxXkfGhheMZiIXWCTr6MzzM2z3IpjJUYqddP5PBk-8io7_d5yc66GNCcfhpKvQchmh0Yk7kvz9lyxRpO2Z9611NFPjfeTYr7x9U57KZ39W2yZxjK9mWUAg0ZZf-ZVUOqNa2aTAFE967Jk-AcKndiZ0_MufwQg_Ryxs3Pw8WbCjSPIIlmiu8OleMqIlRpo41xbGRiP_dbg&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpeIQ6DjynsXOXMpgGoIBQA3SlS_m-6SWVrPHVCViQYouCzYx5lyq7hG8AUs0O1CzXYWZSHqfbYUw92YHi8PIf_InoQ3WhbFt4gcYd-faIZsWsEUCynDdHRNWANaxMjT3spCjhgeMcauFnWry7WRjrpOSSywmbWU-5T4lMfhy8M614feiDADK0mOCNuJkcr1G-VIM4NaRJbgcLyN_SIMrjJi_frFPSUgKp14AYexbVIWa18c6ZFiltMKZzcFoCtGqo1tV2NTbTOA55JbfCrp4Wz9CI1-dvFDlsyZf0KAVMPtiAxaFOcW1TFW8s3fK9PGClbx-zfxBKKXL7HFjob4orCy98Mt7yDfuGFCNT4TBV8JpaqXu4VXZ73JMnrs7Mu6ARoN6IzbyXqC9U9zyCQ1bPFtTSyGIBKrlQ6lUpuM-Lj5B_LM5QXZV4PLeMUx1KOejRySbX2q4MdNlzIt-1BdW0mNKVQfkN395dP715g9VIEgsS_FHHwR5VeJm0ey8w_chb3lgXCtAGfVvibwbJ1julCEQdTN63zShsBgx6wBaHPepRcx9RmExhMrDscLFLYgZIYAs8sd&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfYVEXdMn7LxXpFpGRGpgrqV965BJSb8kKlm94WTQ_4o8NqE-w4nMf0y5atorePi1YRoVw41htx5K9fv0Yq4LRr9KwmpxZfqrTEsFJCXbN-dBlYOvg6Nk73R2Lk-HQ0bwvxDDJuL2QgeJA-BJXlRCEkXGIGzTwVBVE8s4TcMWsN_yxZrnEmM8UQQwywyKR99GkgXbAVfMym8HoHrupDsvdk3-DeFxesLnNtLR7LAWTxVcsGkiG07Q5X_B4sZbV6incLOHYemiwhad9T-d7oASXFAeXuLOvQUhTqezQUglZUX5_HwJI&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdcczXvDHoO9j4xA4__S_A8AkIrZ2xYYfL87VORaZH1Hj1OIHlEDLLRWwBK-jWVdI56UHv1T1vI3rNSBazIc8mvapYrcaZIK9RxasQLpmDM1-lmKZkJPTa_BTQ3OYwVElGnE0KoA9TpyzWdKl8b1FwZAnjgduvOqZAYxLRxkR2r0nIK4jENjKaCRBygPJHimOsp0Vkj52FNZzVFLus_Pr88eEA9NBNn-L_72kpf4zxKa90SHdhkj1j4eRmW3A5-1NT_4uJ_NWPMCgBcg4eEqIYofC4M0DvFy_RbjvwI6I0r4Phqieo&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcGanG6R5gAgXcPiS1mfxn08aPwvIvN5HZNu8kAYa4kvFdaegQm7AcsLor_TJy7SgwciUwd-8Z4BxVTw7i1Fo2bjIiBlzaN2RXFTuz2_-PGyxer4ozoyoWSieY-OHWBP5_esB2Os2f1ylQsLAOwP9o_P_3cHOpaIjCWwL2yX0j8879HWS9Lc44OMw3wmfUbwjMo5fhupEb9C32Qy36syEFAdFvHfs08ln8ql_w_-OHBg_D8kzpViJ0x0NkyUrSNdagLE2lALjTGTER1sdws8tvoV1FAmZA0LxpZq2u63U3cO25D4uw&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ]
+      },
+      "isCorrect": false,
+      "timestamp": 1751079414342
+    },
+    {
+      "query": "CARGO SHIPPING",
+      "result": {
+        "success": true,
+        "type": "text-based-location",
+        "name": "CARGO SHIPPING",
+        "address": "Calabar, Cross River, Nigeria",
+        "formattedAddress": "Calabar, Cross River, Nigeria",
+        "location": {
+          "latitude": 4.955079,
+          "longitude": 8.346585
+        },
+        "description": "Location identified from text: \"CARGO SHIPPING\"",
+        "confidence": 0.8,
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=4.955079,8.346585",
+        "isBusinessLocation": true,
+        "businessName": "CARGO SHIPPING",
+        "businessAddress": "Calabar, Cross River, Nigeria",
+        "businessCategory": "Business",
+        "businessConfidence": 0.8,
+        "processingTime": 3753,
+        "id": "temp-1751079839440",
+        "nearbyPlaces": [
+          {
+            "name": "Salvation Ministries Etta Agbor",
+            "type": "church",
+            "distance": 324
+          },
+          {
+            "name": "Unical Microfinance Bank",
+            "type": "bank",
+            "distance": 506
+          },
+          {
+            "name": "Mansionette and Bungalow Property Nigeria",
+            "type": "point of interest",
+            "distance": 622
+          },
+          {
+            "name": "Bez Pharmacy",
+            "type": "pharmacy",
+            "distance": 649
+          },
+          {
+            "name": "Apex Dynasty School",
+            "type": "school",
+            "distance": 697
+          },
+          {
+            "name": "MTN Shop-Sonnakom Calabar",
+            "type": "point of interest",
+            "distance": 703
+          },
+          {
+            "name": "Unical Senior Staff Club",
+            "type": "school",
+            "distance": 796
+          },
+          {
+            "name": "Galaxy Games",
+            "type": "store",
+            "distance": 805
+          },
+          {
+            "name": "Department of Geology, University of Calabar",
+            "type": "point of interest",
+            "distance": 811
+          },
+          {
+            "name": "Calabar",
+            "type": "locality",
+            "distance": 2358
+          }
+        ],
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpeDkjslmKJZfDtI-T-90a_AnsiLQNUcMyGiqpRzY9HWLGtFXrVBYRIc3AnUYnWQ2Oep-oCKTuWdFsbyZb6M6oAvSYCh6ImFOEkPaQH0y5JYvbJlxCtG5JMx5EYkmgbcEfQhWouqujmdYLk_s9UORXU-2KarXC7IHOeJ5FtGSOZiPqyHseB9x8OCbtE5g9zbvxgCaN2sfLOKvE8ostorD7qjJAehm4yVLJHG5jSOSBi_XLgMEhpmvSk-QDj0Xt76zFMz-lCwa5J_VojbnMmyw4saSHO5RbpsRmrrBw87B88g37xd9pSZKqUsyrL3yfNJ2NuZSeRk2SgifK2LkLFmm6hb_1PPNd-UP_t6GQVi4gETG20DI0GjKGHizCThb_10ApKxujitd7IRWcpsuDsUPY5tclD9c2XfBRNCSyrhOKS86ze41cu_ykZe7icEaqoMJSPgVjRS1OleBHg8XbF8AT8F6M7hvpyDOcvYJ03jEYoVdNL9i-IKJalSb-g5KCdUOFfZDJbuhKoZaRPRBKFSy0pFD3PojGgM5WiCpvbvzWbo23dGwwFK6pizpM6r053qaY4lQgzB&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfpFKdBmPgwd_ETRrGVAXCvvAj8m2IM8GxQtelTqi8QVlihUpV073b-w5G4miX_NGMAKbmMqYSVz3zzaAGcy3yeDT_aPDArIMRYLOJQBKW7JWOsl_BT1mVwVc6Pf9HrfmyG-iKypZu-JDHZFTFEkfS6VChIeXn2fwM7y433ys9HE2SoR-pZYYdi3LchEtQ5eGKjzaXiQHsk3PGrl_zHnEW8D64jIDawY2aJdswQfZHDR2LdFUsMgj7a3KcE5EtTLlz2JwVtZsyMfhD3qCHFO7M-0Pq4u7F46ne784IqbJBF_XyeMH7Qx9JMBHoHNfcm3CaLQUBthf8XWwWANJEqoZUMUYz5N4IYIYzllNAtSxII6eIDeO8A05g8C_TreMXMxr9Ftc1yZTLcVsXR90C4RjrafXR5ly-kVcjF2Eqdd8jbhZCl7Dw-10JQW0lis23f-01JijzFCE1s9d2kEeM1yIMDg8V620c-YgQSkr0CQDqKQJKGW5vaddgZsjoR_IIzhOmbKegAjVpdxfeLehSczTWGpE-5t2vo1ei-iGk8WU7DyujYGOOILvFq6QsM3Xji4GM0JZWv&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpelN55oB7ZTKYTcRCOYAJRGm3-_f29CKbOs4ZupTRrjKljXBlQ-_U9MGG-47GEIf_LJkU-nHAqgWiMotADzuTRJAmgu0dcB_Tgicd1tz7vUPqMeiE9RrqjLf6IiRrF45kBUS22xoijDranH-5VWjRD2YbMumb3-qKZRgSsuCQqtnJG5fmq-o_0UxRHC9p6QugLTHzkWTQadfYyS6cOLwLvAs3DGUSz5_9MjtDJIDuMSrCm6Lmhme4MAGvv7Ox21rQv-DB3b1eB8_0Bq_VpcWiDtN98szk8Ff1Ma7Jp4a55QOw1dBms&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdyLAlc-FAMi3h6C8ej3WAtAsJCiT4MaziNQidsbcoZG7eL8C00TD8jun9Q_U-wpXVxL1olBsi3VtWl6aEX90p9KIjEaGfc2hEhOSnb3Fwe7sFgcrW3eJvFuuAopdPgTMBiR73ThOaC1hEPoQhxx4wvLQWOP5stWx-prYuLOomQEEgolTC-lDfkP96mq6gN_ot31vRHB31XdgHHdsVBBp53Al8ip86gQu90yVDjpMqGGSTl6dWzpmiWcVUppcnwyVC1IAG4ryIaMgQxdAqgYlY0CUNdJ2lNE5M-osHEV34un6tVwc0&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcVrPjbnpCXcjfmWDEvuq6sYg-HO40nLsXWb6euOCHgvTGsHM0rC3_3QO5jEFA5k-bWC-gXDyMlQzOPpVb0KM3G_pVoQYyyqQSUJYW3kNdXBO0vVa11NAMLpluxNbyAVgNToHoRCVSG5FHINVZw77tKYMo_fiWRgtetkZXbl4ivjKuYZwRUsPGNhOZw8KyTK-_PDPrzvgVcXpep4eDN2sRoSqOVS0Bm_0EfIXjzk8FGvoSYUf7jgTOMuA4RJaiWUjI-uznJKFtw_YNxIszWRg0ZY0INLZKlDlnOnSS1bh_LxqwOsTWrLUq-jgXBNljHCnY6XM3RvJy7qXM5jGGybQFqfWm4ICUOEoxFmMweJ1qxrfhfaXUUQVHvO8A3582e4Lx8vj7ECDGv5r2d6l1ajSRJPr0i1Hoh_SkjXXKu-gN7mDy31OOPnX940bnIX8I_-rUokDfXCmk3pF0KLxEyy1I1Ad576rCYmZNarbtQsAqCY08inGiM_VMmlU3uXrdAWNLX0zWRATIvvAg2xiuXvekio_Y1sDvztX5eJrM1Eleg08p5uNiesoUSzKVI8NGP4jroz1oS&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcGsZOrZS-MDnpxt_bxfdhuUx_L2tHl9FujpXUUthl6ocXQuBIvybKcqWz9r5VqOhBB3UZY_dAr4Q1oplT1lwWncvGxraCAGaalLxoedNVTqRRMP_mcp6I6NaVxRp-tPaXVY-KHDvxC6_VP6YMoUU_--Q_oMjfOyQ90DjFOEG02CP4VF-B9Nd_dwukbt01SnCDfDh2ycnj_PV_hvtibxh3aHK__P16dsVF2dDt2VRUv4DhBk1DSUtxOLNfYDFwwtEJ0bL2TANP9rS56fzvfk8ipN3QnFJVBkrkk0zHeUruXXkgqmV2BjtZ07izQCcN9unRktpTf4etjuLhRLfypAQVI_scGYydAZ-7y8hqCYbDiSE12PDW-IOdNNNjCs7GCEkKRo7JBzyvSmtw-2oA5e-f3uOwPGGS5hVt1nW8RX4kxPaB8VzMHOxyqbcbftHsO6LB1YRI-tigVTgA9l5ryd3pbuF8NN_E3LeElX_-oj36OM2Z9-19pF16YdfPSJNYEEgKdP1dIo-aHfkKO8NCZBvqyT6THHtFlVobUCR14uudZqP9EZId5sq6blYwl8Nubtwvih8Z9&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ]
+      },
+      "isCorrect": false,
+      "timestamp": 1751079939497
+    },
+    {
+      "query": "VENCHI",
+      "result": {
+        "success": true,
+        "type": "web-search",
+        "name": "VENCHI",
+        "address": "32 Great Marlborough St, Carnaby, London W1F 7JB, United Kingdom",
+        "formattedAddress": "32 Great Marlborough St, Carnaby, London W1F 7JB, United Kingdom",
+        "location": {
+          "latitude": 51.5138989,
+          "longitude": -0.1393793
+        },
+        "description": "Business found via web search: VENCHI",
+        "confidence": 0.9,
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=51.5138989,-0.1393793",
+        "isBusinessLocation": true,
+        "businessName": "VENCHI",
+        "businessAddress": "32 Great Marlborough St, Carnaby, London W1F 7JB, United Kingdom",
+        "businessCategory": "Business",
+        "businessConfidence": 0.9,
+        "processingTime": 3049,
+        "id": "temp-1751080172080",
+        "nearbyPlaces": [
+          {
+            "name": "Courthouse Hotel",
+            "type": "spa",
+            "distance": 54
+          },
+          {
+            "name": "The Soho Hotel",
+            "type": "lodging",
+            "distance": 390
+          },
+          {
+            "name": "The Langham, London",
+            "type": "lodging",
+            "distance": 539
+          },
+          {
+            "name": "Charlotte Street Hotel",
+            "type": "bar",
+            "distance": 590
+          },
+          {
+            "name": "Claridge's",
+            "type": "spa",
+            "distance": 610
+          },
+          {
+            "name": "W London",
+            "type": "lodging",
+            "distance": 647
+          },
+          {
+            "name": "The Cavendish London Hotel",
+            "type": "city hall",
+            "distance": 679
+          },
+          {
+            "name": "Premier Inn London Leicester Square hotel",
+            "type": "lodging",
+            "distance": 704
+          },
+          {
+            "name": "The May Fair, A Radisson Collection Hotel, Mayfair London",
+            "type": "lodging",
+            "distance": 716
+          },
+          {
+            "name": "London",
+            "type": "locality",
+            "distance": 1104
+          }
+        ],
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdX8YigwKTFbPEIP4gfhaBn_J8UORJHaUmPT9YMoEhFq1DU3aCQoTP0mq8ThNmrPCc6Qs1UoJ_YUaeX2CD07E488_EsCoyTgRlUfQI7_3F0V_YSoT7wdoj2yZPxnQqxczQw-JvMtvyocukArp7A7btCgQ8H7AmeQdoymxjoGr7T2HDPGXukfRYiYANyT_G_-mkRoSn3FwZ-Kj58AI9EEP3CfrBG0H3wvy_85eTdlBUcuLgWYxYRaChLaKGG6Y-LZoppn3MCBPJFYYMld7B8R8WVOXA6r8xJ7x300xvnEzCF5gi26M1IT6q6UbcVEpV16QETTL92K3R_EKpU-sViJmZAH_-Q0Sr4_r1ZrE7dQoHlSeo7vzsUt8lKFPKoCQ5S-ffP4xZ69mqXMJhZTsLEr7uwlB_FFpz34CSPuCKsf2W8cjEMpWDwOPtvO5UvG19BnMUC6NgOb1X7X36NUtsihFu9ySI2VcXGKQaZUgfS4omIR3tZWkvQE9JzNSbUTLoqEpruoyRYoOnUBvKvMKLuPWj8yXqocd--0-Fz_7oMkgluCNi7asIbAcsNM3wSZNt3_6Ej_qZp6H6WhQ&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcrJ7GYdUZLd-L8HUYJ_dBdweIukCsi7SP4Gy6SKemeizneJba2EWhe65wP7_dSoXrVAcML6-vCFbMzeEKRQlve8s_iXhNy5TnMwy6-XGwtCi6i6NMCYbN4c5HpmwoM1OxBzvtNUJKZs2w74TZjr1jqKsiJ1Oi1pQKuEeUpk9IhoK9Y-iVX3sGSpnoaNlOfBoV_bL0J41_xY7zQExXHVm3-ozXX02WDeOHlkFnS9JpHp6ViSMyY0Bt3jIO0jG849TmTzkVRVXl5i91PHOMzAu5XqpuSTZCSSfvlPDJT6tI3cqL674FXBSMFaSM7GyjJCyjPzfDzqmQndeAy8gHl6HSqz58_WeY4Tyt7bKx7xW-3psKjIv6xEjzz2Lo9_vlXT2qdUfma14dj7lGDFDFiUGje-o0hCDTgaajyiNYl26JSqsklJaji1FjiLBnE2xllcWEhMY-GaHOrhzpj5r0vUgKpWEo4clEMvIDE8OnPqeWOvoQMZyr21KyJ2zhemLBudUxbcApB5oKRfTZwxGtc4vagNusqbZJKp2QMq7aG6gt6_ORWRkIRAln8Rp8JsqsqMQvrTvzk&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpetxVs7Sd2PSbudSrMS2Bm1ndjGTSudVoPPd3E6r76xhy_EOSA12lBMken1Z4sqV2r10gYiFaz2th5LKIn1VSuEvNftonBSbPeoMfEqtn1lqdTGZlJNioBAe2gqlWz9rxocf_WDdi_IYi3X0_Ii6V9aBsQIXnBPb5CqUyPaNuQoMDeRbOdTMD8oI87Nl30-fmu3PPTol8o8-7lg3KgB5rEyp0pe7Xtw2pQj__z_3SXjTZGxqneYytgtF3tIc0zcA0Uhyy2vtGc2NuEHb_loSSqJWUksWP8zo9EdhEtbBZUYlBAN2_0r7ubpybkK5xnyWCoTKhPD_QTyXm3Avzhen6ZyhCAgRT1dEmIpmQQgiJ-3DOo18BYL2EkiXAt_8q9u1x1SxkDe1TS_7350irkCbv2nCgT4e8ygFaMGlsCMG12Ujiwp0OLtaoM7RmK2vlMP7a_-KpIKFqJLxfgSY_dMKr6rTM4tDtzMJrRp__n_s2_Lkxlj54u_0ZhnXWAQMt_K5lOOE6JcboV0K06JuYfbN-GG9_xB5tj0350O6mvGnZxELyzmRPKZ2K7hBwTN6v77yrMrrw&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdK8M7ICKTDA8NNmevc-alChLwfRFD6yLBUFG0x37PGAbT9gCj8f2pe_dLt_6I5TRc8-FNjTgiWxZds8LJKZcglWf5QG02lARJcMfg-GudUEKaOPpIUrLaqsh83SUwhVb19OqK3lvOQV2ZW1Pz39z5tpdiMmO_RC0XQ1v7EXrUOM3csE0p6AANUdl6q-TJi8golVhMqYJyBBNKpyz8GC-M04FfDPKXTWaz5QxuH1IjyLTkTWdpvWIa_rUU6QbRMaB_pnUZUNpf7eXUz0xllmK3sjGuiDXEnhzzegODNhaYIdun4tdoByWOA0-lPc89gp-srpiq5c1lnDIIiUzDUUnB0phgm3wuIzcHgt1TJHzsOx2mvahs4K5B7sPwT4vrT9qOwsCFCXdQC8htTvD9gbzhg02f5X3Lhdgj2FQHqJUImRY8qM3wVDNFh5SVkA-cKE9Q1Tv9BuhTQrckhWNF7hmNvKYNKKw4kfawrULRn92_CCw6BbglTbR0V5_MPo_gdqnNpWpQ78BeFbegRMefBa6hfwvxIRoZ33QXYApa8Drxpg6lX1Q-5Y_3bcIh5bTcas-ok4M_S&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdevevVI0-cxjfPfIAMIvSZrB20iem1TviGSCNbRXCxzE3c-tvrwwnaIFCtuE92T4XejzKvDYYhHr_dl3ueBbifht4Klz33Gb6oQtdIphGXHfL8xoy_IJy2dp5Ee-ek_EWdg0Ke1gqBrIj0sWPNMAGeEYyb7CpRDBToitYpvA-KiffMxlGh2-K4o0Ii9H7pLVhagjTJrdCRFk9UJUh6urv-Xxz5cO-olr8LZ9gDH-m2XNUAnU6WBC-GSaSQu82z4m961Dm0CkFcNPxGSqu3uIHJUOWjlNFvONLGRkyxL9ptvV08K4eQUdBgKyRUSskYMa9v3DWXFWecrTlvsmZGFdHVZisubtXS_azjfezFv-cU8GwFm0y0jOACeD14VjEgf9eYfrIqs5O9sXP5JzaOAWq9LMTqHXDleaP0naA7D-N-xpdPS445hNFJ6gV6k4mHXerv8YM8CJIJmH5f0DOy2y3WzoEsZhyErkPnFciyyybtW4kDXzxaZoGK5Ztg4332CD0u3xCt9nruQuZ-FZM3BZhLTgRBEHGzbMqE7Tg01QsALVkpKbS9i8PiMboOO-Nig2CToA&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfXxOEpLuljbru2Mlo4J3msHpXNHluwSJfkEJ1DRoA2dTaZd9B6mGT6vOvHg5IYRvGtGRBt6unzZlQmTGp_bwI4YRCJFwmPzYLrcqUKuk3eEKAuHjlAGd08knajghpHyBjvWsfwspLKzyog3GGS0I0WlAr90b6eMUNFfCzHw6bZF5uL45-b5KUo99YNL7YngughJe_uwu__e0yt6VvEIdgJ68oECeioK29RRF_4E3V7MSzV-C3xcB9Wxjflt3ke09C4-MG-CGOcBti1qLWNf1W4DmzPBDAMCPOUR-UxjrCGhwdRY6GTOrCy4v1aV8Ze51DoIdOWkEYm98NPIcv1YB-EjJvyopxqpE9cWOlUznyb_arq21-jVrqM9O2ZfGFb3K5ctaOEqi821uvoggN995bJMiZP2fEODJBk7Q6xEZer1xPQAv0wSniKAyVaz-lS0jK9afBw_Kg0YcZv-c5h08gKGlTphZsNR_u9oeldm83CM-Dq_SGXiTlt7YrR54IPErGnaN41eYXbfL0YYnDK2Nc8UVg2nA3X10_XEFSqCCNFYemW3vaUo1NYeW7MyOgRumorN2t3&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ]
+      },
+      "isCorrect": true,
+      "timestamp": 1751080201885
+    },
+    {
+      "query": "Current Location",
+      "result": {
+        "success": true,
+        "type": "fallback-location",
+        "name": "Current Location",
+        "location": {
+          "latitude": 4.955079,
+          "longitude": 8.346585
+        },
+        "confidence": 0.3,
+        "description": "Using provided location as fallback",
+        "category": "Unknown",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=4.955079,8.346585",
+        "processingTime": 1763,
+        "id": "temp-1751080229589",
+        "nearbyPlaces": [
+          {
+            "name": "Salvation Ministries Etta Agbor",
+            "type": "church",
+            "distance": 324
+          },
+          {
+            "name": "Unical Microfinance Bank",
+            "type": "bank",
+            "distance": 506
+          },
+          {
+            "name": "Mansionette and Bungalow Property Nigeria",
+            "type": "point of interest",
+            "distance": 622
+          },
+          {
+            "name": "Bez Pharmacy",
+            "type": "pharmacy",
+            "distance": 649
+          },
+          {
+            "name": "Apex Dynasty School",
+            "type": "school",
+            "distance": 697
+          },
+          {
+            "name": "MTN Shop-Sonnakom Calabar",
+            "type": "point of interest",
+            "distance": 703
+          },
+          {
+            "name": "Unical Senior Staff Club",
+            "type": "school",
+            "distance": 796
+          },
+          {
+            "name": "Galaxy Games",
+            "type": "point of interest",
+            "distance": 805
+          },
+          {
+            "name": "Department of Geology, University of Calabar",
+            "type": "point of interest",
+            "distance": 811
+          },
+          {
+            "name": "Calabar",
+            "type": "locality",
+            "distance": 2358
+          }
+        ],
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpeYBk3GiR87r3YNc-YEIEL_I5sSPaArbZaHIbLpj6waO9r1pq7oWz5XuXlJ8tTTDbkBZWHDcOJRxyFlBgCcg1UfbVhZ-6O9GZyI2oER-lYwW5idVhPI5O4_oBpNhoyTe84YecpLJwxa550_emR1Q8fnMhJM6BfMuLSFCj0SY28jebG6iJTldcc9ONMm17GjwOpzI-he4ZdnNTD4IWR4yiaFAmEqX_l2JyfjEOp2CdkTlDB4s3LXx2vV1TqS6BTi0cBIKwvBq5Dg5kTzdMdzrHNUdaAbLWbfK8_5yqk7t_FiyBKx8fKa7yPD6k3nTjigiVCo7ONpaCoRaprfuJ6B-1RDSlf3HQwb17YM1HuLwTCMu77pAuDnuqiDwWtYnAdBFVCXBuum9URnk7Fg6nnXbXD2k5D3LiM-uuwKTGasZZ2t6PT_zmCgNhqSHiOiNJPLQ2lrvd4n04JORfDNL1seLLF6leFWgX2YoeQ9BQkC2460NnGvvyp9C-Lz9q0kgqKExYNGWrRkKT-ujUqDO7rq6xIi4TIflyXvQiqJpq1_J26f0gnnoG6QEhtudljMWRkjqFb3LsvG&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpd8ViYd2eGvTRGGe4zPd0DYYctzA3lveNu3AA5VrWpYlbXQS8wfzL4-m9qBxAiNxckwOg_KyEpBXQ8jdqU7qCAGYw6HSLpH57X6zhSAUaaoEI2Dbz5Y1j_-awUPPRcuJHACqmtXXPF3UcWpbbu4qgyzx9dzm0neTghOmBzrXNRMLGHnGax6KG53uD_epDsNLN65Xalz1A7FNbXvAGGnzpwDM0uRFe9lS7M3zicFheYmIDFqhMPXuirJidqL3meY8e1nJ9ufyAkTk6qF6ro9yQsPumAo5lGkdEJ42iSKrliLGdR3rIAzffbdSicvb9bGvjzHGpfYKhzqCTo6zMbZSt8lrvmbRt4sSdkwNpQSkh6m6kYnQO6ZbNnPVt8wABe3PDQQ2ewnPU4ABUd46uTygVvQUk1QIiQXlFmCYNTyC7IjQl4lXZc4adyojr7OCRggA2-9WV3ZLAvzHCO-eoGf9iwtXdmi6aI3Le_GrHEvrXMxkh08rn1tUjS9ARMxjSM67Uxu0lHiy9jvnsHRtq-1Iv2EZgagWfUgYuVJKrYtQI0b6bdmU11fkS9w9kCw7T9weuZw0Kd8&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpd031IHqjA-diwk6sOMPcWdTNeOpZtSnYj6KC1p9D8hdHoO9VFCJSXkCSim7z5Th3Qbb8cQngzsR-5kPQ7ObfHfw8RsIEO6PS11u0pXhT8wJZtlVb-KPSjbm4KC9foZcEmtJ80OcwIgY3UMcbhn9wJTmX8rH-92-y0EI-T6niT2HDDR3wMvALx5j7d2tVgFaFNvp1rWgCtExLDSpUCSzvX2jBoENsorMHdzC4EZ0dkiKGJIjJnXCDutV7Wr9RT2ftjv68vumPvX1shOHq-FKNNhdGGBmKDjAWfjpvhzWDrUVEyFwpz5L2HhRp50pri1YvU2DgR9nDXzxioXSdqt_EqLFrJh6aT7SnFmDWdlW_f1OYMHnXN4448f39y4uk-aqIlHD5_eBtUoQYPY54MR3VbScemimlSwmzGOUedmJm1xgvIkFvPyFSL_u63AwVkGLLTwKrQbXbJ-6EQErbryyUFpB2n-KLhBOM54dNZUePMb1bTQzTQ-MQhCugagO9n4OMRY0mRaYUnkN8m9OcYtdFGUsCuaqkZvTgeMw6mB4ekKgfmv2sJaZPMYqhIeBNWCeHa4dCJr&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpeoEBqKaTXLA239JbVVnTMTxQbeXe4i4YeB1n6tUUC7bioKJ1XpqjPhGOzFOHTeboudxZB5rbCHEXyX5Ofl9GI30a9gFIKkcXb4E18RhUW-omsHDLnjOy4xYgTc99Yty-zm5mTpH6AqTNKjG2jydO7ZJyMgyhVNswxFvgZsBeJh2Xj8UFYK9bRnIsjTQcVvt_RAXkc1UDeXCqheye1udbcYKDBvy8vECcybJlrqhfAp-XVcpFJajBqm2UzU41TvcQnvL339zNCK3p4MURotSiMV-JrCln9laoROmYpYdavFDq2_svR73ybg6xtdeV7TYWTbOm-tiMXH4bZ8IlZWo82EQXJ96b_ZAgOyKyy-_q0S93HjXhOLrlnPLSwKOSfkYsO449r1_q8mo65uo8W6NoKy9kRGpE-Z3eT5Q7I_AMoMQGZXUkgLGtHztT-RACZC5Pyf5SqbMe9AwyMH-1HJQOIep-j-W1Vv912eKmCIqIt3qWEmZ25T4zoJUztpUR8h98qqSdmmdns6GnbCz64f-_MJJOLuaN9feCy5Eom7b1l-p4IHrvhwl5ti3_tQ24VirhQrUzdQ&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpf2L5Cbl8Gp25F07e26_3x05AFZAqxjv9cudC6iXitGA_JYqtmNfVtxD6t3Uf0XZWifTysaTndjperw5PnMvHV6-N_yChttxlYhflaax82UzKzjvyg7TVEvHW_83u_zCb2WvZ4BIxQBseyi4jcDVyOPlTU6ZS2RH57dv2wdueJWTMp-PqvlOMW8B1V48-VYnt7PaUNqyoLjarbRbpVGo-d3IIkT1Q6zI0VMJpo2RLbsLLvqM5haXEyfmYgPwnJF95PnR5si9fk8xdswTdUCk3fGd5RBmh143vLuxcTUhes60RaX45e1_P8v9pLN7pX2af4-_7UCWwcwVL4pHsGoP_iX-LoF2Wu8ZF28w2ed65y74Ol_GWgyYtKTS8cxomUxueYiiCyjmD-phtQzbjBegHOa5niMFmu6iCuW_znDDnuFx8PMHfuqgC7dZozZTcU8Eo0SeUKsxu_M1Kp50sbFNU2azAJqGhsFwGGxPtwgXMwmawtEBOben6yTmF_gZiGae85ZQ0_1VvSZh1LO4aGTuSHdALwQNSB5YX3MrIk3njBX37ZTXwyDcpVEZMbFhuKLkknvWazwnb67yw&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcvEOMqNE5gV36cmLApzPS5PYyJQwc2nxis6ebUxrMDdaawGwKxBuHIX7Vcs9ia9IZ1C7Xidg_Y-mhNQRCN_xuitj-YEpzKLeAkuK9msmVr6zO9fwyGoht4P79XhmfphcVQRjfXN8chgl2Tz1OJcwn9Ms4bGyZ2G_IRzLvPEUH9jcUMt7XCfbDs9dTX-SN3NjGd9W9DdomZfRDnEogrfymOtex00lGOKOdlZdIrnGOFiBvFufatLcJhkWY9S8ej9h9BQLoDN6fykCiI4Ez1zu8pdbDLNj0ARcv-J_ftFjAUH_i1LdY&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ]
+      },
+      "isCorrect": false,
+      "timestamp": 1751080265473
+    },
+    {
+      "query": "Current Location",
+      "result": {
+        "success": true,
+        "type": "fallback-location",
+        "name": "Current Location",
+        "location": {
+          "latitude": 40.7128,
+          "longitude": -74.006
+        },
+        "confidence": 0.3,
+        "description": "Using provided location as fallback",
+        "category": "Unknown",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=40.7128,-74.006",
+        "processingTime": 4650,
+        "id": "temp-1751080462432",
+        "nearbyPlaces": [
+          {
+            "name": "New York",
+            "type": "locality",
+            "distance": 4
+          },
+          {
+            "name": "Duane Street Hotel Tribeca, Sonder",
+            "type": "lodging",
+            "distance": 368
+          },
+          {
+            "name": "Smyth Tribeca",
+            "type": "lodging",
+            "distance": 379
+          },
+          {
+            "name": "Millennium Downtown New York",
+            "type": "lodging",
+            "distance": 389
+          },
+          {
+            "name": "The Frederick Hotel",
+            "type": "bar",
+            "distance": 401
+          },
+          {
+            "name": "Holiday Inn New York City - Wall Street by IHG",
+            "type": "lodging",
+            "distance": 500
+          },
+          {
+            "name": "Gild Hall, A Thompson Hotel, by Hyatt",
+            "type": "lodging",
+            "distance": 552
+          },
+          {
+            "name": "Hotel Mulberry",
+            "type": "lodging",
+            "distance": 615
+          },
+          {
+            "name": "The Roxy Hotel New York",
+            "type": "lodging",
+            "distance": 740
+          },
+          {
+            "name": "Club Quarters Hotel World Trade Center, New York",
+            "type": "lodging",
+            "distance": 752
+          }
+        ],
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcpdoUPInOfidv8_3yXaPvSTVnCaCDCy_pj6dNWRlCugJt49TzlOiJNfBMlkV722iZW6G97U1_PQrTbhs_lGba_3g0mrl-4Hzgff-9uBtMbdkHW8RSHjl-i-Vew8iWGXE7qA01mNYcFzghiCb50LkG-V84dpPS37dPExl376wqwAdg1O_ajQWoc2R6FdKGCb8jm8XwPhT0SSFbU8WydvIeGSApe-CPmK9nbExKSsuU4trjucwVqSz1akv-uxPcL9mtsKxQkH0rjbLE5H0f5_oCoiIGO8hxxTEbXgEQHHXkI1aE0pWU&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpeLxCcxHXYmNf2KRh88LDwK0d_LfYEi-jHZ-giLdicVM0Jwe2P84lYA12IRqFTSwawLGVg923GXE8Bvfe27aH4hPRey6zBtG8g3NKX_o5X7aAJTqFoNyTCpxklYoTfhN88dq9BP6jWgyFCK9hfDY2auNynR-7GMHgVMz0RI_ROppFWYe4Y6bEc_DbZcWDghCA66Ya-_M3ZPwKQMPLtJaNslg1II9ixj6MrwR57tQw6pMQ619Bm5dZxNvXihSpenwdM09y55fPfwCa7Ehka0vFK_RDHdxwPhshiA1POYOLnhiIJvPZM&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpe6z6Sv7rqkMuGuW0sLs3RJwedV7xq_E9bEbAFIp5FFrVYH3RUuUMGmexEEAdR8ElJHtE_hpB8Io0MvcFzFHKRXWI1a0g02BncPwKKVvMap8wEm_6L__YM6ZEeyUYdFuylEwA6kE87uxihK0lIx1RjxzmFn05QFl53J8-STm6dE99zO41RwOY5zVVNR3CgXr37Fut_bxxqPgiB_07Jzt1a-r0dXvzXCzLA7fxpOgv4I_RM2aJ3o8WFyHwDqop8UWMo4L-IxuVrdsP-RLdvs_mAknCLcrj1NuVocq6uZ7rWISXu2iMY&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpeD9Rm5gdW0PRaVP9K0cCwRTLrVI_TSpWNvl6n2-sAcrda9C1WYKj-2IkKlmx7MToOV_UntC1Vdm3lbmtfJI-37tIBN8iFgVDvT-QfHl2KLHFkhSHtrXWawcs9oYQXzAdhOdhk8JErq7djxKPoFnPrLiQCfaV1nELaqSb3SCLAwUTOvs_ixtrDWlQgya-rUOFNz3W4EbpJT0nq5mcIx5Cl3Lw0asxpASJpr8e_hyQYiAwIrIUshs9qgCQOmLQMZgXbNGNPpc7JqRXliXHGvSX_vmNOgE2hmkrN0gEtOqYr68auuGsA&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfL31zN5DBcP0j82lFdYlscsErmBEcewacR7ODQX1GzGhtpK09mor7p0WgFriZ1Irlthy3wlBwsHbtOuyh7HkLyzWZObpYdDVWtUjV0Vg6qxp7_u-G-VXcG6_ljeRttDbjzRHCzRpodT0d3zhkKAqJ5FEuYRv0rMDrVEL8wARkSf7jPcDlchmJo-fYzh1_T-vzk-FwmftF9IhnzxS3_6cuE8wkP8fyU34cOIR7oo7xg-oKuNXx_bY9SR8J_YpnFUq8zMABzZOKibjMmKGMrQYoCM7jbO67f903xUL8eNxxTefURVhM&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfdW7Kt95zNw6uFSoFs0eh3uTuxQQ4Joyf4gNhivv2Wy19wuGwQp8egdoKd4svafrZ6oLnzzhUg30B4rpPFdYT_RrHvHFaKm6w8fya40AABRTLOcImFUQVOu8KJP_wL0oRMq-Mj8YjONMnal9TeMSL4seohEbIZdASqYOMxTUa3kxEBRaJzxGpbuQjyznQvYS2xbq4EKxiuOE50JZ-v1jUu9Rs-8GZgiPRFImtKQI31p3KyLPHOHbID-A3SZqQtDn76MtPhfaXoJd_tTQA8aaOwjFQB35bQ-yVyo7jGnOtbWYA3R6g&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ]
+      },
+      "isCorrect": false,
+      "timestamp": 1751080641691
+    },
+    {
+      "query": "EN SH\nNIGERIAN RESTAURANT & LOUNGE",
+      "result": {
+        "success": true,
+        "type": "web-search",
+        "name": "EN SH\nNIGERIAN RESTAURANT & LOUNGE",
+        "address": "3 Berners St, London W1T 3LD, United Kingdom",
+        "formattedAddress": "3 Berners St, London W1T 3LD, United Kingdom",
+        "location": {
+          "latitude": 51.5163884,
+          "longitude": -0.1360053
+        },
+        "description": "Business found via web search: EN SH\nNIGERIAN RESTAURANT & LOUNGE",
+        "confidence": 0.86,
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=51.5163884,-0.1360053",
+        "isBusinessLocation": true,
+        "businessName": "EN SH\nNIGERIAN RESTAURANT & LOUNGE",
+        "businessAddress": "3 Berners St, London W1T 3LD, United Kingdom",
+        "businessCategory": "Business",
+        "businessConfidence": 0.86,
+        "processingTime": 2979,
+        "id": "temp-1751080794528",
+        "nearbyPlaces": [
+          {
+            "name": "Charlotte Street Hotel",
+            "type": "lodging",
+            "distance": 237
+          },
+          {
+            "name": "The Soho Hotel",
+            "type": "lodging",
+            "distance": 309
+          },
+          {
+            "name": "Courthouse Hotel",
+            "type": "spa",
+            "distance": 327
+          },
+          {
+            "name": "St Giles London - A St Giles Hotel",
+            "type": "lodging",
+            "distance": 395
+          },
+          {
+            "name": "The Bloomsbury Hotel",
+            "type": "lodging",
+            "distance": 497
+          },
+          {
+            "name": "The Langham, London",
+            "type": "lodging",
+            "distance": 575
+          },
+          {
+            "name": "YHA London Central Hostel",
+            "type": "lodging",
+            "distance": 638
+          },
+          {
+            "name": "Covent Garden Hotel",
+            "type": "lodging",
+            "distance": 647
+          },
+          {
+            "name": "W London",
+            "type": "lodging",
+            "distance": 693
+          },
+          {
+            "name": "London",
+            "type": "locality",
+            "distance": 1174
+          }
+        ],
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpe4sIobdhuQkitAa0fSnv2tdC3JStpOdvlnbS9-elEDsszwZCl-6O2osXux-zTQUKa5GmtR6Re45q-nLwFplNlKPLqnM5zJmFO8DGyE7kvucE_YeLDgd6Mh62DsI8VBLOmXY4qWlo0EeqLU9vJt4OaobA4-j69kC_Dwn6ZJxBURwqEnknOHBsT16aWbvPdJYWe493KEDjIr1o-SiYY_TAZDWazY_ljA0X0Kjn9rWKj1rF4lqETUHfoFDnG_DqEwwqiectDRE6f95XgHdHGOg_Ay_HIIfU-LCO9GiiXdWtYfGzIggyu49xM2C5sbRLVp4tnhQwUddLpS6PCuOciM2YN9b3v1q6BOl8CQ_JvKklv9raXzFqG5TJ73kXa6Bq5gV1EWx_0nyyeW_sG2A6ejhBsTDbjB_3FwEqbtYfE4VnQLHeVlDCovCjJFPfpgNS-RxgWK8wmpop1LOonidvQ4V06anJaXSf2NkUSz82dh36LvJNdXhdqZABMBANBCwYc_7lr9lQd3YwR7nK44YHtWGsGT3mJQEvallQML1ugWs6ZIkrASQgyl2Lf5xsBXvKt_J5GlylqMZJvd1A&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfeAj846Zy6KX3L5mcpAtF75EVwZSdqB36_cjtL2qtWQ6bOwJBylEum1KI_QqJJ1K41122oiIFpdvbb1ZR9jzLQ_cyl08nHHT2axv2E9uBn08OcU-J41rp02J6s3B178dQ1QzUjhawlyssf2bsFKsIhegZFqKUIyzYOwVmIYes_suZT8lv_F8FkPSGr5lfD7S296AH2BQMHB_owJ3UlIOq3d6WbnGqbsS5xHYFk9EUEuDjhprqlALzg7o_17raGBV12MauRSWCprgyepKh0RTrJMJm17aQZxI9aUCnn_-qhf5Tavb4&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfe0OLkYqq52NMh7q_UqRc8cnDasflOFwcyMB6ZeIQ0KcrYYtRJFOHNGXfrx9QvYpPZnIJMim10Ww9HkW9TtRDpfB7BBSECT9HbPehIsDTBd70DCrLR2sq1AZfGNUxOpxco9CIWpLk276Cy2ZyP9lDZotpygjuDDvpPjRFeJy4cAcw482BcUSgZwq_R16Z-TFGaPRl0_XcXnKwyriqfcdQ63BP6qKvmYht4i3pFkhhtFPCGGORUzIf0lPafIGm6MjWk81y64vsAIlg8q2rVUqn6lw7hAo6856jYmRng99DbDIhlddQ&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfwktAuLLhfky_LoQrtjlErExL3OA7dH-8n_R9xDqYEq656RDBcvTEj2tJGfxnGElIeHg1HIfOrAGEbQEmvlGG3PdRSxz_IjXyE1vewW-DgJ8ZoKyR8e5h_dQYHtMp0F9T1gmFHUPlfGAarULMr5incqKeqwd8dHNg8CekO0YB-N7xpmhxOZ9_I7mVPmvqjCOZ_6LPYnLM-oedgvbPV9GgytaurEZyq3XDcHhTHRElnu_1u2BplHH-qg1V-ad7Diz2Q1Gzarf_tBjeX8hbKF2pZltvbUzCE0hI5c43oloQuxbCSMr0sjtMpwQtXH2u41se-lJFJ_5QkFvRneEexEAyfJGzh8ZHav50qI3ZbbRkgSbNMLS18HfgPMlAoPnZlec927qWpgF69vSxGmoti-pr4pCSvbldmTS7R-dkmEW818S2B9oK26yfbYFKkqe8c5TphFS0VV9g7uvYIFNLl7VaNVhp5LQ_9y1RXNz1RvLn6nj0J4VNfi5B0Vh3mREktXuQ_ptOeVm67E8NMZhan2rYnIyHF26p9sR5u5YM89Fc8FkpAeZtLuHIYZYj1F-G3C0loT6q1&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdiWciCthdeH4jjWbiN0c9AsA2b0Y3-a5Sc_rV2314aXz_D1FlXG76gGUbLxGO2mxgImoDXJp7fxMCuAUBR2GyOZ_MRwLv84ZdyaJWsBi12ULMuQtIwTDF1Xzv_8CjHqW8uKwruAzEVJYM5GBBAWsCnSSwjvPwZ49SNy600B28k1-trisxytcYxU_ug9qkFLLvY3WxAKO4YbqDWObPwk3l6viNV0zqOGSadjaQp-m0sJ2ewsZedSZvVn3jJyJzb358W3Cib3YuSmDZHPjSStXnF9MUU-hyGnKAApeA2E7cgoL18Fr8mvqepM0lBUY8rdFFj9uHUvTNO2pIIjNuh932r5kB-KQZZ-pMWy9zAyBKgHo5PrGsI9Q63UaAt31BEcczP_nzGaAbVBxReqHsipFv_lv7utcngGeuVFL9y0gI7fRReEcS2EGR5yMLZ_-OX_sznJw3fX7hU2myTkNGH_573ymlNa1xZiNh0XBt8VfoEsQ0TUAoXx4seCQxcQTnGVSUWe_cps28r8gVuMoukO4G7V9FwQF-SzZJGITCrp2CJ3uxOfWBYO7WFIVhScb64eAv1mlt2UXFPFg&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfYG9fh4D_I2ZrDZE-qjK_5RUrIDQf7nSGbL_bwMU3HG6hc_oew6ZWqs8KCLb4e7GaYhe2gZ_FdSQw7y0IbYY-450Qr55HaD1S0rdArniTp7zvIZSWco0ztA2HKStvhgk2lB2FolkhXtTfvcMLSPVhwUwpinRzRhYE_yCwBl8L9OyibXdMBZHGe-1jxBl5dq0Woy1TbDChcIaryG3P_XfyD3qZvaM76YWyWs3G2ROkKgvAijmrivVzO2HKe3TPFH-w6599Q3q448PUe2l5zXkoguSaNgbkXojOtA8_ObaOldxncTxHddyNR-Tdm6ajzNT8MQbQkNx32WwkGWU8OHuMGFD70StMgMRsmHca9hkUj4IVSRppOHv_28LQ1IXXH2VEMeI0NwIXTt9hF6dqJqsoU91pyn9lOGLnN9-G-OtdCqG-BqkXG1uZGp-EyGDnB0yHB5eBG1GATOCgrQug3Yf8cREoMn7bVqDKAytal7A-YMhp3BMGljGei6hijxfbFWkn_RtM4mCNHb_J3ubwbL5uCBzX1diLsXfQpBVVhRqcXRtB-ce7_giFlGQDTxrMCQcR6yFBR&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ]
+      },
+      "isCorrect": true,
+      "timestamp": 1751081190063
+    },
+    {
+      "query": "Current Location",
+      "result": {
+        "success": true,
+        "type": "fallback-location",
+        "name": "Current Location",
+        "location": {
+          "latitude": 40.7128,
+          "longitude": -74.006
+        },
+        "confidence": 0.3,
+        "description": "Using provided location as fallback",
+        "category": "Unknown",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=40.7128,-74.006",
+        "processingTime": 4706,
+        "id": "temp-1751081303849",
+        "nearbyPlaces": [
+          {
+            "name": "New York",
+            "type": "locality",
+            "distance": 4
+          },
+          {
+            "name": "Duane Street Hotel Tribeca, Sonder",
+            "type": "lodging",
+            "distance": 368
+          },
+          {
+            "name": "Smyth Tribeca",
+            "type": "lodging",
+            "distance": 379
+          },
+          {
+            "name": "Millennium Downtown New York",
+            "type": "lodging",
+            "distance": 389
+          },
+          {
+            "name": "The Frederick Hotel",
+            "type": "bar",
+            "distance": 401
+          },
+          {
+            "name": "Holiday Inn New York City - Wall Street by IHG",
+            "type": "lodging",
+            "distance": 500
+          },
+          {
+            "name": "Gild Hall, A Thompson Hotel, by Hyatt",
+            "type": "lodging",
+            "distance": 552
+          },
+          {
+            "name": "Hotel Mulberry",
+            "type": "lodging",
+            "distance": 615
+          },
+          {
+            "name": "The Roxy Hotel New York",
+            "type": "lodging",
+            "distance": 740
+          },
+          {
+            "name": "Club Quarters Hotel World Trade Center, New York",
+            "type": "lodging",
+            "distance": 752
+          }
+        ],
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpeCtCr6g4jT1vF34BPXPOuOF50EnnZVUriHgLkwYG3OH8JOHJENQ_xzn4e81ddgEj-xabWYp76AiwTPDmVJ1ToM7Sdz74yW1fIYfECdexk5VxKpiQgNVZefFvjttQsSilczJ5vO6Ax-vXabFVzh1I0zPvm7EiufKH7QTzsaw8wOc91VAkLfyoraVNAOIEE1yfPOtgN8fLhIrcI9uR-UohOQwkvMtltro6G5PrnzhNWfEKtkL_z-x4yBItYw9wZBWI_ShilzukRkRozJvW_NuW4znjGOF72NqP0z9XDv-wW9dowfiNI&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdEDvlgdsp8uo9pQa2kM3vRcd90TxUdtm9kllZUsIlSH4EExFFzmCWS9om-TyUpq4YOLkL5-9wrzfYAw4eCER0CNgr--gAQoh2fGfJiLWhf7mQJS3keXhe3SlL0tkLbS2HV6gmdyvBQKWbaeBgjp1cGamZULPUd_OO_E6ZNCkuTOyw-mb5WURm_5Q49RI_gw1NstnVURWsKbPb12n-G0QbIcKzFk_wVQ0yLivLjZInH6Z3-OqvQvE96niWAfo8Gy0wu9j2xlw1LZ-z-vUa4yfokd1PZGi7NeKNZ1kS33wh-JgZEdaE&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfGIPmx3J29fS0nugECx7Y-HT09rtnsYMPsmAaBImigt0TpNUkeBXRS6mPjBBWTMXphii5576jHBT5KSke9d39PifXK-r0wwhDQuFi46cLTLeBEQwflaujYIRC9zV25p7lqOD1UO4S2iO1gX2OnS1J0K1ETqZuz92m4IRUVedisI_I8Be47D5RQyoCBu0LX5MqeyD1PW3L07Oliy3HHn6hHbQhekjyGl6C7a9oMb3Ockub3lnZn6p8-zWuoO1nf8gU0cndfYx8kuAiQPlqIQ75Z1Z-wIEQElqNrSBBWMCG734jujRQ&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpeOt4if-IharlVrtC89zgX55bUf1LqU4tGvddeS6tz1jceuurZHaBZDUqhLx1GmbCCResCvhta1GB4PJ505uGgZ4CRmMGOeOLYdSgXwu5KWSXLgIZNDEM9XCxGwPX9OlozvE2ayzXS1-yKq0QJpdrMoqg_UpFTkPrmGgUZPeDm0Ea4-WnuJwC39f_H5Cw8_K-rcI5FOrzwD5upR5dM0WqJUvKMteROo8vi-gFo0QR1cPLcYfnbpVnm0JdLpIjP4OZ5x8RzFctOeOGznfC49-5d1pTudw5ke7AGRhRZV9_zy26MYV8Y&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcql0_cc8FoV5DpvtwyDHIijbRwi29McYkY4yEDsFXFZI3brkzHnOKMN9RTD9oXebiw1dbIsY19apPZW04733fma7WFa8Wa72b2Q_aHeDpx71n3wbdMnjEsxnqRXOkAvySX1npwNknDrsjBP5H_maFJ8dLdtvKidjJH-YVYb2SZJG1Yx291xGaUcnS46IPotHhImWFFU41MMN8Ek0GKWYoZj57syaArh50L5bnxd7bbRkgBza-0v_yyogkbBY_SALtBWwOIu_KUKR4v06C6hld5mi7R26AGAquTT5yLjzjWz6Z0MBw&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcy5rSPAODE6CM8CCA6DgZSbAGiw3QoNI2GKH7B23wBD8iMh-z8WDSuIwyRXUu4_EkxQnjAjbP1U84UNqP9ks3I1waADFx9qDBw87g9c815di3CEJ08rqd8KXzzs2Ag3WFYZdi7kNsrUGVMsozHs72jUECM2991fhgO8HWWS3k5RLX7jKcn32TJFuUVlrVpQXw83gTlH-ebdQtYxxK4ZJVaxUidvlTUlWuLX8KF0KOy13oYjaMeHTRqu6mf5XRb4zX7HUTrUBrgbD5zPBTE9hxPFYZAZJibBWQXPofhht0XyrJu0sk&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ]
+      },
+      "isCorrect": false,
+      "timestamp": 1751081360905
+    },
+    {
+      "query": "FURNITURE",
+      "result": {
+        "success": true,
+        "type": "web-search",
+        "name": "FURNITURE",
+        "address": "Jln Wan Siew, Kampung Sungai Chua, 43000 Kajang, Selangor, Malaysia",
+        "formattedAddress": "Jln Wan Siew, Kampung Sungai Chua, 43000 Kajang, Selangor, Malaysia",
+        "location": {
+          "latitude": 2.9873543,
+          "longitude": 101.7784651
+        },
+        "description": "Business found via web search: FURNITURE",
+        "confidence": 0.9,
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=2.9873543,101.7784651",
+        "isBusinessLocation": true,
+        "businessName": "FURNITURE",
+        "businessAddress": "Jln Wan Siew, Kampung Sungai Chua, 43000 Kajang, Selangor, Malaysia",
+        "businessCategory": "Business",
+        "businessConfidence": 0.9,
+        "processingTime": 3745,
+        "id": "temp-1751081629324",
+        "nearbyPlaces": [
+          {
+            "name": "Public Bank",
+            "type": "bank",
+            "distance": 351
+          },
+          {
+            "name": "E-Rack Solution Sdn. Bhd.",
+            "type": "store",
+            "distance": 394
+          },
+          {
+            "name": "POLIKLINIK PAKAR KANAK-KANAK DR SAIFUL",
+            "type": "doctor",
+            "distance": 396
+          },
+          {
+            "name": "Prestasi Concrete Sdn Bhd",
+            "type": "point of interest",
+            "distance": 409
+          },
+          {
+            "name": "Kajang Star Hotel",
+            "type": "lodging",
+            "distance": 410
+          },
+          {
+            "name": "Pembinaan Jemerlang Sdn. Bhd.",
+            "type": "point of interest",
+            "distance": 412
+          },
+          {
+            "name": "KAJANG PLASTER CEILING SDN BHD",
+            "type": "point of interest",
+            "distance": 430
+          },
+          {
+            "name": "STAR SALES & SERVICES SDN. BHD.",
+            "type": "point of interest",
+            "distance": 502
+          },
+          {
+            "name": "Sim Yew Enterprise Sdn Bhd",
+            "type": "point of interest",
+            "distance": 649
+          },
+          {
+            "name": "Kajang",
+            "type": "locality",
+            "distance": 1227
+          }
+        ],
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdpc2PeNQajca7VCNOJFckZGacKfv_GenDphgbU5vmsqDVuRjx4wPyuT9VOY5woYLBizWYjmYP_dNDx40W3msBcTXMuIJVgXF6saa3UQrwy7H23ygfvuFeqwUvwfHJ3R8fMj68XOTPvRpfWuz1Kwh9AEmCKahoVZqMnerKc5QpVlWcib0SnqZlcRa94xZ6Qx4zOTIC0cwoF6h46q6nHc9jZYEklIgBlyHs68mHTYtVu5IOM1wNd-GDJeE6r6dwCq4g_Luy_EtN0-WW8nuhNoj7wQ77Bxdf7LnEh8Imewofj0z1HVszF1EOaXpfuVGOU6DzEKi41C93EBCyjbKZeZAt4hw2tIh-DL_rz6wPv1qZaaGIbRg_tMSJlU2erXUJ2g2I8Np1GflcG7Pk5zrRO8lfq9t0ZfVfmQK5wsKGUySmDBnsomLulBpX9vZLCQB3ry0sD9_cS9zneMy0oChJ2neI7As--IRipR0U_zbnSGWy2XwuQGBMvHW2_mcMSQFptYjU8Yesiy50gREza60LGtp61YrmgtN77wFN_Fj2kF-3RslpUISC0lRkTRaSbtZ69vjDhc4pw&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfYL8sNTDLnA2pQ48rd_3Jt_s5px1owCZNhvou9O7dK8tU-_wK4UhNsk97WAL4rWrEE71sghw3tmQkhjYgzK-6x-bvCqSjVjalwiHwJSbukiFvfGWJcIW6maBDbUjKmFbyt4_o9Zti-Kqdue06ZXvGsCm4zPskWp4fM6efw19YZwuNL4b-oFMZD801LphACRalJ7UluFVFoJt3bp4DtMcxiJA38tGzbfn8oZTblAvtqlyGpvl6IdoLHYcfbEwA2GBBAVt04KSgGi8zS6abtRWQehkWkVfWsv1zzo53J1bYW9NjSgnU&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfv86xtz8Uw9SbuUSSTk4ADXalXXDdUZp3Yndfl6ZWyFdwLl9mcX2pqQgtM6DgIy2pxKP8ZPIsz7m5M1Zf01cZiQdto4n5fLVeQut0WocuSt1sozJfaTiIsdT9SQlliTDk5nCpL7HkaY9b9dNzAGB5bTIOo8q-nPP-s-4sHKp1hFW38bOW1ZBf7pW86iMoww80hcQhcqGdDHT9CRKZYH7rSos32Z3cV8k5Q_jJ3Q-81i-xEth94I27uiYv9mX1oC9MJEkeDjAoGCQnG6GIIWyV3dfPAxqB3hJJZzRwituRFbBz07b8&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfChZqgLB5I07-G1bjXPQIea3j_Eq-yeYQK_8y8QDgzStHNfLRKeybUL0d_FdsXAsmoOLiWrfFCW8aexh1_Wj68tF_8F86Nv-xz9eQ6z1-cFcklX-sLZ3sr3QZ9Hq_HCtF98_3JZAo4f67NlXQrYu1hg811T3gLwt8HlaKDOJlw0weVrOvFyMslw5juhr2Vr-JBnwYOvEltGnEV7DJdUKAfrLVDbu_JCpwMAoFsaxt1463Fx9mDnqrqWNFlCefuvg9CJ8pvX4Rh-d0DawGjBriMiIacm1K5kqiA7ZVJ2xvzIsHprxpsFY8ddREYqY3vh9lMNOi_Ddq-Yfbb2fB7U35wjg2SArqJNLVsW-ALKJykAWu0AXLdXbxeow4Ocfj_yVmnhZ7h3k-fsaoWLuBZTaoz6FqZ5Txig2gw_0Vslp3l16yNeUfoPXgiA6KCjaaheb8yaBjzqz152AZY1LP_VBfw_sxPY9JsE5oM_qOUH2ewBh6-2Tfje8Ri_q9_Eiz0zuEwgTLgeQPIr5HMXhAxs-PcBZ6CmSdUzcQWAKrZqAHcjP7Oi3tlPjox9arKfvHgbCRBgA&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpc25EVtrteYnoUvVKv_grIAzZ6QlNelMHnxpJ8-KwoV3IkxtWnShRfYXMQttsLprw1MSvVmtOvYCmDQ53Htm4l_KCjLDoHhF2-alIVdn98zClfTEG1SeghWROPaicfQv6l-JYXIIk35ZjUGmop5Ys0Nl-wYaF8xFt-xfSAQwo6rU0I3eDS9ai_w0rp3E12WbKeP8TX2ici81QBY3gWi0S79eMR4ZiklRE8Gg0KqZBzfWj7p4PiZz7RqePzi1ymKJwEqb6KNcp-aT3_oMSI05wkA-HKbb7MMf90XnFrIusFrgvAMs36dssS1899BFpouDDnFHUcgG7YNJo33JOI0N3kBKBy2h2rag8Bs6HTDobbEgJLgq13xa3HBxEYySfYUGDfuhKvnt7o5LMUyAqN1jcPf_q5ygoaAVc3TyZOBCRMi0tfl7TV7Xid3U3Fb7oBjafxfChMKR1cO-EpP3wmPA5NNOifDFBhCoh4RUqNGgh30ErGSVsFaRdfeiaKDAzegZFAAwGmOkRq8efjcBee4pCVKLJB1LQoesdb3gjFbeqJSDhaClGkhKhk0EGIHfsaZm3o2u6HP&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcLifPyqMhq0moZRccYkPhtcZCSGkv23di3BDlQE5yf3OlAN2lv0HCa4ttHXwSqSdYqHDwqr89Je9IBgfastJ9pb25zK2jYCJ87jawk_XNt4OWNeAwCpanbDxxD1F7sWUr_T7fwDXiBDiizeM0ZWUfJHrOTFFiIzhqzE_7GZ4J4uxQUkqZ27a39HMiCb5qyd6JBH1Y1T4Q3n-Hs0DCEij9yj3mAqkfG58Ju6tAYmWjDxQQHiuTo1LU8VEEoLf1ULD_NeQpxELvcGACOJHktAkJIZDAl_GTmmRcBb9ZY_j8CpG-jtZo&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ]
+      },
+      "isCorrect": false,
+      "timestamp": 1751081695906
+    },
+    {
+      "query": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+      "result": {
+        "success": true,
+        "type": "web-search",
+        "name": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "address": "310 Deansgate, Manchester M3 4HE, United Kingdom",
+        "formattedAddress": "310 Deansgate, Manchester M3 4HE, United Kingdom",
+        "location": {
+          "latitude": 53.4763651,
+          "longitude": -2.2510552
+        },
+        "description": "Business found via web search: ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "confidence": 0.9,
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=53.4763651,-2.2510552",
+        "isBusinessLocation": true,
+        "businessName": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "businessAddress": "310 Deansgate, Manchester M3 4HE, United Kingdom",
+        "businessCategory": "Business",
+        "businessConfidence": 0.9,
+        "processingTime": 5081,
+        "id": "temp-1751082121367",
+        "nearbyPlaces": [
+          {
+            "name": "Hilton Manchester Deansgate",
+            "type": "lodging",
+            "distance": 94
+          },
+          {
+            "name": "The Edwardian Manchester, A Radisson Collection Hotel",
+            "type": "lodging",
+            "distance": 295
+          },
+          {
+            "name": "The Midland",
+            "type": "lodging",
+            "distance": 420
+          },
+          {
+            "name": "Premier Inn Manchester Central hotel",
+            "type": "restaurant",
+            "distance": 429
+          },
+          {
+            "name": "Manchester Marriott Victoria & Albert Hotel",
+            "type": "lodging",
+            "distance": 518
+          },
+          {
+            "name": "Novotel Manchester Centre",
+            "type": "restaurant",
+            "distance": 641
+          },
+          {
+            "name": "ibis Manchester Centre 96 Portland Street",
+            "type": "lodging",
+            "distance": 692
+          },
+          {
+            "name": "Manchester",
+            "type": "locality",
+            "distance": 741
+          },
+          {
+            "name": "Kimpton Clocktower Hotel",
+            "type": "bar",
+            "distance": 743
+          },
+          {
+            "name": "Holiday Inn Express Manchester Cc - Oxford Road by IHG",
+            "type": "lodging",
+            "distance": 779
+          }
+        ],
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfJmSG9C0pSyjY39XXI2W4a1K8piExPi4ne7lLCZgPOug3ktm8_V5a6DBdtDrdxF7zLzmqcg2BpIWHn9w3owQICtVWVc6L67oQ3Mbwq_UWb9Bsb3Ee_WCjInh2UJxh0rdXmFShzEyvYXsmBj_QWrXV3PujwQzP3FUxjLCZU_4iigTO5gyJy6B_IC41uCG-pszVsxjMyttrFDgoIqonxqYMjCaYCMdxjzA5pU1IaiJXJ5OeFQRliPLCtOan6NOpO0bJf8ZW3L-IHxXu0YnvlWDatlDHITyJq7dRrdMTwm3giyFgxbXMPK-YE-rg9RdxCquFN2GR5Oq8Qmoq-NRXQwd6NYYgq3PY4LGDDI5Ospje3wA2T6aA6wQzF1Fe6nINoMUmSC6zDh6izTkUFfLgtHSkM3qIl4ax8VNeEWiRge3aS4KfJsFBMI5iwez7h6K7YDxUflxBg5QA7jTpanOb9pCrG53wY-EIRbYXk2-srKI3tF10zEcyBCt053hkdxzoGcYSfR4GvG5PlJ1oNmQMvrfwr2oH5LtDqAJMR9Zd9n5nlw-6hfWeNeiEKeSFnOh_ixJz9yg&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdIV1pnmkde0h_n6WlpCVyI78Zh0VKd9WFc5AOegODij3-tdkfQ0SAy40mzUWbir-KftSOLiOrDq2UXj5BFnTs6HZULMDUzi6qxy12LLwjvxqO7C-QYcLbg8zUp_6HW594Nf1jrn0jxOmxYKwCQ34Cq0VgR1D3LGPcLtO4iM90IsOIjShX8BCkFe94PeK85_xcx1RDdrn3yS-JPthBBunINbAD8iKKOEfa6N14YifZ7II76ouiHJx2ODAcEZRD5gMVTUCKTvSyMVUfwtlqrtD0zNGUkl2y_SmiRBO25ZyfagLycoxg&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcTiBcg6ZlSIxybcnNrw5VBD4GiU5FAg0E_oRjG2xZRzXmjzLHWj7DQ5BpIEhBVtMnZdXv6R-yY3cga_JW-GzTlJ2DUz88ebM4_gzwcl7uU5jvcf5gB6OPztfMMRAdNEl7fb1SkUKoe9n93qjTdBmmFF1J4blSFn63OQz5bpYVItIC4LLNa_pYPAJ-sgk09QrTrZKipMt26X8jby5UaTSzt2k4nfRhSjYFud4MGiGpf2TSIHV_pemwRw6r4IXY538il7Gzm9H5zEuE1g7ID-hB9dgJcWkyyurc8HKrLp5zHKZi_GNDcpFVIiu-rvyb5S7B8pCSlyk35PctOnScDgWLpNZR8eTep5v0O5uPL7DihIVfIXBIEV935bY7vEB8yFE5eMiraA25REyi34Yo2X4AqDT-RQzcICiiKsNcrCR1eMv4kxIk0bUKEE-7zzD9EfUB4uJ26-pZ6ouHVZLuz79_FtkZjfnFvll5_X5xWff6Xi-k5d_JGSof4H6zsbxiK7xMc-ixVcBu32yeWFgISuSBxkgK__DMZWm1aojwyryxbTkCWuxnuBmjjC3g4-FwS3zMuKau5&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdOzFtOidQJZcp0HTTBHBQsiwIL_cu3EV9XZTZNbakbSLBhPBQOiq5533kZyuVWtG_9RVsl2U8Via_vM94Cz-0zlcUwMOW8p0l15P-XQVkvl34o7rkpWAYmk7vqCzDCStQr-QBBpWNYaSkYct6M5XgowP74qzlFLSa2SAlYbXhrlR0GRDJY-mXs5s-ftxUymaqw6G83F6DCPUljfyLiZUHz6DSbYQSBLGlNJ-KATugJ6LOhdM0e_2AOGF21J-sy9_kNZK9FvqnR4T6ZrGJokcE3EJAWOEAMR70K4adK_0l6N28tqwHfzeLB6JdXc3aUhy-pADQKXJfSvcS8IK2M7F4tmPsRdXBM4TuY-VIMNlqUqReXxOUO4-BExBet7z6JSw362IfpNxePwwOpSmCJlksgqbzH04NcU_kGTlUbY_5gjXbZ82FXT-6yj6EDRiDdc0rOWmN1DfuDRCs3khKMw5aQZLXQtAQxFk8HjFHcgDeITYAQyUQTuL2wZ5AEl54Bms-iFlj8OQTJbff7rS2V_0i1NuKEhJdGvBvHuc3xMavIi86VNUre6a4CFrwcd1XI8N21p2oL&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpeeHA2lYfDFaz5MQMCDyZRIQh99oMBLoEk11hy8Kst5xUxMvJjeLp5sRT6lCu9EtxxOB9MtGXt8RBFS_4VEmqGTfO6dMuVB_jaTi-gHQQKUhCgWODsuhoHiq6qpY0FQQXKMN8LjqktZm-mQlFkKb7RX9A7SVfyhwh0M1D6oll9oIdDccP6rQtpeibILwPs0sg0RIpu0-ow4JcCBIc9vT1JnVFACYp_d8OcnwC8XuzePcZUtIAjvXc12xKjEPGKdzKucFDmQr9Z-uZbWa7iWJoCH7HuoH46iN2hDoJ9x9zuyNRTFvCA&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdprmfEsmoKPfF0GHl-PeLedHf3wqaWZEq58einolUDdA9F3li3uDg3tHLg4z5lmKeIXAZe1Wq0iS4kg3V9imqYRA1o7fn8oHkV4ru4b1iTDJQwt8DFTtcQ9PsQ8GtSjjQcI_rsondrnFc0dqyO2O7XD-OnA0EalxwrFAohMqGVRza5pxUAbOVqilKF2wRerQKr0fGVxU80OxGeaG0sTmOmIDlOoOz-QuyyI4Kp7InXrRY3iVjbyalNEe0qVxs4F4gxRZGEJn2oVLC9RexONROq4DOgzNsG2sDgo3r31jI3ebijCfwAW5NS9YamPXcmY3vEelqp-G7IF4lwtf93_53_wPrUn-YRMPt1zB3XdsV2-LcEAiSthR8TAkS8kHQXqG6KM0HJV98AjdMSWVnhv9JTM1qyGa1CtBUPYiT4l2vwR4agc7Szx6SAhy1gmanMr0O5PKYU_Rib_GJnBM7vNDCF7PGUJQAVdghksiQKoIRgiU7mdT5bd4-FkuxxMbNy90vWEC0IsUmwVjHNSLtkhilwaK732tJePhs9Q8VibyzA3oC3QVBwFlZnPIow765Q6MMQ-lKQ&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ]
+      },
+      "isCorrect": false,
+      "timestamp": 1751082582483
+    },
+    {
+      "query": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+      "result": {
+        "success": true,
+        "type": "web-search",
+        "name": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "address": "310 Deansgate, Manchester M3 4HE, United Kingdom",
+        "formattedAddress": "310 Deansgate, Manchester M3 4HE, United Kingdom",
+        "location": {
+          "latitude": 53.4763651,
+          "longitude": -2.2510552
+        },
+        "description": "Business found via web search: ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "confidence": 0.9,
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=53.4763651,-2.2510552",
+        "isBusinessLocation": true,
+        "businessName": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "businessAddress": "310 Deansgate, Manchester M3 4HE, United Kingdom",
+        "businessCategory": "Business",
+        "businessConfidence": 0.9,
+        "processingTime": 5081,
+        "id": "temp-1751082121367",
+        "nearbyPlaces": [
+          {
+            "name": "Hilton Manchester Deansgate",
+            "type": "lodging",
+            "distance": 94
+          },
+          {
+            "name": "The Edwardian Manchester, A Radisson Collection Hotel",
+            "type": "lodging",
+            "distance": 295
+          },
+          {
+            "name": "The Midland",
+            "type": "lodging",
+            "distance": 420
+          },
+          {
+            "name": "Premier Inn Manchester Central hotel",
+            "type": "restaurant",
+            "distance": 429
+          },
+          {
+            "name": "Manchester Marriott Victoria & Albert Hotel",
+            "type": "lodging",
+            "distance": 518
+          },
+          {
+            "name": "Novotel Manchester Centre",
+            "type": "restaurant",
+            "distance": 641
+          },
+          {
+            "name": "ibis Manchester Centre 96 Portland Street",
+            "type": "lodging",
+            "distance": 692
+          },
+          {
+            "name": "Manchester",
+            "type": "locality",
+            "distance": 741
+          },
+          {
+            "name": "Kimpton Clocktower Hotel",
+            "type": "bar",
+            "distance": 743
+          },
+          {
+            "name": "Holiday Inn Express Manchester Cc - Oxford Road by IHG",
+            "type": "lodging",
+            "distance": 779
+          }
+        ],
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfJmSG9C0pSyjY39XXI2W4a1K8piExPi4ne7lLCZgPOug3ktm8_V5a6DBdtDrdxF7zLzmqcg2BpIWHn9w3owQICtVWVc6L67oQ3Mbwq_UWb9Bsb3Ee_WCjInh2UJxh0rdXmFShzEyvYXsmBj_QWrXV3PujwQzP3FUxjLCZU_4iigTO5gyJy6B_IC41uCG-pszVsxjMyttrFDgoIqonxqYMjCaYCMdxjzA5pU1IaiJXJ5OeFQRliPLCtOan6NOpO0bJf8ZW3L-IHxXu0YnvlWDatlDHITyJq7dRrdMTwm3giyFgxbXMPK-YE-rg9RdxCquFN2GR5Oq8Qmoq-NRXQwd6NYYgq3PY4LGDDI5Ospje3wA2T6aA6wQzF1Fe6nINoMUmSC6zDh6izTkUFfLgtHSkM3qIl4ax8VNeEWiRge3aS4KfJsFBMI5iwez7h6K7YDxUflxBg5QA7jTpanOb9pCrG53wY-EIRbYXk2-srKI3tF10zEcyBCt053hkdxzoGcYSfR4GvG5PlJ1oNmQMvrfwr2oH5LtDqAJMR9Zd9n5nlw-6hfWeNeiEKeSFnOh_ixJz9yg&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdIV1pnmkde0h_n6WlpCVyI78Zh0VKd9WFc5AOegODij3-tdkfQ0SAy40mzUWbir-KftSOLiOrDq2UXj5BFnTs6HZULMDUzi6qxy12LLwjvxqO7C-QYcLbg8zUp_6HW594Nf1jrn0jxOmxYKwCQ34Cq0VgR1D3LGPcLtO4iM90IsOIjShX8BCkFe94PeK85_xcx1RDdrn3yS-JPthBBunINbAD8iKKOEfa6N14YifZ7II76ouiHJx2ODAcEZRD5gMVTUCKTvSyMVUfwtlqrtD0zNGUkl2y_SmiRBO25ZyfagLycoxg&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcTiBcg6ZlSIxybcnNrw5VBD4GiU5FAg0E_oRjG2xZRzXmjzLHWj7DQ5BpIEhBVtMnZdXv6R-yY3cga_JW-GzTlJ2DUz88ebM4_gzwcl7uU5jvcf5gB6OPztfMMRAdNEl7fb1SkUKoe9n93qjTdBmmFF1J4blSFn63OQz5bpYVItIC4LLNa_pYPAJ-sgk09QrTrZKipMt26X8jby5UaTSzt2k4nfRhSjYFud4MGiGpf2TSIHV_pemwRw6r4IXY538il7Gzm9H5zEuE1g7ID-hB9dgJcWkyyurc8HKrLp5zHKZi_GNDcpFVIiu-rvyb5S7B8pCSlyk35PctOnScDgWLpNZR8eTep5v0O5uPL7DihIVfIXBIEV935bY7vEB8yFE5eMiraA25REyi34Yo2X4AqDT-RQzcICiiKsNcrCR1eMv4kxIk0bUKEE-7zzD9EfUB4uJ26-pZ6ouHVZLuz79_FtkZjfnFvll5_X5xWff6Xi-k5d_JGSof4H6zsbxiK7xMc-ixVcBu32yeWFgISuSBxkgK__DMZWm1aojwyryxbTkCWuxnuBmjjC3g4-FwS3zMuKau5&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdOzFtOidQJZcp0HTTBHBQsiwIL_cu3EV9XZTZNbakbSLBhPBQOiq5533kZyuVWtG_9RVsl2U8Via_vM94Cz-0zlcUwMOW8p0l15P-XQVkvl34o7rkpWAYmk7vqCzDCStQr-QBBpWNYaSkYct6M5XgowP74qzlFLSa2SAlYbXhrlR0GRDJY-mXs5s-ftxUymaqw6G83F6DCPUljfyLiZUHz6DSbYQSBLGlNJ-KATugJ6LOhdM0e_2AOGF21J-sy9_kNZK9FvqnR4T6ZrGJokcE3EJAWOEAMR70K4adK_0l6N28tqwHfzeLB6JdXc3aUhy-pADQKXJfSvcS8IK2M7F4tmPsRdXBM4TuY-VIMNlqUqReXxOUO4-BExBet7z6JSw362IfpNxePwwOpSmCJlksgqbzH04NcU_kGTlUbY_5gjXbZ82FXT-6yj6EDRiDdc0rOWmN1DfuDRCs3khKMw5aQZLXQtAQxFk8HjFHcgDeITYAQyUQTuL2wZ5AEl54Bms-iFlj8OQTJbff7rS2V_0i1NuKEhJdGvBvHuc3xMavIi86VNUre6a4CFrwcd1XI8N21p2oL&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpeeHA2lYfDFaz5MQMCDyZRIQh99oMBLoEk11hy8Kst5xUxMvJjeLp5sRT6lCu9EtxxOB9MtGXt8RBFS_4VEmqGTfO6dMuVB_jaTi-gHQQKUhCgWODsuhoHiq6qpY0FQQXKMN8LjqktZm-mQlFkKb7RX9A7SVfyhwh0M1D6oll9oIdDccP6rQtpeibILwPs0sg0RIpu0-ow4JcCBIc9vT1JnVFACYp_d8OcnwC8XuzePcZUtIAjvXc12xKjEPGKdzKucFDmQr9Z-uZbWa7iWJoCH7HuoH46iN2hDoJ9x9zuyNRTFvCA&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdprmfEsmoKPfF0GHl-PeLedHf3wqaWZEq58einolUDdA9F3li3uDg3tHLg4z5lmKeIXAZe1Wq0iS4kg3V9imqYRA1o7fn8oHkV4ru4b1iTDJQwt8DFTtcQ9PsQ8GtSjjQcI_rsondrnFc0dqyO2O7XD-OnA0EalxwrFAohMqGVRza5pxUAbOVqilKF2wRerQKr0fGVxU80OxGeaG0sTmOmIDlOoOz-QuyyI4Kp7InXrRY3iVjbyalNEe0qVxs4F4gxRZGEJn2oVLC9RexONROq4DOgzNsG2sDgo3r31jI3ebijCfwAW5NS9YamPXcmY3vEelqp-G7IF4lwtf93_53_wPrUn-YRMPt1zB3XdsV2-LcEAiSthR8TAkS8kHQXqG6KM0HJV98AjdMSWVnhv9JTM1qyGa1CtBUPYiT4l2vwR4agc7Szx6SAhy1gmanMr0O5PKYU_Rib_GJnBM7vNDCF7PGUJQAVdghksiQKoIRgiU7mdT5bd4-FkuxxMbNy90vWEC0IsUmwVjHNSLtkhilwaK732tJePhs9Q8VibyzA3oC3QVBwFlZnPIow765Q6MMQ-lKQ&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ]
+      },
+      "isCorrect": false,
+      "timestamp": 1751082582501
+    },
+    {
+      "query": "RIGHT CHOICE, SWEET HOME TURKIYE FURNITURE",
+      "result": {
+        "success": true,
+        "type": "text-based-location",
+        "name": "RIGHT CHOICE, SWEET HOME TURKIYE FURNITURE",
+        "address": "Türkiye",
+        "formattedAddress": "Türkiye",
+        "location": {
+          "latitude": 38.963745,
+          "longitude": 35.243322
+        },
+        "description": "Location identified from text: \"RIGHT CHOICE, SWEET HOME TURKIYE FURNITURE\"",
+        "confidence": 0.8,
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=38.963745,35.243322",
+        "placeId": "ChIJcSZPllwVsBQRKl9iKtTb2UA",
+        "addressComponents": [
+          {
+            "long_name": "Türkiye",
+            "short_name": "TR",
+            "types": [
+              "country",
+              "political"
+            ]
+          }
+        ],
+        "isBusinessLocation": true,
+        "businessName": "RIGHT CHOICE, SWEET HOME TURKIYE FURNITURE",
+        "businessAddress": "Türkiye",
+        "businessCategory": "Business",
+        "businessConfidence": 0.8,
+        "processingTime": 2457,
+        "id": "temp-1751082781382",
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpeMjHBvVA_X3m3rEgdzyCvS_U-q-6ZLGcX0hvwmdnAiO3FlxyloaD3Mdf1MTGnj0AZFwfdIhtitPja_mfFJVcH-pZK4xvuMnGjt2aZhjvyEejB1NhvH_Gx3ChnF4f81ThtbWuBy-4xqcVfrzxnNcUzn7gfhVbRxq1S99JzylRThHgfg1Ii5lhAPglgUHjPCmtNxpvJ7y-BWkoHuLxn8ukeG_SDQCJ4LEfQL_JBLkLPy0HBbSzH1B78DFQv9Ptfx2NzMtmq9hdrVxFgC9EN35qpbbWPrkfeLlYSa6EE2SyN3jSMqeYs6TTqm438xscfMu9Nu-YrqxKUuOLi56QbjUb8UnLjKx4hyN2WcNNh4eITPzYc6Ww-3oLXGU-40vNuHxSBiv89LIzFte_2jM4RatPE1P_MpCG6woQJaCxqEmmc7laNDymRb8AeDrxA9OA2wojg1tPgbnmvrjqdYAJ6qGasirPsKsdPsFECc0QsGPN05pTnoyjGy9Y5nswvgafa0TvCeXyldeRRSZIU0cAiCe1F4zE2rwVN_2hl66681I2Kddk8lERzoBieRzQ5rpp1eKIMz6deWtMyse8dTVkPNHtcmtpKflAZmkBdeA84vZdr1WX1wbORlabQ_qtwiAgiEfXXdVQ&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpd5HVUt27PjEy04fax9yBDVk2rGG-hZMdJZSG7ynBrUeRqVsdiq9iEmsfemBjORx-WFxE9cA-Pu6OtUDyCImhMX25RXIlxM9L_DcSbI3N4I0xapSLyoWFffjaRUcIVGb2QA-RWjmwae9aGN8_bC3GLDpvFVuidiEYf9WgHUHjX7ZeZMlGRbHy4ngiCt4SmQdJuMaFKK8Tl2gMu2ohXlSo7xvTVnhxhHa4wVG_dHZM2k8f5MMWHJvqgmvUWWCXc48Cini6kpGCc7-0hv_0sDswtKDp9gP1Feq8eowT0sWCn94eCbAhe6wLjWvtcEudtayl7Sj_AbU0OP3gHCBb3uPbwj7E_IUwOZil0TgqMY499j5xILfaI18p4y8aGgeIXP44qAzDSBqhPFhLB19q4BSeWr9yy5OjVwUAMWV3WoVM94GBi8VnwMGkp_KqSsOMmTlqxn3JL_--StVTYBmetf6Kxsnyx1yUZTlF-b1wnfbE-R53ZPkCZcJiejzIwP2JVxK9gAKJ87tNx3d5oLDaVMY0UHpCkze7xCMRXTG0CRV-jT4u-exIcajZgleRzBRfXCqhrZ_D4HhFUXCkOAAJC3zJ41lo_zIT9JS3NMokpA42WmEp_PmOZL1RzdmOzEKwehhewgLg&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpeJLUgmFzXOVqHYgm8vWxsGIgfzhLQOsQXWD70eaHAm2ldzXqfbfaEZEib_OuieKF4NsAbHb0p9TKA_WHT1fvlQ7PNlIc_44W879dnJEAV1-DcojhrMWa-xBJH0h1D7p5Yv_0-Ml_iMiaKZdk8yr-VJXgTfedF3c2RqD7M-d8rBiLWijyJ5yf4_L_m6S9c1jt6rE1Wijr0NSLWGvMsHEkXGeTueD9ffJiSse_ibZiYgM8LoEpWeLN9ZT4uQ5i6yE3Cka9fY09iRax4KOGs4IAlYVhDFhODLPeXfQsbxsSXISuxp6V3wNOHJQylGb_EahpZJyB0-_lCzrFcXO-LVMlNlBdJ8HqB4HCRHNf6Mk8r4zlGr8nvzkTpteXMSDFVl34VTM25VIat8bUp6HYNpbcn6RQc1tpRClTpPmnLA-ps5YUjIag_vunykwm8UzY727Y-QmCWbJ_ttzRgYT9xV91BFmK1JCCYDJoBCgFs8m8VCLGzEjS1jktoQc7J5V2GJbJgxCYx9ujlv3PWCv4QPjH0aUx9PwH6Qt6SWOlbvm0QuAeR9PyeKzF9-SpOD1UjOCPb8-Ny6F04_If7Kvku6ot_l_NaD5yQLVSY5fHWnQ-XTJfthYtPTc2DTI8oRkQeqkSPELfBp&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpf7iKEdpjGt15W-MTs-sD0jh2kRvZzyY-S0MedVUOEGAOKwB74gNTCAKhkFVHB60CX6r3Gvh0r5IWKRWYQqyS_MN0MjLR8HpRxa8dFY0CwPCiX3zetHDtx_5RzIv2JjaXuyFOcoR40OVE1K45BxDxt7HvVc9dv5qoGSIRtGvotj8ny8h6UH6bgRuB8AX2JsmUBZYW3Wu1RfaBN2G_MSRa1rnznBUxLYFuDwPL1EtF-1QCcEztpTzBmfGJdykyNMMGRiowxhVWOWcnd2ON3nevhkE7gG7RTNUuRUZ9mozEPh0UEpJtp3Ewp14l2ClShpJeWcXWv_G78yNgkHn_1S-xcOuQW9kiot8g2p4dJurytG33AZ7fizRNwx_CByjn-4OpEeJa1C7sk23J6lFilX14PAP8EJDRuEas0KLz1kusefIOZ7ljFJNZy5TuExGi8pWlGr-QzeMZRO-3lD37o8xdQaP9jq_vN4Dc7jNUTjx_MKSFSlTo2HhFVxOQfsuvggZhDMqzQNrpILNITenNDtN-xkJEbj9e5asx4eILYE1ZTQaUFn2PrlyRzZsFqrv9cb1zVJLypezKUimVE5qRr_ULP_BDyRQ9uF7d8vLt1dYIgydmgvICXe0ksQefWHp5vdGOMXlA&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpcZGvNipDVG5jousiv5wq8BT_CssPzNbLCffgW9fx0sW95cAC1wQ-rKHJr1F0jaL_HjmVUaERQL9HfsaBTrv_zB1r3Wcn2e-3008_6zEA90ba3vhG7FrpXZDx3OwhEEExHOgd4jG8Fvg28FB3Ox4P1rLfcx0uFP3TISIwouT8u2lRan9AXP-xjAsxhsghBgBI2eHbe4E1scoBFEyOxeLIpMMqOytLX_U7tdGC-fWZzhAVkbrCB9Gd6OeoceFhgESwdqqZDEHdFRQ0FKicjd0R6yMWduSwIFbXGXsUdYlVpomZV45iqII00fJNj20FXhFt9MTw1IGkKDWJTDhxnBilrwWjt3ZG-4Ig-TFj4AElCJv--GPmRemUfXS2G4cKMb9yH77rlZp9ZOoJwO6CxcdZ-bMr_LGSvrVvCXhemyXmgbh5KsBWEaDAkCBd-avop0ctZqq4oI0hz46z6yx9a7rVle-AkcMSqz4t_f_dhqs5lWat3HhGTImBgbBvleVTbjfJGXXYdn_Q5BivFpruapPPNw-Da08Md09R1656tJbIrQARAUmLXub-qL9Uh0bwl5sgkLF0GhNpLmp9IefLU-FQMyg3b6grbdKGXpUNOzpcUZAnv8C0fmdVV-L38gmGq5&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpef-MI8Z56ipx-irfqSZTfqOqUmRKFWvJsx3GFSOQXmRbd1lx4GnXap9xN3PY_KFEFm1Jl2fK-HDJp9CgdaAqUSIzYzKPS7IxL7A1fMsUPU71QXYoMegNaxYrMXrGICEjx7Nm1v7c1-f0vh8S92WFLbFCqPn0bIxb2dV1EbdIJGEis909S1BSWPsv-4bH9vbAbaQ0Wg6mEFGA71PThMQg8OjLqDOAfFmdzIeOUerTQrlqnsBo7sgDgrzsXxdkMUetZgEsrPl3I3jMXsUxbjaINpqOMtjd4aS3rFHH1OuY1LFYxPyFa5v-HOVUdO6aXUePPL5phwGbY0K_QPSlchQpqh58wywtyXDgyQci5-YKBaf6Gv6eqIASl6E-GB7FCoUf1ZhnllAiQxkhpurHTLrLoBYznocTTMK8qJ5iHTVb5bjD_Y2jLHF-25S6X-xtPQDE72lKMkPA_a62DFk7niJ88fghKWEE4PY1l6xJOWo1BImx-GZysPczcd2mMNuOOq3uQS1_bbDVAxs2nCSRF4jeLuen1znKWX8yM-vSwXejqlL8wYIvQYJ8oThm4sXqOC0FGKyw90EX7EAcBB-s8dYRRFTmapaVeTkpat2mxgJufXM648VTRmRGVijkwUPQgO-VUBh5-D&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ],
+        "website": "http://www.turkiye.gov.tr/",
+        "reviews": [],
+        "types": [
+          "country",
+          "political"
+        ]
+      },
+      "isCorrect": false,
+      "timestamp": 1751083019868
+    },
+    {
+      "query": "RIGHT CHOICE, SWEET HOME TURKIYE FURNITURE",
+      "result": {
+        "success": true,
+        "type": "text-based-location",
+        "name": "RIGHT CHOICE, SWEET HOME TURKIYE FURNITURE",
+        "address": "Türkiye",
+        "formattedAddress": "Türkiye",
+        "location": {
+          "latitude": 38.963745,
+          "longitude": 35.243322
+        },
+        "description": "Location identified from text: \"RIGHT CHOICE, SWEET HOME TURKIYE FURNITURE\"",
+        "confidence": 0.8,
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=38.963745,35.243322",
+        "placeId": "ChIJcSZPllwVsBQRKl9iKtTb2UA",
+        "addressComponents": [
+          {
+            "long_name": "Türkiye",
+            "short_name": "TR",
+            "types": [
+              "country",
+              "political"
+            ]
+          }
+        ],
+        "isBusinessLocation": true,
+        "businessName": "RIGHT CHOICE, SWEET HOME TURKIYE FURNITURE",
+        "businessAddress": "Türkiye",
+        "businessCategory": "Business",
+        "businessConfidence": 0.8,
+        "processingTime": 4812,
+        "id": "temp-1751083042854",
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpd3KzMb1rw5exFXMKX3T03yJEGZQ00mX0Di5bhPg3MTiB6qrtsTCpRBsIbo90CDPQYi7U6vTmk9-OPfuLk1DLA4HpFsOirY3rGXG8599ACKcAIVmt8cNihWG3dQ3QrhAaroRgM-hjuG3-MSpbaYtq6EqcOHkM_BnphEQZMJVt9kisGx1KsfLLzCaxs96HgIDFr6WEPpFSJ8kL8wcZm0lm-lwAerp0bPXFbYZ5P7MF3Yul_s6N0f2yhi__nZLFdukstf7k1EPmB-ncIqkCQBOZTVxenlfNWWBb8bsYw55j5Vv4pRMN9QXnm5b6gZnurXmWztfS9Rz7XLKUbRuJ-fCzuMCPWTlBzgyUQR0EVp7prFz8CQ1La7Bsh8j0sNuMOrj4boXDSmgABcKKAnGEUZw4tAcM8E0yT4pzQ-n4wlUC-0kS8Xi1qZ0xWmIe0wYvKYigDG7VIdAaGPGn1QeWh6hmmO28i-YYe9eRaPtQt5JnIQRhN2sX_TTccEbBBzSyez0LnfgdMaVwXuSRRDJ0xsxRBJzn7hBAu4K-Uwt9fJRLo1DSwlDGzshe9dO02nZd8HXs-AE0VMyMq5W90P4fJvnbYJtPYvTe2wN4RfvZnDamvHuKaSr5_DZmwajsQ9WieB9KTgwA&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpe8ZwsUdZQik7xxICpzFHNND5zgW33KFlJEUZOVKd6o4fwgEMcwhRn70qtiqJTGzp2Ee8Q9xk9DyNJCjePolUoWW8utRKuxA81HmygL7kdzqQKhfRox3IHOBCj6gGB9dKvYByhb9n9TsqnZG9a6nPs9mk83_4CtSfoN6Um8bzqo1uq3NWqMq9STbG2mfQFFeDb37D-QQo5-YQDkl-sx-7npztaRxQ7YXDe7thVksUuH4Jyd4lI5BVme9PnbrVW0-W0b_8jmbLq3mosxMbwdRJ6d9m134e56kvqeel_EPjqzzlZDoTGC0mA8ByZNL3M86SBqpIwB7c5sH2f6seKa8XfCwwaxt3ZZ_2lb_qkrJpVfBhHebwEr85pGtqG4iZvITZUZCZQRBtNoyxwg2gy_eDxn2l9A95Zo4KbUKZltZgY0eEaK8yT1rtPn-JCmN5USwoEqRFSSm0tNnLtoj50gi62pvGRBbytEIljlPgbqD6eOA35F223oRMrOR6WzcVgP7INAUJNCdqnUZpy6ElDziUydyCiYCVxnJtzgYnPMaImmfvYHsgXbAd8w_tCrq1mY-DQTHhvASXG76ED67HPnnt7vdVXsdXVDScSatPryOoF3o4n0PhdPHlwb9XD82ZGhjWtsYA&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpdGOpWhCVreDrbPIdXGeFBL_yXxzrxr2a2Noa4jRJxmIcp1jvMBl-wW59_y8BvtutVzHwNJEmsV-yzeMVNcATpYVW5rUh4KHFYhR0pBIfxtfUGdIqHtZ3Em9equFH6wdk7pd8Bw5gE8qGXsiVJStDGtq0u8Seqvn_act00qyJd84X2kGjSWp64DTATl46nk1IBrpZrhlJGdfN2PPHlmvk1G5KpBPmYH_X9pGfHJA9gcc-gqG8L0BTQu0QFf3paeNZb1MfSEVtxM9xiFRlyzH1cSTyWFDCrudtU67k_oesP6fwVCJG1xXZPVl8SysI169MFy0RvH1sfjNjuBpRNTxyDs9ZndhHpMDV6sI3NwN5BrZgXNoh2PTRf7XmFuFktd13BXALAZB34Q0V4j5ApEn8nFik5eOlaxiPRKDivUVueVQne9INlj_xQcgxL0Tsfsq3QGDsSQ9m5NNTzbacPwEJUAyXrKyONCtr9-XWhBAM14qGMhlV7x_rly-va6jPjHmE3gMZ-MqOkZLvSkPta5C8yneMNi7hbJlDKOhz5BKQ7ZsxOL_rraXKvXnnu7UNB_xFd7Fv-utU870v1yCEpiAzxgf4kTpUGM3uG0sj5_8Ye2r53uj-wd8dpTPJOi2XENWOisIy1H&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpfHWTix44DfY85FaIOddHdHIYgGAPxNLp3filWDPWlq97BGiBnxfrn5oJFcYFEwzLlOYR7OSN0sWrKwKcPDXYqpqMHNCSG7At3uyfZ6l1ZW6SXRxbrrSPY68k8CsSchjcxCKtuZTAjE67ikO5YtqVKEBx6gS-7ItUYG8oYkT-_14I141KqkKCt8WNkKPQtIUUMUOUeldYLkn7VDnNQfNEBbZDswXX9Zc3ImOgaf3c138aNI19Id8Qb_13uT35xHlCAOxWzdvYIwCc265gQSS_4VDSJus5R7QqLPuVs_mJIFjS2QAY3xLJUpxHWtATLI7TFgnkpCLhwoDBkStAPS8zhEuzY97nYTu77ScDB6-NFrapRXRwygN-JF-8TkY6p6esCqLGYcM6gWfkRjkW_E-Iy7xyp16nMOM_crbSAwl3zCcrTufgck0E4NyXFBOimO05xTj0Qm0Zq248JQqZZFGqy7YCGwsgtvyHMCdDZ1uvG1y-4Ygmcy7foFeSMXtOXjTdoDgPxyVU8sFz5a-t1oFEq8TYBaTDPmXoj0o8gtiY-CMB1hTM6xWHOdyelu9At15uGlSWQivSLnVc72VZ7ShNLhXvPjfrAdFwB0x3nkJG73fGlXYZjLcEviymSjD0Ab1eWdrg&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpepbcWCDiPtk3IkbDZvpVO-VjGS5dp6fb7VctFPqNhe_rEkX99j2UIDcM3pnvT5Qqu8zoW5zlpijY_IQXm-L_6r3awgvEDg_JaqS6q1FM0koyZZa_qCJr0Eab6EH2K-zGagqU-UavDkq2k88i1UJJzhSZUvAxf8nyOcVIBn735ExT4EbBrs92OTQJpdsDdU0ML1u0Nx7uRN7oINaRlIwIGNuXVrEh0uUFdLC7NMzofMg2EbzpqeY5tj4u1GSTXRZ8GlnEC08coldAtjNHgx1YB7lk6OQ1AaOTzjgmPhPRagdIZcRmjiR1gAsOVejX1Jn_dZWoIW2k-rsRQZi3zjaC359hPZ5zUD_Ula8rQRuPYiux9F9t08KpjVvRNOKIVfh6x52rcSFXU9lKDcI0isoLsEWzVTZLKT8yM-hHCCP1um0zrzxlMtdie7TKiuKGocJn6g-L2O3ycgfdinGySTrEAz-ZAw3Yobc4ZaU6TSeYlbYuSxgdqxxqpd0PpzGH440LYqkYKUfVoQDqoAyqmQ8cfCGEm3ZcP-owjsisQj3sfiVchUKx73usohcMbwESzO7CiNZIE9mc9np23N_Z9faDGAF9NvqMN02e51e2scwYGM5OQlM7SZtVZoFF3wPPC0&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpfge7ttxAZRdQWYbtWXBH7siNKVlJqYupMZ15X7Iql8nbzD35yWIUg6vK2A4i1aNM97XDHgZRrY6puN7Tb0olH3B9BQWV-RkkQ11Qy-O38YlbC5GehzJzsJlm6UuVHjvxI-Xf6BiMLBGaj5rn6i3Js706ILfw8FZI9g_vwFE4a98dMK7BuRUBTOYYhhA9ijg4WsfIWWtmA97gY9zHIjMVQKBN_W4pPfYYfm74dOanBZ6R_4Z39Zzo8-uMr1IimqqvFr4dhbcmNYg3Hw8oXvGwbYRCrUhvjv7ILU9QvuV5kOTl29ysOwd3HTABAP-tIS4f43M-2zufdPbQMnDN-kcZ7QHSNaqSlhNaNt7bPy3oJQoeqKvzQnUI51g0cwdD31mG3fW3YJkmp8zHkBwb-cpYE1QYigF6uYLFCgvB50Pm_Dqvc4AuvYpV269NQh1ll6nKbHk0KQvfZAPLALOa2ya3gpz9jIi3J55102OD9RRovo0DD39r54vsu2rGFrd_xxV6Qo03zOA6utHifaOuJ4dEybzbZEQp3FVu3bGNiq6y27TswKVIq1Zmnb3Gr1LeF0LrGg_Y-IZWtch5fprk5ERBw1zIBplah6IPa6sHV01FMK8rRXd04_urJRvv9zSkiL_XA9-WCk&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ],
+        "website": "http://www.turkiye.gov.tr/",
+        "reviews": [],
+        "types": [
+          "country",
+          "political"
+        ]
+      },
+      "isCorrect": false,
+      "timestamp": 1751083201377
+    },
+    {
+      "query": "TORTOISE",
+      "result": {
+        "success": true,
+        "type": "text-based-location",
+        "name": "TORTOISE",
+        "address": "45 Charlotte St, London W1T 1RS, UK",
+        "formattedAddress": "45 Charlotte St, London W1T 1RS, UK",
+        "location": {
+          "latitude": 51.5141,
+          "longitude": -0.1329
+        },
+        "description": "Location identified from text: \"TORTOISE\"",
+        "confidence": 0.8,
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=51.5141,-0.1329",
+        "isBusinessLocation": true,
+        "businessName": "TORTOISE",
+        "businessAddress": "45 Charlotte St, London W1T 1RS, UK",
+        "businessCategory": "Business",
+        "businessConfidence": 0.8,
+        "processingTime": 2456,
+        "id": "temp-1751083287487",
+        "nearbyPlaces": [
+          {
+            "name": "The Soho Hotel",
+            "type": "lodging",
+            "distance": 60
+          },
+          {
+            "name": "W London",
+            "type": "lodging",
+            "distance": 376
+          },
+          {
+            "name": "Premier Inn London Leicester Square hotel",
+            "type": "lodging",
+            "distance": 385
+          },
+          {
+            "name": "Covent Garden Hotel",
+            "type": "lodging",
+            "distance": 403
+          },
+          {
+            "name": "St Giles London - A St Giles Hotel",
+            "type": "lodging",
+            "distance": 414
+          },
+          {
+            "name": "The Bloomsbury Hotel",
+            "type": "lodging",
+            "distance": 444
+          },
+          {
+            "name": "Courthouse Hotel",
+            "type": "spa",
+            "distance": 455
+          },
+          {
+            "name": "Charlotte Street Hotel",
+            "type": "bar",
+            "distance": 497
+          },
+          {
+            "name": "Radisson Blu Hotel, London Leicester Square",
+            "type": "lodging",
+            "distance": 518
+          },
+          {
+            "name": "London",
+            "type": "locality",
+            "distance": 849
+          }
+        ],
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpeJDaKfiCNDt9gG0WVSs00rzYpeVI2i1uNzLMymlSf4A353iDeX4-GQpV_I-4k2bJCgxKN8my-We8pst9PWFZ9syDCfl-cr94zJIRYFGv58v9YjC9ejaMFfj7gQ-X_p-P86f3B66bXmAx0xGI_wVhX3Zh1utc8SkEDGzVfHfB0EsUgHxrYhU_g98UCPawM2BY94HhnUDiAfj_hOn4_fkHy9kxdIESNKet5TF9vHcnmFfd9temxf6GYpXAq58TFblfCrDm35Y1JDw8QFESRKyZfGlM33r4DcVWfxA0A5THsibJPtolU1C9X64SxheWZcdqDWwPKdmtXBCf3_pReVwwXnr03f_gn7u8rzcbmApVAeqHq8Drham1JioV6S8yxGcVBrrGnrrOBOuDw6WNfUl4i7lckUiG6zcaGlj2SnkN9BDCld1W_40f0xXrpG3qH3-MhAGL06RL1HXYNxzMzshlG5vmxd09485HkPUQZSdwsZVLz3GDZ8MdT-qvtgfP4zgZL3Q117SKKi5sbqt4nYVZG9Do6iFJHo4pJuRKUIdpnorC_sJoDyl5t5BD-tY05LudTpd6Rr3gsuYA&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcEnTHCKX_stLeyLK92YY5HeN5Rfn7VcsZK8XrvGk3GN0udHnHr9aBLeNRMaHzgxIb98JRh3evsS2YabO-gqB1vlDFxa98zVuzUkQ1mjUsjiPMjUt5IDjnBWoCis-i9C1RK6dU-NbNvh9mj07nLrzspaoer4vEFIwldr7CFeyMCPpu-2jsvJ3eqoW8ASvsHe5EWeVJ9SVkwtHHMmuJVNbSq5CZ6ORH4XSi23ht8gpi4lelOyznZd9bmuoZlgWgp7qDx6sZcfC_SGDT4IzPMXuxAUuvEkbSpHYj9jQ0ZMHxAOTZBiEw&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpf8r8ICjYDoFpbB4PXe7LWk5q-HUmZ4DkV-GSs6XZXP759tO4KlPgP--Z9LQNfVtC3d-_iRIlAlFGi91JGpH3aoVfoR5tydPF9Il__fSk15w_xNiqolPlKuOU8XMIvfvKP0MtVwlzqVSWy1m4H_7OhHrZmJINxAriMMX9RoBwNm8NezXAdiV0qY8yMTrjkHWHa0AZBcTL1sxuv3dlwB3sNLfLxPNfKzbDT_X9dkDyR-WQ0xicYUDZH1eB93jzK17_54GrC-NLrBwGI-fTZOCKiTN8xlOWzMmfprQtHyaryuaSDNBC0&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpegVBLUozAKhudRTqnzdhvRWXeOGMBEJqEVMFHqhjIlWO8lmrfKqN5xpC4oNiBcqJvjqoDV4vu9fmUh5kM-UJns7AiW7msZtCIsUQzKKrvQAisU_60N82hvh-duW_Xje9LofAl7Uuf5U3sLbaMCMs-bM-BJLcalCrJqA_9eVDJkxELFwCBwJNKvqKH_5QCiEM-i4Y1-foRHlro5_vbeK8u3cH-SPQ0H-0vxu3vyzElknNHN1ULpbeHdJZJcvp5LWhWqDAE-k45f5dyHcJvwlFksGgXBPM3T3ydwJ9ydC2jxBYlU13o&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdUfyfc8KqB-7BEZ6wzPRnd4x-U2DBr2aIJeYGh70W9B2ZQP1rUSVWD2x40pIkn2_VQMJmcO7hH-bseTTDWanFQfqyalwocTY_oLIgHqrr4kLXlaKf-5eajlJrLeUQTpLsIevNg6v6jZQooUhb44ZCJKyiYkEMzgqUzIJtUzEGOcBOaPJQToGWh5Fwj5xHXV0vDWR6pAlXFs2BWXMz1HHa68kGLdlkvQWfwbZ3K3l5-KVEBhfKnCkAPBbaCEAczMfzPiUCXVAzh43kNuyicsRT6CowdFjIsxd9jd8qNchOAThG_WS0&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcIr-hGkbi76QqiRJQ8hdFvppbjEwaGXI3sOMmB58m6So2fQzb5KHz9qtXd6JwioYjEiuVlZL9LQA3u_hNk-fEI7T8d_nVzcal7AqoJrn_j9n92FYZmryh5oN5rMKcDTSlYIFhqTEPzRze9HEcvC2XLJN692sZo6_EKX2lZu0DqpxDd1bxHNEAaE5rn-dV7uo6fC7pRJd7h_1oFk2HQu2NZER47UY3jJBII2Gy85IsJ4UQ9wOx5esxNm1q42foDqtZsjxQ_QCNI3tzzzT6tHlGvq1T3BnnPbL0zNC7f0_Na2tTbKYLF6NDE1Hbm0uhmL315NuY9QA6ZXpXF8qHQBNiI7g3kRIClgNe24VAu4U7Bx54cvBZDt8Zd01Ncm7Mj-jZCsL8Nl-KRe99w0nijPMQ4sXMjaNa7s4RqnIc833Gixl06_kf1O1Q3xt3UtnEjkB4Y7OTjVycEnyze_oTXCd-ZCey2jqsX3UJFEhTNPBwD8lZYlXQNUPGjVg2NXqP9ltvg7A2LLzaBG2UC2ZUDO3QyH4i7Ue71nu-X7VPHk3ABg-bcCCSxnMxGflUiKE-IK_Zj7095HB_8VA&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ]
+      },
+      "isCorrect": true,
+      "timestamp": 1751083328589
+    },
+    {
+      "query": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+      "result": {
+        "success": true,
+        "type": "web-search",
+        "name": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "address": "The Desmond Hotel Albany, 660 Albany Shaker Rd, Albany, NY 12211, United States",
+        "formattedAddress": "The Desmond Hotel Albany, 660 Albany Shaker Rd, Albany, NY 12211, United States",
+        "location": {
+          "latitude": 42.72814,
+          "longitude": -73.7990796
+        },
+        "description": "Business found via web search: ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "confidence": 0.82,
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=42.72814,-73.7990796",
+        "isBusinessLocation": true,
+        "businessName": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "businessAddress": "The Desmond Hotel Albany, 660 Albany Shaker Rd, Albany, NY 12211, United States",
+        "businessCategory": "Business",
+        "businessConfidence": 0.82,
+        "processingTime": 2782,
+        "id": "temp-1751083443557",
+        "nearbyPlaces": [
+          {
+            "name": "Crowne Plaza Albany - the Desmond Hotel, an IHG Hotel",
+            "type": "gym",
+            "distance": 9
+          },
+          {
+            "name": "Homewood Suites by Hilton Albany",
+            "type": "lodging",
+            "distance": 306
+          },
+          {
+            "name": "SureStay Plus By Best Western Albany Airport",
+            "type": "lodging",
+            "distance": 353
+          },
+          {
+            "name": "Hampton Inn Albany-Wolf Road (Airport)",
+            "type": "lodging",
+            "distance": 484
+          },
+          {
+            "name": "Red Roof Inn Albany Airport",
+            "type": "lodging",
+            "distance": 529
+          },
+          {
+            "name": "Afrim's Sports Inc",
+            "type": "gym",
+            "distance": 609
+          },
+          {
+            "name": "Olive Garden Italian Restaurant",
+            "type": "meal takeaway",
+            "distance": 641
+          },
+          {
+            "name": "Red Lobster",
+            "type": "restaurant",
+            "distance": 689
+          },
+          {
+            "name": "Marriott Albany",
+            "type": "lodging",
+            "distance": 833
+          },
+          {
+            "name": "Colonie",
+            "type": "locality",
+            "distance": 3032
+          }
+        ],
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdPFfJg4ETSp-QtVWcB8wbyhgmSFOSptUA3acsLOQclG9MImv1rcYOR3bTxQu3L3xLG18aqhZ6z9UG9IS3s1isA7Y8BdOoJvlNV3aXIAlMNvd8dugcwxEYKOIN1dhQTAJeq-dataUX8IDNcc0a20SfIwsCA0iCzN5XLSzb2lmR9TgFoyA_gSdOMuCbK9a4zkhqNMr72UN_SXU-GqonjlGMZN6WWSvRkkQyRnwGuXZfVyJE514jHplFzWqSM-jPR7b3krNH6w_Tm6pKUOc44aALWmVDHXgzSDiSjvfX1H7pmEJ2ensfkoVG-8_Y1OJYPgJ0oMH0Qm6PnNWPgoC2fqjWXhAmtTWiVUuo0NGEhWRjdltC7u4W_zBwMMgwaK_snN72aWHd5b9hUc84B9ijhKYsn-O12n_JNcOS6BwmZ0qTfhLc0GopK_xMdf4xvfUV0X281TiLVPDhBSS3rH45LUwakvcX_3Nm7EpoOBpAV5QuqQVJXFbuyvmacJq8LjhFIfa2zkBWeU9b-6NWv6nB4VkFY_Z4bEHw1Zu7Fus2YyJUrOQFm8qfsQmuRgixrYXr8eMggtg&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpeb1SOXvk0uokeF5NLTbdGSdJQ2qeW-jTE89w_7xnM7aJnFQiov6vnadz5aaSursuwLhzK5ojWnTlb2teWatEk_uaSCYbwNNfMdDbeJXDTKvcQWXn0Nueum1qZlACj3qooPqGK35ETTSFMGKPYBQmC_xPbA3b51g1gWNRIsAFoO9Pwm68qfnFzuUOoNpMgFIBa8pLAFyR_O7Hwq6z9YML9C1OSZvC1Z8k-aZkS2e8LaFmW3aHqdBiaz092RNQcMGdeEYb-w9yLKMP5jP24mTwR20g3C36X9suQV-BMMmzDTdlfX4n_Nf6FXbdEbdYUPRGU2hI_5dSbsIcd1qgvW55wAoZSsJrBwEgSNHeXg6praK1vCJHCrVKAR9CM3XYZDxfIAu-Pf77bLHhRxQUsc-Zfkixyk1Wj5gMTeRRlj4G6c8I6fRl-WAZKpqBmrHpzXdaMacbLOBoWr8jDbChmkTl04jo2BvA2lcBpWCX2CsCsDeBE5CxnvUb5rUIF3TlBerOO1mqYRWbBc5iG-YN-RJTJYvzRW6sO1oHFBeIdwy8rGSKaDPBFbAHqroeMiXve6Tcjufbau&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdhGt0OBXLZBOMyw0Ed_tL1GD8rD07mxCZ12uY4DrQvdEsYk5sat5Gf_rgu1jNQKa2VM7Jt-kr1v1-RVOnoV32Nw3k3BGjkba7sOrAE0THB2e191ti9euJGYq0Yo2ToSEssPXbFSvYKXdn5u9_dOa2M8B5_t8gpzWai0zqJpl0imLGfYwCNkvUVFTjd1Gsw140VLrxXcz1e-qO42B07Idu9RzqdvqDTHKkEkmvsDL1X_FmUYU8I5N6JaxsDTi-0VBiGRvcdH18lUeDLxYUdFrJhr6cjt9d0f8ChTdBPdTWjcTZV7p9Si1oKKY4gbCaeKuQ9C1jWGd2gdY1fFdCgxgdmE_JbGIAe_3yj62Ch2am7IHcEyv7AcYUS_x4aMb_NS4hbjvLzU772mIMvfrlzSs-fBxs9TFQVgUqtAgEvYxXv06qmMk8AQzBThUOUErK7yfuFld_q3NHg78FQYbDXoRDbNRnhPPx9Ksca-ELWsO_78X2DJtw8v4IV0gLWZhI3FHBFKWegv4Ik_tbJOFK6DlF4Ou_KOuAMHTVPKKbGTSAiYyUZ5dcdw7BIIGFhEeeYzwUrKPSuDBtMmw&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpc_T0IbrqvdVBfCsy0-OJ3Xpgy-XejN32uv9HeNxETJxQQQBptJfRwK19T2_edZxYuS0i4MwDEde6ywLYy-ii8VF4qcCduCjUakgIbHDeu2L65i2u2PoQu2tqtvDjU4XGRJ5SqLxTtfmuKBEHD137UOJkKx2lbEJy0DyxNhTpodG0LZ78LHNnzyyg4reeyUYv4bDbwtg90XwxrsgEiV5nT34vcRVewh05FmzvOJY-BfoWWb2Ohr0S4YRwLq2zHDx6l63HuD788UPkY7NPnyTiX2yfw2vQJOieFbg6fkKC3ZMWpCepA&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfB7C2N09KJ6HzkHOlLjUcrXhOfl84tm5zpqwYyffrrGuyps3JGHi1pTC9ub5w41PH-Kw2e-e4OnSfCDmqNHMRz_luADoA-J72i9pKsLkW8oYAZDXzMEedhDsr4LRQTUxv59RdPscOntgiy-3btv3pXKrb2npxc1y0zqHsv9B1RWGq6BqvbXyjtpyIA0Yj9adewiyNahZuoqcXlV-DnQx7chxHRTY_zVbqQTABocAxPfLApCv2-_Praahs7awYMmmJ0YOWL3fdzBwBrrJHfRpwveXcVI5M1OKZdDmKpIj21oiRlKbOnK-FcoJLpuI4c6_o-co5PzZ6VpG4hATkswZqTfHErBQdXa1US20nF64H_zPRxPA2M-USZYutQY-744wnyWiRmbb0HwhreFJ62YAzMfRX7xM1tiSquIocLYoE4F5aRTx2Qk9mpI440lhptVd8CRtQkA6HQmhCfmDhj_SihxcxdZGch7YJhctFbmIq1c5_Yid9VvPO_d06TpOefXaOrWJklrd-UNE7vQvwKLBSMd-r2VOnVihbJlSDp21IvA1iYFf__5l8HBZa8_XgBQyyIVC4eJV2Mng&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcsySMV1zYE0wQuJMkSWxWu9e7jj4mzRLp0SttC_uZE56q0N0WQjwOOUwGh7lPY2UiVx8342HGP5HhdhtPcLVtgWWxEfpZbNPVjTEX-WFuut3LZXjxFTtsdoakd5VJ_uMtlI8hrOmFoBF7BAw0osKqX6uOTpuzh_AF1P_CqNyKKWXyNO58ZzcOh8HDn44Rd9D0eMtotOwT3XQSXm3XTnnehMeyZw9J6_EQUsqhdNGYv9Z8lDhzTlCP_HSDqZt3TO5jcWs306h1O7g0J-NcjSG7EbRtpwCZe2xtrxAdX60ltNOxgG68&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ]
+      },
+      "isCorrect": false,
+      "timestamp": 1751083472340
+    },
+    {
+      "query": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+      "result": {
+        "success": true,
+        "type": "web-search",
+        "name": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "address": "The Desmond Hotel Albany, 660 Albany Shaker Rd, Albany, NY 12211, United States",
+        "formattedAddress": "The Desmond Hotel Albany, 660 Albany Shaker Rd, Albany, NY 12211, United States",
+        "location": {
+          "latitude": 42.72814,
+          "longitude": -73.7990796
+        },
+        "description": "Business found via web search: ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "confidence": 0.82,
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=42.72814,-73.7990796",
+        "isBusinessLocation": true,
+        "businessName": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "businessAddress": "The Desmond Hotel Albany, 660 Albany Shaker Rd, Albany, NY 12211, United States",
+        "businessCategory": "Business",
+        "businessConfidence": 0.82,
+        "processingTime": 3202,
+        "id": "temp-1751083687332",
+        "nearbyPlaces": [
+          {
+            "name": "Crowne Plaza Albany - the Desmond Hotel, an IHG Hotel",
+            "type": "lodging",
+            "distance": 9
+          },
+          {
+            "name": "Homewood Suites by Hilton Albany",
+            "type": "lodging",
+            "distance": 306
+          },
+          {
+            "name": "SureStay Plus By Best Western Albany Airport",
+            "type": "lodging",
+            "distance": 353
+          },
+          {
+            "name": "Hampton Inn Albany-Wolf Road (Airport)",
+            "type": "lodging",
+            "distance": 484
+          },
+          {
+            "name": "Red Roof Inn Albany Airport",
+            "type": "lodging",
+            "distance": 529
+          },
+          {
+            "name": "Afrim's Sports Inc",
+            "type": "gym",
+            "distance": 609
+          },
+          {
+            "name": "Olive Garden Italian Restaurant",
+            "type": "bar",
+            "distance": 641
+          },
+          {
+            "name": "Red Lobster",
+            "type": "restaurant",
+            "distance": 689
+          },
+          {
+            "name": "Marriott Albany",
+            "type": "lodging",
+            "distance": 833
+          },
+          {
+            "name": "Colonie",
+            "type": "locality",
+            "distance": 3032
+          }
+        ],
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfgb2pRD1LAf9K37sQ5EZiFeudZIRv7BFFry4tCq3LKWCowN6LnxWkGj1Wt0J1wg08Xbfu1qCOEz-f-mGhCmerxVtCUcvnJjDTXj8rMgzE1VMzlZCRXrAnFPBfxGUnUAUvKgUyAbkzhTGbn_CfUqq0oKkz6o6n6mzOA1QG2926ueumNSGnMwIpPRHQPIAtfp4bsWVE-ag24SCcrww7-R3XKEUAU6AEFIvlIXh9t5ojyPtxqP-MCfLN5-oC8OsOm4GJX_3oN0o4Peyu_aIZq725Z_D9wqAo7_ULKuWlZl87EcI37OjAkaczo6mUZb0_z5SYa5FAdOv_Alj-tMiA4boRlBNKELXop4OxnHtq6JYP98zc9z6Psjp8bD-0JbkkJGs1roFG3omc0y2tLZw5f033JWgT5geMqtgkKEDe7p393GdrOGhmT7yJD2H4XswtK2WlA16inYYOd83E9J9rq26R_4cp-2egTwQVza06oUVuhq9ajZc3efvvfGaQ_eYu8xKMdVY41cSecBlEg68ciYI-ddR8BQ83QwSrtiwqeMU9jLPmhuJTsHww2I_yCWIYVRuZO1w&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdkVmcZa3IkYqyH8_f6NvZpiNOA4d4UllnnqtDvJgV48tKGOT_tTz6G-k4yhuJKQSOi5lbWgb7SAh22RQW0HDWjLN5PYwyd96OrRS3PQcAhiFpZjI7_2TBYmJ8ucNbxKOpkM3bMmwPvayI8jNLfpqLASOnflSYXfMqnbvd0dOCztEjQzz7a_3WA9nELriEnty_UvekvMHk5QUARc0M9Wc9cEkQHzCB3dJIYXBYPRQXW6tNaVsslD4da_3-F43XwS6IPCqSqANBiYw9FL8sGTMmDv2IO9hnW0vGaRe2SMsN81vqDO89EjDwcWeyExcjOHuS24bv_gnVJvi6IKdJnOsomwijCKpf7bH96Y4VuZFkKNszp8ftVmL4fd02J8UZAZ9nzuNbVbBTUd5kWoxN80hVvh0PbofiHwAqJpJW0Q_mjY2PRz5-8m5fWiu4Zvo8TFNoc1abFtfiZmoHFIXUTjDEk3wX9nBJ8lCe4unEJyak9FtHZpNrRQLyBT0lwX6S4rMbXKjP_I51003dcd-cTaJ9tzEEIoscKIsgShvtnVzah5UJWEBB9wPTrOgBzV6p1XdmtYqqL&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpe_XCTCpS3BDpgH_AlnZdFaNIDugA5x4ElM8uBfnGoPVO29yHoNZnewEFkKgNb6w_UJxidrdTqxqlqoRAvu4RLYBb6VKo5UKzpA9SPVHNVIBjeNcKWqLBcEA6bXqnqRgTq4nEQXG3V6t36XTrP6SUzJZc3mLIhT9fgJ68O3UoFBLmM6RS-Fpc5vTsMB11QBcSJNdNThlGWtSJYGpZLiVUNMw5pV1jsj-NWWjKB-EdALN0QrdSHZ23eEZcjvhklEexsRzAJqLuAmdypMnjWzGl7dgoP_k1ktwZb-Ne0Wp7x4m3KVCtI7bna7h6Dlz5AxDHwBvbSZtrmcdDu5Akfr1DJLdttHnrraQ8Rnv5vGazWlEYXnb80UmbZ6YntwxuuTMgavlvTq4UwUjAkwji_ipelPH_htJFWxfKWyI7ASLpSSnlt4GBlvGPHCkGBhemMKNHTMLV41WX8TwIdIVLWfPFzYtGVzaIA1vH0j06ZbCObQ1rBmuG5cYOjafBXvi0f_ltZKJHuuVOUhXkIdhn1ubEo_n0gzksuxeMQFGsqUG31fG_h5JMyH23dXDWOlhYXUaZgCp75sbtXbZA&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfpPSApeG2tHG8kwzXWUTsHMD5w90aH3S034QO5N6M4O8bIersrEfbxZN9CqtLTRthfDZ6ISq1Ab_8cX5gyMBlKNaD-SwkL-IjSvKsSJdCLxbRVJUPOx6Kz0HcupZteS41ezwQbu2WuGsKiEEFe4WEVAr2mGKbzHSrGwj0uiCMAxYjMCeoR1HXG0MDJk3YRsHrNYPxDIxJITV369yUIM3IZYJ2RHZAsPltCuB0jv4G-JwzTkkokw6d1ZoOE3_zyP0SJA5aGV7rBQShp_BHprxFEVsGWdOD6xtmjur0t8crXctxi8xKOr0QZX4-8NJRArB7JZOOvDoIwpra-cLKR0TtBtaBrJqzFbw7UQnKTUBvDkgIuannVa2lRB_7_kPjONM2mwSnJXVuAqu-QtY5gPMOSXi_ilbJsSZ6CZwAK4BBzhJodQ2E7T7xrqvuJ6yzc8jxnu4cRn013VUtur4sBZytTOEbLFxfacyPDFyA9rCppz2Hi_aldhaPgoczJMWj53DkBPxxGH7TAhZrY8_CVVMk7w_n9v4gjSn36yZDhzsCPnhQXUv5mHk_wjjNQlsSwdbfY67wq&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfMiV4MuqJ2Dkfh9L-jnNPYhrmWurJKyGr2vqAaLqyUxejPnVsDLqhNqdeIRZhO59jyDE0CDvPDEaPh3nw_g9yXVcMci5VEjyBAjBi4oMZNgeFvi6yiD3qfkPCei8B_bd3tKl-hx-xlx8xsuJ-ffiIE-kCiX4onFVJxpGqQ7xEpWPBDPpxevgelQZmHge9bCzEpl3hrLi57fl158SyrgAgjWMcfaIPclO9T-qElnV8NUrpChZyokG8qjd2LJCTbr0PC3hqpR1u89gmP8Z_zAOoKQJj6LwMBM64FG-HIP7QrBxob68U&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpd7HLxxv6oAr6FQE_6_nCnBToY2sVH8ExfRQ_OWvc32cQHuoGljDS_b9a6CNQljUuFcfWjWPBj_H3PCcrc1zYUD6nODXSvGRQgdxqKMuQbHbwyv_pnuP-vrAlxaLw1H-CFmm3GvUUstn_CoD9H-JXKNe4U_0qKDMtvyYMmXEH02sucKpUyoX4OlvNyOUsUvW2Do4KvXCq-ELjPoyYAJP5ApywLoKlrshsUKlaZFRbc68TKUk8Zshbxs1nWYT44ccIX5NdcjBz0V2HlA-ACFBZcjLYQJg8XEjb_Me--f1LcbjHQseFs&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ]
+      },
+      "isCorrect": false,
+      "timestamp": 1751083899328
+    },
+    {
+      "query": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+      "result": {
+        "success": true,
+        "type": "text-based-location",
+        "name": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "address": "1 Dubai 2nd December street - H Hotel & H hotel - 40 شارع الشيخ زايد - المركز التجاري - المركز التجاري الأولي - دبي - United Arab Emirates",
+        "formattedAddress": "1 Dubai 2nd December street - H Hotel & H hotel - 40 شارع الشيخ زايد - المركز التجاري - المركز التجاري الأولي - دبي - United Arab Emirates",
+        "location": {
+          "latitude": 25.2302314,
+          "longitude": 55.2870916
+        },
+        "description": "Location identified from text: \"ENISH NIGERIAN RESTAURANT & LOUNGE\"",
+        "confidence": 0.8,
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=25.2302314,55.2870916",
+        "placeId": "ChIJgeQ4caxDXz4RzmonNxTE8nQ",
+        "addressComponents": [
+          {
+            "long_name": "H Hotel & H hotel",
+            "short_name": "H Hotel & H hotel",
+            "types": [
+              "establishment",
+              "point_of_interest"
+            ]
+          },
+          {
+            "long_name": "40",
+            "short_name": "40",
+            "types": [
+              "street_number"
+            ]
+          },
+          {
+            "long_name": "شارع الشيخ زايد",
+            "short_name": "شارع الشيخ زايد",
+            "types": [
+              "route"
+            ]
+          },
+          {
+            "long_name": "المركز التجاري الأولي",
+            "short_name": "المركز التجاري الأولي",
+            "types": [
+              "neighborhood",
+              "political"
+            ]
+          },
+          {
+            "long_name": "المركز التجاري",
+            "short_name": "المركز التجاري",
+            "types": [
+              "political",
+              "sublocality",
+              "sublocality_level_1"
+            ]
+          },
+          {
+            "long_name": "دبي",
+            "short_name": "دبي",
+            "types": [
+              "locality",
+              "political"
+            ]
+          },
+          {
+            "long_name": "دبي",
+            "short_name": "دبي",
+            "types": [
+              "administrative_area_level_1",
+              "political"
+            ]
+          },
+          {
+            "long_name": "United Arab Emirates",
+            "short_name": "AE",
+            "types": [
+              "country",
+              "political"
+            ]
+          }
+        ],
+        "isBusinessLocation": true,
+        "businessName": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "businessAddress": "1 Dubai 2nd December street - H Hotel & H hotel - 40 شارع الشيخ زايد - المركز التجاري - المركز التجاري الأولي - دبي - United Arab Emirates",
+        "businessCategory": "Business",
+        "businessConfidence": 0.8,
+        "processingTime": 3848,
+        "id": "temp-1751083924098",
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpfFcrpL0iwt2-fIfedVZl_iliDZVxMf5YT9e2I--wFEnhISiQBLIA9XbMdHhh1_xxAi4tj9IF3uzk8j5GkXfwDssyh48SJwzcePwz2XJ5FkIvAbwiQUPQkMI1I2QwaUsh_nGGF2XHULPQ7jpA04cvPRFXlaGOcCPH8IzFFbzxXpbOv71uBp_Ro3SGqmV1WQ_97B1uTFEN9co8Ue_V_EdzrE9ycSOm3t1j4ZcAW7rcnWsJC9WcDFO_iDdUZCFS4RPzX8ptg_dq8IMYE4tzZMC0Gk1Ns7NM9FWNGUknsK0sAjxApAPI-cXDVB4kbY5QImsaWeP4mt6DRq7A_gAkaO8WEILpUu0oPSyQtAozaeBi6Ok179mw24wXALSMhxUUuB4SxpyqlbYo-3FhK3rtKDFVtFiSwIvijoOYCfoSy0kar0YXuIg0r1DmicfIZ7uaydPhN6f7c_NzmmEmjgN0f14f3n10YSoPYGFd-1dJD_fMaj4lamWvY3xskR6BeKPQjVoiaCcOc9c5dYoSb7ZBXZsdOuPhVqpPgOUaByBnHKarV7x8N_5zm3I41Ygu43crJy16NBiL-0s4Wz7kCNFVeNz4LkflW9sDIzOC7TbxW75dOBr0cvNFzd0RD7dZUWpgSU4KVF9Q&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpfL--h7fNaCIErZqBUTkuC7fRMSMCuimtlz8JsQOMtCatE9nCOz3LmjEll-3ZSrX92lsQ1JvJwWeFzJg7VFyKfLONR1C5ZJYNvtzQbUpinTF0kD37S7WVPebhrbaT1kWToantmCrShNcPuPbi-TffYkmSV-2KDkEpKOEeqABD6XmGMTWaRHPV5-u3bIphMHwmfaNhGPMcm3_JMFB6hP_8Xg2I2CCsZ4UgQJeZCNrNgX5G9iWKvtijqerV0BbLo7s7TEWqGz2x8opRX4VjctyC_3tLeAoknuAXHYy9ZONa5dcEtseSXrH7xjdlAh0_7j-FWBodql9gGeK9hxtZXnxnkg_1jf6BJhuBBdSy3D_MbuNSHujK7eYdhe-S7UJdl2qUTMUutH15ao4JBzD2ANg8O3wvH8Q19MYNC1hIWyyS7qF4wdFoMkKzRakJ3tbvVRUZF4fWCxCGqf3cCiucQNzwlIDpNDhemvaJQ-lTN8uzks3FhsOS25xGTdYMCVCG8K1ZK8hwo191y-JuKmZGvGVcm4aNBIqq6FkpSxZ7MhkiTyWk3O9sean-oOPanLzh7FHV7f6Cd6FQppJs-SJn-ov0BqPlge5QIPia0hPKh0W8hhiHCN3LbU4q6_x9eAWkE0Xa5O7vhY&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpdxpuItMjDLUNXiJu71AQuWF86NX6LNyq6WY20z9SlgGtL9xQtoS8gYCwFIg8rxWLAfSp4zIcfdS40ihpL6X885iY7BUTYhdV-z5ugxNmAdNXTABAd8ejnniX92ertdOwbzjwAy2TvKaD1Zky5Jv_cKPCO1tD002AaGOCtpMY7__Qw_PDjK7IP5b3dmXd9IpZssdAv0cKoggRoi9bPHctQfYHwdnuq704VOIidS2A9UqKZEa_HAgJPuw1RYSNWJy2_-sWzd06XxayFglF6DNPSarF2uuzv4dPihmlMsv7akv3OyXq4KhT9v12hSPp0HFR4yufi2VNEcezAWH38Y-D3uIIiyp5OvddFXACZehEDG1nsaN87aRwZOj1se2R1nYucgOUsSMg3y6vBUt4-fVABAjJDChV_exp53xWFN5T-z9G5748yIiyi35bbvrDOnWfXT3FGJwS2ZpO8PGFcplF4qVHK3JWelO0FmWFVrCiVhw0W73RzKY3QUfiJhslx5WfEhzumqb4Nv9gmrRg2PZ7NCM9kC6ECF67SysHOHodeOLGJXzXNn4Yf6L8_GmXhC0xiwY0O-obMnngvRpySAChfz7StIu79qFP94xEMFikha-WyGnEvfCugQ_vZU-9BiIDaq1dZz&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpd_o5IsUtzNz54QcMFrfNnUFfnZlVFjRn8XiFfunV8fo76GZWhwr_iOPTJnjc4QWwyiOcInR6TvdisNAeDVQMQM30kBoLyAL0_Zy-fcZjuVRoqivX70FI1D0JHzetMrIfVHlc74N1jYUdHrmYFDol7MhxPdJkEb8umtdoKDHUXFrrDKxnTzrk9fM58pL4TcfPfaVxncKm1flm01W3JLjTVCnaQNIx9glKrccK_HfeKi-XZC6Z4desrIvMJoT6rwb4ULYMKTheu2Cc4NK-hJtgKQ07WfWSxlvFA6_cTJwyS9i-WEoCzDcBctOZupRSIwQbEdvGvxriEWOmSIUeW8382bQVH4PBDC8OlTIxNT_Tn3cRPKn07NYZH_HE8OeVNVzJitunUiGtK2A8hAsmT8Yd_vHZO6uwqZeyM4LwilvG_QlHTYHAUIYSgjSkV_AovWodvQuXoHpzoKMX5uw-Hh0QFdXElZwBJCNrOkCk1eDnAGOgsPBq5cKntkvoswwHnCzBNHimlvnn_ri9Xq6cYdpQpWW9EzC5JcGps7JvyGRhzuc2TYHLZJckIOuntjwNwS4AEJYyCyIs8XDPDEPI7BdTlU_nH2PLctaTdVn7XcZsnpfdVGXT2hzJ-QlOkWO9MALq8elw&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpeu2guZCkkjfCYcvsBVm3gMoQ9KdKbl4nsEQ_xyAmACRL6iHxGDcAQt4dF1QNOVEap96wo6xAGju3VMRtI0W_najGdMbjdu43-CjDFUdYu_GCIMKHA_DlyXYC_rz3AoHNncfIoqPUAcElR2MpTOxxWmj0KyzfvXQzyxKk1-QdV3CLT1yDChvdtI3S10uN3Q8ziqNLgeRLUNuHTZysaMW72ozlZgqz1s4Rtho3_En-mLtgVqXUx9qgvqxchwRpAREwILVAj0MwkFesg7Fmhet8b8Xgrdm1oLBeZVKJ9aNQo5STSgKgIBTapcDR3ST98n7Cqp01JDk6wjSMTbBfNWj-p77iYmzjpBtMM9TzEmlDqytV8djhJPVpmV4NTjZlF3i_s8HDne2CEL0-cFf5KOLNB_cuUjxC3ptWhukPE15HH0nmb3hCVgw6TLZSyK-1ab_QczYf3j7Ntf1yyp-f2seNEkl500Ge_tDsacl8ERHDtUdG49nJGIjFoz4y_IWg5ix7xZ0qlVGxio8VOIR0LO43zyizjVPWeb6F_zc5-CcaXsKZ2KgkXlxnTwbuLiuyb2yQOXusdZty5dUTlvyVIZ6Y0KakwvMwaDqeCuvuitGa_u3C75-rEYOtIp0nAY9T1zc7hCUlar&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=ATKogpfsF3teg0zo9XHjZ-DnN3QImpHwe28tzsWRfyJ1vBxH_AP_SOMaTlGbKMV_vU6J_X-PhEI_MHY2KJJuqjZuBArQMXIhNRVgYuV9CjDhFdD-udJT38n4PJdRFeR0dmqzyNvqtx12eEAjV4icBB8bYHCZBWT5tJDO_WAOzgwFHEn1oSRB58NjIy4tMDWmzQpmzMUGF6X2F3ZiylPu7BmnDx81BMMlH0ul3714BtM0m6xyd5xwIFCd60qp_gc-yEAhtdJ5ravM28dXZQveyNjwLLYXDk3lPht8io8sIp20q3JtF-XAl6t7jjlbDFs43FMAOTjXii8-gBhh-qcZtVwGmT--QvGjApp29sHXIrkpQ3QM8GvpdCwtv7ZIHotu1Ypks3VA1WkUYhE7LxBkr9R2cjp-LC2RNGnWN4ShTd9ZXMztWJsiFYZOTb-xKWLwMgLLlLJO92mdrVcPzd3jU981IFQ5Jq8ajnzzC2SDk8jrrIiICUmximfWjdFz5GQBx2FfKxHCYrUczesmiInKBrHdoeoLfYXX-HzYwMhP0hi-r7U6aUwDkI4kafcFbY5tzpZahe0mlAbk1nrampBy9Ym50O8u3v-TPCRvE4IVcUczsXQHmr_Bok1iPjFP2qjiLmpwnVGHAKT6&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ],
+        "rating": 4.6,
+        "website": "https://www.enishdubai.com/",
+        "phoneNumber": "054 998 5860",
+        "openingHours": true,
+        "reviews": [
+          {
+            "author": "Natalie Surin",
+            "rating": 5,
+            "text": "Such an amazing vibe!! Step in and get a taste of the motherland. A must do when visiting Dubai. From the staff, to the bartender, to the manager. This place knows what they are doing. Made us come back more than once. Thank you! ☺️",
+            "time": "2 months ago"
+          },
+          {
+            "author": "Nima",
+            "rating": 5,
+            "text": "Came here to celebrate a birthday on a Sunday night. It was not busy at all. Service was great. Food was good. The asun was very very spicy though. I really enjoyed the coleslaw. The Jollof was a bit underwhelming, but everything else was decent.",
+            "time": "2 months ago"
+          },
+          {
+            "author": "Haddy Banks",
+            "rating": 5,
+            "text": "Had a great experience at Enish Dubai ! The food was really good and the ambience was cozy and welcoming. Shoutout to Yinka, our server, who was super attentive and friendly. Highly recommend!",
+            "time": "2 months ago"
+          },
+          {
+            "author": "TK Popoola",
+            "rating": 4,
+            "text": "Enish Dubai – A Taste of Authentic Nigerian Cuisine in an Upscale Setting\n\nEnish Dubai is a true gem for lovers of authentic Nigerian cuisine. Nestled in an upscale location, the restaurant boasts a vibrant and stylish ambiance that perfectly complements the rich flavors of its menu. Whether you’re dining with friends, family, or on a special occasion, the setting is both welcoming and elegant.\n\nFrom the moment we walked in, the service was impeccable. Linda, our host, was exceptional—warm, attentive, and knowledgeable about the menu. She made sure we had everything we needed and provided great recommendations.\n\nNow, onto the highlight—the food! We indulged in a variety of traditional Nigerian dishes, and every bite was a delight. The moimoi was perfectly steamed and flavorful, the pepper soup had just the right kick, and the puff-puff was soft, sweet, and addictive. The ayamase (ofada stew) was rich and deeply spiced, while the abula was a perfect blend of amala, ewedu, and gbegiri, delivering an authentic taste of home.\n\nOverall, Enish Dubai exceeded our expectations. Whether you’re in Dubai or visiting any of their locations worldwide, I highly recommend Enish for an unforgettable dining experience. If you love Nigerian cuisine or are eager to try something new, this is the place to be!",
+            "time": "4 months ago"
+          },
+          {
+            "author": "Chika Chima",
+            "rating": 5,
+            "text": "Food was delish, our waitress Rita was phenomenal!! Matter of fact she set the tone for the experience. From our initial entrance, she greeted us warmly, sat us, and brought the menu. Next she dropped off menu and complimentary puff puff. She was very attentive, inquired if I wanted to eat with my food with fork and spoon or use my hand; made excellent recommendations on the food which was perfection!! I had Oha soup and poundo while hubby did Abula and we thoroughly enjoyed our dishes!!! Definitely a great experience and ask for Rita if she is working, you can tell she enjoys her work and has a passion for ppl.",
+            "time": "3 weeks ago"
+          }
+        ],
+        "priceLevel": 2,
+        "businessStatus": "OPERATIONAL",
+        "types": [
+          "restaurant",
+          "point_of_interest",
+          "food",
+          "establishment"
+        ],
+        "userRatingsTotal": 1433
+      },
+      "isCorrect": false,
+      "timestamp": 1751083957942
+    },
+    {
+      "query": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+      "result": {
+        "success": true,
+        "type": "text-based-location",
+        "name": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "address": "Albany Road, London SE5, UK",
+        "formattedAddress": "Albany Road, London SE5, UK",
+        "location": {
+          "latitude": 51.4845,
+          "longitude": -0.0842
+        },
+        "description": "Location identified from text: \"ENISH NIGERIAN RESTAURANT & LOUNGE\"",
+        "confidence": 0.8,
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=51.4845,-0.0842",
+        "isBusinessLocation": true,
+        "businessName": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "businessAddress": "Albany Road, London SE5, UK",
+        "businessCategory": "Business",
+        "businessConfidence": 0.8,
+        "processingTime": 5269,
+        "rating": 4.2,
+        "openingHours": {
+          "open_now": true,
+          "periods": [
+            {
+              "open": {
+                "day": 1,
+                "time": "1200"
+              },
+              "close": {
+                "day": 1,
+                "time": "2300"
+              }
+            },
+            {
+              "open": {
+                "day": 2,
+                "time": "1200"
+              },
+              "close": {
+                "day": 2,
+                "time": "2300"
+              }
+            },
+            {
+              "open": {
+                "day": 3,
+                "time": "1200"
+              },
+              "close": {
+                "day": 3,
+                "time": "2300"
+              }
+            },
+            {
+              "open": {
+                "day": 4,
+                "time": "1200"
+              },
+              "close": {
+                "day": 4,
+                "time": "2300"
+              }
+            },
+            {
+              "open": {
+                "day": 5,
+                "time": "1200"
+              },
+              "close": {
+                "day": 5,
+                "time": "0000"
+              }
+            },
+            {
+              "open": {
+                "day": 6,
+                "time": "1200"
+              },
+              "close": {
+                "day": 6,
+                "time": "0000"
+              }
+            },
+            {
+              "open": {
+                "day": 0,
+                "time": "1400"
+              },
+              "close": {
+                "day": 0,
+                "time": "2200"
+              }
+            }
+          ],
+          "weekday_text": [
+            "Monday: 12:00 PM – 11:00 PM",
+            "Tuesday: 12:00 PM – 11:00 PM",
+            "Wednesday: 12:00 PM – 11:00 PM",
+            "Thursday: 12:00 PM – 11:00 PM",
+            "Friday: 12:00 PM – 12:00 AM",
+            "Saturday: 12:00 PM – 12:00 AM",
+            "Sunday: 2:00 PM – 10:00 PM"
+          ]
+        },
+        "reviews": [
+          {
+            "author": "Sarah M",
+            "rating": 5,
+            "text": "Authentic Nigerian cuisine with excellent jollof rice and grilled fish. Great atmosphere!",
+            "time": "2024-01-15"
+          },
+          {
+            "author": "David O",
+            "rating": 4,
+            "text": "Good food and friendly service. The pepper soup is amazing. Will definitely come back.",
+            "time": "2024-01-10"
+          },
+          {
+            "author": "Maria K",
+            "rating": 4,
+            "text": "Nice place for Nigerian food in London. Portions are generous and prices reasonable.",
+            "time": "2024-01-05"
+          }
+        ],
+        "phoneNumber": "020 7967 6261",
+        "priceLevel": 2,
+        "id": "temp-1751086265431",
+        "nearbyPlaces": [
+          {
+            "name": "The Hour Glass Hotel & Pub",
+            "type": "lodging",
+            "distance": 216
+          },
+          {
+            "name": "Eurotraveller Hotel Premier (near Tower Bridge)",
+            "type": "lodging",
+            "distance": 676
+          },
+          {
+            "name": "Christ Apostolic Church Mount Zion International",
+            "type": "point of interest",
+            "distance": 747
+          },
+          {
+            "name": "Old Kent Road Fire Station",
+            "type": "fire station",
+            "distance": 785
+          },
+          {
+            "name": "Sports Direct",
+            "type": "bicycle store",
+            "distance": 814
+          },
+          {
+            "name": "Pedro Host Family",
+            "type": "lodging",
+            "distance": 816
+          },
+          {
+            "name": "Old Kent Road Argos",
+            "type": "department store",
+            "distance": 840
+          },
+          {
+            "name": "Pasha Hotel London Ltd",
+            "type": "lodging",
+            "distance": 898
+          },
+          {
+            "name": "Morrisons",
+            "type": "supermarket",
+            "distance": 925
+          },
+          {
+            "name": "London",
+            "type": "locality",
+            "distance": 3925
+          }
+        ],
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpe6wd1UX1qhSm5DlmTAveCQTYRylD7mVjc5ORkoVe89X-lpfBiBOlWytlWyfW92ndqdJA6QC5mRNTORhYZ7Qlm2rAbdgb24YencGVv_Y79evrwaYNLkebTMAgcOIK7GvanX-h-SGD3e40tAvol41-f0lqJvNqYjbQJJLWsJeC9cscHfDqIWcSPrCx60tn3wHmnNlRBzBDb5Iy9ObMLB_CvLKnbeZSWRU-ifBOu_9iRtzfX6CqLNm2cgggY5_6sMCs82E57BthTTUE_aJlYBiNNIsQWgFsUTjRU6vOo64jTEHt_9Dhc-KQaeoJXTunPtIZ8M5IEIsNWXCjg9tN21xNO7On1cR6mrawrOfDpdV8kdgavblQtNre-9eZ8xbjCpUTt0EMh4laGEdZU58sS5BzoQzcgxdZhtB1Aq7t4s8nGg3d9-DduSslCGijphleJZHsLKEJ8Kki4qp-AxoizdoY0oYu4TMRzTz3tT6_opnFjdhxcRKqRfTxytcTQh6Z8zOxTOPsyNxwC5IXWTt0b5xhKYV86oC3lEPAL7mV60zYlh0MQZS1MWNDm58PkObMvZIXN6yKaQ&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcVug-vJVShlFUtzhc5cTv31j4WNPcgxgKFzbVfJ3nCuEHTHjG9UHqGZhTwLqFhefkow0OH4kEcBCfDPmYM-CdXzb_Xwp4FFZ4fEMX_o9trFEdfv5_tNrIC4Gq2n46YhB8HL3vLUcc4SlLLh-FV1SAQwLE6ODIHL42tCJRdJG5jgzbrQVeZeTRwct08NY_aBGWeoVfSYpTc_TgZGI9K2n9bFtWZYa7jeE-KYI0QYBb926GCnqH61LOMhx9uxx4Nm8ROo6nuQ9s0f9wcZogHyOnhYPhPNdNfZPLvhJSsA8FsHEaLU1EHqTFs6GmjcazvjZUftsoVp4zZOTGNsCKzvSsidMcolhnGGdj0Kn8xKpC6khDGHMJVGU781ku7uHKsis2JluwGBtsTGd1o8v7FFa-AoOqyRYle5riGCzHw5cC2EaMpyM7OP2uH_oStmnjzj897zetHHlI7bNK19G5Wjfm2N932tQSUKUzHGO4TJc_40abo-gZ7fSwH2nZu3vx9BOHW3yLq_ZnAtslK202MOUxGfcgiNTNhoMz0tzTf9Qw_3_2HK9wVoQGmLUeWB3Qt8oZoBYrVviA-JA&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfT6SPvBFQjGu2UZxYcmM3eSuJHOs1jWOoh2NahucSTZY-a9AiBCc_dwL7fQ_Rrkxs_cxyubn9p6iNWTBwDQ2hvQUZAjJahHSNbUUl6fbYsdRSGJrPgukk_S8ALSVMuVq4BTCUuGzs6zXOCFj9OGARv2dwRQIyQJIUzmslbcgLuGciRDS9xC0Pwf8kWA-suwRLN5dMp5E73g_UjFdj2eqUemYsbTxTSy9d7y0dUikr_L0ZzNYgpfjNq51zf0B5JYQ1ie7RX02YwyIigEoD-lYvX0JkzEjIc5SHNTABBL1nMmHsqOB1zMLM17Gm2CP_Y_jeGLW_W1IZ__e2-RfgG6QSvOVNXWMtuvtp-63hWeNWSH_a2-vWDJqzXZ6U7tqLDV80FLtx3AxsydFi9fTVwtJgbgUMpCvYVcGz9QO1diRZ-gnOokF2IF8jCIG5NhGQ14IfGJLqgF12TmAcQAvPztHHbiBaf-Q_O25Hsd7gf-79MYWLHrYRRCtmoq9tsjmP0acqCnfM_1NImtJ_HqrLb_SlVNddvjZPlD9PO5ndnpavQjBtWYlDY6l9-YLvr1xr-lygt_xxD&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdUzBcF-lYteHFP8FwG3-lC2Du1KAK33GGt-oGXb2qAAUqmDDdC-V-YksA0v4eFdx7Xa7CZwi-tYd-PFRNDcVirwZTkgIRUqVV5uNkH3_YUECWSNG3bvIHH7oeOqUtFbKuF6TeG64SBr_Fr1NtjT7SFN6wjV2n2xLL9BUkf1HpuT7qfF6nIkGbX-IDfETE1-jVFLBsINHDv4u6fMR9DpW4c6vwVbD8nat1wz_Qv_ZmnBK-jiVycVU_9vBkicnxko5CaPw6_MrNGHlQj4VwKiQS5QdOB1rG-iaJmQAYUVM14M9kPsYGt1AR0zqhO-jL6mkVBA2XUmHD1Er4jR5zUkkC4wjq4ff7B26aNpAGsdP2M98N4W6IKvTUPPgWPlM4gZxrGGMYVerZR5_Z16CJd3TrC3wX98BmFDp8RWKIU9V3JdWfN7j0qjE10Rja_cbOiwT0B_kPWd0zLQZd8CfYdVuQEUVFifsYkIPbpHMfVnh2ZOBffqKbSZ4ZLVRLasn5f58KsBzzyjta06_04LDJcKHTJv2wqt9kNixjdvWnErnV2d8Xd2cDpa-EfyqH0vOMQGVnYReIcOAWvhg&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcvr71PBz7y_fU04Jk8yQyfl5rzAWQmJ_BXJ3sA3n0-Gt_7I3oO5ygjbdBc21q_m1FXPMz4vIMnQt536Tw3PcCn7Pu5ZxVIS123FodbPACjG6q4qoOaL2hW6bzpxamrbFSdUcxkLP39gFILJdFzHKRSv1RUvwXHX25VHYb1jih-cCwCckbUL2wwzYwu6CXe1ESclokEl3N6_5bybv_3sq-SOzNR3ZyK3vl6bnKzbyfY8Sqxfwp6XF05_Qk8-3A1dL1DU8KBf2pPQ4t1CNvObkFrbOlegult68dn_emc4AqPDPHzw-TPjo_5WC9rVxgAdGrbkqTCMI76tgqIAHeVj1Wm04axCz9xEtyDN7qiENqX5-uAS1ClU16ltw8ifY1B5RhQpgJpFs2o0PX4YCkOb3k3Cirtqg0g8I_S25z9Ulk3Aby0hXKXiUdMj1TAguhaGIZxsn4k_yt3AGURiuXkZZnmKBvUeNlW-m_krYG1DySuqm55OFQK0C98_sxO0L3IInsUK_DRqcYn0hxkYts-yNzCCIJnx4vjd2znGguALMJbv7Yfy7qu3NnqZCG0DyJ_Cz6rofuv&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfHy5weJ3o4FOmZDlJ1IxYQDRTMemoJQBH9ciYy7UIZ7yyH_03UGal6oXmsRw75nm2xamdYw55LV1L2XgvEpzMgU8iECwf2gw4cIEolhNK0X0i4rmY853Lql4IrMo88P0AyZ88HILcLi_3Z8zTD6L2fD6fnX3NTtT4peypVM1mAdrrNI2sjmMUmBJZfHRTxqJd8DaOKoCctW-Nc8vQrGsG3RTQZQfS5I9WtkqWSh9ihLfk643J6E8Ybak5iaW8gV0AG1_svgRjKZFn8I0ZUVM_k9p2AOktpDgxlC0-RceGYvsWxcN4&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ]
+      },
+      "isCorrect": true,
+      "timestamp": 1751086290606
+    },
+    {
+      "query": "Current Location",
+      "result": {
+        "success": true,
+        "type": "fallback-location",
+        "name": "Current Location",
+        "location": {
+          "latitude": 4.955079,
+          "longitude": 8.346585
+        },
+        "confidence": 0.3,
+        "description": "Using provided location as fallback",
+        "category": "Unknown",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=4.955079,8.346585",
+        "processingTime": 5054,
+        "id": "temp-1751088399849",
+        "nearbyPlaces": [
+          {
+            "name": "Salvation Ministries Etta Agbor",
+            "type": "church",
+            "distance": 324
+          },
+          {
+            "name": "Unical Microfinance Bank",
+            "type": "bank",
+            "distance": 506
+          },
+          {
+            "name": "Mansionette and Bungalow Property Nigeria",
+            "type": "point of interest",
+            "distance": 622
+          },
+          {
+            "name": "Bez Pharmacy",
+            "type": "pharmacy",
+            "distance": 649
+          },
+          {
+            "name": "Apex Dynasty School",
+            "type": "school",
+            "distance": 697
+          },
+          {
+            "name": "MTN Shop-Sonnakom Calabar",
+            "type": "point of interest",
+            "distance": 703
+          },
+          {
+            "name": "Unical Senior Staff Club",
+            "type": "school",
+            "distance": 796
+          },
+          {
+            "name": "Galaxy Games",
+            "type": "point of interest",
+            "distance": 805
+          },
+          {
+            "name": "Department of Geology, University of Calabar",
+            "type": "point of interest",
+            "distance": 811
+          },
+          {
+            "name": "Calabar",
+            "type": "locality",
+            "distance": 2358
+          }
+        ],
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcJw5ZmGl9oj7TRXY6h8g1Ao8XIFee_9unSaQv9nlLKL3piZLZ-vkkP8EK8YcVDkDKfQuTAibCCFVdToj2T1QThOaB2ByljR6GnqcBvhQslZWrc2zvAhK2_C7kxZhge1sE8gMzrsVLcK3uDy0mRU-AvnmpTQUWMMdyX3AT5zQ6ikLMX1S3FigJ753sybTAqkDcjY5dDzDd5PUaeslYu5EpOMvikYp1oL16S1LuvhPL70ci-3uIlUcGk7gtCjV11n2l5HATB4cyoGgvtC0sFnk7R2MWIfFbO2RirWKHa0Gth-LTqk4ZHTUUkf0OSqpRtagP_rSuKktoF12AGPFulIc8OvdxonSKwyewHPaiJOkhHb1gCB8Ndhm7_p03EbKyRZ6rYh4CANkxORrGDs0ZhtwbqlONj4y0Il5KLVotfKpvGBqEdwgi1luTpQMbcA_a-iCkjvsbmpWzdV7JNIMhpDjDUObF1pRqma8uolOpferwEdBAxFb_Q8j_43vdoDgiLUN3JpBfYQNXCGzK5SwBe28X0QW2fTtSAJduken5q4ykVvqkP6-pPYawE_A_Ep88Oqhfl4gU3&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfP8LMNRGvmkS0PnNpKvWJfxFKaMrF-XMRGpQCJSSPuAYLadUJkPzmKVZWfC-bGQJ3_UU_Hl1csLfdo8zonjBCJg78RyDYkyCaNAbL5Wk4Qu6PV4ECZInboSYbrcpPjlMHRY54e4mA5R7_D7QSOHyNitD5D2uFH1KfANLZKI9Mw1rCTxVW-hEP--vL-WJv8JA25-bJdXaGNTCBgqXDBZ6N1xFRGgrvykkSPih880GDZPsAtYWDNZcXIxyDZzHDABlqbMct6UdHkzbkQ0dk3IicGX6XC2V10AYsejH94821pAPbF97RkvC60uy2ncw0JHneNwlRq9RHRnAerVHfPP-0wdnth8jZ-TPeDboTV67UvgwWgZjKG8pjnLtxlhlJTwUP19mRlD9dA9mJ13xROJCDe5yfG79u0b1mfX_ucugw-gX2TqNbyXPR3xcBLp3jBpBHWplPAC9EtkRVB7K7K6pr-X3_esoBNbPTvz5Y9IRQHryII4pvqd8UqfpJP4vMxC7Ndz4uwN9T2GsPVsCqbsONt7JDhUYGySiI7BB3OZY2R5HPf0yzjt6fjjuVFOBze5H1YAeyH&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpesgF0ZAc0NC767x3L2Nmfb6ku8TcHKEdoPYbfHdp5iUF4kk2mDxKZMICBunOndveZwQcJ5jFC707QbNw5-X-H_Wx3Uk3Zx3GJvJMkk_8rvzU-ZKqlhqFEGSAyA0DrAWQ5_z7c5aOQI_iDgnLgdZRK0KplFTkF49CTFxCLuPOWbNDxx15MLaV-YdCRdM6UeurIP-KkhkOJ-pgrc1LNzLIpW1vjd1bmC8IH29g7l2P4wmmj-w1Y6y4pjS-A2H2BkS6ASjEaWveaU3vBXiYCwfjcdlr8VRLUAbSXqVZirJdZGtACccC8AaSBZXAVdfBBRLpOlRspvH0MB4toBPuoqJC0w73YAl08ZCL99vKYU7EgVUcd1_ww5rj3MC_asYJxGlAaWC6jOyS2udHzGXaid6SOoPZz4HV5ity5HEyvYMR-Likfm2YXuqW-w2coGrvFyQ5T5Hwim4B2N2UDHuLeGey-23o0xxNPItnB8AlEL-cgI3vikv2FELzzRMYzgNxUdOBLVXbJ-nLOeZscW_3ilX3OWmOFMyBsCKfrpzDTHINW_xHDag_O4tO0_j2bY3hVngnImjRwV&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdkGmypfDM59jxUatNvvRTf-1qcYAcXGC7cBuUM062OpykXEKM2Q4A5UWWx7b0B2nsTfdlPlNND1mmggO9jUYwqd51H6C7PNI92CHM5SAl-l1TOG-aaaE6un9DDhUtHI1JDJK253w3B8qzQFTpQaLtMFqK5HdjODhu8oCJ-ETT5jfW1yPSiDHpzZViSSTXxtk-DClBTYROFI-mvXcKImwGTg9x3yzgUtuUs8cvNqSiQ_KS3hJN8JQ1TZfL1lhs5RRRdGgrfB_mvXzv1Ij8britdy3T0qQK1EPC0s3m4SbWzCNVeGSe5XJCk6GjN0FGwYch_b2GGO46Kf7Gx31Qnz3CcYogQkXK4BoTc9SWWsDDY_clW3v9ewM6xDqEkAWYtpVAKMzU9qkl5lnU39V5wTR5YTYsgbliKBfaPfKdAO9H1Nir_nJFAad2NYc2FDGRHgDsnlk8rSfOWdm1wtEXyk_QUF1-L4nw7Qvk5rTsJbTYEAC3jqfj9iar9RkkzFRW82AVn7yLAjUAxYGmyxThutPGvPBba11jzjStrDzCivoNezYViAnU5Kep60Q1jcD4MKQ0AM9z4&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpczZulDIBiuIYOZbo2jKosg7JMruYXqzcsxnQOtFYnReVQ8OdvPSbMfzFA3nWLGRk_1SSB5YWAbW4eAJx07KppmyNqRUR3Zv0hq8MFuSmKWwEvTvEWlsXwbCODhTMs2TuxuOMCMvDyU3vDVs_vsVUV99RuGb6tOjcqlUZLiK4KEHGCYKDp18E0Eqi0UdOQQA707BuzUnsNID8Wb0_-Gc0oQHnesXiYku_LviI9ASM7BKyjURSwnNGfBzqzTOB8tbYSWxKY_pQjl-5jadqS22i-DJUMbORdkTiEsjH-3OZR5titrYSSgTSUaQWYTgxXcuU7nzujSiUf4onhsCG8BLi-40FAlPMNP9-xvu-7RrrmJWLTMPpjcHOqLY2Q3Fs1EVX6-8E3ptZhQnhlCrOqepY1QF2I9MNyBtGwOwKtOQuVnkQZJ_Fjj8zu3oDZyUHs9dGZX3viWpDt1Toi1d_iEg9MOm6TuyFSlW7N5BLw_cQnb6sTD-ApS0mS5_1C2O0feZKLo-ArMcPQ17y6-iy-V860Wnp8HAFi7Q7p4wjOFoNrGV_3SGgkDLJW6Vq-fB2zSkDWZfTzy2nh5cQ&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcbR_g7TpH_sIL_vRR2Avg-2mHSahl2Z6GIK1KUwRRhbtYXpI735mr5QBS8LQTMxHr9GFwnIDKe65NBxtwHfXqAHWJixcv1v59r8rXCckBHr3PzrXmZf4tCHe66rgEWGTqyvEDE9QQ5q8wuyPpLXfRPk4UmEkJphRrc73qf7IZAfzRqhrchf_QmHF2fzKUecsP0hxCURGhK6BrMf8aCx9MSnxMD2XcgwXTcbqMDTQhn8uTzUgY8iCO6-VFov30E4YaLtLDZAkw6Sf7SRKgkl-wDWdn3aBVANF9wtHuO-sGHJ8unupI&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ]
+      },
+      "isCorrect": false,
+      "timestamp": 1751094809137
+    },
+    {
+      "query": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+      "result": {
+        "success": true,
+        "type": "text-based-location",
+        "name": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "address": "Albany Road, London SE5, UK",
+        "formattedAddress": "Albany Road, London SE5, UK",
+        "location": {
+          "latitude": 51.4845,
+          "longitude": -0.0842
+        },
+        "description": "Location identified from text: \"ENISH NIGERIAN RESTAURANT & LOUNGE\"",
+        "confidence": 0.8,
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=51.4845,-0.0842",
+        "isBusinessLocation": true,
+        "businessName": "ENISH NIGERIAN RESTAURANT & LOUNGE",
+        "businessAddress": "Albany Road, London SE5, UK",
+        "businessCategory": "Business",
+        "businessConfidence": 0.8,
+        "processingTime": 3895,
+        "rating": 4.2,
+        "openingHours": {
+          "open_now": true,
+          "periods": [
+            {
+              "open": {
+                "day": 1,
+                "time": "1200"
+              },
+              "close": {
+                "day": 1,
+                "time": "2300"
+              }
+            },
+            {
+              "open": {
+                "day": 2,
+                "time": "1200"
+              },
+              "close": {
+                "day": 2,
+                "time": "2300"
+              }
+            },
+            {
+              "open": {
+                "day": 3,
+                "time": "1200"
+              },
+              "close": {
+                "day": 3,
+                "time": "2300"
+              }
+            },
+            {
+              "open": {
+                "day": 4,
+                "time": "1200"
+              },
+              "close": {
+                "day": 4,
+                "time": "2300"
+              }
+            },
+            {
+              "open": {
+                "day": 5,
+                "time": "1200"
+              },
+              "close": {
+                "day": 5,
+                "time": "0000"
+              }
+            },
+            {
+              "open": {
+                "day": 6,
+                "time": "1200"
+              },
+              "close": {
+                "day": 6,
+                "time": "0000"
+              }
+            },
+            {
+              "open": {
+                "day": 0,
+                "time": "1400"
+              },
+              "close": {
+                "day": 0,
+                "time": "2200"
+              }
+            }
+          ],
+          "weekday_text": [
+            "Monday: 12:00 PM – 11:00 PM",
+            "Tuesday: 12:00 PM – 11:00 PM",
+            "Wednesday: 12:00 PM – 11:00 PM",
+            "Thursday: 12:00 PM – 11:00 PM",
+            "Friday: 12:00 PM – 12:00 AM",
+            "Saturday: 12:00 PM – 12:00 AM",
+            "Sunday: 2:00 PM – 10:00 PM"
+          ]
+        },
+        "reviews": [
+          {
+            "author": "Sarah M",
+            "rating": 5,
+            "text": "Authentic Nigerian cuisine with excellent jollof rice and grilled fish. Great atmosphere!",
+            "time": "2024-01-15"
+          },
+          {
+            "author": "David O",
+            "rating": 4,
+            "text": "Good food and friendly service. The pepper soup is amazing. Will definitely come back.",
+            "time": "2024-01-10"
+          },
+          {
+            "author": "Maria K",
+            "rating": 4,
+            "text": "Nice place for Nigerian food in London. Portions are generous and prices reasonable.",
+            "time": "2024-01-05"
+          }
+        ],
+        "phoneNumber": "020 7967 6261",
+        "priceLevel": 2,
+        "id": "temp-1751095837752",
+        "nearbyPlaces": [
+          {
+            "name": "The Hour Glass Hotel & Pub",
+            "type": "lodging",
+            "distance": 216
+          },
+          {
+            "name": "Eurotraveller Hotel Premier (near Tower Bridge)",
+            "type": "lodging",
+            "distance": 676
+          },
+          {
+            "name": "Christ Apostolic Church Mount Zion International",
+            "type": "point of interest",
+            "distance": 747
+          },
+          {
+            "name": "Old Kent Road Fire Station",
+            "type": "fire station",
+            "distance": 785
+          },
+          {
+            "name": "Sports Direct",
+            "type": "shoe store",
+            "distance": 814
+          },
+          {
+            "name": "Pedro Host Family",
+            "type": "lodging",
+            "distance": 816
+          },
+          {
+            "name": "Old Kent Road Argos",
+            "type": "department store",
+            "distance": 840
+          },
+          {
+            "name": "Pasha Hotel London Ltd",
+            "type": "lodging",
+            "distance": 898
+          },
+          {
+            "name": "Morrisons",
+            "type": "supermarket",
+            "distance": 925
+          },
+          {
+            "name": "London",
+            "type": "locality",
+            "distance": 3925
+          }
+        ],
+        "photos": [
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfkfWef2iMH5UuFU4DJ9U6CgLuHAmIh_njGagt6Jh2OY_1jDlCi9JH8fEGi-taI6xm2x_ISqga93u8ifvs6KDMtSBdRRJOf22ZpwKGsRvY4mcL7KD3DvlH13blNDD0pDn-r8RxNV5KfAhz3cffu8cMo-SYqKbzzAx9jzOAI_eRpBpCA8qSWgGxQID2YZNwNLbHSOv_4F6Wj8ICfRxTDMOHQeq44L4E4Qb1IkKlb34qMkDB_w3TMrfX5a6WZ0mPiS_Y2xc3fqii38PT-tbE2X0iD-9hMCSfQ-d1tQdcaFv7MKfkMu4cePOnFTlQ-CfzPmGGaB6fcu7JPk_OVZVvgU5kiLGA8_xNLaI6g1u-AuF8vafUJwfEbGF2UPNCnQgFrR2V1MjdZAmKp0LECkAU4Q76MtnMiBZ7qMkN7fEYsyAa4sHMT4xAZ--WzgHk7qgJm8zILODxGVMA1-e2uPlR_p4dRCSbV3C6fIAAv8Bav9AAt-Uhq594y-zGz6ouKPElsOg_WR2wcZrLt1164gs-qGSvPn2tQR7AsQQnTsoE0xcT9qpk52msoXvZTdUoQMGV2qxHztETJ&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpclaOiMro-wtBTjfIB9x0-r916P4U5GErMJR2vfznnnjgQXhMtsDXivIPgrfaBlGsJRjWkEnSS9hpLmTsnNGVtWBOtA1o-ZNAeTpQiqc2p62iLIlx8nYw7XfxaOdUikuI1s1KWkM5rqQYZfihW1WhP180o3tcJrxa_rt1v9mDqBC2CB9Q7Y-6wTGAR20C_3RSSzlL-onqsGEojs5JNlRQMihoV7nIROKQBv-ko5nNEHOTFpM4aJpAqh4CjWV_XCsLiHUQjbrZjCBPyHm5WqYLhC3fiIEYJP4zPdJ7JbMnAT_a3-hlq0gV-Qrc3Wqaz8EsEiOrKJoFru8PnUsU4JbUO2-xpUOo4qTauuhLCpZVDWFxjDn6iZyHdtUCl2b2TqcloXfkTyYIjh2a--FroBy-t4LMgfHy3zRba2vvEErt1PdK5RZCum5PW6lZzkdQpW4FhwMIJ-IMmg1UvTUhVPKbfT8twtgOSy-GRg5sdfA_rdPgT7FSdsw2zJPMv1sVyxz7WRlkMeWlkNUbKe6GvD0oZauIe4Ok-1ZEOWOcfCyXwKX6lxS0YW4ZzFJg6GoLYzQsh-MwX4wbZD3g&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpeLPHUKYRB-SpN-hGYl_4_A5qefeJeRYShePXOVPVr4VE57lY08OjdyJA2WlMP0XTDWyRlNhF1D4FG9v7UcjzJu9wPgj3QOlZMaEUwWdp7btpLoMi6lkayBMf284QRNxeHl3AG2i6qZlg3kdzwqKDsdaMLC60IflgajmSO3zof3kF_7MFQzukWZOqlNWC8bFuaOWiWkD0y3jqnFC6YfkucTG6NzCCFfRSN1iFptLJSDojrhkJpkpJcmzPQfIPfNMMb57kw5hCsIurjD6iXp8pojlsijI9riwANlmG1bfvpjmTC7fvFjnh4uM-v_PL86QZSOLYASHKMtgjFBtchZERwRvAxetg63Fq7UXbUxQ23e5n2gFn0PC1s6yMLl9TnOP0CHiNP1TSD1FY1APVkX8rd7vIIXXoGo8R0hsLCc7MeBXuWCwL1tY0qQ3jbY6fFGrC7FrQfUUSVds-QnP_ZyurSjmyIrxHB9crItksKIpYu8vXHO8WaDmVQ5RQ0HgNvgdDxWAhVvIc7uK6uoNhBveWVvkP2cP1hfs0di5aBK2GZ6dqXVAw_QiZgm2vphA8fdbHwm0bxL&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpfp4OAzWh2ku3lJ05wi1v3XObWn5jq84T8yim_LpeMHU9QC4u75hKbOICRVFNC6BDqK4rkUZBGReqomVL3WKztufUnJmDWv4XWD3W4zq0aJK19V70LuXc61FiqniKz9Lgs6lQh9qBToRbA_yQ3UsNuZb3fXFL7TCt7MdgEfVXaQSXSJw59hYJxfdScxbVQr-wqKbQyIPdzROSIyU7WD8DshV9EAxAiyL7TQA9bq10Hh7MXRTAXa_F_7BZ8ykRaoYvqBC-UkbFa1W3qRT-JTsUm3F-WvHYojbYkjNsDU95IJwMEwFfgFnQIfiCZkAuzgWHtipIVcLl-C5R0lWcqoPmv6xG5tBYRj5nmd1J_GBpO8A-P06tyETTonG2Z64Z7AlAjm2Z8jgkzHNLBU0X1xDqKGODJh7DLPmJruqjfPxRNeW71UmaYfshdrJrJm7lmvrA4VW4lJb1fCQt3DMqxwVQYg5SRq58kbXh0hQlaOLgpUhBKC6GQzOZo6jveERyG8saZOHOsY2I3jfZSO5iDXOOTlZ8Rc0RdD8jRVJz1kFJtplMtdcq4LiRAVRtd-Ll_i_8X7lLqKheiyNA&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpdkWNPb2pmm_gWxP9TN33uDzqU6Q8DS6eil8GSyy42dspjBL4skAyqcKR-SEuhXh5g9QiGHHiH0MeEmM1xPAdBo0qBBFtowJ9stHKxOhHBZtZ9SYbVj8nYoalqvxW0T3V2ak30tVw5idACs1N_nRgqYs_VLqJfJx1qAvwmKxKWFKJhSNCVXUDmWAytGL0z8c4KhaEUhKcxFw2tQB1v1pWywP4-Lssx8ARaVeY_ay05d5Gc-FXdn4mYynIYWSNmLqsWSgUb6E6gmTUH0vci5cdLsuSrG5-q43Ae1nWApoqmPWcMu6A69QY4YpiQHuPaNzhsJsiUXk4t9yDjOsWJAjRDfWd3J4u1QA18evoOqN1IMqcXXF78A9OFgAlBSm5SMSw4xu3kjtnGG03EriCRZubY69H74kQOC9zoIVjTfB-27JizT6FzEdutVp5Dde_Uxm_N-MlRbQBJ7f565RFlNTUO5Fiw0bgXYK1iLkJ5LFC0-9OWnOKvHlY4spWkV3801U2glKZI7Jd36XWSQt8GoAyLiygayhrgSRC7Z7QS1Wbg5BgVceD1ARchIQ3xbsAM9j5xetU0P&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+          "https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=ATKogpcw98-pugoClexrQ81ZqiCo666IZfkbvo-nuEaFrbkHBqQkhIg5goFmswi4rwfOuy84EwMI5heQt6QepVfTG30iqf-KGlKqNDqgZf2ohgBmbOEtG0YrA-GGQXbISNwW1M-gkkl3cEGcfB-em5NH-irBNYMbC4XSjVllPkKH_JNjioYAJRby7h-eDl3kGkHkeJ32To-RD8vJFqRbm6qKO3gWuzGN77wibcdFrBocReCFoR5_e72UQgdZK67stprygqPZdQYcypm88e2R7iNbNyYEfOWc__47yYeFpYJZUEpjY0-tnPTx7vgUB8fmr7SLb7IhAcgWd48Wrj2n--JtM-yzH349TamlW2t8xAuWx6IVzUAJoKXaHEFJo0AoJA2ciBQoNicXjzcfP55woVGhAqhl_dOlCZk_YbF0cEoO-FVepiDI8VTuKahL3nig1p6hjhdFpvN3Co5f7q2RmmgyIEusTqSF_U9u77j4SBnyGTVaBfjUYjdMa-4XgDoXd8nfkdT3-hNjACNkNtJnAFS_SPuhUtu74uDAMnh-5-4_sDrlnU_iQUM-ACc5TFjhoDgIZLYuDaq3n3WjRQ&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        ]
+      },
+      "isCorrect": true,
+      "timestamp": 1751095910235
+    },
+    {
+      "query": "Right Choice, Sweet Home Turkiye Furniture",
+      "result": {
+        "success": true,
+        "name": "Right Choice, Sweet Home Turkiye Furniture",
+        "address": "Jakande, 1st gate, Along Lagos-Epe Express Rd, Lekki Peninsula II, Lekki 106104, Lagos, Nigeria",
+        "location": {
+          "latitude": 6.4474,
+          "longitude": 3.5562
+        },
+        "confidence": 0.9,
+        "method": "known-business",
+        "rating": 4.3,
+        "type": "known-business",
+        "description": "Location found via known-business",
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=6.4474,3.5562"
+      },
+      "isCorrect": true,
+      "timestamp": 1751114949597
+    },
+    {
+      "query": "Cargo Shipping Logistic Service",
+      "result": {
+        "success": true,
+        "name": "Cargo Shipping Logistic Service",
+        "address": "Lagos, Nigeria",
+        "location": {
+          "latitude": 6.5244,
+          "longitude": 3.3792
+        },
+        "confidence": 0.9,
+        "method": "known-business",
+        "rating": 4,
+        "phoneNumber": "09083543353",
+        "type": "known-business",
+        "description": "Location found via known-business",
+        "category": "Business",
+        "mapUrl": "https://www.google.com/maps/search/?api=1&query=6.5244,3.3792"
+      },
+      "isCorrect": false,
+      "timestamp": 1751115822524
+    }
+  ]
+}

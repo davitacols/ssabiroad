@@ -29,11 +29,12 @@ interface RecognitionResult {
   openingHours?: any
   placeId?: string
   reviews?: Array<{author: string, rating: number, text: string, time: string}>
-  nearbyPlaces?: Array<{name: string, type: string, distance: number}>
+  nearbyPlaces?: Array<{name: string, type: string, distance: number, rating?: number, address?: string}>
   priceLevel?: number
   businessStatus?: string
   types?: string[]
   userRatingsTotal?: number
+  deviceAnalysis?: any
 }
 
 interface CameraRecognitionProps {
@@ -173,59 +174,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
     })
   }, [])
 
-  const fetchPlaceDetails = useCallback(async (placeId?: string, location?: Location, name?: string) => {
-    try {
-      // If we have a place ID, use Google Places API
-      if (placeId) {
-        const response = await fetch(`/api/place-details?placeId=${placeId}`)
-        if (response.ok) {
-          const data = await response.json()
-          return {
-            photos: data.photos || [],
-            rating: data.rating,
-            website: data.website,
-            phoneNumber: data.phoneNumber,
-            openingHours: data.openingHours,
-            reviews: data.reviews || [],
-            priceLevel: data.priceLevel,
-            businessStatus: data.businessStatus,
-            types: data.types || [],
-            userRatingsTotal: data.userRatingsTotal,
-          }
-        }
-      }
-      
-      // Get nearby places if we have location
-      const additionalData: any = {}
-      if (location) {
-        try {
-          const nearbyResponse = await fetch(`/api/nearby-places?lat=${location.latitude}&lng=${location.longitude}`)
-          if (nearbyResponse.ok) {
-            const nearbyData = await nearbyResponse.json()
-            additionalData.nearbyPlaces = nearbyData.places || []
-          }
-        } catch (error) {
-          console.warn("Failed to fetch nearby places:", error)
-        }
-      }
-      
-      // Fallback: search for photos by name and location
-      if (name && location) {
-        const searchQuery = encodeURIComponent(`${name} photos`)
-        const response = await fetch(`/api/location-photos?q=${searchQuery}&lat=${location.latitude}&lng=${location.longitude}`)
-        if (response.ok) {
-          const data = await response.json()
-          additionalData.photos = data.photos || []
-        }
-      }
-      
-      return additionalData
-    } catch (error) {
-      console.warn("Error fetching place details:", error)
-      return {}
-    }
-  }, [])
-
   const startCamera = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -281,33 +229,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
       setCameraActive(false)
     }
   }, [])
-
-  const handleFeedback = useCallback(async (isCorrect: boolean) => {
-    if (!result || feedbackGiven) return
-    
-    try {
-      await fetch('/api/location-feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          query: result.name || result.address || 'camera-recognition',
-          result,
-          isCorrect 
-        })
-      })
-      setFeedbackGiven(true)
-      toast({
-        title: "Feedback recorded",
-        description: "Thank you for helping improve our location accuracy!",
-      })
-    } catch (error) {
-      toast({
-        title: "Feedback failed",
-        description: "Could not record feedback",
-        variant: "destructive",
-      })
-    }
-  }, [result, feedbackGiven, toast])
 
   const reset = useCallback(() => {
     setResult(null)
@@ -397,11 +318,11 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                         ? 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-xl shadow-cyan-500/30 scale-105' 
                         : 'bg-white/60 dark:bg-slate-800/60 hover:bg-white/90 dark:hover:bg-slate-800/90 border-slate-200 dark:border-slate-700 hover:shadow-lg'
                     }`}
-                    title="GPS coordinates only from image metadata"
+                    title="GPS coordinates with comprehensive location data"
                   >
                     <div className="flex items-center gap-3">
                       <div className="h-3 w-3 rounded-full bg-blue-500 animate-pulse"></div>
-                      <span>GPS Only</span>
+                      <span>GPS Enhanced</span>
                     </div>
                   </Button>
                 </div>
@@ -409,7 +330,7 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                   <p className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100/50 dark:bg-slate-800/50 px-3 py-2 rounded-full">
                     {apiVersion === 'v1' 
                       ? '🔍 Analyzes text, logos, scene & businesses' 
-                      : '📍 Extracts GPS coordinates from image metadata'
+                      : '📍 GPS + nearby places, photos & device data'
                     }
                   </p>
                 </div>
@@ -451,7 +372,7 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                 </p>
                 <p className="text-sm opacity-90">
                   {apiVersion === 'v2' 
-                    ? 'Reading GPS coordinates from image metadata' 
+                    ? 'Reading GPS coordinates and enriching with location data' 
                     : 'AI analyzing text, logos, and business information'
                   }
                 </p>
@@ -550,61 +471,109 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                       {result.description}
                     </p>
                   )}
-                  
-                  {/* Quick Info Grid */}
-                  <div className="grid grid-cols-2 gap-6 text-sm">
-                    {result.rating && (
-                      <div className="flex items-center gap-2">
-                        <Star className="h-5 w-5 text-amber-500" />
-                        <span className="font-medium">{result.rating}/5 ({result.userRatingsTotal || 0})</span>
-                      </div>
-                    )}
-                    {result.priceLevel && (
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="h-5 w-5 text-green-500" />
-                        <span className="font-medium">{'$'.repeat(result.priceLevel)}</span>
-                      </div>
-                    )}
-                    {result.phoneNumber && (
-                      <a href={`tel:${result.phoneNumber}`} className="flex items-center gap-2 text-teal-600 hover:underline font-medium">
-                        <Phone className="h-5 w-5" />
-                        <span className="truncate">{result.phoneNumber}</span>
-                      </a>
-                    )}
-                    {result.website && (
-                      <a href={result.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-teal-600 hover:underline font-medium">
-                        <Globe className="h-5 w-5" />
-                        <span className="truncate">Website</span>
-                      </a>
-                    )}
-                    {result.openingHours !== undefined && (
-                      <div className="flex items-center gap-2">
-                        <Clock className={`h-5 w-5 ${result.openingHours ? 'text-green-500' : 'text-red-500'}`} />
-                        <span className="font-medium">{result.openingHours ? 'Open now' : 'Closed'}</span>
-                      </div>
-                    )}
-                    {result.businessStatus && (
-                      <div className="flex items-center gap-2">
-                        <Users className="h-5 w-5 text-blue-500" />
-                        <span className="capitalize font-medium">{result.businessStatus.replace('_', ' ')}</span>
-                      </div>
-                    )}
-                  </div>
                 </div>
                 
-                {/* Types/Categories */}
-                {result.types && result.types.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {result.types.slice(0, 4).map((type, index) => (
-                      <Badge key={index} variant="outline" className="text-sm px-3 py-1">
-                        {type.replace(/_/g, ' ')}
-                      </Badge>
-                    ))}
+                {/* V2 Enhanced Data */}
+                {apiVersion === 'v2' && result.success && (
+                  <div className="space-y-6">
+                    {/* Location Photos */}
+                    {result.photos && result.photos.length > 0 && (
+                      <div className="p-6 bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-950/30 dark:to-rose-950/30 rounded-2xl">
+                        <h4 className="font-semibold text-lg flex items-center gap-3 mb-4">
+                          <Camera className="h-5 w-5 text-pink-600" />
+                          Area Photos ({result.photos.length})
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {result.photos.slice(0, 6).map((photo, index) => (
+                            <img
+                              key={index}
+                              src={photo}
+                              alt={`Location photo ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-xl shadow-lg"
+                              loading="lazy"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Nearby Places */}
+                    {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
+                      <div className="p-6 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 rounded-2xl">
+                        <h4 className="font-semibold text-lg flex items-center gap-3 mb-4">
+                          <MapPin className="h-5 w-5 text-blue-600" />
+                          Nearby Places ({result.nearbyPlaces.length})
+                        </h4>
+                        <div className="grid gap-3">
+                          {result.nearbyPlaces.slice(0, 8).map((place, index) => (
+                            <div key={index} className="p-4 bg-white/70 dark:bg-slate-800/70 rounded-xl">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <h5 className="font-semibold">{place.name}</h5>
+                                  <p className="text-sm text-slate-600 dark:text-slate-400 capitalize">{place.type}</p>
+                                  {place.address && (
+                                    <p className="text-xs text-slate-500 mt-1">{place.address}</p>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <Badge variant="outline" className="mb-2">
+                                    {place.distance}m
+                                  </Badge>
+                                  {place.rating && place.rating > 0 && (
+                                    <div className="flex items-center gap-1">
+                                      <Star className="h-3 w-3 text-amber-500" />
+                                      <span className="text-sm">{place.rating}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Device Analysis */}
+                    {result.deviceAnalysis && (
+                      <div className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-2xl">
+                        <h4 className="font-semibold text-lg flex items-center gap-3 mb-4">
+                          <Phone className="h-5 w-5 text-purple-600" />
+                          Device Analysis
+                        </h4>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="p-4 bg-white/70 dark:bg-slate-800/70 rounded-xl">
+                            <h5 className="font-semibold mb-3">Camera</h5>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-slate-600 dark:text-slate-400">Make:</span>
+                                <span className="font-medium">{result.deviceAnalysis.camera?.make || 'Unknown'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-600 dark:text-slate-400">Model:</span>
+                                <span className="font-medium">{result.deviceAnalysis.camera?.model || 'Unknown'}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="p-4 bg-white/70 dark:bg-slate-800/70 rounded-xl">
+                            <h5 className="font-semibold mb-3">Image</h5>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-slate-600 dark:text-slate-400">Size:</span>
+                                <span className="font-medium">{result.deviceAnalysis.image?.width} × {result.deviceAnalysis.image?.height}</span>
+                              </div>
+                              {result.deviceAnalysis.settings?.iso && (
+                                <div className="flex justify-between">
+                                  <span className="text-slate-600 dark:text-slate-400">ISO:</span>
+                                  <span className="font-medium">{result.deviceAnalysis.settings.iso}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
-                
-                {/* Show More Information */}
-                <ShowMoreInfo result={result} />
                 
                 {/* Actions */}
                 <div className="flex flex-wrap gap-4">
@@ -695,47 +664,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
 
 
       </div>
-    </div>
-  )
-}
-
-// Component to show additional location information
-function ShowMoreInfo({ result }: { result: any }) {
-  const [showMore, setShowMore] = useState(false)
-
-  return (
-    <div className="space-y-4">
-      <Button
-        onClick={() => setShowMore(!showMore)}
-        variant="outline"
-        className="w-full py-3 bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm"
-      >
-        {showMore ? 'Show Less' : 'Show More Information'}
-      </Button>
-      
-      {showMore && (
-        <div className="space-y-4 p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl">
-          {/* Coordinates */}
-          {result.location && (
-            <div>
-              <h5 className="font-semibold text-sm mb-2">Coordinates</h5>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                Latitude: {result.location.latitude.toFixed(6)}<br/>
-                Longitude: {result.location.longitude.toFixed(6)}
-              </p>
-            </div>
-          )}
-          
-          {/* Processing Details */}
-          <div>
-            <h5 className="font-semibold text-sm mb-2">Recognition Details</h5>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Method: {result.type}<br/>
-              Confidence: {result.confidence ? Math.round(result.confidence * 100) : 'N/A'}%
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

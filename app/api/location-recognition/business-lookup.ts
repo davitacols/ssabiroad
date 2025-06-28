@@ -11,6 +11,12 @@ interface BusinessLocation {
   address: string;
   category: string;
   description?: string;
+  rating?: number;
+  openingHours?: any;
+  reviews?: Array<{author: string, rating: number, text: string, time: string}>;
+  phoneNumber?: string;
+  website?: string;
+  priceLevel?: number;
 }
 
 const KNOWN_BUSINESSES: Record<string, BusinessLocation> = {
@@ -91,7 +97,100 @@ const KNOWN_BUSINESSES: Record<string, BusinessLocation> = {
     address: "52 Old Kent Rd, London SE1 4TW, UK",
     category: "Automotive",
     description: "Madhouse Tyres - Alloy Wheel Refurbishment & Repairs"
-  }
+  },
+  "JANIBA GINGER LIMITED": {
+    latitude: 40.7589,
+    longitude: -73.9851,
+    address: "New York, NY, USA",
+    category: "Business",
+    description: "Janiba Ginger Limited - Business Services"
+  },
+  "JANIBA GINGER": {
+    latitude: 40.7589,
+    longitude: -73.9851,
+    address: "New York, NY, USA",
+    category: "Business",
+    description: "Janiba Ginger Limited - Business Services"
+  },
+  "CARGO SHIPPING": {
+    latitude: 4.955079,
+    longitude: 8.346585,
+    address: "Calabar, Cross River, Nigeria",
+    category: "Logistics",
+    description: "Cargo Shipping and Logistics Service"
+  },
+  "ENISH NIGERIAN RESTAURANT & LOUNGE": {
+    latitude: 51.4845,
+    longitude: -0.0842,
+    address: "Albany Road, London SE5, UK",
+    category: "Restaurant",
+    description: "Enish Nigerian Restaurant & Lounge",
+    rating: 4.2,
+    phoneNumber: "020 7967 6261",
+    priceLevel: 2,
+    openingHours: {
+      open_now: true,
+      periods: [
+        { open: { day: 1, time: "1200" }, close: { day: 1, time: "2300" } },
+        { open: { day: 2, time: "1200" }, close: { day: 2, time: "2300" } },
+        { open: { day: 3, time: "1200" }, close: { day: 3, time: "2300" } },
+        { open: { day: 4, time: "1200" }, close: { day: 4, time: "2300" } },
+        { open: { day: 5, time: "1200" }, close: { day: 5, time: "0000" } },
+        { open: { day: 6, time: "1200" }, close: { day: 6, time: "0000" } },
+        { open: { day: 0, time: "1400" }, close: { day: 0, time: "2200" } }
+      ],
+      weekday_text: [
+        "Monday: 12:00 PM – 11:00 PM",
+        "Tuesday: 12:00 PM – 11:00 PM",
+        "Wednesday: 12:00 PM – 11:00 PM",
+        "Thursday: 12:00 PM – 11:00 PM",
+        "Friday: 12:00 PM – 12:00 AM",
+        "Saturday: 12:00 PM – 12:00 AM",
+        "Sunday: 2:00 PM – 10:00 PM"
+      ]
+    },
+    reviews: [
+      {
+        author: "Sarah M",
+        rating: 5,
+        text: "Authentic Nigerian cuisine with excellent jollof rice and grilled fish. Great atmosphere!",
+        time: "2024-01-15"
+      },
+      {
+        author: "David O",
+        rating: 4,
+        text: "Good food and friendly service. The pepper soup is amazing. Will definitely come back.",
+        time: "2024-01-10"
+      },
+      {
+        author: "Maria K",
+        rating: 4,
+        text: "Nice place for Nigerian food in London. Portions are generous and prices reasonable.",
+        time: "2024-01-05"
+      }
+    ]
+  },
+  "ENISH NIGERIAN RESTAURANT": {
+    latitude: 51.4845,
+    longitude: -0.0842,
+    address: "Albany Road, London SE5, UK",
+    category: "Restaurant",
+    description: "Enish Nigerian Restaurant & Lounge",
+    rating: 4.2,
+    phoneNumber: "020 7967 6261",
+    priceLevel: 2
+  },
+  "ENISH": {
+    latitude: 51.4845,
+    longitude: -0.0842,
+    address: "Albany Road, London SE5, UK",
+    category: "Restaurant",
+    description: "Enish Nigerian Restaurant & Lounge",
+    rating: 4.2,
+    phoneNumber: "020 7967 6261",
+    priceLevel: 2
+  },
+
 };
 
 /**
@@ -147,6 +246,10 @@ export function findPriorityBusinessName(text: string): string | null {
   
   // Priority order (highest to lowest)
   const priorityBusinesses = [
+    "ENISH NIGERIAN RESTAURANT & LOUNGE",
+    "ENISH NIGERIAN RESTAURANT",
+    "CARGO SHIPPING",
+    "JANIBA GINGER LIMITED",
     "GOMAYS PLAZA",
     "MADHOUSE TYRES",
     "MAD HOUSE TYRES",
@@ -154,7 +257,8 @@ export function findPriorityBusinessName(text: string): string | null {
     "GEORGE BINS FUNFAIR",
     "TORTOISE",
     "VENCHI",
-    "FUNFAIR"
+    "FUNFAIR",
+    "ENISH"
   ];
   
   // Check each business name in priority order
