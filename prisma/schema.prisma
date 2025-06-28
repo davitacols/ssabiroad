@@ -7,221 +7,65 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Define Job model first since it's referenced by User and Location
-model Job {
-  id        String     @id @default(uuid())
-  status    String
-  progress  Int        @default(0)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  imageHash String?    
-  error     String?
-  result    Json?
-  locations Location[]
-  
-  // Relation to User (optional)
-  userId      String?
-  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
-  @@index([userId])
-  @@index([status])
-}
-
 model User {
-  id             String          @id @default(uuid())
-  email          String          @unique
-  username       String          @unique
-  name           String
-  password       String
-  profileImage   String?  
-  coverImage     String?  
-  bio            String?  
-  role           String          @default("user")
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  
-  // Relation fields
-  detections     Detection[]
-  savedLocations SavedLocation[]
-  buildings      Building[]
-  locations      Location[]
-  jobs           Job[]           
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  bio       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  bookmarks Bookmark[]
+  locations Location[]
+  jobs      Job[]
 }
-
-// Rest of your models...
 
 model Location {
-  id                   String    @id @default(cuid())
-  name                 String
-  address              String
-  latitude             Float?
-  longitude            Float?
-  confidence           Float?
-  recognitionType      String    @default("unknown")
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-  description          String?
-  category             String?
-  buildingType         String?
-  architecturalStyle   String?
-  yearBuilt            String?
-  materialType         String?
-  culturalSignificance String?
-  website              String?
-  phoneNumber          String?
-  weatherConditions    String?
-  airQuality           String?
-  
-  // Additional fields that might be used in the API
-  formattedAddress     String?
-  placeId              String?
-  mapUrl               String?
-  photos               String[]  @default([])
-  rating               Float?
-  priceLevel           Int?
-  urbanDensity         String?
-  vegetationDensity    String?
-  crowdDensity         String?
-  timeOfDay            String?
-  significantColors    String[]  @default([])
-  waterProximity       String?
-  safetyScore          Float?
-  noiseLevel           String?
-  
-  // New fields added for walkability metrics
-  walkScore            Int?
-  bikeScore            Int?
-  
-  // Missing fields that were causing the error
-  energyEfficiency     String?
-  floodZone            String?
-  seismicRisk          String?
-  
-  // Relation to User (optional)
-  userId               String?
-  user                 User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Relation to Job (optional)
-  jobId                String?
-  job                  Job?      @relation(fields: [jobId], references: [id])
-
-  @@index([latitude, longitude])
-  @@index([userId])
-  @@index([jobId])
-}
-
-// Include the rest of your models here...
-model Bookmark {
-  id         String   @id @default(cuid())
-  locationId String
-  name       String
-  address    String
-  category   String
-  createdAt  DateTime @default(now())
-  // other fields...
-}
-
-model Building {
-  id             String    @id @default(uuid())
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  
-  // Basic building info
-  name           String?
-  description    String?
-  address        String?
-  latitude       Float?
-  longitude      Float?
-  confidence     Float?
-  type           String    // detection type (text-detection, landmark, etc.)
-
-  // Building features
-  architecture   String[]
-  materials      String[]
-  style          String[]
-  condition      String?
-
-  // Image properties
-  dominantColors String[]
-  brightness     Float?
-  contrast       Float?
-  safetyScore    Float?
-  
-  // Relations
-  similarBuildings BuildingSimilarity[] @relation("SimilarTo")
-  similarTo       BuildingSimilarity[] @relation("SimilarFrom")
-  images          BuildingImage[]
-  detections      Detection[]
-
-  // User who first discovered/analyzed the building
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([latitude, longitude])
-}
-
-model Detection {
-  id            String    @id @default(uuid())
-  createdAt     DateTime  @default(now())
-  buildingName  String?
-  description   String?
-  address       String?
-  confidence    Float
-  latitude      Float?
-  longitude     Float?
-  architecture  String[]
-  materials     String[]
-  styles        String[]
-  imageUrl      String?
-  rawResult     Json?     // Store the raw detection result
-  
-  // Relation to User and Building
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  buildingId    String?
-  building      Building? @relation(fields: [buildingId], references: [id])
-
-  @@index([latitude, longitude])
-  @@index([userId])
-  @@index([buildingId])
-}
-
-model SavedLocation {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  name      String
-  address   String
-  latitude  Float
-  longitude Float
-  visits    Int      @default(0)
-  
-  // Relation to User
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([latitude, longitude])
-  @@index([userId])
-}
-
-model BuildingImage {
-  id          String   @id @default(uuid())
+  id          String   @id @default(cuid())
+  name        String
+  address     String
+  latitude    Float
+  longitude   Float
+  description String?
+  walkScore   Int?
+  bikeScore   Int?
+  transitScore Int?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
-  buildingId  String
-  imageUrl    String
-  building    Building @relation(fields: [buildingId], references: [id])
-
-  @@index([buildingId])
+  updatedAt   DateTime @updatedAt
 }
 
-model BuildingSimilarity {
-  id            String   @id @default(uuid())
-  buildingId    String
-  similarToId   String
-  similarity    Float
-  building      Building @relation("SimilarTo", fields: [buildingId], references: [id])
-  similarTo     Building @relation("SimilarFrom", fields: [similarToId], references: [id])
+model Bookmark {
+  id        String   @id @default(cuid())
+  title     String
+  url       String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
-  @@unique([buildingId, similarToId])
-  @@index([buildingId])
-  @@index([similarToId])
+model Job {
+  id          String   @id @default(cuid())
+  title       String
+  company     String
+  location    String
+  description String?
+  salary      String?
+  type        String?
+  remote      Boolean  @default(false)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LocationCache {
+  id        String   @id @default(cuid())
+  query     String   @unique
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("location_cache")
 }
