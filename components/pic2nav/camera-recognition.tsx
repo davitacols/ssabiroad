@@ -106,14 +106,22 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
     setFeedbackGiven(false) // Reset feedback when processing new image
 
     try {
-      // Get user location
-      const location = await getCurrentLocation()
+      // Get user location (prioritize injected GPS from camera capture)
+      const injectedLocation = (file as any)._gpsLocation
+      const location = injectedLocation || await getCurrentLocation()
+      
+      if (injectedLocation) {
+        console.log('📍 Using injected GPS from camera capture');
+      } else if (location) {
+        console.log('📍 Using device GPS location');
+      }
       
       const formData = new FormData()
       formData.append("image", file)
       if (location) {
         formData.append("latitude", location.latitude.toString())
         formData.append("longitude", location.longitude.toString())
+        formData.append("gps_source", injectedLocation ? "camera_injected" : "device_location")
       }
 
       const apiEndpoint = apiVersion === 'v1' ? '/api/location-recognition' : '/api/location-recognition-v2';
@@ -269,7 +277,7 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
     }
   }, [toast, facingMode])
 
-  const capturePhoto = useCallback(() => {
+  const capturePhoto = useCallback(async () => {
     console.log('📸 Capture photo called');
     if (!videoRef.current || !canvasRef.current) {
       console.error('📸 Video or canvas ref not available');
@@ -286,10 +294,42 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
     if (context) {
       context.drawImage(video, 0, 0)
       
-      canvas.toBlob((blob) => {
+      // Get current location for GPS injection
+      const location = await getCurrentLocation()
+      
+      canvas.toBlob(async (blob) => {
         if (blob) {
-          console.log('📸 Photo captured, creating file...');
-          const file = new File([blob], `capture-${Date.now()}.jpg`, {
+          console.log('📸 Photo captured, injecting GPS...');
+          
+          // Create file with GPS metadata injection
+          let finalBlob = blob
+          
+          if (location && apiVersion === 'v2') {
+            try {
+              // For V2, we'll inject GPS via FormData since EXIF injection is complex
+              console.log(`📍 GPS available: ${location.latitude}, ${location.longitude}`);
+              
+              // Create a custom file with location metadata
+              const file = new File([blob], `capture-${Date.now()}.jpg`, {
+                type: "image/jpeg",
+              })
+              
+              // Add location as custom property (will be handled in processImage)
+              Object.defineProperty(file, '_gpsLocation', {
+                value: location,
+                writable: false,
+                enumerable: false
+              })
+              
+              handleFileSelect(file)
+              stopCamera()
+              return
+            } catch (error) {
+              console.log('⚠️ GPS injection failed, proceeding without GPS');
+            }
+          }
+          
+          const file = new File([finalBlob], `capture-${Date.now()}.jpg`, {
             type: "image/jpeg",
           })
           handleFileSelect(file)
@@ -297,7 +337,7 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
         }
       }, "image/jpeg", 0.9)
     }
-  }, [handleFileSelect, stopCamera])
+  }, [handleFileSelect, stopCamera, getCurrentLocation, apiVersion])
 
   const reset = useCallback(() => {
     setResult(null)
