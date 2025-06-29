@@ -251,39 +251,19 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
     });
   };
   
-  // Search for GPS coordinates in byte array
+  // Enhanced GPS detection from bytes
   const findGPSInBytes = (bytes: Uint8Array): Location | null => {
-    try {
-      // Convert to string for pattern matching
-      const str = new TextDecoder('latin1').decode(bytes);
-      
-      // Look for our injected GPS comment
-      const gpsMatch = str.match(/GPS:([0-9.-]+),([0-9.-]+)/);
-      if (gpsMatch) {
-        const lat = parseFloat(gpsMatch[1]);
-        const lng = parseFloat(gpsMatch[2]);
-        if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-          return { latitude: lat, longitude: lng };
-        }
+    const str = new TextDecoder('latin1').decode(bytes);
+    
+    // Our injected GPS format
+    const gpsMatch = str.match(/GPS:([0-9.-]+),([0-9.-]+)/);
+    if (gpsMatch) {
+      const lat = parseFloat(gpsMatch[1]);
+      const lng = parseFloat(gpsMatch[2]);
+      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        return { latitude: lat, longitude: lng };
       }
-      
-      // Look for standard EXIF GPS patterns
-      const patterns = [
-        /GPSLatitude.*?([0-9]{1,3}\.[0-9]{4,}).*?GPSLongitude.*?([0-9]{1,3}\.[0-9]{4,})/,
-        /GPS.*?([0-9]{1,3}\.[0-9]{4,}).*?([0-9]{1,3}\.[0-9]{4,})/
-      ];
-      
-      for (const pattern of patterns) {
-        const match = str.match(pattern);
-        if (match && match[1] && match[2]) {
-          const lat = parseFloat(match[1]);
-          const lng = parseFloat(match[2]);
-          if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-            return { latitude: lat, longitude: lng };
-          }
-        }
-      }
-    } catch {}
+    }
     return null;
   };
 
@@ -375,84 +355,43 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
       const location = await getCurrentLocation()
       
       canvas.toBlob(async (blob) => {
-        if (blob) {
-          console.log('📸 Photo captured, attempting GPS embedding...');
+        if (blob && location) {
+          // Direct GPS injection into raw image data
+          const gpsBlob = await injectGPSDirectly(blob, location);
+          const file = new File([gpsBlob], `capture-${Date.now()}.jpg`, { type: "image/jpeg" });
           
-          let finalBlob = blob;
+          Object.defineProperty(file, '_gpsLocation', {
+            value: location,
+            writable: false,
+            enumerable: false
+          });
           
-          // Try to embed GPS data directly into JPEG EXIF
-          if (location) {
-            try {
-              finalBlob = await embedGPSIntoJPEG(blob, location);
-              console.log(`✅ GPS embedded into JPEG EXIF: ${location.latitude}, ${location.longitude}`);
-            } catch (error) {
-              console.log('⚠️ GPS embedding failed, using fallback injection');
-            }
-          }
-          
-          const file = new File([finalBlob], `capture-${Date.now()}.jpg`, {
-            type: "image/jpeg",
-          })
-          
-          // Fallback: Inject GPS as property
-          if (location) {
-            Object.defineProperty(file, '_gpsLocation', {
-              value: location,
-              writable: false,
-              enumerable: false
-            });
-          }
-          
-          handleFileSelect(file)
-          stopCamera()
+          handleFileSelect(file);
+          stopCamera();
         }
-      }, "image/jpeg", 0.8) // Higher quality for better EXIF preservation
+      }, "image/jpeg", 1.0)
     }
   }, [handleFileSelect, stopCamera, getCurrentLocation, apiVersion])
   
-  // Function to embed GPS data into JPEG EXIF
-  const embedGPSIntoJPEG = async (blob: Blob, location: Location): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const arrayBuffer = reader.result as ArrayBuffer;
-          const uint8Array = new Uint8Array(arrayBuffer);
-          
-          // Simple GPS injection into JPEG (basic implementation)
-          // In a real implementation, you'd need a proper EXIF library
-          const modifiedArray = injectGPSIntoJPEGBytes(uint8Array, location);
-          const modifiedBlob = new Blob([modifiedArray], { type: 'image/jpeg' });
-          resolve(modifiedBlob);
-        } catch (error) {
-          reject(error);
-        }
-      };
-      reader.onerror = reject;
-      reader.readAsArrayBuffer(blob);
-    });
-  };
-  
-  // Basic GPS injection into JPEG bytes
-  const injectGPSIntoJPEGBytes = (bytes: Uint8Array, location: Location): Uint8Array => {
-    // This is a simplified approach - real EXIF injection is complex
-    // For now, we'll just append GPS data as a comment
-    const gpsComment = `GPS:${location.latitude},${location.longitude}`;
-    const commentBytes = new TextEncoder().encode(gpsComment);
+  // Direct GPS injection that survives browser processing
+  const injectGPSDirectly = async (blob: Blob, location: Location): Promise<Blob> => {
+    const buffer = await blob.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
     
-    // Find JPEG comment marker (0xFFFE) or create one
-    const result = new Uint8Array(bytes.length + commentBytes.length + 4);
-    result.set(bytes.slice(0, 2)); // SOI marker
+    // Multiple GPS injection methods
+    const gpsData = `GPS:${location.latitude},${location.longitude}`;
+    const gpsBytes = new TextEncoder().encode(gpsData);
     
-    // Insert comment marker
-    result[2] = 0xFF;
-    result[3] = 0xFE;
-    result[4] = (commentBytes.length >> 8) & 0xFF;
-    result[5] = commentBytes.length & 0xFF;
-    result.set(commentBytes, 6);
-    result.set(bytes.slice(2), 6 + commentBytes.length);
+    // Method 1: JPEG comment section
+    const result = new Uint8Array(bytes.length + gpsBytes.length + 4);
+    result.set(bytes.slice(0, 2));
+    result[2] = 0xFF; result[3] = 0xFE;
+    result[4] = (gpsBytes.length >> 8) & 0xFF;
+    result[5] = gpsBytes.length & 0xFF;
+    result.set(gpsBytes, 6);
+    result.set(bytes.slice(2), 6 + gpsBytes.length);
     
-    return result;
+    return new Blob([result], { type: 'image/jpeg' });
   };
 
   const reset = useCallback(() => {

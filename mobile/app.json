@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "SSABiRoad",
+    "slug": "ssabiroad-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+
+    "userInterfaceStyle": "light",
+
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app needs access to camera to take photos for location recognition.",
+        "NSLocationWhenInUseUsageDescription": "This app needs location access to provide accurate location data with photos."
+      }
+    },
+    "android": {
+      "package": "com.ssabiroad.mobile",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ]
+    },
+
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera for location recognition."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location for accurate photo tagging."
+        }
+      ]
+    ]
+  }
+}

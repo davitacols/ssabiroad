@@ -36,14 +36,21 @@ class LocationRecognizer {
 
   // Enhanced EXIF GPS extraction with multiple methods
   extractGPS(buffer: Buffer): LocationResult | null {
+    console.log('🔍 Extracting GPS from buffer, size:', buffer.length);
+    
     try {
       // Method 1: Standard EXIF parser
+      console.log('📋 Trying standard EXIF parser...');
       const parser = exifParser.create(buffer);
       const result = parser.parse();
+      
+      console.log('📋 EXIF tags found:', Object.keys(result.tags || {}));
       
       if (result.tags.GPSLatitude && result.tags.GPSLongitude) {
         const lat = result.tags.GPSLatitude;
         const lng = result.tags.GPSLongitude;
+        
+        console.log('✅ Standard EXIF GPS found:', { lat, lng });
         
         if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
           return {
@@ -57,8 +64,10 @@ class LocationRecognizer {
       }
       
       // Method 2: Raw binary search for GPS data
+      console.log('🔍 Trying binary GPS extraction...');
       const gpsData = this.extractGPSFromBinary(buffer);
       if (gpsData) {
+        console.log('✅ Binary GPS found:', gpsData);
         return {
           success: true,
           name: 'GPS Location (Binary)',
@@ -68,43 +77,68 @@ class LocationRecognizer {
         };
       }
       
-    } catch {}
+      console.log('❌ No GPS data found in buffer');
+    } catch (error) {
+      console.log('❌ EXIF extraction error:', error);
+    }
     return null;
   }
   
   // Binary search for GPS coordinates in JPEG data
   private extractGPSFromBinary(buffer: Buffer): Location | null {
     try {
-      const bufferStr = buffer.toString('binary');
+      // Convert buffer to string for pattern matching
+      const bufferStr = buffer.toString('latin1');
       
-      // Look for GPS coordinate patterns in binary data
-      const gpsPatterns = [
-        /GPS.*?([0-9]{1,3}\.[0-9]{4,}).*?([0-9]{1,3}\.[0-9]{4,})/g,
-        /\x02\x02([0-9\x00-\xFF]{8})\x02\x03([0-9\x00-\xFF]{8})/g
-      ];
-      
-      for (const pattern of gpsPatterns) {
-        const matches = bufferStr.match(pattern);
-        if (matches) {
-          // Try to extract coordinates from matches
-          const coords = this.parseGPSFromMatch(matches[0]);
-          if (coords) return coords;
+      // Look for our custom GPS comment first
+      const customGPS = bufferStr.match(/GPS:([0-9.-]+),([0-9.-]+)/);
+      if (customGPS) {
+        const lat = parseFloat(customGPS[1]);
+        const lng = parseFloat(customGPS[2]);
+        console.log('🎯 Found custom GPS comment:', { lat, lng });
+        if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          return { latitude: lat, longitude: lng };
         }
       }
       
-      // Look for specific EXIF GPS tags in binary
-      const gpsLatRef = buffer.indexOf('GPSLatitudeRef');
+      // Look for EXIF GPS tags in binary
       const gpsLat = buffer.indexOf('GPSLatitude');
-      const gpsLngRef = buffer.indexOf('GPSLongitudeRef');
       const gpsLng = buffer.indexOf('GPSLongitude');
+      
+      console.log('🔍 GPS tag positions:', { gpsLat, gpsLng });
       
       if (gpsLat > 0 && gpsLng > 0) {
         // Extract coordinates from binary positions
         const coords = this.extractCoordsFromPositions(buffer, gpsLat, gpsLng);
-        if (coords) return coords;
+        if (coords) {
+          console.log('✅ Extracted coords from positions:', coords);
+          return coords;
+        }
       }
       
-    } catch {}
+      // Look for decimal coordinate patterns
+      const coordPatterns = [
+        /([0-9]{1,3}\.[0-9]{4,}).*?([0-9]{1,3}\.[0-9]{4,})/g,
+        /GPS.*?([0-9.-]+).*?([0-9.-]+)/g
+      ];
+      
+      for (const pattern of coordPatterns) {
+        const matches = [...bufferStr.matchAll(pattern)];
+        for (const match of matches) {
+          if (match[1] && match[2]) {
+            const lat = parseFloat(match[1]);
+            const lng = parseFloat(match[2]);
+            if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+              console.log('✅ Pattern match found:', { lat, lng });
+              return { latitude: lat, longitude: lng };
+            }
+          }
+        }
+      }
+      
+    } catch (error) {
+      console.log('❌ Binary extraction error:', error);
+    }
     return null;
   }
   
@@ -124,18 +158,34 @@ class LocationRecognizer {
   
   private extractCoordsFromPositions(buffer: Buffer, latPos: number, lngPos: number): Location | null {
     try {
-      // Read 32 bytes after each GPS tag position
-      const latData = buffer.slice(latPos + 12, latPos + 44);
-      const lngData = buffer.slice(lngPos + 13, lngPos + 45);
+      // Read data after GPS tag positions with various offsets
+      const offsets = [8, 12, 16, 20, 24];
       
-      // Try to parse as IEEE 754 double precision
-      for (let i = 0; i < latData.length - 8; i += 4) {
+      for (const offset of offsets) {
         try {
-          const lat = latData.readDoubleLE(i);
-          const lng = lngData.readDoubleLE(i);
+          // Try different data lengths
+          const latData = buffer.slice(latPos + offset, latPos + offset + 32);
+          const lngData = buffer.slice(lngPos + offset, lngPos + offset + 32);
           
-          if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-            return { latitude: lat, longitude: lng };
+          // Try to parse as different formats
+          for (let i = 0; i < Math.min(latData.length - 8, 16); i += 4) {
+            try {
+              // Try double precision
+              const lat1 = latData.readDoubleLE(i);
+              const lng1 = lngData.readDoubleLE(i);
+              
+              if (lat1 >= -90 && lat1 <= 90 && lng1 >= -180 && lng1 <= 180) {
+                return { latitude: lat1, longitude: lng1 };
+              }
+              
+              // Try float precision
+              const lat2 = latData.readFloatLE(i);
+              const lng2 = lngData.readFloatLE(i);
+              
+              if (lat2 >= -90 && lat2 <= 90 && lng2 >= -180 && lng2 <= 180) {
+                return { latitude: lat2, longitude: lng2 };
+              }
+            } catch {}
           }
         } catch {}
       }
@@ -397,7 +447,12 @@ class LocationRecognizer {
 
   // V2 pipeline - EXIF GPS data with intelligent fallback
   async recognize(buffer: Buffer, providedLocation?: Location): Promise<LocationResult> {
-    console.log('📍 V2: Checking EXIF GPS data with enhanced extraction...');
+    console.log('📍 V2: Enhanced EXIF GPS extraction starting...');
+    console.log('📊 Buffer info - Size:', buffer.length, 'bytes');
+    
+    // Log first few bytes to verify it's a valid image
+    const header = buffer.slice(0, 10);
+    console.log('📋 File header:', Array.from(header).map(b => '0x' + b.toString(16)).join(' '));
     
     const gpsResult = this.extractGPS(buffer);
     if (gpsResult?.location) {
@@ -438,7 +493,13 @@ export async function POST(request: NextRequest) {
     const image = formData.get('image') as File;
     
     if (!image) {
-      return NextResponse.json({ error: 'Image required' }, { status: 400 });
+      return NextResponse.json({ error: 'Image required' }, { status: 400 }, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      });
     }
     
     const buffer = Buffer.from(await image.arrayBuffer());
@@ -453,12 +514,33 @@ export async function POST(request: NextRequest) {
     const recognizer = new LocationRecognizer();
     const result = await recognizer.recognize(buffer, providedLocation);
     
-    return NextResponse.json(result);
+    return NextResponse.json(result, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      }
+    });
     
   } catch (error) {
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
+      { status: 500, headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      }}
     );
   }
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
 }
