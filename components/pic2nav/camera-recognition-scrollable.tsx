@@ -68,8 +68,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const { toast } = useToast()
 
-
-
   const handleFileSelect = useCallback((file: File) => {
     if (!file) return
     
@@ -82,10 +80,9 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
     console.log(`📷 processImage called with apiVersion: ${apiVersion}`);
     setIsProcessing(true)
     setResult(null)
-    setFeedbackGiven(false) // Reset feedback when processing new image
+    setFeedbackGiven(false)
 
     try {
-      // Get user location
       const location = await getCurrentLocation()
       
       const formData = new FormData()
@@ -98,13 +95,12 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
       const apiEndpoint = apiVersion === 'v1' ? '/api/location-recognition' : '/api/location-recognition-v2';
       console.log(`🔧 CURRENT API VERSION: ${apiVersion}`);
       console.log(`🔧 ENDPOINT: ${apiEndpoint}`);
-      console.log(`🔧 TIMESTAMP: ${new Date().toISOString()}`);
       
       const response = await fetch(apiEndpoint, {
         method: "POST",
         body: formData,
         headers: {
-          'X-API-Version': apiVersion // Add header to track version
+          'X-API-Version': apiVersion
         }
       })
 
@@ -113,27 +109,23 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
       }
 
       let data = await response.json()
+      console.log('📊 Raw API response:', data);
       
-      // Convert v2 API response to expected format
       if (apiVersion === 'v2' && data.success) {
         data.type = data.method
         data.description = `Location found via ${data.method}`
         data.category = data.method === 'known-business' ? 'Business' : 'Location'
-        data.mapUrl = data.location ? 
-          `https://www.google.com/maps/search/?api=1&query=${data.location.latitude},${data.location.longitude}` : 
-          undefined
       }
       
-      // V1 API already has the expected format, no conversion needed
-      
+      console.log('🔍 Setting result data:', data);
       setResult(data)
+      console.log('✅ Result state updated');
       
       if (data.success && onLocationSelect) {
         onLocationSelect(data)
       }
       
       if (data.success) {
-        // Auto-save successful location
         try {
           await fetch('/api/save-location', {
             method: 'POST',
@@ -156,7 +148,10 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
         ? 'GPS extraction failed' 
         : 'Image analysis failed'
       
-      setResult({ success: false, error: errorMessage, method: `${apiVersion}-error` })
+      const errorResult = { success: false, error: errorMessage, method: `${apiVersion}-error` }
+      console.log('❌ Setting error result:', errorResult);
+      setResult(errorResult)
+      
       toast({
         title: `${versionContext} (${apiVersion.toUpperCase()})`,
         description: errorMessage,
@@ -254,7 +249,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
     stopCamera()
   }, [previewUrl, stopCamera])
 
-  // Helper function for error messages
   const getErrorMessage = (error: string | undefined, method: string | undefined, version: 'v1' | 'v2') => {
     if (version === 'v2') {
       if (method === 'no-exif-gps') {
@@ -279,7 +273,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
     <div className="w-full h-screen overflow-y-auto">
       <div className="w-full max-w-5xl mx-auto p-4">
         <div className="space-y-8 pb-8">
-          {/* Main Recognition Panel */}
           <Card key={`api-${apiVersion}`} className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border border-white/30 dark:border-slate-700/30 shadow-2xl shadow-blue-500/10">
             <CardHeader className="pb-8">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -316,7 +309,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                           ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-xl shadow-blue-500/30 scale-105' 
                           : 'bg-white/60 dark:bg-slate-800/60 hover:bg-white/90 dark:hover:bg-slate-800/90 border-slate-200 dark:border-slate-700 hover:shadow-lg'
                       }`}
-                      title="Comprehensive analysis: logos, text, scene, business recognition"
                     >
                       <div className="flex items-center gap-3">
                         <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -332,7 +324,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                           ? 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-xl shadow-cyan-500/30 scale-105' 
                           : 'bg-white/60 dark:bg-slate-800/60 hover:bg-white/90 dark:hover:bg-slate-800/90 border-slate-200 dark:border-slate-700 hover:shadow-lg'
                       }`}
-                      title="GPS coordinates with comprehensive location data"
                     >
                       <div className="flex items-center gap-3">
                         <div className="h-3 w-3 rounded-full bg-blue-500 animate-pulse"></div>
@@ -353,7 +344,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
             </CardHeader>
             <CardContent>
           <div className="relative aspect-video bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-3xl overflow-hidden mb-8 shadow-inner border border-slate-200/50 dark:border-slate-700/50">
-            {/* Camera View */}
             {cameraActive && (
               <video
                 ref={videoRef}
@@ -364,7 +354,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
               />
             )}
             
-            {/* Preview Image */}
             {previewUrl && !cameraActive && (
               <img
                 src={previewUrl}
@@ -373,7 +362,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
               />
             )}
             
-            {/* Processing Overlay */}
             {isProcessing && (
               <div className="absolute inset-0 bg-gradient-to-br from-blue-600/90 to-purple-600/90 backdrop-blur-md flex items-center justify-center">
                 <div className="text-center text-white p-8 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl">
@@ -394,7 +382,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
               </div>
             )}
             
-            {/* Camera Controls */}
             {cameraActive && !isProcessing && (
               <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-6">
                 <Button
@@ -415,7 +402,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
               </div>
             )}
             
-            {/* Empty State */}
             {!cameraActive && !previewUrl && !isProcessing && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center p-10">
@@ -451,7 +437,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
             <div className="space-y-6">
               {result.success ? (
                 <div className="space-y-6">
-                  {/* Main Info */}
                   <div className="p-8 bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-xl">
                     <div className="flex items-start gap-6 mb-6">
                       <div className="h-16 w-16 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center shadow-xl">
@@ -487,10 +472,8 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                     )}
                   </div>
                   
-                  {/* V2 Enhanced Data */}
                   {apiVersion === 'v2' && result.success && (
                     <div className="space-y-6">
-                      {/* Location Photos */}
                       {result.photos && result.photos.length > 0 && (
                         <div className="p-6 bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-950/30 dark:to-rose-950/30 rounded-2xl">
                           <h4 className="font-semibold text-lg flex items-center gap-3 mb-4">
@@ -511,7 +494,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                         </div>
                       )}
                       
-                      {/* Nearby Places */}
                       {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
                         <div className="p-6 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 rounded-2xl">
                           <h4 className="font-semibold text-lg flex items-center gap-3 mb-4">
@@ -547,7 +529,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                         </div>
                       )}
                       
-                      {/* Device Analysis */}
                       {result.deviceAnalysis && (
                         <div className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-2xl">
                           <h4 className="font-semibold text-lg flex items-center gap-3 mb-4">
@@ -589,7 +570,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                     </div>
                   )}
                   
-                  {/* Actions */}
                   <div className="flex flex-wrap gap-4">
                     {result.location && (
                       <Button
@@ -649,7 +629,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
             </div>
           )}
           
-          {/* Reset Button */}
           {(previewUrl || result || cameraActive) && (
             <Button
               onClick={reset}

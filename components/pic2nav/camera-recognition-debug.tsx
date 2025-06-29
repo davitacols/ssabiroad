@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { Camera, Upload, X, MapPin, Loader2, Star, Globe, Phone, Clock, ExternalLink, Users, DollarSign, Navigation, MessageSquare, TrendingUp, Activity, Database, ThumbsUp, ThumbsDown, Sparkles, Zap, Bookmark } from "lucide-react"
+import { Camera, Upload, X, MapPin, Loader2, Star, Globe, Phone, Clock, ExternalLink, Users, DollarSign, Navigation, MessageSquare, TrendingUp, Activity, Database, ThumbsUp, ThumbsDown, Sparkles, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
@@ -49,17 +49,8 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
   const [cameraActive, setCameraActive] = useState(false)
   const [feedbackGiven, setFeedbackGiven] = useState(false)
   const [apiVersion, setApiVersion] = useState<'v1' | 'v2'>('v2')
-  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment')
   
   const handleVersionChange = (version: 'v1' | 'v2') => {
-    if (version === 'v1') {
-      toast({
-        title: "V1 Under Maintenance",
-        description: "Full Analysis mode is temporarily unavailable for improvements",
-        variant: "destructive",
-      })
-      return
-    }
     console.log(`🔄 Changing API version from ${apiVersion} to ${version}`);
     setApiVersion(version)
     setResult(null)
@@ -77,36 +68,21 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const { toast } = useToast()
 
-
-
-  const getCurrentLocation = useCallback((): Promise<Location | null> => {
-    return new Promise((resolve) => {
-      if (!navigator.geolocation) {
-        resolve(null)
-        return
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          })
-        },
-        () => resolve(null),
-        { timeout: 5000, enableHighAccuracy: true }
-      )
-    })
+  const handleFileSelect = useCallback((file: File) => {
+    if (!file) return
+    
+    const url = URL.createObjectURL(file)
+    setPreviewUrl(url)
+    processImage(file)
   }, [])
 
-  const processImage = useCallback(async (file: File) => {
+  const processImage = async (file: File) => {
     console.log(`📷 processImage called with apiVersion: ${apiVersion}`);
     setIsProcessing(true)
     setResult(null)
-    setFeedbackGiven(false) // Reset feedback when processing new image
+    setFeedbackGiven(false)
 
     try {
-      // Get user location
       const location = await getCurrentLocation()
       
       const formData = new FormData()
@@ -119,13 +95,12 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
       const apiEndpoint = apiVersion === 'v1' ? '/api/location-recognition' : '/api/location-recognition-v2';
       console.log(`🔧 CURRENT API VERSION: ${apiVersion}`);
       console.log(`🔧 ENDPOINT: ${apiEndpoint}`);
-      console.log(`🔧 TIMESTAMP: ${new Date().toISOString()}`);
       
       const response = await fetch(apiEndpoint, {
         method: "POST",
         body: formData,
         headers: {
-          'X-API-Version': apiVersion // Add header to track version
+          'X-API-Version': apiVersion
         }
       })
 
@@ -134,27 +109,23 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
       }
 
       let data = await response.json()
+      console.log('📊 Raw API response:', data);
       
-      // Convert v2 API response to expected format
       if (apiVersion === 'v2' && data.success) {
         data.type = data.method
         data.description = `Location found via ${data.method}`
         data.category = data.method === 'known-business' ? 'Business' : 'Location'
-        data.mapUrl = data.location ? 
-          `https://www.google.com/maps/search/?api=1&query=${data.location.latitude},${data.location.longitude}` : 
-          undefined
       }
       
-      // V1 API already has the expected format, no conversion needed
-      
+      console.log('🔍 Setting result data:', data);
       setResult(data)
+      console.log('✅ Result state updated');
       
       if (data.success && onLocationSelect) {
         onLocationSelect(data)
       }
       
       if (data.success) {
-        // Auto-save successful location
         try {
           await fetch('/api/save-location', {
             method: 'POST',
@@ -177,7 +148,10 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
         ? 'GPS extraction failed' 
         : 'Image analysis failed'
       
-      setResult({ success: false, error: errorMessage, method: `${apiVersion}-error` })
+      const errorResult = { success: false, error: errorMessage, method: `${apiVersion}-error` }
+      console.log('❌ Setting error result:', errorResult);
+      setResult(errorResult)
+      
       toast({
         title: `${versionContext} (${apiVersion.toUpperCase()})`,
         description: errorMessage,
@@ -186,95 +160,52 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
     } finally {
       setIsProcessing(false)
     }
-  }, [apiVersion, getCurrentLocation, onLocationSelect, toast])
+  }
 
-  const stopCamera = useCallback(() => {
-    if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream
-      stream.getTracks().forEach(track => track.stop())
-      videoRef.current.srcObject = null
-      setCameraActive(false)
-    }
+  const getCurrentLocation = useCallback((): Promise<Location | null> => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(null)
+        return
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          })
+        },
+        () => resolve(null),
+        { timeout: 5000, enableHighAccuracy: true }
+      )
+    })
   }, [])
 
-  const handleFileSelect = useCallback((file: File) => {
-    if (!file) return
-    
-    const url = URL.createObjectURL(file)
-    setPreviewUrl(url)
-    processImage(file)
-  }, [processImage])
-
   const startCamera = useCallback(async () => {
-    console.log('🎥 startCamera called');
     try {
-      // Check if camera API is supported
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera API not supported in this browser')
-      }
-
-      // Check if we're on HTTPS (required for camera access)
-      if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-        throw new Error('Camera requires HTTPS connection')
-      }
-
-      console.log('🎥 Requesting camera access...');
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: facingMode,
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
+        video: { facingMode: "environment" },
         audio: false,
       })
 
-      console.log('🎥 Camera stream obtained:', stream);
       if (videoRef.current) {
         videoRef.current.srcObject = stream
+        videoRef.current.play()
         setCameraActive(true)
-        videoRef.current.onloadedmetadata = () => {
-          console.log('🎥 Video metadata loaded');
-        }
-        try {
-          await videoRef.current.play()
-          console.log('🎥 Video playing');
-        } catch (playError) {
-          console.log('🎥 Play error:', playError);
-        }
       }
     } catch (error) {
-      console.error('🎥 Camera error:', error);
-      let errorMessage = "Could not access camera"
-      
-      if (error instanceof Error) {
-        if (error.name === 'NotAllowedError') {
-          errorMessage = "Camera permission denied. Please allow camera access and try again."
-        } else if (error.name === 'NotFoundError') {
-          errorMessage = "No camera found. Please connect a camera and try again."
-        } else if (error.name === 'NotReadableError') {
-          errorMessage = "Camera is being used by another application. Please close other apps and try again."
-        } else {
-          errorMessage = error.message
-        }
-      }
-      
       toast({
         title: "Camera error",
-        description: errorMessage,
+        description: "Could not access camera",
         variant: "destructive",
       })
-      
-      // Fallback to file upload
       fileInputRef.current?.click()
     }
-  }, [toast, facingMode])
+  }, [toast])
 
   const capturePhoto = useCallback(() => {
-    console.log('📸 Capture photo called');
-    if (!videoRef.current || !canvasRef.current) {
-      console.error('📸 Video or canvas ref not available');
-      return;
-    }
+    if (!videoRef.current || !canvasRef.current) return
 
     const video = videoRef.current
     const canvas = canvasRef.current
@@ -288,7 +219,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
       
       canvas.toBlob((blob) => {
         if (blob) {
-          console.log('📸 Photo captured, creating file...');
           const file = new File([blob], `capture-${Date.now()}.jpg`, {
             type: "image/jpeg",
           })
@@ -297,7 +227,16 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
         }
       }, "image/jpeg", 0.9)
     }
-  }, [handleFileSelect, stopCamera])
+  }, [handleFileSelect])
+
+  const stopCamera = useCallback(() => {
+    if (videoRef.current?.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream
+      stream.getTracks().forEach(track => track.stop())
+      videoRef.current.srcObject = null
+      setCameraActive(false)
+    }
+  }, [])
 
   const reset = useCallback(() => {
     setResult(null)
@@ -310,7 +249,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
     stopCamera()
   }, [previewUrl, stopCamera])
 
-  // Helper function for error messages
   const getErrorMessage = (error: string | undefined, method: string | undefined, version: 'v1' | 'v2') => {
     if (version === 'v2') {
       if (method === 'no-exif-gps') {
@@ -331,10 +269,11 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
     }
   };
 
+  console.log('🔄 Component render - result:', result);
+
   return (
     <div className="w-full max-w-5xl mx-auto">
       <div className="space-y-8">
-        {/* Main Recognition Panel */}
         <Card key={`api-${apiVersion}`} className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border border-white/30 dark:border-slate-700/30 shadow-2xl shadow-blue-500/10">
           <CardHeader className="pb-8">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -364,14 +303,17 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                 <div className="flex gap-3">
                   <Button
                     size="sm"
-                    variant="outline"
-                    disabled
-                    className="h-12 px-6 text-sm font-medium bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300 cursor-not-allowed"
-                    title="Under maintenance for improved analysis accuracy"
+                    variant={apiVersion === 'v1' ? 'default' : 'outline'}
+                    onClick={() => handleVersionChange('v1')}
+                    className={`h-12 px-6 text-sm font-medium transition-all duration-300 ${
+                      apiVersion === 'v1' 
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-xl shadow-blue-500/30 scale-105' 
+                        : 'bg-white/60 dark:bg-slate-800/60 hover:bg-white/90 dark:hover:bg-slate-800/90 border-slate-200 dark:border-slate-700 hover:shadow-lg'
+                    }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="h-3 w-3 rounded-full bg-orange-500"></div>
-                      <span>V1 - Maintenance</span>
+                      <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse"></div>
+                      <span>Full Analysis</span>
                     </div>
                   </Button>
                   <Button
@@ -383,7 +325,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                         ? 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white shadow-xl shadow-cyan-500/30 scale-105' 
                         : 'bg-white/60 dark:bg-slate-800/60 hover:bg-white/90 dark:hover:bg-slate-800/90 border-slate-200 dark:border-slate-700 hover:shadow-lg'
                     }`}
-                    title="GPS coordinates with comprehensive location data"
                   >
                     <div className="flex items-center gap-3">
                       <div className="h-3 w-3 rounded-full bg-blue-500 animate-pulse"></div>
@@ -393,28 +334,27 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                 </div>
                 <div className="text-center">
                   <p className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100/50 dark:bg-slate-800/50 px-3 py-2 rounded-full">
-                    📍 GPS + nearby places, photos & device data
+                    {apiVersion === 'v1' 
+                      ? '🔍 Analyzes text, logos, scene & businesses' 
+                      : '📍 GPS + nearby places, photos & device data'
+                    }
                   </p>
                 </div>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-        <div className="relative w-full bg-black rounded-3xl overflow-hidden mb-8" style={{ aspectRatio: '16/9', minHeight: '300px' }}>
-          {/* Camera View */}
-          <video
-            ref={videoRef}
-            className="w-full h-full object-cover"
-            autoPlay
-            playsInline
-            muted
-            style={{ 
-              display: cameraActive ? 'block' : 'none',
-              transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' 
-            }}
-          />
+        <div className="relative aspect-video bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-3xl overflow-hidden mb-8 shadow-inner border border-slate-200/50 dark:border-slate-700/50">
+          {cameraActive && (
+            <video
+              ref={videoRef}
+              className="w-full h-full object-cover"
+              autoPlay
+              playsInline
+              muted
+            />
+          )}
           
-          {/* Preview Image */}
           {previewUrl && !cameraActive && (
             <img
               src={previewUrl}
@@ -423,7 +363,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
             />
           )}
           
-          {/* Processing Overlay */}
           {isProcessing && (
             <div className="absolute inset-0 bg-gradient-to-br from-blue-600/90 to-purple-600/90 backdrop-blur-md flex items-center justify-center">
               <div className="text-center text-white p-8 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl">
@@ -444,14 +383,10 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
             </div>
           )}
           
-          {/* Camera Controls */}
           {cameraActive && !isProcessing && (
-            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-4">
+            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-6">
               <Button
-                onClick={() => {
-                  console.log('❌ Stop camera clicked');
-                  stopCamera();
-                }}
+                onClick={stopCamera}
                 variant="outline"
                 size="icon"
                 className="rounded-full w-14 h-14 bg-white/95 backdrop-blur-sm border-white/60 hover:bg-white shadow-xl"
@@ -459,23 +394,7 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                 <X className="h-6 w-6" />
               </Button>
               <Button
-                onClick={() => {
-                  console.log('🔄 Switch camera clicked');
-                  setFacingMode(facingMode === 'user' ? 'environment' : 'user');
-                  stopCamera();
-                  setTimeout(() => startCamera(), 100);
-                }}
-                variant="outline"
-                size="icon"
-                className="rounded-full w-14 h-14 bg-white/95 backdrop-blur-sm border-white/60 hover:bg-white shadow-xl"
-              >
-                <span className="text-xs font-bold">{facingMode === 'user' ? '📱' : '📷'}</span>
-              </Button>
-              <Button
-                onClick={() => {
-                  console.log('📸 Capture button clicked');
-                  capturePhoto();
-                }}
+                onClick={capturePhoto}
                 size="lg"
                 className="rounded-full w-24 h-24 bg-gradient-to-r from-blue-600 to-purple-600 border-4 border-white/60 shadow-2xl hover:scale-110 transition-transform duration-200"
               >
@@ -484,30 +403,28 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
             </div>
           )}
           
-          {/* Empty State */}
           {!cameraActive && !previewUrl && !isProcessing && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
-              <div className="text-center p-6">
-                <Camera className="h-16 w-16 mx-auto mb-4 text-slate-400" />
-                <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300 mb-2">AI Location Recognition</h3>
-                <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">Take a photo or upload an image</p>
-                <div className="flex gap-3 justify-center">
-                  <Button 
-                    onClick={() => {
-                      console.log('🎥 Camera button clicked');
-                      startCamera();
-                    }} 
-                    className="px-6 py-2"
-                  >
-                    <Camera className="h-4 w-4 mr-2" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center p-10">
+                <div className="relative mb-8">
+                  <div className="h-24 w-24 mx-auto rounded-3xl bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center shadow-2xl">
+                    <Camera className="h-12 w-12 text-white" />
+                  </div>
+                  <div className="absolute -inset-3 rounded-3xl bg-gradient-to-r from-blue-600 to-purple-600 opacity-20 animate-pulse blur-lg"></div>
+                </div>
+                <h3 className="text-2xl font-bold text-slate-700 dark:text-slate-300 mb-3">AI Location Recognition</h3>
+                <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-md mx-auto">Take a photo or upload an image to identify locations with advanced AI technology</p>
+                <div className="flex gap-4 justify-center">
+                  <Button onClick={startCamera} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-xl hover:shadow-2xl transition-all duration-300 px-8 py-3">
+                    <Camera className="h-5 w-5 mr-3" />
                     Use Camera
                   </Button>
                   <Button
                     onClick={() => fileInputRef.current?.click()}
                     variant="outline"
-                    className="px-6 py-2"
+                    className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border-slate-200 dark:border-slate-700 hover:bg-white/90 dark:hover:bg-slate-800/90 shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-3"
                   >
-                    <Upload className="h-4 w-4 mr-2" />
+                    <Upload className="h-5 w-5 mr-3" />
                     Upload Image
                   </Button>
                 </div>
@@ -516,12 +433,18 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
           )}
         </div>
         
+        {/* Debug Info */}
+        {result && (
+          <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg text-sm">
+            <strong>Debug:</strong> Result exists - Success: {result.success ? 'true' : 'false'} | Method: {result.method || 'unknown'}
+          </div>
+        )}
+        
         {/* Results */}
         {result && (
           <div className="space-y-6">
             {result.success ? (
               <div className="space-y-6">
-                {/* Main Info */}
                 <div className="p-8 bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-xl">
                   <div className="flex items-start gap-6 mb-6">
                     <div className="h-16 w-16 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center shadow-xl">
@@ -557,30 +480,105 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                   )}
                 </div>
                 
-                {/* Show More Information */}
-                <ShowMoreInfo result={result} />
+                {apiVersion === 'v2' && result.success && (
+                  <div className="space-y-6">
+                    {result.photos && result.photos.length > 0 && (
+                      <div className="p-6 bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-950/30 dark:to-rose-950/30 rounded-2xl">
+                        <h4 className="font-semibold text-lg flex items-center gap-3 mb-4">
+                          <Camera className="h-5 w-5 text-pink-600" />
+                          Area Photos ({result.photos.length})
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {result.photos.slice(0, 6).map((photo, index) => (
+                            <img
+                              key={index}
+                              src={photo}
+                              alt={`Location photo ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-xl shadow-lg"
+                              loading="lazy"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
+                      <div className="p-6 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 rounded-2xl">
+                        <h4 className="font-semibold text-lg flex items-center gap-3 mb-4">
+                          <MapPin className="h-5 w-5 text-blue-600" />
+                          Nearby Places ({result.nearbyPlaces.length})
+                        </h4>
+                        <div className="grid gap-3">
+                          {result.nearbyPlaces.slice(0, 8).map((place, index) => (
+                            <div key={index} className="p-4 bg-white/70 dark:bg-slate-800/70 rounded-xl">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <h5 className="font-semibold">{place.name}</h5>
+                                  <p className="text-sm text-slate-600 dark:text-slate-400 capitalize">{place.type}</p>
+                                  {place.address && (
+                                    <p className="text-xs text-slate-500 mt-1">{place.address}</p>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <Badge variant="outline" className="mb-2">
+                                    {place.distance}m
+                                  </Badge>
+                                  {place.rating && place.rating > 0 && (
+                                    <div className="flex items-center gap-1">
+                                      <Star className="h-3 w-3 text-amber-500" />
+                                      <span className="text-sm">{place.rating}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {result.deviceAnalysis && (
+                      <div className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-2xl">
+                        <h4 className="font-semibold text-lg flex items-center gap-3 mb-4">
+                          <Phone className="h-5 w-5 text-purple-600" />
+                          Device Analysis
+                        </h4>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="p-4 bg-white/70 dark:bg-slate-800/70 rounded-xl">
+                            <h5 className="font-semibold mb-3">Camera</h5>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-slate-600 dark:text-slate-400">Make:</span>
+                                <span className="font-medium">{result.deviceAnalysis.camera?.make || 'Unknown'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-600 dark:text-slate-400">Model:</span>
+                                <span className="font-medium">{result.deviceAnalysis.camera?.model || 'Unknown'}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="p-4 bg-white/70 dark:bg-slate-800/70 rounded-xl">
+                            <h5 className="font-semibold mb-3">Image</h5>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-slate-600 dark:text-slate-400">Size:</span>
+                                <span className="font-medium">{result.deviceAnalysis.image?.width} × {result.deviceAnalysis.image?.height}</span>
+                              </div>
+                              {result.deviceAnalysis.settings?.iso && (
+                                <div className="flex justify-between">
+                                  <span className="text-slate-600 dark:text-slate-400">ISO:</span>
+                                  <span className="font-medium">{result.deviceAnalysis.settings.iso}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 
-                {/* Actions */}
                 <div className="flex flex-wrap gap-4">
-                  <Button
-                    size="lg"
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all duration-300 px-8"
-                    onClick={async () => {
-                      try {
-                        await fetch('/api/save-location', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ ...result, apiVersion })
-                        });
-                        toast({ title: "Location saved", description: "Added to your saved places" });
-                      } catch (error) {
-                        toast({ title: "Save failed", description: "Could not save location", variant: "destructive" });
-                      }
-                    }}
-                  >
-                    <Bookmark className="h-5 w-5 mr-3" />
-                    Save Location
-                  </Button>
                   {result.location && (
                     <Button
                       size="lg"
@@ -639,7 +637,6 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
           </div>
         )}
         
-        {/* Reset Button */}
         {(previewUrl || result || cameraActive) && (
           <Button
             onClick={reset}
@@ -665,113 +662,7 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
         <canvas ref={canvasRef} className="hidden" />
           </CardContent>
         </Card>
-
-
       </div>
-    </div>
-  )
-}
-
-// Component to show additional location information
-function ShowMoreInfo({ result }: { result: any }) {
-  const [showMore, setShowMore] = useState(false)
-
-  return (
-    <div className="space-y-4">
-      <Button
-        onClick={() => setShowMore(!showMore)}
-        variant="outline"
-        className="w-full py-3 bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm"
-      >
-        {showMore ? 'Show Less' : 'Show More Information'}
-      </Button>
-      
-      {showMore && (
-        <div className="space-y-6 p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl">
-          {/* V2 Enhanced Data */}
-          {result.photos && result.photos.length > 0 && (
-            <div>
-              <h5 className="font-semibold text-sm mb-3">Area Photos ({result.photos.length})</h5>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {result.photos.slice(0, 6).map((photo, index) => (
-                  <img
-                    key={index}
-                    src={photo}
-                    alt={`Location photo ${index + 1}`}
-                    className="w-full h-24 object-cover rounded-lg shadow-md"
-                    loading="lazy"
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
-            <div>
-              <h5 className="font-semibold text-sm mb-3">Nearby Places ({result.nearbyPlaces.length})</h5>
-              <div className="space-y-2">
-                {result.nearbyPlaces.slice(0, 5).map((place, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 bg-white dark:bg-slate-700 rounded-lg">
-                    <div>
-                      <p className="font-medium text-sm">{place.name}</p>
-                      <p className="text-xs text-slate-500 capitalize">{place.type}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-slate-500">{place.distance}m</p>
-                      {place.rating && (
-                        <div className="flex items-center gap-1">
-                          <Star className="h-3 w-3 text-amber-500" />
-                          <span className="text-xs">{place.rating}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {result.deviceAnalysis && (
-            <div>
-              <h5 className="font-semibold text-sm mb-3">Device Analysis</h5>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 bg-white dark:bg-slate-700 rounded-lg">
-                  <p className="text-xs text-slate-500 mb-1">Camera</p>
-                  <p className="text-sm font-medium">{result.deviceAnalysis.camera?.make || 'Unknown'}</p>
-                  <p className="text-sm">{result.deviceAnalysis.camera?.model || 'Unknown'}</p>
-                </div>
-                <div className="p-3 bg-white dark:bg-slate-700 rounded-lg">
-                  <p className="text-xs text-slate-500 mb-1">Image</p>
-                  <p className="text-sm">{result.deviceAnalysis.image?.width} × {result.deviceAnalysis.image?.height}</p>
-                  {result.deviceAnalysis.settings?.iso && (
-                    <p className="text-sm">ISO: {result.deviceAnalysis.settings.iso}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Coordinates */}
-          {result.location && (
-            <div>
-              <h5 className="font-semibold text-sm mb-2">Coordinates</h5>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                Latitude: {result.location.latitude.toFixed(6)}<br/>
-                Longitude: {result.location.longitude.toFixed(6)}
-              </p>
-            </div>
-          )}
-          
-          {/* Processing Details */}
-          <div>
-            <h5 className="font-semibold text-sm mb-2">Recognition Details</h5>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Method: {result.type}<br/>
-              Confidence: {result.confidence ? Math.round(result.confidence * 100) : 'N/A'}%
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

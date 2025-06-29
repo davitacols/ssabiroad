@@ -5,8 +5,8 @@ import { Providers } from './providers'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
-  title: 'Pic2Nav \\ Find Locations with Ease',
-  description: 'Find locations with ease',
+  title: 'Pic2Nav - AI-Powered Location Discovery',
+  description: 'Transform any photo into detailed location insights with our advanced AI. Discover places, extract GPS data, and explore nearby attractions instantly.',
 }
 
 export default function RootLayout({
