@@ -82,19 +82,26 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
   const getCurrentLocation = useCallback((): Promise<Location | null> => {
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
+        console.log('❌ Geolocation not supported');
         resolve(null)
         return
       }
 
+      console.log('📍 Requesting location permission...');
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          resolve({
+          const location = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
-          })
+          };
+          console.log('✅ Location obtained:', location);
+          resolve(location);
         },
-        () => resolve(null),
-        { timeout: 5000, enableHighAccuracy: true }
+        (error) => {
+          console.log('❌ Location error:', error.message);
+          resolve(null);
+        },
+        { timeout: 10000, enableHighAccuracy: true, maximumAge: 60000 }
       )
     })
   }, [])
@@ -106,22 +113,21 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
     setFeedbackGiven(false) // Reset feedback when processing new image
 
     try {
-      // Get user location (prioritize injected GPS from camera capture)
+      // Only use injected GPS from camera capture, don't fallback to device location
       const injectedLocation = (file as any)._gpsLocation
-      const location = injectedLocation || await getCurrentLocation()
       
       if (injectedLocation) {
         console.log('📍 Using injected GPS from camera capture');
-      } else if (location) {
-        console.log('📍 Using device GPS location');
+      } else {
+        console.log('📍 No GPS data available - will analyze image content');
       }
       
       const formData = new FormData()
       formData.append("image", file)
-      if (location) {
-        formData.append("latitude", location.latitude.toString())
-        formData.append("longitude", location.longitude.toString())
-        formData.append("gps_source", injectedLocation ? "camera_injected" : "device_location")
+      if (injectedLocation) {
+        formData.append("latitude", injectedLocation.latitude.toString())
+        formData.append("longitude", injectedLocation.longitude.toString())
+        formData.append("gps_source", "camera_injected")
       }
 
       const apiEndpoint = apiVersion === 'v1' ? '/api/location-recognition' : '/api/location-recognition-v2';
@@ -142,6 +148,7 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
       }
 
       let data = await response.json()
+      console.log('📨 API Response:', data);
       
       // Convert v2 API response to expected format
       if (apiVersion === 'v2' && data.success) {
@@ -151,10 +158,10 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
         data.mapUrl = data.location ? 
           `https://www.google.com/maps/search/?api=1&query=${data.location.latitude},${data.location.longitude}` : 
           undefined
+        console.log('✅ V2 data converted:', data);
       }
       
-      // V1 API already has the expected format, no conversion needed
-      
+      console.log('💾 Setting result:', data);
       setResult(data)
       
       if (data.success && onLocationSelect) {
@@ -162,22 +169,17 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
       }
       
       if (data.success) {
-        // Auto-save successful location
-        try {
-          await fetch('/api/save-location', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...data, apiVersion })
-          });
-          console.log('✅ Location saved to database');
-        } catch (saveError) {
-          console.warn('Failed to save location:', saveError);
-        }
-        
         toast({
           title: "Location identified",
           description: data.name || "Location found successfully",
         })
+        
+        // Auto-save in background
+        fetch('/api/save-location', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...data, apiVersion })
+        }).catch(() => {});
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Recognition failed"
@@ -287,12 +289,15 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
     const video = videoRef.current
     const canvas = canvasRef.current
     
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
+    // Compress for faster upload
+    const maxSize = 800
+    const ratio = Math.min(maxSize / video.videoWidth, maxSize / video.videoHeight)
+    canvas.width = video.videoWidth * ratio
+    canvas.height = video.videoHeight * ratio
     
     const context = canvas.getContext("2d")
     if (context) {
-      context.drawImage(video, 0, 0)
+      context.drawImage(video, 0, 0, canvas.width, canvas.height)
       
       // Get current location for GPS injection
       const location = await getCurrentLocation()
@@ -304,38 +309,25 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
           // Create file with GPS metadata injection
           let finalBlob = blob
           
-          if (location && apiVersion === 'v2') {
-            try {
-              // For V2, we'll inject GPS via FormData since EXIF injection is complex
-              console.log(`📍 GPS available: ${location.latitude}, ${location.longitude}`);
-              
-              // Create a custom file with location metadata
-              const file = new File([blob], `capture-${Date.now()}.jpg`, {
-                type: "image/jpeg",
-              })
-              
-              // Add location as custom property (will be handled in processImage)
-              Object.defineProperty(file, '_gpsLocation', {
-                value: location,
-                writable: false,
-                enumerable: false
-              })
-              
-              handleFileSelect(file)
-              stopCamera()
-              return
-            } catch (error) {
-              console.log('⚠️ GPS injection failed, proceeding without GPS');
-            }
-          }
-          
-          const file = new File([finalBlob], `capture-${Date.now()}.jpg`, {
+          const file = new File([blob], `capture-${Date.now()}.jpg`, {
             type: "image/jpeg",
           })
+          
+          if (location) {
+            console.log(`✅ GPS injected: ${location.latitude}, ${location.longitude}`);
+            Object.defineProperty(file, '_gpsLocation', {
+              value: location,
+              writable: false,
+              enumerable: false
+            });
+          } else {
+            console.log('❌ No GPS available');
+          }
+          
           handleFileSelect(file)
           stopCamera()
         }
-      }, "image/jpeg", 0.9)
+      }, "image/jpeg", 0.6)
     }
   }, [handleFileSelect, stopCamera, getCurrentLocation, apiVersion])
 
@@ -559,6 +551,7 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
         {/* Results */}
         {result && (
           <div className="space-y-6">
+            {console.log('🔍 Rendering result:', result)}
             {result.success ? (
               <div className="space-y-6">
                 {/* Main Info */}
@@ -728,6 +721,125 @@ function ShowMoreInfo({ result }: { result: any }) {
       
       {showMore && (
         <div className="space-y-6 p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl">
+          {/* Weather Information */}
+          {result.weather && (
+            <div>
+              <h5 className="font-semibold text-sm mb-3">Current Weather</h5>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-3 bg-white dark:bg-slate-700 rounded-lg">
+                  <p className="text-xs text-slate-500 mb-1">Temperature</p>
+                  <p className="text-lg font-medium">{result.weather.temperature}°C</p>
+                </div>
+                <div className="p-3 bg-white dark:bg-slate-700 rounded-lg">
+                  <p className="text-xs text-slate-500 mb-1">Wind Speed</p>
+                  <p className="text-lg font-medium">{result.weather.windSpeed} km/h</p>
+                </div>
+                {result.weather.humidity && (
+                  <div className="p-3 bg-white dark:bg-slate-700 rounded-lg">
+                    <p className="text-xs text-slate-500 mb-1">Humidity</p>
+                    <p className="text-lg font-medium">{result.weather.humidity}%</p>
+                  </div>
+                )}
+                {result.weather.timezone && (
+                  <div className="p-3 bg-white dark:bg-slate-700 rounded-lg">
+                    <p className="text-xs text-slate-500 mb-1">Timezone</p>
+                    <p className="text-sm font-medium">{result.weather.timezone}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Location Details */}
+          {result.locationDetails && (
+            <div>
+              <h5 className="font-semibold text-sm mb-3">Location Details</h5>
+              <div className="grid grid-cols-2 gap-4">
+                {result.locationDetails.city && (
+                  <div className="p-3 bg-white dark:bg-slate-700 rounded-lg">
+                    <p className="text-xs text-slate-500 mb-1">City</p>
+                    <p className="text-sm font-medium">{result.locationDetails.city}</p>
+                  </div>
+                )}
+                {result.locationDetails.state && (
+                  <div className="p-3 bg-white dark:bg-slate-700 rounded-lg">
+                    <p className="text-xs text-slate-500 mb-1">State/Region</p>
+                    <p className="text-sm font-medium">{result.locationDetails.state}</p>
+                  </div>
+                )}
+                {result.locationDetails.country && (
+                  <div className="p-3 bg-white dark:bg-slate-700 rounded-lg">
+                    <p className="text-xs text-slate-500 mb-1">Country</p>
+                    <p className="text-sm font-medium">{result.locationDetails.country}</p>
+                  </div>
+                )}
+                {result.locationDetails.postalCode && (
+                  <div className="p-3 bg-white dark:bg-slate-700 rounded-lg">
+                    <p className="text-xs text-slate-500 mb-1">Postal Code</p>
+                    <p className="text-sm font-medium">{result.locationDetails.postalCode}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Elevation & Geographic Data */}
+          {result.elevation && (
+            <div>
+              <h5 className="font-semibold text-sm mb-3">Geographic Information</h5>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-white dark:bg-slate-700 rounded-lg">
+                  <p className="text-xs text-slate-500 mb-1">Elevation</p>
+                  <p className="text-lg font-medium">{result.elevation.elevation}m above sea level</p>
+                </div>
+                {result.location && (
+                  <div className="p-3 bg-white dark:bg-slate-700 rounded-lg">
+                    <p className="text-xs text-slate-500 mb-1">Coordinates</p>
+                    <p className="text-sm font-medium">{result.location.latitude.toFixed(6)}, {result.location.longitude.toFixed(6)}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Transit Information */}
+          {result.transit && result.transit.length > 0 && (
+            <div>
+              <h5 className="font-semibold text-sm mb-3">Nearby Transit ({result.transit.length})</h5>
+              <div className="space-y-2">
+                {result.transit.slice(0, 3).map((station, index) => (
+                  <div key={index} className="flex justify-between items-center p-3 bg-white dark:bg-slate-700 rounded-lg">
+                    <div>
+                      <p className="font-medium text-sm">{station.name}</p>
+                      <p className="text-xs text-slate-500 capitalize">{station.type}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-slate-500">{station.distance}m away</p>
+                      {station.rating && (
+                        <div className="flex items-center gap-1">
+                          <Star className="h-3 w-3 text-amber-500" />
+                          <span className="text-xs">{station.rating}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Demographics */}
+          {result.demographics && (
+            <div>
+              <h5 className="font-semibold text-sm mb-3">Area Information</h5>
+              <div className="p-3 bg-white dark:bg-slate-700 rounded-lg">
+                <p className="text-xs text-slate-500 mb-1">Data Source</p>
+                <p className="text-sm font-medium mb-2">{result.demographics.dataSource}</p>
+                <p className="text-xs text-slate-400">{result.demographics.note}</p>
+              </div>
+            </div>
+          )}
+          
           {/* V2 Enhanced Data */}
           {result.photos && result.photos.length > 0 && (
             <div>
@@ -791,24 +903,38 @@ function ShowMoreInfo({ result }: { result: any }) {
             </div>
           )}
           
-          {/* Coordinates */}
-          {result.location && (
-            <div>
-              <h5 className="font-semibold text-sm mb-2">Coordinates</h5>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                Latitude: {result.location.latitude.toFixed(6)}<br/>
-                Longitude: {result.location.longitude.toFixed(6)}
-              </p>
-            </div>
-          )}
-          
-          {/* Processing Details */}
+          {/* Technical Details */}
           <div>
-            <h5 className="font-semibold text-sm mb-2">Recognition Details</h5>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Method: {result.type}<br/>
-              Confidence: {result.confidence ? Math.round(result.confidence * 100) : 'N/A'}%
-            </p>
+            <h5 className="font-semibold text-sm mb-3">Technical Information</h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {result.location && (
+                <div className="p-3 bg-white dark:bg-slate-700 rounded-lg">
+                  <p className="text-xs text-slate-500 mb-1">GPS Coordinates</p>
+                  <p className="text-sm font-mono">{result.location.latitude.toFixed(6)}, {result.location.longitude.toFixed(6)}</p>
+                </div>
+              )}
+              {result.method && (
+                <div className="p-3 bg-white dark:bg-slate-700 rounded-lg">
+                  <p className="text-xs text-slate-500 mb-1">Detection Method</p>
+                  <p className="text-sm font-medium capitalize">{result.method.replace(/-/g, ' ')}</p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Processing Summary */}
+          <div>
+            <h5 className="font-semibold text-sm mb-3">Processing Summary</h5>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 bg-white dark:bg-slate-700 rounded-lg">
+                <p className="text-xs text-slate-500 mb-1">Analysis Type</p>
+                <p className="text-sm font-medium">{result.type || result.method}</p>
+              </div>
+              <div className="p-3 bg-white dark:bg-slate-700 rounded-lg">
+                <p className="text-xs text-slate-500 mb-1">Confidence</p>
+                <p className="text-sm font-medium">{result.confidence ? Math.round(result.confidence * 100) : 'N/A'}%</p>
+              </div>
+            </div>
           </div>
         </div>
       )}
