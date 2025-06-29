@@ -15,7 +15,7 @@ import {
   Zap,
   Target,
   Eye,
-  RefreshCw,
+  RefreshCw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -38,91 +38,30 @@ export function Pic2NavDashboard() {
   const [stats, setStats] = useState(null)
   const [recentLocations, setRecentLocations] = useState([])
   const [savedLocations, setSavedLocations] = useState([])
-  const [activityFeed, setActivityFeed] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState(null)
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        console.log('🔄 Fetching dashboard data...');
-        
-        const [statsRes, recentRes, savedRes] = await Promise.all([
-          fetch('/api/location-stats'),
-          fetch('/api/recent-locations?limit=10'),
-          fetch('/api/saved-locations?limit=20')
-        ]);
-        
-        console.log('📊 API responses:', {
-          stats: statsRes.status,
-          recent: recentRes.status,
-          saved: savedRes.status
-        });
-        
-        // Handle stats
-        if (statsRes.ok) {
-          const statsData = await statsRes.json();
-          console.log('📈 Stats data:', statsData);
-          setStats({
-            totalDetections: statsData.totalLocations || 0,
-            totalLocations: statsData.totalLocations || 0,
-            totalBookmarks: 0,
-            recentDetections: statsData.todayCount || 0,
-            successRate: Math.round((statsData.avgConfidence || 0) * 100),
-            weeklyGrowth: Math.round(((statsData.weekCount || 0) / Math.max(statsData.totalLocations || 1, 1)) * 100)
-          });
-        } else {
-          console.error('❌ Stats API failed:', await statsRes.text());
-          setStats({
-            totalDetections: 0,
-            totalLocations: 0,
-            totalBookmarks: 0,
-            recentDetections: 0,
-            successRate: 0,
-            weeklyGrowth: 0
-          });
-        }
-        
-        // Handle recent locations
-        if (recentRes.ok) {
-          const recentData = await recentRes.json();
-          console.log('🕒 Recent data:', recentData);
-          const formattedLocations = (recentData.locations || []).map(loc => ({
-            ...loc,
-            timeAgo: new Date(loc.createdAt).toLocaleDateString()
-          }));
-          setRecentLocations(formattedLocations);
-          
-          // Create activity feed
-          const activities = formattedLocations.slice(0, 4).map(location => ({
-            action: location.apiVersion === 'v2' ? 'GPS extraction' : 'Photo analyzed',
-            location: location.name || location.address || 'Unknown location',
-            time: new Date(location.createdAt).toLocaleString(),
-            type: location.apiVersion === 'v2' ? 'gps' : 'success'
-          }));
-          setActivityFeed(activities);
-        } else {
-          console.error('❌ Recent locations API failed:', await recentRes.text());
-          setRecentLocations([]);
-          setActivityFeed([]);
-        }
-        
-        // Handle saved locations
-        if (savedRes.ok) {
-          const savedData = await savedRes.json();
-          console.log('💾 Saved data:', savedData);
-          setSavedLocations(savedData.locations || []);
-          setStats(prev => prev ? { ...prev, totalBookmarks: (savedData.locations || []).length } : null);
-        } else {
-          console.error('❌ Saved locations API failed:', await savedRes.text());
-          setSavedLocations([]);
-        }
-        
-      } catch (error) {
-        console.error('❌ Dashboard fetch error:', error);
-        setError(error.message);
+    // Fetch global stats, recent locations, and saved locations from database
+    Promise.all([
+      fetch('/api/location-stats'),
+      fetch('/api/recent-locations?limit=10'),
+      fetch('/api/saved-locations?limit=20')
+    ])
+    .then(async ([statsRes, recentRes, savedRes]) => {
+      if (statsRes.ok) {
+        const statsData = await statsRes.json()
+        setStats({
+          totalDetections: statsData.totalLocations,
+          totalLocations: statsData.totalLocations,
+          totalBookmarks: 0,
+          recentDetections: statsData.todayCount,
+          successRate: Math.round(statsData.avgConfidence * 100),
+          weeklyGrowth: Math.round((statsData.weekCount / Math.max(statsData.totalLocations, 1)) * 100)
+        })
+      } else {
         setStats({
           totalDetections: 0,
           totalLocations: 0,
@@ -130,16 +69,40 @@ export function Pic2NavDashboard() {
           recentDetections: 0,
           successRate: 0,
           weeklyGrowth: 0
-        });
-        setRecentLocations([]);
-        setSavedLocations([]);
-        setActivityFeed([]);
-      } finally {
-        setLoading(false);
+        })
       }
-    };
-    
-    fetchData();
+      
+      if (recentRes.ok) {
+        const recentData = await recentRes.json()
+        const formattedLocations = recentData.locations.map(loc => ({
+          ...loc,
+          timeAgo: new Date(loc.createdAt).toLocaleDateString()
+        }))
+        setRecentLocations(formattedLocations)
+      }
+
+      if (savedRes.ok) {
+        const savedData = await savedRes.json()
+        setSavedLocations(savedData.locations)
+        // Update bookmark count in stats
+        if (stats) {
+          setStats(prev => ({ ...prev, totalBookmarks: savedData.locations.length }))
+        }
+      }
+    })
+    .catch(err => {
+      setStats({
+        totalDetections: 0,
+        totalLocations: 0,
+        totalBookmarks: 0,
+        recentDetections: 0,
+        successRate: 0,
+        weeklyGrowth: 0
+      })
+      setRecentLocations([])
+      setSavedLocations([])
+    })
+    .finally(() => setLoading(false))
   }, [])
 
 
@@ -189,50 +152,52 @@ export function Pic2NavDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-indigo-950 dark:to-purple-950">
-      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8 max-w-7xl">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 sm:mb-12 gap-4 sm:gap-6">
-          <div className="flex items-center gap-4 sm:gap-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-12 gap-6">
+          <div className="flex items-center gap-6">
             <div className="relative">
-              <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 flex items-center justify-center shadow-2xl">
-                <Activity className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+              <div className="h-16 w-16 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 flex items-center justify-center shadow-2xl">
+                <Activity className="h-8 w-8 text-white" />
               </div>
               <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 opacity-20 animate-pulse"></div>
             </div>
             <div>
-              <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-1 sm:mb-2">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
                 Dashboard
               </h1>
-              <p className="text-slate-600 dark:text-slate-400 font-medium text-sm sm:text-lg">AI-powered location intelligence platform</p>
+              <p className="text-slate-600 dark:text-slate-400 font-medium text-lg">AI-powered location intelligence platform</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+          <div className="flex items-center gap-4">
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => window.location.reload()}
-              className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border-white/20 dark:border-slate-700/50 shadow-xl hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-300 flex-1 sm:flex-none"
+              className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border-white/20 dark:border-slate-700/50 shadow-xl hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-300"
+              asChild
             >
-              <RefreshCw className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Refresh</span>
+              <a href="/analytics">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Analytics
+              </a>
             </Button>
             <Button 
               variant="outline" 
               size="sm" 
-              className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border-white/20 dark:border-slate-700/50 shadow-xl hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-300 flex-1 sm:flex-none"
+              className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border-white/20 dark:border-slate-700/50 shadow-xl hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-300"
               asChild
             >
               <a href="/settings">
-                <Settings className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Settings</span>
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
               </a>
             </Button>
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8 mb-8 sm:mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {loading ? (
             Array.from({ length: 4 }).map((_, index) => (
               <Card key={index} className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border-white/20 dark:border-slate-700/50 shadow-2xl">
@@ -249,11 +214,11 @@ export function Pic2NavDashboard() {
             statCards.map((stat, index) => (
               <Card key={index} className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border-white/20 dark:border-slate-700/50 shadow-2xl hover:shadow-3xl hover:scale-105 transition-all duration-500 group relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <CardContent className="p-4 sm:p-8 relative z-10">
+                <CardContent className="p-8 relative z-10">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{stat.label}</p>
-                      <p className="text-2xl sm:text-3xl font-bold mt-2 bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">{stat.value}</p>
+                      <p className="text-3xl font-bold mt-2 bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">{stat.value}</p>
                       <Badge className={`text-xs ${stat.changeColor} bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-950 dark:to-emerald-950 border-0 mt-3`}>
                         {stat.change} this week
                       </Badge>
@@ -272,7 +237,7 @@ export function Pic2NavDashboard() {
         </div>
 
         {/* Navigation */}
-        <div className="flex flex-wrap gap-2 sm:gap-4 mb-8 sm:mb-12">
+        <div className="flex flex-wrap gap-4 mb-12">
           {[
             { id: "upload", label: "Upload Photo", icon: Upload, color: "from-indigo-500 to-purple-500" },
             { id: "recent", label: "Recent", icon: Clock, color: "from-emerald-500 to-teal-500" },
@@ -295,10 +260,10 @@ export function Pic2NavDashboard() {
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 sm:gap-10">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
           <div className="xl:col-span-2">
             <Card className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border-white/20 dark:border-slate-700/50 shadow-2xl rounded-3xl overflow-hidden">
-              <CardContent className="p-4 sm:p-10">
+              <CardContent className="p-10">
                 {activeView === "upload" && (
                   <CameraRecognition onLocationSelect={handleLocationSelect} />
                 )}
@@ -439,8 +404,8 @@ export function Pic2NavDashboard() {
               Quick Actions
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4 sm:p-8">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+          <CardContent className="p-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {[
                 { icon: Camera, label: "Take Photo", color: "from-indigo-500 to-purple-500", action: () => setActiveView("upload") },
                 { icon: Upload, label: "Upload Image", color: "from-emerald-500 to-teal-500", action: () => setActiveView("upload") },
@@ -462,122 +427,6 @@ export function Pic2NavDashboard() {
                   <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors duration-300">{action.label}</span>
                 </Button>
               ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Tips & Insights */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-12">
-          <Card className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border-white/20 dark:border-slate-700/50 shadow-2xl rounded-3xl overflow-hidden">
-            <CardHeader className="pb-6 bg-gradient-to-r from-cyan-500/10 to-blue-500/10">
-              <CardTitle className="text-xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center">
-                  <Target className="h-5 w-5 text-white" />
-                </div>
-                Pro Tips
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                {[
-                  { tip: "Take photos in good lighting for better recognition accuracy", icon: "💡" },
-                  { tip: "Include text or signs in your photos for enhanced detection", icon: "📝" },
-                  { tip: "Save frequently visited places for quick access", icon: "⭐" },
-                  { tip: "Use GPS mode for photos with location metadata", icon: "📍" }
-                ].map((item, index) => (
-                  <div key={index} className="flex items-start gap-3 p-3 rounded-xl bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm">
-                    <span className="text-lg">{item.icon}</span>
-                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{item.tip}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border-white/20 dark:border-slate-700/50 shadow-2xl rounded-3xl overflow-hidden">
-            <CardHeader className="pb-6 bg-gradient-to-r from-green-500/10 to-emerald-500/10">
-              <CardTitle className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
-                  <Activity className="h-5 w-5 text-white" />
-                </div>
-                Usage Insights
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Most Active Day</span>
-                  <Badge className="bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300">Today</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Favorite Detection Mode</span>
-                  <Badge className="bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">Smart Analysis</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Average Confidence</span>
-                  <Badge className="bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">{stats?.successRate || 0}%</Badge>
-                </div>
-                <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-                    System running optimally
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Recent Activity Feed */}
-        <Card className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border-white/20 dark:border-slate-700/50 shadow-2xl rounded-3xl overflow-hidden mt-12">
-          <CardHeader className="pb-6 bg-gradient-to-r from-violet-500/10 to-purple-500/10">
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 flex items-center justify-center">
-                <RefreshCw className="h-6 w-6 text-white" />
-              </div>
-              Activity Feed
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-8">
-            <div className="space-y-4">
-              {loading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="animate-pulse flex items-center gap-4 p-4 rounded-xl bg-white/40 dark:bg-slate-800/40">
-                    <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-700"></div>
-                    <div className="flex-1">
-                      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-2"></div>
-                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2"></div>
-                    </div>
-                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-16"></div>
-                  </div>
-                ))
-              ) : activityFeed.length > 0 ? (
-                activityFeed.map((activity, index) => (
-                <div key={index} className="flex items-center gap-4 p-4 rounded-xl bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm border border-white/20 dark:border-slate-700/50">
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                    activity.type === 'success' ? 'bg-green-100 dark:bg-green-950' :
-                    activity.type === 'bookmark' ? 'bg-yellow-100 dark:bg-yellow-950' :
-                    activity.type === 'search' ? 'bg-blue-100 dark:bg-blue-950' :
-                    'bg-purple-100 dark:bg-purple-950'
-                  }`}>
-                    {activity.type === 'success' && <Eye className="h-5 w-5 text-green-600" />}
-                    {activity.type === 'bookmark' && <Bookmark className="h-5 w-5 text-yellow-600" />}
-                    {activity.type === 'search' && <Search className="h-5 w-5 text-blue-600" />}
-                    {activity.type === 'gps' && <MapPin className="h-5 w-5 text-purple-600" />}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-900 dark:text-white">{activity.action}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{activity.location}</p>
-                  </div>
-                  <span className="text-xs text-slate-500">{activity.time}</span>
-                </div>
-              ))
-              ) : (
-                <div className="text-center py-8 text-slate-500">
-                  <RefreshCw className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No recent activity</p>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
