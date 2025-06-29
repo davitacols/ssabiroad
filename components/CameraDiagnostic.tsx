@@ -133,7 +133,7 @@ export function CameraDiagnostic() {
         {/* Diagnostic Information */}
         <div className="space-y-2 text-sm">
           <div>
-            <strong>HTTPS Status:</strong> {location.protocol === 'https:' ? '✅ Secure' : '❌ Not Secure (Required for camera)'}
+            <strong>HTTPS Status:</strong> {typeof window !== 'undefined' && location.protocol === 'https:' ? '✅ Secure' : '❌ Not Secure (Required for camera)'}
           </div>
           {permissions && (
             <div>
