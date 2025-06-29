@@ -25,6 +25,7 @@ interface LocationResult {
   elevation?: any;
   transit?: any[];
   demographics?: any;
+  note?: string;
 }
 
 // Ultra-fast cache with 5-minute TTL
@@ -33,9 +34,10 @@ const cache = new NodeCache({ stdTTL: 300 });
 class LocationRecognizer {
   constructor() {}
 
-  // Ultra-fast EXIF GPS extraction
+  // Enhanced EXIF GPS extraction with multiple methods
   extractGPS(buffer: Buffer): LocationResult | null {
     try {
+      // Method 1: Standard EXIF parser
       const parser = exifParser.create(buffer);
       const result = parser.parse();
       
@@ -49,9 +51,93 @@ class LocationRecognizer {
             name: 'GPS Location',
             location: { latitude: lat, longitude: lng },
             confidence: 0.95,
-            method: 'exif-gps-fast'
+            method: 'exif-gps-standard'
           };
         }
+      }
+      
+      // Method 2: Raw binary search for GPS data
+      const gpsData = this.extractGPSFromBinary(buffer);
+      if (gpsData) {
+        return {
+          success: true,
+          name: 'GPS Location (Binary)',
+          location: gpsData,
+          confidence: 0.9,
+          method: 'exif-gps-binary'
+        };
+      }
+      
+    } catch {}
+    return null;
+  }
+  
+  // Binary search for GPS coordinates in JPEG data
+  private extractGPSFromBinary(buffer: Buffer): Location | null {
+    try {
+      const bufferStr = buffer.toString('binary');
+      
+      // Look for GPS coordinate patterns in binary data
+      const gpsPatterns = [
+        /GPS.*?([0-9]{1,3}\.[0-9]{4,}).*?([0-9]{1,3}\.[0-9]{4,})/g,
+        /\x02\x02([0-9\x00-\xFF]{8})\x02\x03([0-9\x00-\xFF]{8})/g
+      ];
+      
+      for (const pattern of gpsPatterns) {
+        const matches = bufferStr.match(pattern);
+        if (matches) {
+          // Try to extract coordinates from matches
+          const coords = this.parseGPSFromMatch(matches[0]);
+          if (coords) return coords;
+        }
+      }
+      
+      // Look for specific EXIF GPS tags in binary
+      const gpsLatRef = buffer.indexOf('GPSLatitudeRef');
+      const gpsLat = buffer.indexOf('GPSLatitude');
+      const gpsLngRef = buffer.indexOf('GPSLongitudeRef');
+      const gpsLng = buffer.indexOf('GPSLongitude');
+      
+      if (gpsLat > 0 && gpsLng > 0) {
+        // Extract coordinates from binary positions
+        const coords = this.extractCoordsFromPositions(buffer, gpsLat, gpsLng);
+        if (coords) return coords;
+      }
+      
+    } catch {}
+    return null;
+  }
+  
+  private parseGPSFromMatch(match: string): Location | null {
+    try {
+      const numbers = match.match(/[0-9]{1,3}\.[0-9]{4,}/g);
+      if (numbers && numbers.length >= 2) {
+        const lat = parseFloat(numbers[0]);
+        const lng = parseFloat(numbers[1]);
+        if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          return { latitude: lat, longitude: lng };
+        }
+      }
+    } catch {}
+    return null;
+  }
+  
+  private extractCoordsFromPositions(buffer: Buffer, latPos: number, lngPos: number): Location | null {
+    try {
+      // Read 32 bytes after each GPS tag position
+      const latData = buffer.slice(latPos + 12, latPos + 44);
+      const lngData = buffer.slice(lngPos + 13, lngPos + 45);
+      
+      // Try to parse as IEEE 754 double precision
+      for (let i = 0; i < latData.length - 8; i += 4) {
+        try {
+          const lat = latData.readDoubleLE(i);
+          const lng = lngData.readDoubleLE(i);
+          
+          if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            return { latitude: lat, longitude: lng };
+          }
+        } catch {}
       }
     } catch {}
     return null;
@@ -309,9 +395,9 @@ class LocationRecognizer {
     }
   }
 
-  // V2 pipeline - EXIF GPS data with fallback to basic analysis
+  // V2 pipeline - EXIF GPS data with intelligent fallback
   async recognize(buffer: Buffer, providedLocation?: Location): Promise<LocationResult> {
-    console.log('📍 V2: Checking EXIF GPS data...');
+    console.log('📍 V2: Checking EXIF GPS data with enhanced extraction...');
     
     const gpsResult = this.extractGPS(buffer);
     if (gpsResult?.location) {
@@ -319,29 +405,30 @@ class LocationRecognizer {
       return await this.enrichLocationData(gpsResult, buffer);
     }
     
-    console.log('❌ No EXIF GPS data found');
+    console.log('❌ No EXIF GPS data found - browser may have stripped location data');
     
-    // If no GPS and no provided location, return error
-    if (!providedLocation) {
-      return {
-        success: false,
-        confidence: 0,
-        method: 'no-exif-gps',
-        error: 'No GPS coordinates found in image metadata. Please use V1 for text-based analysis.'
+    // Smart fallback: Use device location if available, but clearly indicate the source
+    if (providedLocation) {
+      console.log('📍 Using device location (EXIF stripped by browser)');
+      const fallbackResult = {
+        success: true,
+        name: 'Device Location (EXIF Stripped)',
+        location: providedLocation,
+        confidence: 0.7,
+        method: 'device-location-fallback',
+        note: 'Browser stripped GPS data from image, using device location instead'
       };
+      
+      return await this.enrichLocationData(fallbackResult, buffer);
     }
     
-    // Use provided location as fallback (but mark it clearly)
-    console.log('📍 Using provided location as fallback');
-    const fallbackResult = {
-      success: true,
-      name: 'Provided Location',
-      location: providedLocation,
-      confidence: 0.3,
-      method: 'provided-location-fallback'
+    // No location data available at all
+    return {
+      success: false,
+      confidence: 0,
+      method: 'no-location-data',
+      error: 'No GPS data found. Try: 1) Upload photo as file instead of camera capture, 2) Use V1 for text analysis, or 3) Enable location services.'
     };
-    
-    return await this.enrichLocationData(fallbackResult, buffer);
   }
 }
 
