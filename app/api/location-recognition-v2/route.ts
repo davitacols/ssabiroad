@@ -310,7 +310,7 @@ class LocationRecognizer {
   }
 
   // Enhanced location enrichment with comprehensive data
-  async enrichLocationData(baseResult: LocationResult, buffer: Buffer): Promise<LocationResult> {
+  async enrichLocationData(baseResult: LocationResult, buffer: Buffer, analyzeLandmarks: boolean = false): Promise<LocationResult> {
     const { latitude, longitude } = baseResult.location!;
     
     const addressKey = `addr_${Math.round(latitude*1000)}_${Math.round(longitude*1000)}`;
@@ -318,13 +318,14 @@ class LocationRecognizer {
     let locationDetails = cache.get(`details_${addressKey}`) as any;
     
     // Comprehensive parallel processing
-    const [places, photos, weather, elevation, transit, demographics] = await Promise.all([
+    const [places, photos, weather, elevation, transit, demographics, landmarks] = await Promise.all([
       this.getNearbyPlaces(latitude, longitude),
       this.getLocationPhotos(latitude, longitude),
       this.getWeatherData(latitude, longitude),
       this.getElevationData(latitude, longitude),
       this.getTransitData(latitude, longitude),
       this.getDemographicData(latitude, longitude),
+      analyzeLandmarks ? this.analyzeLandmarks(buffer, latitude, longitude) : Promise.resolve([]),
       !address ? this.getDetailedAddress(latitude, longitude).then(data => {
         address = data.address;
         locationDetails = data.details;
@@ -344,6 +345,7 @@ class LocationRecognizer {
       elevation: elevation,
       transit: transit,
       demographics: demographics,
+      landmarks: landmarks,
       confidence: 0.98,
       description: `Comprehensive location data with ${places.length} nearby places, weather, elevation, and transit info`
     };
@@ -455,6 +457,65 @@ class LocationRecognizer {
         dataSource: 'Limited',
         note: 'Demographic data not available for this location'
       };
+    }
+  }
+  
+  // Analyze landmarks and monuments in the image
+  private async analyzeLandmarks(buffer: Buffer, lat: number, lng: number): Promise<any[]> {
+    try {
+      const client = await this.initVisionClient();
+      if (!client) return [];
+      
+      // Use Google Vision to detect landmarks
+      const [landmarkResult] = await client.landmarkDetection({ image: { content: buffer } });
+      const landmarks = landmarkResult.landmarkAnnotations || [];
+      
+      const processedLandmarks = [];
+      
+      for (const landmark of landmarks.slice(0, 3)) {
+        const landmarkData = {
+          name: landmark.description || 'Unknown Landmark',
+          confidence: landmark.score || 0.8,
+          description: await this.getLandmarkDescription(landmark.description || ''),
+          culturalInfo: 'This landmark represents important cultural heritage and community identity.',
+          historicalInfo: 'This structure has witnessed significant historical developments and urban evolution.',
+          wikipediaUrl: await this.getWikipediaUrl(landmark.description || ''),
+          moreInfoUrl: `https://www.google.com/search?q=${encodeURIComponent(landmark.description || '')}`
+        };
+        
+        processedLandmarks.push(landmarkData);
+      }
+      
+      return processedLandmarks;
+    } catch (error) {
+      console.error('Landmark analysis failed:', error);
+      return [];
+    }
+  }
+  
+  private async getLandmarkDescription(landmarkName: string): Promise<string> {
+    try {
+      const response = await fetch(
+        `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(landmarkName)}`,
+        { signal: AbortSignal.timeout(2000) }
+      );
+      const data = await response.json();
+      return data.extract || `A notable landmark: ${landmarkName}`;
+    } catch {
+      return `A significant architectural or cultural landmark.`;
+    }
+  }
+  
+  private async getWikipediaUrl(landmarkName: string): Promise<string> {
+    try {
+      const response = await fetch(
+        `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(landmarkName)}`,
+        { signal: AbortSignal.timeout(1500) }
+      );
+      const data = await response.json();
+      return data.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(landmarkName.replace(/\s+/g, '_'))}`;
+    } catch {
+      return `https://en.wikipedia.org/wiki/${encodeURIComponent(landmarkName.replace(/\s+/g, '_'))}`;
     }
   }
 
@@ -743,7 +804,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
   }
 
   // V2 pipeline - EXIF GPS data with AI vision fallback
-  async recognize(buffer: Buffer, providedLocation?: Location): Promise<LocationResult> {
+  async recognize(buffer: Buffer, providedLocation?: Location, analyzeLandmarks: boolean = false): Promise<LocationResult> {
     console.log('V2: Enhanced location recognition starting...');
     console.log('Buffer info - Size:', buffer.length, 'bytes');
     
@@ -755,7 +816,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     const gpsResult = this.extractGPS(buffer);
     if (gpsResult?.location) {
       console.log('Found EXIF GPS:', gpsResult.location);
-      return await this.enrichLocationData(gpsResult, buffer);
+      return await this.enrichLocationData(gpsResult, buffer, analyzeLandmarks);
     }
     
     console.log('No EXIF GPS data found - trying AI vision analysis...');
@@ -764,7 +825,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     const aiResult = await this.analyzeImageWithAI(buffer);
     if (aiResult?.success && aiResult.location) {
       console.log('AI vision found location:', aiResult.location);
-      return await this.enrichLocationData(aiResult, buffer);
+      return await this.enrichLocationData(aiResult, buffer, analyzeLandmarks);
     }
     
     console.log('AI vision analysis failed - trying device location fallback...');
@@ -781,7 +842,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         note: 'No GPS data in image and AI analysis inconclusive, using device location'
       };
       
-      return await this.enrichLocationData(fallbackResult, buffer);
+      return await this.enrichLocationData(fallbackResult, buffer, analyzeLandmarks);
     }
     
     // 4. Complete failure - no location data available
@@ -813,13 +874,15 @@ export async function POST(request: NextRequest) {
     
     const lat = formData.get('latitude');
     const lng = formData.get('longitude');
+    const analyzeLandmarks = formData.get('analyzeLandmarks') === 'true';
+    
     const providedLocation = lat && lng ? {
       latitude: parseFloat(lat as string),
       longitude: parseFloat(lng as string)
     } : undefined;
     
     const recognizer = new LocationRecognizer();
-    const result = await recognizer.recognize(buffer, providedLocation);
+    const result = await recognizer.recognize(buffer, providedLocation, analyzeLandmarks);
     
     return NextResponse.json(result, {
       headers: {
