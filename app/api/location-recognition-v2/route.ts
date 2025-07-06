@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as exifParser from 'exif-parser';
 import NodeCache from 'node-cache';
+import * as vision from '@google-cloud/vision';
+import axios from 'axios';
+import Anthropic from '@anthropic-ai/sdk';
 
 interface Location {
   latitude: number;
@@ -31,26 +34,36 @@ interface LocationResult {
 // Ultra-fast cache with 5-minute TTL
 const cache = new NodeCache({ stdTTL: 300 });
 
+// Helper function to get environment variables
+function getEnv(key: string): string {
+  const value = process.env[key];
+  if (!value) {
+    console.warn(`Environment variable ${key} not found`);
+    return '';
+  }
+  return value;
+}
+
 class LocationRecognizer {
   constructor() {}
 
   // Enhanced EXIF GPS extraction with multiple methods
   extractGPS(buffer: Buffer): LocationResult | null {
-    console.log('🔍 Extracting GPS from buffer, size:', buffer.length);
+    console.log('Extracting GPS from buffer, size:', buffer.length);
     
     try {
       // Method 1: Standard EXIF parser
-      console.log('📋 Trying standard EXIF parser...');
+      console.log('Trying standard EXIF parser...');
       const parser = exifParser.create(buffer);
       const result = parser.parse();
       
-      console.log('📋 EXIF tags found:', Object.keys(result.tags || {}));
+      console.log('EXIF tags found:', Object.keys(result.tags || {}));
       
       if (result.tags.GPSLatitude && result.tags.GPSLongitude) {
         const lat = result.tags.GPSLatitude;
         const lng = result.tags.GPSLongitude;
         
-        console.log('✅ Standard EXIF GPS found:', { lat, lng });
+        console.log('Standard EXIF GPS found:', { lat, lng });
         
         if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
           return {
@@ -64,10 +77,10 @@ class LocationRecognizer {
       }
       
       // Method 2: Raw binary search for GPS data
-      console.log('🔍 Trying binary GPS extraction...');
+      console.log('Trying binary GPS extraction...');
       const gpsData = this.extractGPSFromBinary(buffer);
       if (gpsData) {
-        console.log('✅ Binary GPS found:', gpsData);
+        console.log('Binary GPS found:', gpsData);
         return {
           success: true,
           name: 'GPS Location (Binary)',
@@ -77,9 +90,9 @@ class LocationRecognizer {
         };
       }
       
-      console.log('❌ No GPS data found in buffer');
+      console.log('No GPS data found in buffer');
     } catch (error) {
-      console.log('❌ EXIF extraction error:', error);
+      console.log('EXIF extraction error:', error);
     }
     return null;
   }
@@ -95,7 +108,7 @@ class LocationRecognizer {
       if (customGPS) {
         const lat = parseFloat(customGPS[1]);
         const lng = parseFloat(customGPS[2]);
-        console.log('🎯 Found custom GPS comment:', { lat, lng });
+        console.log('Found custom GPS comment:', { lat, lng });
         if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
           return { latitude: lat, longitude: lng };
         }
@@ -105,13 +118,13 @@ class LocationRecognizer {
       const gpsLat = buffer.indexOf('GPSLatitude');
       const gpsLng = buffer.indexOf('GPSLongitude');
       
-      console.log('🔍 GPS tag positions:', { gpsLat, gpsLng });
+      console.log('GPS tag positions:', { gpsLat, gpsLng });
       
       if (gpsLat > 0 && gpsLng > 0) {
         // Extract coordinates from binary positions
         const coords = this.extractCoordsFromPositions(buffer, gpsLat, gpsLng);
         if (coords) {
-          console.log('✅ Extracted coords from positions:', coords);
+          console.log('Extracted coords from positions:', coords);
           return coords;
         }
       }
@@ -129,7 +142,7 @@ class LocationRecognizer {
             const lat = parseFloat(match[1]);
             const lng = parseFloat(match[2]);
             if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-              console.log('✅ Pattern match found:', { lat, lng });
+              console.log('Pattern match found:', { lat, lng });
               return { latitude: lat, longitude: lng };
             }
           }
@@ -137,7 +150,7 @@ class LocationRecognizer {
       }
       
     } catch (error) {
-      console.log('❌ Binary extraction error:', error);
+      console.log('Binary extraction error:', error);
     }
     return null;
   }
@@ -445,44 +458,338 @@ class LocationRecognizer {
     }
   }
 
-  // V2 pipeline - EXIF GPS data with intelligent fallback
+  // Initialize Vision client
+  private async initVisionClient(): Promise<vision.ImageAnnotatorClient | null> {
+    try {
+      const credentials = getEnv('GCLOUD_CREDENTIALS');
+      if (!credentials) {
+        console.warn('Google Cloud credentials not configured');
+        return null;
+      }
+      
+      const serviceAccount = JSON.parse(Buffer.from(credentials, 'base64').toString());
+      return new vision.ImageAnnotatorClient({
+        credentials: {
+          client_email: serviceAccount.client_email,
+          private_key: serviceAccount.private_key,
+        },
+        projectId: serviceAccount.project_id,
+      });
+    } catch (error) {
+      console.error('Failed to initialize Vision client:', error);
+      return null;
+    }
+  }
+
+  // Claude AI analysis for complex location identification
+  private async analyzeWithClaude(visionData: any, buffer: Buffer): Promise<LocationResult | null> {
+    try {
+      const anthropic = new Anthropic({ apiKey: getEnv('ANTHROPIC_API_KEY') });
+      if (!anthropic) return null;
+
+      const base64Image = buffer.toString('base64');
+      const prompt = `Analyze this image and the vision data to identify the location. Vision data: ${JSON.stringify(visionData, null, 2)}
+
+Provide a specific location name, address, or landmark if identifiable. Focus on:
+1. Text/signs visible in the image
+2. Architectural features
+3. Business names or logos
+4. Street addresses
+5. Recognizable landmarks
+
+Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 0.0-1.0, "reasoning": "explanation"}`;
+
+      const response = await anthropic.messages.create({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 200,
+        messages: [{
+          role: 'user',
+          content: [{
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: 'image/jpeg',
+              data: base64Image
+            }
+          }, {
+            type: 'text',
+            text: prompt
+          }]
+        }]
+      });
+
+      const responseText = response.content[0].text;
+      let result;
+      try {
+        const jsonMatch = responseText.match(/\{.*\}/s);
+        result = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+      } catch {
+        result = null;
+      }
+      if (!result?.location) return null;
+      if (result.location && result.confidence > 0.5) {
+        const location = await this.searchBusinessByName(result.location) || await this.geocodeAddress(result.location);
+        if (location) {
+          return {
+            success: true,
+            name: result.location,
+            location,
+            confidence: result.confidence,
+            method: 'claude-ai-analysis',
+            description: result.reasoning
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Claude analysis failed:', error);
+    }
+    return null;
+  }
+
+  // AI Vision analysis for location recognition
+  private async analyzeImageWithAI(buffer: Buffer): Promise<LocationResult | null> {
+    try {
+      console.log('Starting AI vision analysis...');
+      const client = await this.initVisionClient();
+      if (!client) {
+        console.log('Vision client not available, skipping AI analysis');
+        return null;
+      }
+
+      // Try text detection first (most reliable)
+      const textResult = await client.textDetection({ image: { content: buffer } }).catch(err => {
+        console.log('Text detection failed:', err.message);
+        return [{ textAnnotations: [] }];
+      });
+
+      const texts = textResult[0].textAnnotations || [];
+      console.log('Found', texts.length, 'text elements');
+
+      if (texts.length > 0) {
+        const fullText = texts[0].description || '';
+        console.log('Analyzing text:', fullText.substring(0, 200));
+        
+        // Look for any recognizable business names or addresses
+        const businessName = this.extractBusinessName(fullText);
+        if (businessName) {
+          console.log('Found business name:', businessName);
+          const businessLocation = await this.searchBusinessByName(businessName);
+          if (businessLocation) {
+            return {
+              success: true,
+              name: businessName,
+              location: businessLocation,
+              confidence: 0.75,
+              method: 'ai-text-business',
+              description: `Business identified: ${businessName}`
+            };
+          }
+        }
+
+        // Try address extraction
+        const address = this.extractAddress(fullText);
+        if (address) {
+          console.log('Found address:', address);
+          const addressLocation = await this.geocodeAddress(address);
+          if (addressLocation) {
+            return {
+              success: true,
+              name: address,
+              location: addressLocation,
+              confidence: 0.7,
+              method: 'ai-text-address',
+              description: `Address identified: ${address}`
+            };
+          }
+        }
+      }
+
+      // Try landmark detection
+      const landmarkResult = await client.landmarkDetection({ image: { content: buffer } }).catch(err => {
+        console.log('Landmark detection failed:', err.message);
+        return [{ landmarkAnnotations: [] }];
+      });
+
+      const landmarks = landmarkResult[0].landmarkAnnotations || [];
+      if (landmarks.length > 0) {
+        const landmark = landmarks[0];
+        const location = landmark.locations?.[0]?.latLng;
+        if (location && landmark.description) {
+          console.log('Found landmark:', landmark.description);
+          return {
+            success: true,
+            name: landmark.description,
+            location: { latitude: location.latitude || 0, longitude: location.longitude || 0 },
+            confidence: (landmark.score || 0.8),
+            method: 'ai-landmark-detection',
+            description: `Landmark: ${landmark.description}`
+          };
+        }
+      }
+
+      console.log('No recognizable locations found in image');
+      return null;
+    } catch (error) {
+      console.error('AI vision analysis failed:', error);
+      return null;
+    }
+  }
+
+  // Extract business name from text
+  private extractBusinessName(text: string): string | null {
+    // Clean up the text
+    const cleanText = text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+    
+    const businessPatterns = [
+      // Major chains
+      /(McDonald's|Starbucks|Subway|KFC|Pizza Hut|Burger King|Taco Bell|Walmart|Target|CVS|Walgreens|Home Depot|Lowe's|Best Buy)/i,
+      // Business with type words
+      /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:Restaurant|Cafe|Coffee|Store|Shop|Bank|Hotel|Hospital|School|Church|Market|Mall|Center|Plaza|Pharmacy|Gas|Station))/i,
+      // All caps business names
+      /([A-Z]{2,}(?:\s+[A-Z]{2,})*(?:\s+(?:RESTAURANT|CAFE|STORE|SHOP|BANK|HOTEL|HOSPITAL|SCHOOL|CHURCH|MARKET|MALL|CENTER|PLAZA)))/i,
+      // Corporate suffixes
+      /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:Inc|LLC|Corp|Ltd|Co))/i,
+      // Generic business patterns (2-4 words starting with capital)
+      /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\b/g
+    ];
+
+    for (const pattern of businessPatterns) {
+      const matches = cleanText.match(pattern);
+      if (matches) {
+        const businessName = matches[1] || matches[0];
+        if (businessName && businessName.length > 3 && businessName.length < 50) {
+          console.log('Extracted business name:', businessName);
+          return businessName.trim();
+        }
+      }
+    }
+    
+    // Look for any prominent text that might be a business name
+    const lines = cleanText.split('\n').filter(line => line.trim().length > 2);
+    for (const line of lines.slice(0, 5)) { // Check first 5 lines
+      if (line.match(/^[A-Z][A-Za-z\s]{3,30}$/) && !line.match(/^(THE|AND|FOR|WITH|FROM)\s/i)) {
+        console.log('Found potential business name:', line);
+        return line.trim();
+      }
+    }
+    
+    return null;
+  }
+
+  // Extract address from text
+  private extractAddress(text: string): string | null {
+    const addressPatterns = [
+      /\b\d+\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Court|Ct)\b/i,
+      /\b\d+\s+[A-Za-z\s]+,\s*[A-Za-z\s]+,\s*[A-Z]{2}\s*\d{5}/i
+    ];
+
+    for (const pattern of addressPatterns) {
+      const match = text.match(pattern);
+      if (match && match[0]) {
+        return match[0].trim();
+      }
+    }
+    return null;
+  }
+
+  // Search for business location by name
+  private async searchBusinessByName(businessName: string): Promise<Location | null> {
+    try {
+      const response = await axios.get('https://maps.googleapis.com/maps/api/place/findplacefromtext/json', {
+        params: {
+          input: businessName,
+          inputtype: 'textquery',
+          fields: 'geometry',
+          key: getEnv('GOOGLE_PLACES_API_KEY')
+        },
+        timeout: 3000
+      });
+
+      const place = response.data.candidates?.[0];
+      if (place?.geometry?.location) {
+        return {
+          latitude: place.geometry.location.lat,
+          longitude: place.geometry.location.lng
+        };
+      }
+    } catch (error) {
+      console.error('Business search failed:', error);
+    }
+    return null;
+  }
+
+  // Geocode address to location
+  private async geocodeAddress(address: string): Promise<Location | null> {
+    try {
+      const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+        params: {
+          address: address,
+          key: getEnv('GOOGLE_PLACES_API_KEY')
+        },
+        timeout: 3000
+      });
+
+      const result = response.data.results?.[0];
+      if (result?.geometry?.location) {
+        return {
+          latitude: result.geometry.location.lat,
+          longitude: result.geometry.location.lng
+        };
+      }
+    } catch (error) {
+      console.error('Geocoding failed:', error);
+    }
+    return null;
+  }
+
+  // V2 pipeline - EXIF GPS data with AI vision fallback
   async recognize(buffer: Buffer, providedLocation?: Location): Promise<LocationResult> {
-    console.log('📍 V2: Enhanced EXIF GPS extraction starting...');
-    console.log('📊 Buffer info - Size:', buffer.length, 'bytes');
+    console.log('V2: Enhanced location recognition starting...');
+    console.log('Buffer info - Size:', buffer.length, 'bytes');
     
     // Log first few bytes to verify it's a valid image
     const header = buffer.slice(0, 10);
-    console.log('📋 File header:', Array.from(header).map(b => '0x' + b.toString(16)).join(' '));
+    console.log('File header:', Array.from(header).map(b => '0x' + b.toString(16)).join(' '));
     
+    // 1. Try EXIF GPS extraction first (highest accuracy)
     const gpsResult = this.extractGPS(buffer);
     if (gpsResult?.location) {
-      console.log('✅ Found EXIF GPS:', gpsResult.location);
+      console.log('Found EXIF GPS:', gpsResult.location);
       return await this.enrichLocationData(gpsResult, buffer);
     }
     
-    console.log('❌ No EXIF GPS data found - browser may have stripped location data');
+    console.log('No EXIF GPS data found - trying AI vision analysis...');
     
-    // Smart fallback: Use device location if available, but clearly indicate the source
+    // 2. Try AI vision analysis (medium accuracy)
+    const aiResult = await this.analyzeImageWithAI(buffer);
+    if (aiResult?.success && aiResult.location) {
+      console.log('AI vision found location:', aiResult.location);
+      return await this.enrichLocationData(aiResult, buffer);
+    }
+    
+    console.log('AI vision analysis failed - trying device location fallback...');
+    
+    // 3. Smart fallback: Use device location if available (low accuracy)
     if (providedLocation) {
-      console.log('📍 Using device location (EXIF stripped by browser)');
+      console.log('Using device location as fallback');
       const fallbackResult = {
         success: true,
-        name: 'Device Location (EXIF Stripped)',
+        name: 'Device Location (Fallback)',
         location: providedLocation,
-        confidence: 0.7,
+        confidence: 0.4,
         method: 'device-location-fallback',
-        note: 'Browser stripped GPS data from image, using device location instead'
+        note: 'No GPS data in image and AI analysis inconclusive, using device location'
       };
       
       return await this.enrichLocationData(fallbackResult, buffer);
     }
     
-    // No location data available at all
+    // 4. Complete failure - no location data available
     return {
       success: false,
       confidence: 0,
       method: 'no-location-data',
-      error: 'No GPS data found. Try: 1) Upload photo as file instead of camera capture, 2) Use V1 for text analysis, or 3) Enable location services.'
+      error: 'Unable to determine location. Image has no GPS data, AI analysis found no recognizable landmarks/businesses, and no device location provided.'
     };
   }
 }
