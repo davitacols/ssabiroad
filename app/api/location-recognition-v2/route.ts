@@ -838,11 +838,13 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         ]);
       };
 
-      // Try multiple detection methods in parallel with enhanced OCR and longer timeouts
-      const [landmarkResult, textResult, documentResult] = await Promise.allSettled([
-        withTimeout(client.landmarkDetection({ image: { content: buffer } }), 25000),
-        withTimeout(client.textDetection({ image: { content: buffer } }), 20000),
-        withTimeout(client.documentTextDetection({ image: { content: buffer } }), 20000)
+      // Optimized image analysis with shorter timeouts
+      const [landmarkResult, textResult, documentResult, objectResult, logoResult] = await Promise.allSettled([
+        withTimeout(client.landmarkDetection({ image: { content: buffer } }), 12000),
+        withTimeout(client.textDetection({ image: { content: buffer } }), 10000),
+        withTimeout(client.documentTextDetection({ image: { content: buffer } }), 10000),
+        withTimeout(client.objectLocalization({ image: { content: buffer } }), 8000),
+        withTimeout(client.logoDetection({ image: { content: buffer } }), 8000)
       ]);
 
       // Check landmark results first
@@ -898,25 +900,57 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         const enhancedText = documentText || fullText;
         console.log('Analyzing text:', enhancedText.substring(0, 200));
         
-        // Enhanced text extraction with multiple methods
-        const [businessName, address, addressWithPhone, streetAddress, locationContext] = await Promise.allSettled([
+        // Enhanced text extraction with scene context analysis
+        const sceneContext = this.analyzeSceneContext(objectResult, logoResult, enhancedText);
+        console.log('Scene context:', sceneContext);
+        
+        const [businessName, address, addressWithPhone, streetAddress, locationContext, geographicClues] = await Promise.allSettled([
           Promise.resolve(this.extractBusinessName(enhancedText)),
           Promise.resolve(this.extractAddress(enhancedText)),
           Promise.resolve(this.extractAddressWithPhone(enhancedText)),
           Promise.resolve(this.extractStreetAddress(enhancedText)),
-          Promise.resolve(this.extractLocationContext(enhancedText))
+          Promise.resolve(this.extractLocationContext(enhancedText)),
+          Promise.resolve(this.extractGeographicClues(enhancedText, sceneContext))
         ]);
 
         const businessNameValue = businessName.status === 'fulfilled' ? businessName.value : null;
         const addressValue = address.status === 'fulfilled' ? address.value : null;
         const addressWithPhoneValue = addressWithPhone.status === 'fulfilled' ? addressWithPhone.value : null;
 
-        // Try business name first
+        // Extract geographic context for better search
+        const geographicClue = geographicClues.status === 'fulfilled' ? geographicClues.value : null;
+        console.log('Geographic clue detected:', geographicClue);
+        
+        // Check if we have address with postcode (higher priority than business name)
+        const streetAddressValue = streetAddress.status === 'fulfilled' ? streetAddress.value : null;
+        const hasPostcode = streetAddressValue && streetAddressValue.match(/\b[A-Z]{1,2}\d{1,2}[A-Z]?\b/i);
+        
+        // Try address with postcode first (most reliable)
+        if (hasPostcode) {
+          console.log('Found address with postcode:', streetAddressValue);
+          const addressLocation = await withTimeout(
+            this.geocodeAddress(streetAddressValue),
+            3000
+          ).catch(() => null);
+          
+          if (addressLocation) {
+            return {
+              success: true,
+              name: businessNameValue || streetAddressValue,
+              location: addressLocation,
+              confidence: 0.9,
+              method: 'ai-text-address-postcode',
+              description: `Address with postcode identified: ${streetAddressValue}`
+            };
+          }
+        }
+        
+        // Try business name with geographic context
         if (businessNameValue) {
           console.log('Found business name:', businessNameValue);
           const businessLocation = await withTimeout(
-            this.searchBusinessByName(businessNameValue),
-            4000 // Increased timeout for multiple search attempts
+            this.searchBusinessByNameWithContext(businessNameValue, geographicClue, sceneContext),
+            3000
           ).catch(() => null);
           
           if (businessLocation) {
@@ -991,6 +1025,90 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     }
   }
 
+  // Analyze scene context from objects and logos
+  private analyzeSceneContext(objectResult: any, logoResult: any, text: string): any {
+    const context = {
+      objects: [],
+      logos: [],
+      culturalClues: [],
+      architecturalStyle: null,
+      vehicleTypes: [],
+      signage: []
+    };
+    
+    // Analyze detected objects
+    if (objectResult.status === 'fulfilled') {
+      const objects = objectResult.value[0].localizedObjectAnnotations || [];
+      context.objects = objects.map((obj: any) => obj.name).slice(0, 10);
+      
+      // Detect vehicles for regional context
+      context.vehicleTypes = objects
+        .filter((obj: any) => ['Car', 'Vehicle', 'Truck', 'Bus', 'Taxi'].includes(obj.name))
+        .map((obj: any) => obj.name);
+    }
+    
+    // Analyze detected logos
+    if (logoResult.status === 'fulfilled') {
+      const logos = logoResult.value[0].logoAnnotations || [];
+      context.logos = logos.map((logo: any) => logo.description).slice(0, 5);
+    }
+    
+    // Extract cultural and architectural clues from text
+    const textUpper = text.toUpperCase();
+    
+    // Language/script detection
+    if (text.match(/[\u4e00-\u9fff]/)) context.culturalClues.push('Chinese');
+    if (text.match(/[\u3040-\u309f\u30a0-\u30ff]/)) context.culturalClues.push('Japanese');
+    if (text.match(/[\u0590-\u05ff]/)) context.culturalClues.push('Hebrew');
+    if (text.match(/[\u0600-\u06ff]/)) context.culturalClues.push('Arabic');
+    
+    // Architectural style indicators
+    if (textUpper.includes('VICTORIAN') || textUpper.includes('GEORGIAN')) context.architecturalStyle = 'British';
+    if (textUpper.includes('COLONIAL')) context.architecturalStyle = 'Colonial';
+    
+    return context;
+  }
+  
+  // Extract geographic clues from text and scene context
+  private extractGeographicClues(text: string, sceneContext: any): string | null {
+    const clues = [];
+    const textUpper = text.toUpperCase();
+    
+    // Country/region indicators
+    const countryPatterns = [
+      { pattern: /\b(UK|UNITED KINGDOM|BRITAIN|ENGLAND|SCOTLAND|WALES)\b/i, region: 'UK' },
+      { pattern: /\b(USA|UNITED STATES|AMERICA)\b/i, region: 'USA' },
+      { pattern: /\b(CANADA|CANADIAN)\b/i, region: 'Canada' },
+      { pattern: /\b(AUSTRALIA|AUSTRALIAN)\b/i, region: 'Australia' },
+      { pattern: /\b(FRANCE|FRENCH)\b/i, region: 'France' },
+      { pattern: /\b(GERMANY|GERMAN|DEUTSCHLAND)\b/i, region: 'Germany' },
+      { pattern: /\b(CHINA|CHINESE|\u4e2d\u56fd)\b/i, region: 'China' },
+      { pattern: /\b(JAPAN|JAPANESE|\u65e5\u672c)\b/i, region: 'Japan' }
+    ];
+    
+    for (const { pattern, region } of countryPatterns) {
+      if (pattern.test(text)) {
+        clues.push(region);
+      }
+    }
+    
+    // UK-specific indicators
+    if (text.match(/\b[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}\b/)) clues.push('UK'); // UK postcode
+    if (textUpper.includes('LTD') || textUpper.includes('PLC')) clues.push('UK');
+    if (textUpper.includes('HIGH STREET') || textUpper.includes('ROAD')) clues.push('UK');
+    
+    // US-specific indicators
+    if (text.match(/\b\d{5}(-\d{4})?\b/)) clues.push('USA'); // US ZIP code
+    if (textUpper.includes('LLC') || textUpper.includes('INC')) clues.push('USA');
+    if (textUpper.includes('BOULEVARD') || textUpper.includes('AVENUE')) clues.push('USA');
+    
+    // Cultural context from scene
+    if (sceneContext.culturalClues.includes('Chinese')) clues.push('China', 'Hong Kong', 'Taiwan', 'Singapore');
+    if (sceneContext.culturalClues.includes('Japanese')) clues.push('Japan');
+    
+    return clues.length > 0 ? clues[0] : null; // Return most likely region
+  }
+  
   // Extract location context from text
   private extractLocationContext(text: string): string | null {
     const locationPatterns = [
@@ -1181,10 +1299,26 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     return commonWords.test(text) || text.match(/^\d+$/) || text.match(/^\d+[A-Z-]+$/) || text.length < 3;
   }
 
-  // Extract street address specifically
+  // Extract street address specifically including postcodes
   private extractStreetAddress(text: string): string | null {
     const cleanText = this.preprocessText(text);
     const lines = text.split(/[\r\n]+/).map(line => line.trim());
+    
+    // Look for addresses with UK postcodes (like NW9, SW1A, etc.)
+    const postcodePatterns = [
+      /\b[A-Za-z\s.]{3,40}(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Court|Ct|Circle|Cir|Place|Pl|Highway|Hwy)\s+[A-Z]{1,2}\d{1,2}[A-Z]?\b/i,
+      /\b[A-Za-z\s.]{3,40}\s+(?:Road|Rd|Street|St|Avenue|Ave)\s+[A-Z]{1,2}\d{1,2}[A-Z]?\b/i
+    ];
+    
+    // Check for postcode patterns first (higher priority)
+    for (const pattern of postcodePatterns) {
+      const matches = cleanText.match(pattern);
+      if (matches) {
+        const address = matches[0].trim();
+        console.log('Extracted address with postcode:', address);
+        return address;
+      }
+    }
     
     // Look for street addresses with numbers
     const streetPatterns = [
@@ -1203,8 +1337,12 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       }
     }
     
-    // Check individual lines for street addresses
+    // Check individual lines for addresses with postcodes
     for (const line of lines) {
+      if (line.match(/\b[A-Za-z\s.]{3,40}(?:Road|Rd|Street|St|Avenue|Ave)\s+[A-Z]{1,2}\d{1,2}[A-Z]?\b/i)) {
+        console.log('Extracted address with postcode from line:', line);
+        return line.trim();
+      }
       if (line.match(/^\d{1,6}\s+[A-Za-z\s.]{3,40}(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Court|Ct)\b/i)) {
         if (line.length > 8 && line.length < 60) {
           console.log('Extracted street address from line:', line);
@@ -1278,6 +1416,137 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     return Math.max(0, Math.min(1, score));
   }
 
+  // Enhanced business search with geographic and scene context
+  private async searchBusinessByNameWithContext(businessName: string, geographicClue: string | null, sceneContext: any): Promise<Location | null> {
+    const apiKey = getEnv('GOOGLE_PLACES_API_KEY');
+    if (!apiKey) {
+      console.log('Google Places API key not available');
+      return null;
+    }
+    
+    // Build context-aware search queries
+    const searchQueries = [];
+    
+    // Add geographic context if available
+    if (geographicClue) {
+      searchQueries.push(`${businessName} ${geographicClue}`);
+      if (geographicClue === 'UK') {
+        searchQueries.push(`${businessName} London`);
+        searchQueries.push(`${businessName} United Kingdom`);
+      }
+      if (geographicClue === 'USA') {
+        searchQueries.push(`${businessName} United States`);
+      }
+    }
+    
+    // Add cultural context
+    if (sceneContext.culturalClues.includes('Chinese')) {
+      searchQueries.push(`${businessName} Chinatown`);
+      searchQueries.push(`${businessName} Chinese`);
+    }
+    
+    // Add original queries
+    searchQueries.push(businessName);
+    searchQueries.push(businessName.split(' ').slice(0, 3).join(' '));
+    
+    // Remove duplicates and filter
+    const uniqueQueries = [...new Set(searchQueries)].filter(q => q.trim().length > 2);
+    console.log('Context-aware search queries:', uniqueQueries);
+    
+    for (const query of uniqueQueries) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        
+        const response = await fetch(
+          `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(query)}&inputtype=textquery&fields=geometry,name,formatted_address&key=${apiKey}`,
+          { signal: controller.signal }
+        );
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) continue;
+        
+        const data = await response.json();
+        const candidates = data.candidates || [];
+        
+        // Look for the best match with geographic validation
+        for (const place of candidates.slice(0, 3)) {
+          if (place?.geometry?.location) {
+            const lat = place.geometry.location.lat;
+            const lng = place.geometry.location.lng;
+            
+            // Reject invalid coordinates
+            if (lat === 0 && lng === 0) {
+              console.log('Rejecting invalid coordinates (0,0)');
+              continue;
+            }
+            
+            const location = { latitude: lat, longitude: lng };
+            const address = place.formatted_address || '';
+            
+            // Validate geographic consistency
+            if (this.validateGeographicConsistency(location, address, geographicClue)) {
+              console.log(`Found contextually valid location for "${query}": ${address}`);
+              return location;
+            }
+          }
+        }
+      } catch (error) {
+        console.log(`Context search failed for "${query}":`, error.message);
+        continue;
+      }
+    }
+    
+    console.log('No contextually valid business location found');
+    return null;
+  }
+  
+  // Validate geographic consistency between location and expected region
+  private validateGeographicConsistency(location: Location, address: string, expectedRegion: string | null): boolean {
+    if (!expectedRegion) return true; // No expectation, accept any valid location
+    
+    const { latitude, longitude } = location;
+    const addressUpper = address.toUpperCase();
+    
+    switch (expectedRegion) {
+      case 'UK':
+        // UK coordinates: roughly 49-61°N, -8-2°E
+        if (latitude >= 49 && latitude <= 61 && longitude >= -8 && longitude <= 2) {
+          return true;
+        }
+        if (addressUpper.includes('UNITED KINGDOM') || addressUpper.includes('UK') || 
+            addressUpper.includes('ENGLAND') || addressUpper.includes('LONDON')) {
+          return true;
+        }
+        return false;
+        
+      case 'USA':
+        // USA coordinates: roughly 25-49°N, -125--66°W
+        if (latitude >= 25 && latitude <= 49 && longitude >= -125 && longitude <= -66) {
+          return true;
+        }
+        if (addressUpper.includes('UNITED STATES') || addressUpper.includes('USA') || 
+            addressUpper.includes('US')) {
+          return true;
+        }
+        return false;
+        
+      case 'China':
+        // China coordinates: roughly 18-54°N, 73-135°E
+        if (latitude >= 18 && latitude <= 54 && longitude >= 73 && longitude <= 135) {
+          return true;
+        }
+        if (addressUpper.includes('CHINA') || addressUpper.includes('CHINESE')) {
+          return true;
+        }
+        return false;
+        
+      default:
+        return true;
+    }
+  }
+  
   // Search for business location by name with multiple attempts
   private async searchBusinessByName(businessName: string): Promise<Location | null> {
     const apiKey = getEnv('GOOGLE_PLACES_API_KEY');
@@ -1286,9 +1555,11 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       return null;
     }
     
-    // Try multiple search variations
+    // Try multiple search variations with location context
     const searchQueries = [
       businessName, // Original name
+      `${businessName} UK`, // Add UK context
+      `${businessName} London`, // Add London context
       businessName.split(' ').slice(0, 3).join(' '), // First 3 words
       businessName.replace(/TURKIYE|TURKEY/i, ''), // Remove country references
       businessName.split(' ')[0] + ' ' + businessName.split(' ').slice(-1)[0] // First + last word
@@ -1311,17 +1582,32 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         const data = await response.json();
         const candidates = data.candidates || [];
         
-        // Look for the best match
+        // Look for the best match, preferring UK/London locations
         for (const place of candidates.slice(0, 3)) {
           if (place?.geometry?.location) {
-            const location = {
-              latitude: place.geometry.location.lat,
-              longitude: place.geometry.location.lng
-            };
+            const lat = place.geometry.location.lat;
+            const lng = place.geometry.location.lng;
             
-            // Accept any valid coordinates from Google Places
-            console.log(`Found location for "${query}": ${place.formatted_address}`);
-            return location;
+            // Reject invalid coordinates (0,0 or null island)
+            if (lat === 0 && lng === 0) {
+              console.log('Rejecting invalid coordinates (0,0)');
+              continue;
+            }
+            
+            const location = { latitude: lat, longitude: lng };
+            const address = place.formatted_address || '';
+            
+            // Prefer UK locations if business name suggests UK context
+            if (query.includes('UK') || query.includes('London')) {
+              if (address.includes('UK') || address.includes('United Kingdom') || address.includes('London')) {
+                console.log(`Found UK location for "${query}": ${address}`);
+                return location;
+              }
+            } else {
+              // For original queries, accept first valid result
+              console.log(`Found location for "${query}": ${address}`);
+              return location;
+            }
           }
         }
       } catch (error) {
@@ -1392,10 +1678,16 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const result = data.results?.[0];
       
       if (result?.geometry?.location) {
-        return {
-          latitude: result.geometry.location.lat,
-          longitude: result.geometry.location.lng
-        };
+        const lat = result.geometry.location.lat;
+        const lng = result.geometry.location.lng;
+        
+        // Reject invalid coordinates
+        if (lat === 0 && lng === 0) {
+          console.log('Rejecting invalid geocoding coordinates (0,0)');
+          return null;
+        }
+        
+        return { latitude: lat, longitude: lng };
       }
     } catch (error) {
       console.error('Geocoding failed:', error.message);
@@ -1412,7 +1704,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       // Add overall timeout for the entire recognition process
       const recognitionPromise = this.performRecognition(buffer, providedLocation, analyzeLandmarks);
       const timeoutPromise = new Promise<LocationResult>((_, reject) => {
-        setTimeout(() => reject(new Error('Recognition timeout')), 30000); // 30 second timeout
+        setTimeout(() => reject(new Error('Recognition timeout')), 20000); // 20 second timeout
       });
       
       return await Promise.race([recognitionPromise, timeoutPromise]);
@@ -1459,7 +1751,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const aiResult = await Promise.race([
         this.analyzeImageWithAI(buffer),
         new Promise<LocationResult | null>((_, reject) => 
-          setTimeout(() => reject(new Error('AI analysis timeout')), 15000)
+          setTimeout(() => reject(new Error('AI analysis timeout')), 12000)
         )
       ]);
       
