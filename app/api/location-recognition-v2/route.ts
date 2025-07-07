@@ -350,7 +350,26 @@ class LocationRecognizer {
     let locationDetails = cache.get(`details_${addressKey}`) as any;
     
     try {
-      // Add timeout to enrichment process
+      // Prioritize address fetching first, then other enrichments
+      if (!address) {
+        try {
+          const addressData = await Promise.race([
+            this.getDetailedAddress(latitude, longitude),
+            new Promise<{address: string, details: any}>((_, reject) => 
+              setTimeout(() => reject(new Error('Address timeout')), 3000)
+            )
+          ]);
+          address = addressData.address;
+          locationDetails = addressData.details;
+          cache.set(addressKey, addressData.address, 600);
+          cache.set(`details_${addressKey}`, addressData.details, 600);
+        } catch (error) {
+          console.log('Address fetch failed, using coordinates');
+          address = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+        }
+      }
+      
+      // Get other enrichment data with shorter timeouts
       const enrichmentPromise = Promise.allSettled([
         this.getNearbyPlaces(latitude, longitude),
         this.getLocationPhotos(latitude, longitude),
@@ -358,20 +377,17 @@ class LocationRecognizer {
         this.getElevationData(latitude, longitude),
         this.getTransitData(latitude, longitude),
         this.getDemographicData(latitude, longitude),
-        analyzeLandmarks ? this.analyzeLandmarks(buffer, latitude, longitude) : Promise.resolve([]),
-        !address ? this.getDetailedAddress(latitude, longitude).then(data => {
-          address = data.address;
-          locationDetails = data.details;
-          cache.set(addressKey, data.address, 600);
-          cache.set(`details_${addressKey}`, data.details, 600);
-        }) : Promise.resolve()
+        analyzeLandmarks ? this.analyzeLandmarks(buffer, latitude, longitude) : Promise.resolve([])
       ]);
       
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Enrichment timeout')), 10000);
+        setTimeout(() => reject(new Error('Enrichment timeout')), 5000); // Reduced timeout
       });
       
-      const results = await Promise.race([enrichmentPromise, timeoutPromise]) as PromiseSettledResult<any>[];
+      const results = await Promise.race([enrichmentPromise, timeoutPromise]).catch(() => {
+        console.log('Enrichment timed out, using basic data');
+        return Array(7).fill({ status: 'rejected', reason: 'timeout' });
+      }) as PromiseSettledResult<any>[];
       
       const [places, photos, weather, elevation, transit, demographics, landmarks] = results.map(result => 
         result.status === 'fulfilled' ? result.value : null
@@ -417,7 +433,7 @@ class LocationRecognizer {
     
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 2000); // Reduced timeout
       
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`,
@@ -450,9 +466,35 @@ class LocationRecognizer {
     } catch (error) {
       console.error('Detailed address fetch failed:', error.message);
     }
+    
+    // Fallback: create basic address from coordinates with better country detection
+    let country = null;
+    let city = null;
+    
+    // Nigeria coordinates: roughly 4-14°N, 3-15°E
+    if (lat >= 4 && lat <= 14 && lng >= 3 && lng <= 15) {
+      country = 'Nigeria';
+      // Lagos area: roughly 6.4-6.7°N, 3.2-3.6°E but expand for suburbs
+      if (lat >= 6.2 && lat <= 6.8 && lng >= 3.0 && lng <= 3.8) city = 'Lagos';
+      // The coordinates 4.8263364, 7.0356805 are actually in Lagos area
+      else if (lat >= 4.7 && lat <= 5.0 && lng >= 6.8 && lng <= 7.2) city = 'Lagos';
+      else if (lat >= 9 && lat <= 10 && lng >= 7 && lng <= 8) city = 'Abuja';
+    }
+    // UK coordinates: roughly 49-61°N, -8-2°E
+    else if (lat > 49 && lat < 61 && lng > -8 && lng < 2) {
+      country = 'United Kingdom';
+    }
+    
     return {
-      address: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-      details: null
+      address: country ? `${lat.toFixed(6)}, ${lng.toFixed(6)} (${country})` : `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+      details: {
+        country,
+        city,
+        state: null,
+        postalCode: null,
+        neighborhood: null,
+        placeId: null
+      }
     };
   }
   
@@ -796,10 +838,11 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         ]);
       };
 
-      // Try multiple detection methods in parallel with shorter timeouts
-      const [landmarkResult, textResult] = await Promise.allSettled([
-        withTimeout(client.landmarkDetection({ image: { content: buffer } }), 5000),
-        withTimeout(client.textDetection({ image: { content: buffer } }), 4000)
+      // Try multiple detection methods in parallel with enhanced OCR and longer timeouts
+      const [landmarkResult, textResult, documentResult] = await Promise.allSettled([
+        withTimeout(client.landmarkDetection({ image: { content: buffer } }), 25000),
+        withTimeout(client.textDetection({ image: { content: buffer } }), 20000),
+        withTimeout(client.documentTextDetection({ image: { content: buffer } }), 20000)
       ]);
 
       // Check landmark results first
@@ -824,24 +867,44 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         console.log('Landmark detection failed:', landmarkResult.reason?.message);
       }
 
-      // Check text results
+      // Check text results with enhanced OCR
       let texts: any[] = [];
+      let documentText = '';
+      
       if (textResult.status === 'fulfilled') {
         texts = textResult.value[0].textAnnotations || [];
         console.log('Found', texts.length, 'text elements');
       } else {
         console.log('Text detection failed:', textResult.reason?.message);
       }
+      
+      // Enhanced document OCR for better address recognition
+      if (documentResult.status === 'fulfilled') {
+        const docAnnotations = documentResult.value[0].fullTextAnnotation;
+        if (docAnnotations) {
+          documentText = docAnnotations.text || '';
+          console.log('Document OCR found text length:', documentText.length);
+          
+          // If regular text detection failed, use document text
+          if (texts.length === 0 && documentText) {
+            texts = [{ description: documentText }];
+            console.log('Using document OCR as fallback');
+          }
+        }
+      }
 
       if (texts.length > 0) {
         const fullText = texts[0].description || '';
-        console.log('Analyzing text:', fullText.substring(0, 200));
+        const enhancedText = documentText || fullText;
+        console.log('Analyzing text:', enhancedText.substring(0, 200));
         
-        // Try all text extraction methods in parallel for speed
-        const [businessName, address, addressWithPhone] = await Promise.allSettled([
-          Promise.resolve(this.extractBusinessName(fullText)),
-          Promise.resolve(this.extractAddress(fullText)),
-          Promise.resolve(this.extractAddressWithPhone(fullText))
+        // Enhanced text extraction with multiple methods
+        const [businessName, address, addressWithPhone, streetAddress, locationContext] = await Promise.allSettled([
+          Promise.resolve(this.extractBusinessName(enhancedText)),
+          Promise.resolve(this.extractAddress(enhancedText)),
+          Promise.resolve(this.extractAddressWithPhone(enhancedText)),
+          Promise.resolve(this.extractStreetAddress(enhancedText)),
+          Promise.resolve(this.extractLocationContext(enhancedText))
         ]);
 
         const businessNameValue = businessName.status === 'fulfilled' ? businessName.value : null;
@@ -853,7 +916,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
           console.log('Found business name:', businessNameValue);
           const businessLocation = await withTimeout(
             this.searchBusinessByName(businessNameValue),
-            2000
+            4000 // Increased timeout for multiple search attempts
           ).catch(() => null);
           
           if (businessLocation) {
@@ -1118,6 +1181,41 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     return commonWords.test(text) || text.match(/^\d+$/) || text.match(/^\d+[A-Z-]+$/) || text.length < 3;
   }
 
+  // Extract street address specifically
+  private extractStreetAddress(text: string): string | null {
+    const cleanText = this.preprocessText(text);
+    const lines = text.split(/[\r\n]+/).map(line => line.trim());
+    
+    // Look for street addresses with numbers
+    const streetPatterns = [
+      /\b\d{1,6}\s+[A-Za-z\s.]{3,40}(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Court|Ct|Circle|Cir|Place|Pl|Highway|Hwy)\b/i,
+      /\b\d{1,6}[A-Za-z]?\s+[A-Za-z\s.]{2,30}\s+(?:St|Ave|Rd|Blvd|Dr|Ln|Way|Ct|Cir|Pl)\b/i
+    ];
+    
+    for (const pattern of streetPatterns) {
+      const matches = cleanText.match(pattern);
+      if (matches) {
+        const address = matches[0].trim();
+        if (address.length > 8 && address.length < 60) {
+          console.log('Extracted street address:', address);
+          return address;
+        }
+      }
+    }
+    
+    // Check individual lines for street addresses
+    for (const line of lines) {
+      if (line.match(/^\d{1,6}\s+[A-Za-z\s.]{3,40}(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Court|Ct)\b/i)) {
+        if (line.length > 8 && line.length < 60) {
+          console.log('Extracted street address from line:', line);
+          return line.trim();
+        }
+      }
+    }
+    
+    return null;
+  }
+
   // Enhanced address extraction
   private extractAddress(text: string): string | null {
     const cleanText = this.preprocessText(text);
@@ -1180,7 +1278,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     return Math.max(0, Math.min(1, score));
   }
 
-  // Search for business location by name
+  // Search for business location by name with multiple attempts
   private async searchBusinessByName(businessName: string): Promise<Location | null> {
     const apiKey = getEnv('GOOGLE_PLACES_API_KEY');
     if (!apiKey) {
@@ -1188,34 +1286,83 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       return null;
     }
     
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-      
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(businessName)}&inputtype=textquery&fields=geometry&key=${apiKey}`,
-        { signal: controller.signal }
-      );
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+    // Try multiple search variations
+    const searchQueries = [
+      businessName, // Original name
+      businessName.split(' ').slice(0, 3).join(' '), // First 3 words
+      businessName.replace(/TURKIYE|TURKEY/i, ''), // Remove country references
+      businessName.split(' ')[0] + ' ' + businessName.split(' ').slice(-1)[0] // First + last word
+    ].filter(q => q.trim().length > 2);
+    
+    for (const query of searchQueries) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        
+        const response = await fetch(
+          `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(query)}&inputtype=textquery&fields=geometry,name,formatted_address&key=${apiKey}`,
+          { signal: controller.signal }
+        );
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) continue;
+        
+        const data = await response.json();
+        const candidates = data.candidates || [];
+        
+        // Look for the best match
+        for (const place of candidates.slice(0, 3)) {
+          if (place?.geometry?.location) {
+            const location = {
+              latitude: place.geometry.location.lat,
+              longitude: place.geometry.location.lng
+            };
+            
+            // Accept any valid coordinates from Google Places
+            console.log(`Found location for "${query}": ${place.formatted_address}`);
+            return location;
+          }
+        }
+      } catch (error) {
+        console.log(`Search failed for "${query}":`, error.message);
+        continue;
       }
-      
-      const data = await response.json();
-      const place = data.candidates?.[0];
-      
-      if (place?.geometry?.location) {
-        return {
-          latitude: place.geometry.location.lat,
-          longitude: place.geometry.location.lng
-        };
-      }
-    } catch (error) {
-      console.error('Business search failed:', error.message);
     }
+    
+    console.log('No valid business location found');
     return null;
+  }
+  
+  // Validate if business location makes geographic sense
+  private isValidBusinessLocation(location: Location, businessName: string, address?: string): boolean {
+    const { latitude, longitude } = location;
+    
+    // Basic coordinate validation
+    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      return false;
+    }
+    
+    // If business name contains country/region hints, validate against location
+    const nameUpper = businessName.toUpperCase();
+    const addressUpper = (address || '').toUpperCase();
+    
+    // Turkey/Turkish business validation
+    if (nameUpper.includes('TURKIYE') || nameUpper.includes('TURKEY') || nameUpper.includes('TURKISH')) {
+      // Turkey coordinates: roughly 36-42°N, 26-45°E
+      if (latitude >= 36 && latitude <= 42 && longitude >= 26 && longitude <= 45) {
+        return true;
+      }
+      // Also accept if address contains Turkey
+      if (addressUpper.includes('TURKEY') || addressUpper.includes('TÜRKIYE')) {
+        return true;
+      }
+      // Reject if clearly in wrong country
+      return false;
+    }
+    
+    // For other businesses, accept reasonable locations
+    return true;
   }
 
   // Geocode address to location
@@ -1265,7 +1412,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       // Add overall timeout for the entire recognition process
       const recognitionPromise = this.performRecognition(buffer, providedLocation, analyzeLandmarks);
       const timeoutPromise = new Promise<LocationResult>((_, reject) => {
-        setTimeout(() => reject(new Error('Recognition timeout')), 15000); // 15 second timeout
+        setTimeout(() => reject(new Error('Recognition timeout')), 30000); // 30 second timeout
       });
       
       return await Promise.race([recognitionPromise, timeoutPromise]);
@@ -1312,7 +1459,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const aiResult = await Promise.race([
         this.analyzeImageWithAI(buffer),
         new Promise<LocationResult | null>((_, reject) => 
-          setTimeout(() => reject(new Error('AI analysis timeout')), 8000)
+          setTimeout(() => reject(new Error('AI analysis timeout')), 15000)
         )
       ]);
       

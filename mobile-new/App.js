@@ -218,7 +218,6 @@ function CameraScreen({ navigation }) {
     content: { flexGrow: 1, paddingBottom: 40 },
     header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingHorizontal: 24, paddingBottom: 24, backgroundColor: theme.bg, borderBottomWidth: 1, borderBottomColor: theme.surface },
     backBtn: { width: 40, height: 40, justifyContent: 'center' },
-    backText: { fontSize: 18, color: theme.text },
     headerTitle: { fontSize: 16, fontWeight: '500', color: theme.text, flex: 1, textAlign: 'center' },
     headerSpacer: { width: 40 },
     scannerSection: { padding: 20 },
@@ -386,28 +385,10 @@ function CameraScreen({ navigation }) {
       const asset = result.assets[0];
       console.log('Selected image EXIF:', asset.exif);
       
-      // Try to get original file with EXIF preserved
-      try {
-        // Read file as base64 to preserve EXIF
-        const base64 = await FileSystem.readAsStringAsync(asset.uri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-        
-        // Create a new file with preserved EXIF
-        const fileUri = FileSystem.documentDirectory + 'temp_image.jpg';
-        await FileSystem.writeAsStringAsync(fileUri, base64, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-        
-        const timestampedUri = `${fileUri}?t=${Date.now()}`;
-        setPhoto(timestampedUri);
-        analyzeImage(fileUri, asset.exif, 'gallery');
-      } catch (error) {
-        console.log('EXIF preservation failed, using original:', error);
-        const timestampedUri = `${asset.uri}?t=${Date.now()}`;
-        setPhoto(timestampedUri);
-        analyzeImage(asset.uri, asset.exif, 'gallery');
-      }
+      // Use original file directly to preserve EXIF GPS data
+      const timestampedUri = `${asset.uri}?t=${Date.now()}`;
+      setPhoto(timestampedUri);
+      analyzeImage(asset.uri, asset.exif, 'gallery');
     }
   };
 
@@ -421,82 +402,46 @@ function CameraScreen({ navigation }) {
     console.log('Using AI vision analysis to identify location from image content');
     
     try {
-      // Get file size and compress accordingly
+      // Use original image file directly to preserve EXIF GPS data
       const fileInfo = await FileSystem.getInfoAsync(imageUri);
       const fileSizeMB = fileInfo.size / (1024 * 1024);
+      console.log(`Using original image size: ${fileSizeMB.toFixed(2)}MB (preserving EXIF)`);
       
-      let resizeWidth, compressLevel;
-      if (fileSizeMB > 5) {
-        // Very large files - aggressive compression
-        resizeWidth = 800;
-        compressLevel = 0.4;
-      } else if (fileSizeMB > 2) {
-        // Large files - moderate compression
-        resizeWidth = 1200;
-        compressLevel = 0.6;
-      } else {
-        // Smaller files - light compression
-        resizeWidth = 1600;
-        compressLevel = 0.8;
-      }
-      
-      console.log(`Original file size: ${fileSizeMB.toFixed(2)}MB, using compression level: ${compressLevel}`);
-      
-      const compressedImage = await manipulateAsync(
-        imageUri,
-        [{ resize: { width: resizeWidth } }],
-        { compress: compressLevel, format: 'jpeg' }
-      );
+      // Use original file without any processing to preserve GPS data
+      const originalImage = { uri: imageUri };
       
       const formData = new FormData();
       
       if (Platform.OS === 'web') {
-        // For web: create proper File object
-        const response = await fetch(compressedImage.uri);
+        // For web: create proper File object from original
+        const response = await fetch(originalImage.uri);
         const blob = await response.blob();
         const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
         formData.append('image', file);
       } else {
-        // For mobile: use compressed URI
+        // For mobile: use original URI to preserve EXIF
         formData.append('image', {
-          uri: compressedImage.uri,
+          uri: originalImage.uri,
           type: 'image/jpeg',
           name: 'image.jpg',
         });
       }
       
-      // For camera photos, use device location; for gallery, use 0,0
-      if (source === 'camera') {
-        try {
-          const { status } = await Location.requestForegroundPermissionsAsync();
-          if (status === 'granted') {
-            const location = await Location.getCurrentPositionAsync({});
-            formData.append('latitude', location.coords.latitude.toString());
-            formData.append('longitude', location.coords.longitude.toString());
-            console.log('Using device location for camera photo:', location.coords);
-          } else {
-            formData.append('latitude', '0');
-            formData.append('longitude', '0');
-          }
-        } catch (error) {
-          console.log('Failed to get device location:', error);
-          formData.append('latitude', '0');
-          formData.append('longitude', '0');
-        }
-      } else {
-        // Gallery images - force AI vision analysis
-        formData.append('latitude', '0');
-        formData.append('longitude', '0');
-        formData.append('forceVision', 'true');
-        formData.append('useAI', 'true');
-        formData.append('analyzeLandmarks', 'true');
-        console.log('Using AI vision analysis for gallery image');
-      }
+      // Force AI image analysis (like web version)
+      formData.append('latitude', '0');
+      formData.append('longitude', '0');
+      formData.append('analyzeLandmarks', 'true');
+      console.log('Using AI vision analysis for image content');
 
       console.log('Making API request with FormData');
-      const response = await fetch('https://ssabiroad.vercel.app/api/location-recognition-v2', {
+      
+      const response = await fetch(`https://ssabiroad.vercel.app/api/location-recognition-v2?t=${Date.now()}`, {
         method: 'POST',
         body: formData,
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
       });
 
       console.log('Response status:', response.status);
@@ -527,8 +472,31 @@ function CameraScreen({ navigation }) {
       
       setResult(data);
       
-      // Save successful scan to history
+      // Check for similar locations and save successful scan
       if (data.success) {
+        try {
+          const recentResponse = await fetch('https://ssabiroad.vercel.app/api/recent-locations?limit=100');
+          const recentData = await recentResponse.json();
+          
+          const similarityResponse = await fetch('https://ssabiroad.vercel.app/api/location-similarity', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              location: data,
+              recentLocations: recentData.locations || []
+            })
+          });
+          
+          const similarity = await similarityResponse.json();
+          if (similarity.isDuplicate) {
+            data.similarLocations = similarity.matches;
+            data.isDuplicate = true;
+            data.note = `Similar to ${similarity.bestMatch.name} (${similarity.bestMatch.distance}m away)`;
+          }
+        } catch (error) {
+          console.log('Similarity check failed:', error);
+        }
+        
         saveScanToHistory(data);
       }
     } catch (error) {
@@ -604,7 +572,7 @@ function CameraScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+          <Ionicons name="chevron-back" size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Photo Scanner</Text>
         <View style={styles.headerSpacer} />
@@ -987,7 +955,6 @@ function TermsScreen({ navigation }) {
     content: { flexGrow: 1, paddingBottom: 40 },
     header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingHorizontal: 24, paddingBottom: 24, backgroundColor: theme.bg, borderBottomWidth: 1, borderBottomColor: theme.surface },
     backBtn: { width: 40, height: 40, justifyContent: 'center' },
-    backText: { fontSize: 18, color: theme.text },
     headerTitle: { fontSize: 16, fontWeight: '500', color: theme.text, flex: 1, textAlign: 'center' },
     headerSpacer: { width: 40 },
     termsContent: { padding: 24 },
@@ -1002,7 +969,7 @@ function TermsScreen({ navigation }) {
       
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+          <Ionicons name="chevron-back" size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Terms & Conditions</Text>
         <View style={styles.headerSpacer} />
