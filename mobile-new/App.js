@@ -419,7 +419,7 @@ function CameraScreen({ navigation }) {
         const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
         formData.append('image', file);
       } else {
-        // For mobile: use original URI to preserve EXIF
+        // For mobile: match web format as closely as possible
         formData.append('image', {
           uri: originalImage.uri,
           type: 'image/jpeg',
@@ -427,22 +427,30 @@ function CameraScreen({ navigation }) {
         });
       }
       
-      // Force AI image analysis (like web version)
-      formData.append('latitude', '0');
-      formData.append('longitude', '0');
-      formData.append('analyzeLandmarks', 'true');
-      console.log('Using AI vision analysis for image content');
+      // Match web version exactly - no coordinates to force AI analysis
+      // Don't append any location data to ensure AI analysis
+      formData.append('analyzeLandmarks', 'false'); // Match web default
+      console.log('Using AI vision analysis for image content (matching web version)');
 
       console.log('Making API request with FormData');
+      
+      // Create AbortController for custom timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
       
       const response = await fetch(`https://ssabiroad.vercel.app/api/location-recognition-v2?t=${Date.now()}`, {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
         headers: {
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache',
+          'User-Agent': 'Pic2Nav-Mobile/1.0',
+          'Accept': 'application/json',
         },
       });
+      
+      clearTimeout(timeoutId);
 
       console.log('Response status:', response.status);
       
@@ -454,6 +462,14 @@ function CameraScreen({ navigation }) {
       
       const data = await response.json();
       console.log('API Response:', data);
+      
+      // Validate coordinates - reject invalid (0,0) results
+      if (data.success && data.location && data.location.latitude === 0 && data.location.longitude === 0) {
+        console.log('Rejecting invalid (0,0) coordinates from API');
+        data.success = false;
+        data.error = 'Could not determine location from image. Try an image with visible landmarks, text, or business signs.';
+        data.method = 'invalid-coordinates';
+      }
       
       // Add mock landmark data for testing if not present
       if (data.success && !data.landmarks) {
@@ -501,7 +517,15 @@ function CameraScreen({ navigation }) {
       }
     } catch (error) {
       console.error('API Error:', error);
-      setResult({ success: false, error: 'Could not identify location from image. Try an image with visible landmarks, signs, or recognizable buildings.' });
+      let errorMessage = 'Could not identify location from image. Try an image with visible landmarks, signs, or recognizable buildings.';
+      
+      if (error.name === 'AbortError') {
+        errorMessage = 'Request timed out. The image analysis is taking longer than expected. Please try again with a smaller or clearer image.';
+      } else if (error.message.includes('Network')) {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      }
+      
+      setResult({ success: false, error: errorMessage });
     } finally {
       setLoading(false);
     }

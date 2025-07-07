@@ -1766,7 +1766,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     console.log('AI vision analysis failed - trying device location fallback...');
     
     // 3. Smart fallback: Use device location if available (low accuracy)
-    if (providedLocation) {
+    if (providedLocation && providedLocation.latitude !== 0 && providedLocation.longitude !== 0) {
       console.log('Using device location as fallback');
       const fallbackResult = {
         success: true,
@@ -1785,7 +1785,8 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       success: false,
       confidence: 0,
       method: 'no-location-data',
-      error: 'Unable to determine location. Image has no GPS data, AI analysis found no recognizable landmarks/businesses, and no device location provided.'
+      error: 'Unable to determine location. Image has no GPS data, AI analysis found no recognizable landmarks/businesses, and no device location provided.',
+      location: null // Explicitly set to null instead of potentially returning 0,0
     };
   }
 }
