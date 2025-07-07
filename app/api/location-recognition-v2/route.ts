@@ -962,6 +962,20 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
               method: 'ai-text-business-enhanced',
               description: `Business identified: ${businessNameValue}`
             };
+          } else {
+            // Provide partial success with detected information but no location
+            console.log('Business detected but location uncertain, providing text-only result');
+            return {
+              success: true,
+              name: businessNameValue,
+              location: null,
+              confidence: 0.7,
+              method: 'ai-text-business-detected',
+              description: `Business detected: ${businessNameValue}`,
+              note: `Found "${businessNameValue}" in image but cannot determine exact location. ${sceneContext.culturalClues.length > 0 ? `Contains ${sceneContext.culturalClues.join(', ')} text.` : ''}`,
+              detectedText: enhancedText,
+              culturalContext: sceneContext.culturalClues
+            };
           }
         }
 
@@ -1102,9 +1116,9 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     if (textUpper.includes('LLC') || textUpper.includes('INC')) clues.push('USA');
     if (textUpper.includes('BOULEVARD') || textUpper.includes('AVENUE')) clues.push('USA');
     
-    // Cultural context from scene
-    if (sceneContext.culturalClues.includes('Chinese')) clues.push('China', 'Hong Kong', 'Taiwan', 'Singapore');
-    if (sceneContext.culturalClues.includes('Japanese')) clues.push('Japan');
+    // Cultural context from scene - but don't assume location
+    // Chinese/Japanese text could be anywhere in the world
+    // Only use as secondary hints, not primary location indicators
     
     return clues.length > 0 ? clues[0] : null; // Return most likely region
   }
@@ -1498,7 +1512,49 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       }
     }
     
-    console.log('No contextually valid business location found');
+    console.log('No exact business match found, trying fallback searches');
+    
+    // Fallback: try generic location searches with UK priority
+    const fallbackQueries = [
+      `${businessName} UK`,
+      `${businessName} London`,
+      'Chinese restaurant UK',
+      'Oriental food London',
+      'Asian restaurant UK'
+    ];
+    
+    for (const query of fallbackQueries) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1500);
+        
+        const response = await fetch(
+          `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(query)}&inputtype=textquery&fields=geometry,name,formatted_address&key=${apiKey}`,
+          { signal: controller.signal }
+        );
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) continue;
+        
+        const data = await response.json();
+        const place = data.candidates?.[0];
+        
+        if (place?.geometry?.location) {
+          const lat = place.geometry.location.lat;
+          const lng = place.geometry.location.lng;
+          
+          if (lat !== 0 || lng !== 0) {
+            console.log(`Found fallback location for "${query}": ${place.formatted_address}`);
+            return { latitude: lat, longitude: lng };
+          }
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+    
+    console.log('No valid business location found');
     return null;
   }
   

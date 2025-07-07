@@ -402,35 +402,47 @@ function CameraScreen({ navigation }) {
     console.log('Using AI vision analysis to identify location from image content');
     
     try {
-      // Use original image file directly to preserve EXIF GPS data
+      // Optimize image for better API processing while preserving quality
       const fileInfo = await FileSystem.getInfoAsync(imageUri);
       const fileSizeMB = fileInfo.size / (1024 * 1024);
-      console.log(`Using original image size: ${fileSizeMB.toFixed(2)}MB (preserving EXIF)`);
+      console.log(`Original image size: ${fileSizeMB.toFixed(2)}MB`);
       
-      // Use original file without any processing to preserve GPS data
-      const originalImage = { uri: imageUri };
+      // Compress large images for better processing (like web version)
+      let processedImage;
+      if (fileSizeMB > 3) {
+        console.log('Compressing large image for better processing');
+        processedImage = await manipulateAsync(
+          imageUri,
+          [{ resize: { width: 1920 } }], // Max width like web
+          { compress: 0.8, format: 'jpeg' }
+        );
+        console.log('Image compressed for processing');
+      } else {
+        processedImage = { uri: imageUri };
+      }
       
       const formData = new FormData();
       
       if (Platform.OS === 'web') {
-        // For web: create proper File object from original
-        const response = await fetch(originalImage.uri);
+        // For web: create proper File object from processed image
+        const response = await fetch(processedImage.uri);
         const blob = await response.blob();
         const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
         formData.append('image', file);
       } else {
-        // For mobile: match web format as closely as possible
+        // For mobile: use processed image for better API compatibility
         formData.append('image', {
-          uri: originalImage.uri,
+          uri: processedImage.uri,
           type: 'image/jpeg',
           name: 'image.jpg',
         });
       }
       
-      // Match web version exactly - no coordinates to force AI analysis
-      // Don't append any location data to ensure AI analysis
+      // Force AI analysis by sending 0,0 coordinates (like web version)
+      formData.append('latitude', '0');
+      formData.append('longitude', '0');
       formData.append('analyzeLandmarks', 'false'); // Match web default
-      console.log('Using AI vision analysis for image content (matching web version)');
+      console.log('Using AI vision analysis for image content (forcing with 0,0 coordinates)');
 
       console.log('Making API request with FormData');
       
