@@ -838,13 +838,13 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         ]);
       };
 
-      // Optimized image analysis with shorter timeouts
+      // Optimized image analysis with balanced timeouts
       const [landmarkResult, textResult, documentResult, objectResult, logoResult] = await Promise.allSettled([
-        withTimeout(client.landmarkDetection({ image: { content: buffer } }), 12000),
-        withTimeout(client.textDetection({ image: { content: buffer } }), 10000),
-        withTimeout(client.documentTextDetection({ image: { content: buffer } }), 10000),
-        withTimeout(client.objectLocalization({ image: { content: buffer } }), 8000),
-        withTimeout(client.logoDetection({ image: { content: buffer } }), 8000)
+        withTimeout(client.landmarkDetection({ image: { content: buffer } }), 8000),
+        withTimeout(client.textDetection({ image: { content: buffer } }), 8000),
+        withTimeout(client.documentTextDetection({ image: { content: buffer } }), 8000),
+        withTimeout(client.objectLocalization({ image: { content: buffer } }), 6000),
+        withTimeout(client.logoDetection({ image: { content: buffer } }), 6000)
       ]);
 
       // Check landmark results first
@@ -1807,7 +1807,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const aiResult = await Promise.race([
         this.analyzeImageWithAI(buffer),
         new Promise<LocationResult | null>((_, reject) => 
-          setTimeout(() => reject(new Error('AI analysis timeout')), 12000)
+          setTimeout(() => reject(new Error('AI analysis timeout')), 10000)
         )
       ]);
       
