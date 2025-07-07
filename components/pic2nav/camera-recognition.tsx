@@ -169,8 +169,32 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
       }
       
       if (data.success) {
+        // Check for similar locations
+        try {
+          const recentResponse = await fetch('/api/recent-locations?limit=100');
+          const recentData = await recentResponse.json();
+          
+          const similarityResponse = await fetch('/api/location-similarity', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              location: data,
+              recentLocations: recentData.locations || []
+            })
+          });
+          
+          const similarity = await similarityResponse.json();
+          if (similarity.isDuplicate) {
+            data.similarLocations = similarity.matches;
+            data.isDuplicate = true;
+            data.note = `Similar to ${similarity.bestMatch.name} (${similarity.bestMatch.distance}m away)`;
+          }
+        } catch (error) {
+          console.log('Similarity check failed:', error);
+        }
+        
         toast({
-          title: "Location identified",
+          title: data.isDuplicate ? "Similar location found" : "Location identified",
           description: data.name || "Location found successfully",
         })
         
@@ -667,6 +691,35 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                     </div>
                   )}
                 </div>
+                
+                {/* Similar Locations */}
+                {result.isDuplicate && result.similarLocations && (
+                  <div className="p-6 bg-amber-50 dark:bg-amber-950/30 rounded-2xl border border-amber-200 dark:border-amber-800 mb-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="h-10 w-10 rounded-xl bg-amber-500 flex items-center justify-center">
+                        <span className="text-white text-lg">⚠️</span>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-amber-800 dark:text-amber-200">Similar Location Detected</h4>
+                        <p className="text-sm text-amber-600 dark:text-amber-300">{result.note}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      {result.similarLocations.slice(0, 3).map((similar, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg">
+                          <div>
+                            <p className="font-medium text-slate-900 dark:text-white">{similar.name}</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">{similar.matchType} match</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-amber-600">{Math.round(similar.similarity * 100)}% similar</p>
+                            <p className="text-xs text-slate-500">{similar.distance}m away</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 
                 {/* Show More Information */}
                 <ShowMoreInfo result={result} />
