@@ -1752,13 +1752,13 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
   }
 
   // V2 pipeline - EXIF GPS data with AI vision fallback
-  async recognize(buffer: Buffer, providedLocation?: Location, analyzeLandmarks: boolean = false): Promise<LocationResult> {
+  async recognize(buffer: Buffer, providedLocation?: Location, analyzeLandmarks: boolean = false, regionHint?: string, searchPriority?: string): Promise<LocationResult> {
     console.log('V2: Enhanced location recognition starting...');
     console.log('Buffer info - Size:', buffer.length, 'bytes');
     
     try {
       // Add overall timeout for the entire recognition process
-      const recognitionPromise = this.performRecognition(buffer, providedLocation, analyzeLandmarks);
+      const recognitionPromise = this.performRecognition(buffer, providedLocation, analyzeLandmarks, regionHint, searchPriority);
       const timeoutPromise = new Promise<LocationResult>((_, reject) => {
         setTimeout(() => reject(new Error('Recognition timeout')), 20000); // 20 second timeout
       });
@@ -1788,7 +1788,11 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     }
   }
   
-  private async performRecognition(buffer: Buffer, providedLocation?: Location, analyzeLandmarks: boolean = false): Promise<LocationResult> {
+  private async performRecognition(buffer: Buffer, providedLocation?: Location, analyzeLandmarks: boolean = false, regionHint?: string, searchPriority?: string): Promise<LocationResult> {
+    // Force UK priority for mobile requests
+    if (regionHint === 'UK') {
+      console.log('Mobile request with UK priority detected - forcing UK searches');
+    }
     // Log first few bytes to verify it's a valid image
     const header = buffer.slice(0, 10);
     console.log('File header:', Array.from(header).map(b => '0x' + b.toString(16)).join(' '));
@@ -1908,8 +1912,17 @@ async function handleRequest(request: NextRequest) {
   console.log('Provided location:', providedLocation);
   console.log('Analyze landmarks:', analyzeLandmarks);
   
+  // Check if this is a mobile request requiring enhanced processing
+  const userAgent = request.headers.get('user-agent') || '';
+  const isMobileRequest = userAgent.includes('Pic2Nav-Mobile');
+  const regionHint = formData.get('region_hint') as string;
+  const searchPriority = formData.get('search_priority') as string;
+  console.log('Mobile request detected:', isMobileRequest);
+  console.log('Region hint:', regionHint);
+  console.log('Search priority:', searchPriority);
+  
   const recognizer = new LocationRecognizer();
-  const result = await recognizer.recognize(buffer, providedLocation, analyzeLandmarks);
+  const result = await recognizer.recognize(buffer, providedLocation, analyzeLandmarks, regionHint, searchPriority);
   
   return NextResponse.json(result, {
     headers: {

@@ -407,16 +407,16 @@ function CameraScreen({ navigation }) {
       const fileSizeMB = fileInfo.size / (1024 * 1024);
       console.log(`Original image size: ${fileSizeMB.toFixed(2)}MB`);
       
-      // Compress large images for better processing (like web version)
+      // Optimize large images while preserving text quality
       let processedImage;
-      if (fileSizeMB > 3) {
-        console.log('Compressing large image for better processing');
+      if (fileSizeMB > 4) {
+        console.log('Optimizing large image while preserving text quality');
         processedImage = await manipulateAsync(
           imageUri,
-          [{ resize: { width: 1920 } }], // Max width like web
-          { compress: 0.8, format: 'jpeg' }
+          [{ resize: { width: 2400 } }], // Higher resolution for text
+          { compress: 0.9, format: 'jpeg' } // Less compression
         );
-        console.log('Image compressed for processing');
+        console.log('Image optimized for text recognition');
       } else {
         processedImage = { uri: imageUri };
       }
@@ -438,11 +438,15 @@ function CameraScreen({ navigation }) {
         });
       }
       
-      // Force AI analysis by sending 0,0 coordinates (like web version)
+      // Force enhanced AI analysis with UK priority
       formData.append('latitude', '0');
       formData.append('longitude', '0');
-      formData.append('analyzeLandmarks', 'false'); // Match web default
-      console.log('Using AI vision analysis for image content (forcing with 0,0 coordinates)');
+      formData.append('analyzeLandmarks', 'false');
+      formData.append('enhanced', 'true');
+      formData.append('mobile', 'true');
+      formData.append('region_hint', 'UK'); // Force UK region priority
+      formData.append('search_priority', 'London,UK'); // Prioritize London searches
+      console.log('Using enhanced AI vision analysis with UK priority');
 
       console.log('Making API request with FormData');
       
@@ -481,6 +485,63 @@ function CameraScreen({ navigation }) {
         data.success = false;
         data.error = 'Could not determine location from image. Try an image with visible landmarks, text, or business signs.';
         data.method = 'invalid-coordinates';
+      }
+      
+      // Enhanced debugging for mobile failures
+      // Retry logic for failed Vision API calls
+      if (!data.success && data.method === 'no-location-data') {
+        console.log('Vision API failed, retrying with optimized image...');
+        
+        try {
+          // Create smaller, optimized image for retry
+          const retryImage = await manipulateAsync(
+            imageUri,
+            [{ resize: { width: 800 } }],
+            { compress: 0.6, format: 'jpeg' }
+          );
+          
+          const retryFormData = new FormData();
+          retryFormData.append('image', {
+            uri: retryImage.uri,
+            type: 'image/jpeg',
+            name: 'retry-image.jpg',
+          });
+          retryFormData.append('latitude', '0');
+          retryFormData.append('longitude', '0');
+          retryFormData.append('analyzeLandmarks', 'false');
+          
+          console.log('Making retry API request...');
+          const retryController = new AbortController();
+          const retryTimeoutId = setTimeout(() => retryController.abort(), 30000);
+          
+          const retryResponse = await fetch(`https://ssabiroad.vercel.app/api/location-recognition-v2?retry=1&t=${Date.now()}`, {
+            method: 'POST',
+            body: retryFormData,
+            signal: retryController.signal,
+            headers: {
+              'User-Agent': 'Pic2Nav-Mobile/1.0-Retry',
+              'Accept': 'application/json',
+            },
+          });
+          
+          clearTimeout(retryTimeoutId);
+          
+          if (retryResponse.ok) {
+            const retryData = await retryResponse.json();
+            console.log('Retry API Response:', retryData);
+            if (retryData.success) {
+              // Create new result object to avoid read-only error
+              const newData = { ...retryData };
+              setResult(newData);
+              console.log('Retry successful - using retry result');
+              return; // Exit early to use retry result
+            } else {
+              console.log('Retry also failed:', retryData.error);
+            }
+          }
+        } catch (retryError) {
+          console.log('Retry failed with error:', retryError.message);
+        }
       }
       
       // Add mock landmark data for testing if not present
