@@ -124,6 +124,7 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
       
       const formData = new FormData()
       formData.append("image", file)
+      formData.append("analyzeLandmarks", "true") // Enable landmark detection
       if (injectedLocation) {
         formData.append("latitude", injectedLocation.latitude.toString())
         formData.append("longitude", injectedLocation.longitude.toString())

@@ -7,6 +7,7 @@ import * as Location from 'expo-location';
 import * as FileSystem from 'expo-file-system';
 import { manipulateAsync } from 'expo-image-manipulator';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import VoiceCommands from './components/VoiceCommands';
 
 const Stack = createStackNavigator();
 
@@ -213,6 +214,7 @@ function HomeScreen({ navigation }) {
 // Camera Screen
 function CameraScreen({ navigation }) {
   const { theme } = useTheme();
+  const [analyzeLandmarks, setAnalyzeLandmarks] = useState(true);
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.bg },
     content: { flexGrow: 1, paddingBottom: 40 },
@@ -226,6 +228,8 @@ function CameraScreen({ navigation }) {
     scannerIcon: { marginBottom: 16 },
     scannerText: { fontSize: 16, color: theme.textSecondary },
     scannerActions: { gap: 12 },
+    landmarkToggle: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, gap: 8, marginBottom: 12 },
+    landmarkToggleText: { fontSize: 14, fontWeight: '500' },
     primaryBtn: { backgroundColor: '#ffffff', borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
     primaryBtnText: { fontSize: 16, fontWeight: '600', color: '#000000' },
     secondaryBtn: { backgroundColor: 'transparent', borderRadius: 12, paddingVertical: 16, alignItems: 'center', borderWidth: 1, borderColor: theme.text },
@@ -317,6 +321,7 @@ function CameraScreen({ navigation }) {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [currentExifData, setCurrentExifData] = useState(null);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   
   useEffect(() => {
@@ -438,15 +443,15 @@ function CameraScreen({ navigation }) {
         });
       }
       
-      // Force enhanced AI analysis with UK priority
+      // Enhanced AI analysis with configurable landmark detection
       formData.append('latitude', '0');
       formData.append('longitude', '0');
-      formData.append('analyzeLandmarks', 'false');
+      formData.append('analyzeLandmarks', analyzeLandmarks.toString());
       formData.append('enhanced', 'true');
       formData.append('mobile', 'true');
-      formData.append('region_hint', 'UK'); // Force UK region priority
-      formData.append('search_priority', 'London,UK'); // Prioritize London searches
-      console.log('Using enhanced AI vision analysis with UK priority');
+      formData.append('region_hint', 'UK');
+      formData.append('search_priority', 'London,UK');
+      console.log(`Using enhanced AI analysis with landmark detection: ${analyzeLandmarks}`);
 
       console.log('Making API request with FormData');
       
@@ -634,6 +639,28 @@ function CameraScreen({ navigation }) {
       Linking.openURL(url);
     }
   };
+
+  const handleVoiceCommand = (command) => {
+    switch (command) {
+      case 'analyze':
+        if (photo) {
+          Alert.alert('Voice Command', 'Analyzing photo...');
+        } else {
+          Alert.alert('Voice Command', 'Please take a photo first');
+        }
+        break;
+      case 'findSimilar':
+        Alert.alert('Voice Command', 'Finding similar architecture...');
+        break;
+      case 'saveLocation':
+        if (result?.success) {
+          Alert.alert('Voice Command', 'Location saved!');
+        } else {
+          Alert.alert('Voice Command', 'No location to save');
+        }
+        break;
+    }
+  };
   
   const openBookingLink = (type) => {
     if (!result?.success || !result.location) return;
@@ -672,7 +699,12 @@ function CameraScreen({ navigation }) {
           <Ionicons name="chevron-back" size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Photo Scanner</Text>
-        <View style={styles.headerSpacer} />
+        <TouchableOpacity 
+          style={styles.backBtn}
+          onPress={() => setVoiceEnabled(!voiceEnabled)}
+        >
+          <Ionicons name={voiceEnabled ? "mic" : "mic-off"} size={24} color={voiceEnabled ? "#6366f1" : theme.text} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView 
@@ -690,6 +722,20 @@ function CameraScreen({ navigation }) {
             </View>
             
             <View style={styles.scannerActions}>
+              <TouchableOpacity 
+                style={[styles.landmarkToggle, { backgroundColor: analyzeLandmarks ? '#6366f1' : theme.surface }]}
+                onPress={() => setAnalyzeLandmarks(!analyzeLandmarks)}
+              >
+                <Ionicons 
+                  name={analyzeLandmarks ? "checkmark-circle" : "ellipse-outline"} 
+                  size={20} 
+                  color={analyzeLandmarks ? "#ffffff" : theme.text} 
+                />
+                <Text style={[styles.landmarkToggleText, { color: analyzeLandmarks ? "#ffffff" : theme.text }]}>
+                  Landmark Detection
+                </Text>
+              </TouchableOpacity>
+              
               <TouchableOpacity style={styles.primaryBtn} onPress={takePicture}>
                 <Text style={styles.primaryBtnText}>Take Photo</Text>
               </TouchableOpacity>
@@ -1015,6 +1061,11 @@ function CameraScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         )}
+        
+        <VoiceCommands 
+          onCommand={handleVoiceCommand}
+          isActive={voiceEnabled}
+        />
         
         {/* Image Preview Modal */}
         <Modal
