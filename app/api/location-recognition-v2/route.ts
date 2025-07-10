@@ -2057,7 +2057,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       // Add overall timeout for the entire recognition process
       const recognitionPromise = this.performRecognition(buffer, providedLocation, analyzeLandmarks, regionHint, searchPriority);
       const timeoutPromise = new Promise<LocationResult>((_, reject) => {
-        setTimeout(() => reject(new Error('Recognition timeout')), 30000); // 30 second timeout
+        setTimeout(() => reject(new Error('Recognition timeout')), 25000); // 25 second timeout
       });
       
       return await Promise.race([recognitionPromise, timeoutPromise]);
@@ -2109,7 +2109,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const claudeResult = await Promise.race([
         this.analyzeWithClaude({}, buffer),
         new Promise<LocationResult | null>((_, reject) => 
-          setTimeout(() => reject(new Error('Claude analysis timeout')), 20000)
+          setTimeout(() => reject(new Error('Claude analysis timeout')), 15000)
         )
       ]);
       
@@ -2182,7 +2182,7 @@ export async function POST(request: NextRequest) {
     // Add timeout to the entire request
     const requestPromise = handleRequest(request);
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout')), 35000); // 35 second timeout
+      setTimeout(() => reject(new Error('Request timeout')), 28000); // 28 second timeout
     });
     
     const result = await Promise.race([requestPromise, timeoutPromise]);
