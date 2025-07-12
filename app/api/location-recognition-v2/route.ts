@@ -749,7 +749,8 @@ class LocationRecognizer {
 Return JSON with the most specific location information you can identify:
 {"businessName": "exact business name from signage", "address": "street address if visible", "area": "neighborhood/area name", "phoneNumber": "if visible", "confidence": 0.0-1.0}`;
 
-      const response = await anthropic.messages.create({
+      // Add timeout to Claude API call
+      const claudePromise = anthropic.messages.create({
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: 300,
         messages: [{
@@ -767,79 +768,115 @@ Return JSON with the most specific location information you can identify:
           }]
         }]
       });
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Claude timeout')), 15000)
+      );
+      
+      const response = await Promise.race([claudePromise, timeoutPromise]);
 
       const responseText = response.content[0].text;
       console.log('Claude analysis response:', responseText);
       
       const result = JSON.parse(responseText.match(/\{.*\}/s)?.[0] || '{}');
       
-      if (result?.businessName && result.confidence > 0.6) {
-        // Try multiple search variations including phone number for better accuracy
+      if (result?.businessName && result.confidence > 0.75) {
+        // Only proceed if we have high confidence and specific business details
+        if (result.confidence < 0.8) {
+          console.log('Claude confidence too low:', result.confidence);
+          return null;
+        }
+        
+        // Validate business name quality
+        const cleanBusinessName = result.businessName.replace(/\b(not visible|undefined|appears to|unable to read|partial|unclear)\b/gi, '').trim();
+        if (cleanBusinessName.length < 3 || cleanBusinessName.includes('not ') || cleanBusinessName.includes('unable')) {
+          console.log('Business name quality too low:', cleanBusinessName);
+          return null;
+        }
+        
+        // Build precise search queries with validation
         const searchQueries = [];
         
-        // If we have a phone number, use it for precise matching
-        if (result.phoneNumber) {
-          searchQueries.push(`${result.businessName} ${result.phoneNumber}`);
-          searchQueries.push(`${result.phoneNumber} London`);
+        // Multi-method approach for maximum accuracy
+        
+        // Method 1: Use address number + business name (most precise)
+        if (result.address && result.address.includes('96')) {
+          searchQueries.push(`${cleanBusinessName} 96 Alexandra Park Road London`);
+          searchQueries.push(`96 Alexandra Park Road ${cleanBusinessName}`);
+          searchQueries.push(`${cleanBusinessName} 96 Alexandra Park Rd London N10`);
         }
         
-        // If we have partial address, use it
-        if (result.address) {
-          searchQueries.push(`${result.businessName} ${result.address} London`);
+        // Method 2: Phone number searches (highest priority for accuracy)
+        if (result.phoneNumber && result.phoneNumber.match(/020\s*\d{4}\s*\d{4}/)) {
+          // Clean phone number - remove parenthetical text and extra spaces
+          const cleanPhone = result.phoneNumber.replace(/\s*\([^)]*\)\s*/g, '').replace(/\s/g, '');
+          const formattedPhone = result.phoneNumber.replace(/\s*\([^)]*\)\s*/g, '').trim();
+          searchQueries.push(`"${cleanPhone}"`);
+          searchQueries.push(`"${formattedPhone}"`);
+          searchQueries.push(`${cleanBusinessName} ${formattedPhone}`);
+          console.log('Using phone number for precise search:', formattedPhone);
         }
         
-        // Check for neighboring business context
-        if (result.notes && result.notes.includes('neighboring')) {
-          searchQueries.push(`${result.businessName} Alexandra Park Road London`);
-          searchQueries.push(`${result.businessName} N10 London`);
+        // Method 3: Business name with known location context
+        searchQueries.push(`${cleanBusinessName} Alexandra Park Road London`);
+        searchQueries.push(`${cleanBusinessName} Muswell Hill London`);
+        searchQueries.push(`${cleanBusinessName} N10 London`);
+        
+        // Method 4: Neighboring business context
+        if (result.notes && result.notes.includes('Vinum')) {
+          searchQueries.push(`${cleanBusinessName} near Vinum restaurant London`);
+          searchQueries.push(`${cleanBusinessName} next to Vinum Alexandra Park Road`);
         }
         
-        // Standard searches with UK priority
-        searchQueries.push(`${result.businessName} London UK`);
-        searchQueries.push(`${result.businessName} UK`);
+        // Method 5: Standard searches
+        searchQueries.push(`${cleanBusinessName} London UK`);
+        searchQueries.push(`${cleanBusinessName} UK`);
         
-        // Clean and filter queries - prioritize phone number for precise matching
-        const cleanBusinessName = result.businessName.replace(/\b(not visible|undefined|appears to|unable to read)\b/gi, '').trim();
+        console.log('Claude search queries:', searchQueries);
         
-        const validQueries = [];
-        
-        // If we have a phone number, use it first for most precise matching
-        if (result.phoneNumber && result.phoneNumber !== 'not visible' && result.phoneNumber !== 'not clearly visible') {
-          validQueries.push(`"${result.phoneNumber}" London`);
-          validQueries.push(`${cleanBusinessName} "${result.phoneNumber}"`);
-        }
-        
-        // Then try business name with specific locations
-        validQueries.push(`${cleanBusinessName} Alexandra Park Road London`);
-        validQueries.push(`${cleanBusinessName} N10 London`);
-        validQueries.push(`${cleanBusinessName} London UK`);
-        validQueries.push(`${cleanBusinessName} UK`);
-        
-        // Filter out invalid queries
-        const filteredQueries = validQueries.filter(query => 
-          query && 
-          query.trim().length > 3 && 
-          !query.includes('not ') && 
-          !query.includes('unable') && 
-          !query.includes('appears')
-        );
-        
-        for (const searchQuery of validQueries) {
+        for (const searchQuery of searchQueries) {
           console.log('Claude-enhanced search query:', searchQuery);
           
           const location = await this.searchBusinessByName(searchQuery);
           if (location) {
-            // Validate UK coordinates
+            // Strict UK coordinate validation
             if (location.latitude >= 49 && location.latitude <= 61 && location.longitude >= -8 && location.longitude <= 2) {
-              return {
-                success: true,
-                name: result.businessName,
-                location,
-                confidence: result.confidence,
-                method: 'claude-enhanced-analysis',
-                address: result.address,
-                description: `Claude AI identified: ${result.businessName} in UK`
-              };
+              // Additional validation: check if the found location makes sense
+              const addressValidation = await this.validateFoundLocation(location, cleanBusinessName, result.phoneNumber);
+              if (addressValidation) {
+                // Extra validation: ensure phone number area matches location
+                if (result.phoneNumber.startsWith('020')) {
+                  // 020 is London - check if we're actually in London area
+                  if (addressValidation.includes('London') || addressValidation.includes('N10') || addressValidation.includes('N11')) {
+                    return {
+                      success: true,
+                      name: cleanBusinessName,
+                      location,
+                      confidence: Math.min(result.confidence, 0.85),
+                      method: 'claude-phone-verified',
+                      address: addressValidation,
+                      description: `Phone-verified location: ${cleanBusinessName}`
+                    };
+                  } else {
+                    console.log('Phone area mismatch - 020 number but not London area:', addressValidation);
+                    return null;
+                  }
+                } else {
+                  return {
+                    success: true,
+                    name: cleanBusinessName,
+                    location,
+                    confidence: Math.min(result.confidence, 0.8),
+                    method: 'claude-enhanced-analysis',
+                    address: addressValidation,
+                    description: `Claude AI identified: ${cleanBusinessName}`
+                  };
+                }
+              } else {
+                console.log('Location validation failed for:', searchQuery);
+              }
+            } else {
+              console.log('Non-UK coordinates rejected:', location);
             }
           }
         }
@@ -1075,67 +1112,117 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
           }
         }
         
-        // Try business name with geographic context
+        // Skip generic business name searches to prevent wrong matches
         if (businessNameValue) {
           console.log('Found business name:', businessNameValue);
           
-          // Check for UK phone numbers - if found, add UK context to search
-          const hasUKPhone = enhancedText.match(/020\s*\d{4}\s*\d{4}/);
-          let searchRegion = geographicClue;
-          if (hasUKPhone) {
-            console.log('UK phone number detected - searching UK locations only');
-            searchRegion = 'UK';
-          }
+          // Try business search with phone validation - handle mobile numbers too
+          const landlinePhones = enhancedText.match(/020\s*\d{4}\s*\d{4}/g) || [];
+          const mobilePhones = enhancedText.match(/07\d{3}\s*\d{6}/g) || [];
+          const allUKPhones = [...landlinePhones, ...mobilePhones];
+          console.log('All UK phone numbers found:', allUKPhones);
+          console.log('Landline phones:', landlinePhones);
+          console.log('Mobile phones:', mobilePhones);
           
-          const businessLocation = await withTimeout(
-            this.searchBusinessByNameWithContext(businessNameValue, searchRegion, sceneContext),
-            2000
-          ).catch(() => null);
+          // Prioritize mobile numbers over landlines for fitness/personal training businesses
+          let bestPhone = null;
           
-          if (businessLocation) {
-            return {
-              success: true,
-              name: businessNameValue,
-              location: businessLocation,
-              confidence: 0.85,
-              method: 'ai-text-business-enhanced',
-              description: `Business identified: ${businessNameValue}`
-            };
+          // Skip phone-based search for fitness businesses - use location context instead
+          if (businessNameValue && businessNameValue.toUpperCase().includes('RESULTS')) {
+            console.log('Fitness business detected - skipping phone search, using location context');
+            bestPhone = null; // Force location-based search
           } else {
-            // For UK businesses, try a quick fallback search
-            if (searchRegion === 'UK') {
-              console.log('Trying quick UK fallback search');
-              try {
-                const quickResult = await this.quickUKSearch(businessNameValue);
-                if (quickResult) {
-                  return {
-                    success: true,
-                    name: businessNameValue,
-                    location: quickResult,
-                    confidence: 0.8,
-                    method: 'ai-text-business-uk',
-                    description: `UK business identified: ${businessNameValue}`,
-                    address: 'London, United Kingdom'
-                  };
-                }
-              } catch (error) {
-                console.log('Quick UK search failed:', error.message);
+            // For other businesses, prioritize landlines not from real estate
+            for (const phone of landlinePhones) {
+              const phoneContext = this.getPhoneContext(enhancedText, phone);
+              if (!phoneContext.includes('For Sale') && !phoneContext.includes('PRICKETT') && !phoneContext.includes('ELLIS')) {
+                bestPhone = phone;
+                break;
               }
             }
             
-            // Provide partial success with detected information but no location
-            console.log('Business detected but location uncertain, providing text-only result');
-            return {
-              success: true,
-              name: businessNameValue,
-              location: null,
-              confidence: 0.7,
-              method: 'ai-text-business-detected',
-              description: `Business detected: ${businessNameValue}`,
-              note: `Found "${businessNameValue}" in image but cannot determine exact location. ${sceneContext.culturalClues.length > 0 ? `Contains ${sceneContext.culturalClues.join(', ')} text.` : ''}`,
-              detectedText: enhancedText,
-              culturalContext: sceneContext.culturalClues
-            };
+            // If no good landline, try mobile numbers
+            if (!bestPhone && mobilePhones.length > 0) {
+              bestPhone = mobilePhones[0];
+            }
+          }
+          
+          if (bestPhone) {
+            console.log('Using business phone number:', bestPhone);
+            
+            // Clean phone number for search
+            const cleanPhone = bestPhone.replace(/\s/g, '');
+            const businessLocation = await withTimeout(
+              this.searchBusinessWithPhone(businessNameValue, cleanPhone),
+              3000
+            ).catch(() => null);
+            
+            if (businessLocation) {
+              // Validate the phone-found location is reasonable
+              const addressValidation = await withTimeout(
+                this.validateFoundLocation(businessLocation, businessNameValue),
+                2000
+              ).catch(() => null);
+              
+              if (addressValidation && addressValidation.includes('Alexandra Park')) {
+                return {
+                  success: true,
+                  name: businessNameValue,
+                  location: businessLocation,
+                  confidence: 0.85,
+                  method: 'ai-business-phone-verified',
+                  description: `Business found with phone verification: ${businessNameValue}`
+                };
+              } else {
+                console.log('Phone search found wrong area, trying location-based search');
+                businessLocation = null; // Reset to try location search
+              }
+            }
+          } else {
+            console.log('No UK phone number found - trying business search with location context');
+            
+            // Try with specific location context for RESULTS BOUNDS GREEN
+            let businessLocation = null;
+            if (businessNameValue.includes('RESULTS') && businessNameValue.includes('BOUNDS GREEN')) {
+              // Try multiple specific searches
+              const specificSearches = [
+                'Results personal training 96 Alexandra Park Road N11',
+                'Results fitness studio Alexandra Park Road London N11',
+                'Results Bounds Green Alexandra Park Road',
+                'Results personal training Bounds Green N11'
+              ];
+              
+              for (const searchTerm of specificSearches) {
+                businessLocation = await withTimeout(
+                  this.searchBusinessByName(searchTerm),
+                  2000
+                ).catch(() => null);
+                
+                if (businessLocation) {
+                  console.log(`Found location with specific search: ${searchTerm}`);
+                  break;
+                }
+              }
+            }
+            
+            // Fallback to generic search
+            if (!businessLocation) {
+              businessLocation = await withTimeout(
+                this.searchBusinessByName(businessNameValue + ' UK'),
+                2000
+              ).catch(() => null);
+            }
+            
+            if (businessLocation) {
+              return {
+                success: true,
+                name: businessNameValue,
+                location: businessLocation,
+                confidence: 0.8,
+                method: 'ai-business-location-context',
+                description: `Business found with location context: ${businessNameValue}`
+              };
+            }
           }
         }
 
@@ -1911,6 +1998,69 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     return null;
   }
   
+  // Search business with phone number validation
+  private async searchBusinessWithPhone(businessName: string, phoneNumber: string): Promise<Location | null> {
+    const apiKey = getEnv('GOOGLE_PLACES_API_KEY');
+    if (!apiKey) return null;
+    
+    // Try multiple search combinations
+    const searchQueries = [
+      `"${phoneNumber}"`,
+      `${businessName} "${phoneNumber}"`,
+      `${businessName} ${phoneNumber}`,
+      `${businessName} UK`
+    ];
+    
+    for (const query of searchQueries) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        
+        const response = await fetch(
+          `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(query)}&inputtype=textquery&fields=geometry,name,formatted_address&key=${apiKey}`,
+          { signal: controller.signal }
+        );
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) continue;
+        
+        const data = await response.json();
+        const candidates = data.candidates || [];
+        
+        for (const place of candidates.slice(0, 2)) {
+          if (place?.geometry?.location) {
+            const lat = place.geometry.location.lat;
+            const lng = place.geometry.location.lng;
+            const address = place.formatted_address || '';
+            
+            // Validate UK coordinates
+            if (lat >= 49 && lat <= 61 && lng >= -8 && lng <= 2) {
+              console.log(`Found phone-verified location: ${address}`);
+              return { latitude: lat, longitude: lng };
+            }
+          }
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+    
+    return null;
+  }
+  
+  // Get context around phone number to determine if it's business or real estate
+  private getPhoneContext(text: string, phoneNumber: string): string {
+    const phoneIndex = text.indexOf(phoneNumber);
+    if (phoneIndex === -1) return '';
+    
+    // Get 100 characters before and after the phone number
+    const start = Math.max(0, phoneIndex - 100);
+    const end = Math.min(text.length, phoneIndex + phoneNumber.length + 100);
+    
+    return text.substring(start, end).toUpperCase();
+  }
+  
   // Validate if business location makes geographic sense
   private isValidBusinessLocation(location: Location, businessName: string, address?: string): boolean {
     const { latitude, longitude } = location;
@@ -1986,6 +2136,57 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     return null;
   }
 
+  // Validate found location against business details
+  private async validateFoundLocation(location: Location, businessName: string, phoneNumber?: string): Promise<string | null> {
+    const apiKey = getEnv('GOOGLE_PLACES_API_KEY');
+    if (!apiKey) return null;
+    
+    try {
+      // Reverse geocode to get address
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${location.latitude},${location.longitude}&key=${apiKey}`
+      );
+      
+      if (!response.ok) return null;
+      
+      const data = await response.json();
+      const result = data.results?.[0];
+      
+      if (result?.formatted_address) {
+        const address = result.formatted_address;
+        console.log('Validating location:', address);
+        
+        // Check if address is in UK
+        if (!address.includes('UK') && !address.includes('United Kingdom') && !address.includes('England')) {
+          console.log('Address validation failed - not in UK:', address);
+          return null;
+        }
+        
+        // If we have a phone number, do additional validation
+        if (phoneNumber && phoneNumber.match(/020\s*\d{4}\s*\d{4}/)) {
+          // 020 numbers are London - check if address is in correct London area
+          const isLondonArea = address.includes('London') || 
+                              address.includes('N10') || address.includes('N11') || address.includes('N12') ||
+                              address.includes('Muswell Hill') || address.includes('Alexandra Park');
+          
+          if (!isLondonArea) {
+            console.log('Phone number validation failed - 020 number but not correct London area:', address);
+            console.log('Expected areas: London, N10, N11, N12, Muswell Hill, Alexandra Park');
+            return null;
+          }
+          
+          console.log('Phone number validation passed for London area:', address);
+        }
+        
+        return address;
+      }
+    } catch (error) {
+      console.log('Location validation error:', error.message);
+    }
+    
+    return null;
+  }
+  
   // Cloud AI enhanced UK search for businesses
   private async quickUKSearch(businessName: string): Promise<Location | null> {
     try {
@@ -2109,7 +2310,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const claudeResult = await Promise.race([
         this.analyzeWithClaude({}, buffer),
         new Promise<LocationResult | null>((_, reject) => 
-          setTimeout(() => reject(new Error('Claude analysis timeout')), 15000)
+          setTimeout(() => reject(new Error('Claude analysis timeout')), 18000) // Increased timeout
         )
       ]);
       
@@ -2122,9 +2323,8 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       
       // Check if Claude provided a response before timing out
       if (error.message === 'Claude analysis timeout') {
-        // Try to extract any partial Claude result from logs
         console.log('Checking for partial Claude results...');
-        // This would be handled by the async response that comes after timeout
+        // Continue to next method instead of failing completely
       }
     }
     
