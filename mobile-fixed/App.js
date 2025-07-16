@@ -1,8 +1,9 @@
 import React, { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, StatusBar, Alert, Linking, Platform, Modal, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, StatusBar, Alert, Linking, Platform, Modal, Animated, TextInput } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import * as Location from 'expo-location';
 import * as FileSystem from 'expo-file-system';
 import { manipulateAsync } from 'expo-image-manipulator';
@@ -313,7 +314,18 @@ function CameraScreen({ navigation }) {
     wikiBtn: { backgroundColor: '#6366f1', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, flexDirection: 'row', alignItems: 'center', gap: 4 },
     wikiBtnText: { fontSize: 12, color: '#ffffff', fontWeight: '600' },
     infoBtn: { backgroundColor: '#10b981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, flexDirection: 'row', alignItems: 'center', gap: 4 },
-    infoBtnText: { fontSize: 12, color: '#ffffff', fontWeight: '600' }
+    infoBtnText: { fontSize: 12, color: '#ffffff', fontWeight: '600' },
+    correctBtn: { backgroundColor: '#f59e0b', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 16 },
+    correctBtnText: { fontSize: 14, fontWeight: '600', color: '#ffffff' },
+    correctionModal: { backgroundColor: theme.surface, borderRadius: 16, padding: 24, margin: 20, marginTop: 'auto', marginBottom: 'auto' },
+    correctionTitle: { fontSize: 20, fontWeight: '700', color: theme.text, marginBottom: 8 },
+    correctionSubtitle: { fontSize: 14, color: theme.textSecondary, marginBottom: 20 },
+    addressInput: { backgroundColor: theme.bg, borderRadius: 8, padding: 12, color: theme.text, fontSize: 16, minHeight: 80, textAlignVertical: 'top', marginBottom: 20 },
+    correctionActions: { flexDirection: 'row', gap: 12 },
+    cancelBtn: { flex: 1, backgroundColor: 'transparent', borderRadius: 8, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: theme.textSecondary },
+    cancelBtnText: { fontSize: 16, fontWeight: '600', color: theme.textSecondary },
+    submitBtn: { flex: 1, backgroundColor: '#6366f1', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
+    submitBtnText: { fontSize: 16, fontWeight: '600', color: '#ffffff' }
   });
   const [photo, setPhoto] = useState(null);
   const [result, setResult] = useState(null);
@@ -322,6 +334,8 @@ function CameraScreen({ navigation }) {
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [currentExifData, setCurrentExifData] = useState(null);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [showCorrectModal, setShowCorrectModal] = useState(false);
+  const [correctAddress, setCorrectAddress] = useState('');
   const pulseAnim = useRef(new Animated.Value(1)).current;
   
   useEffect(() => {
@@ -346,56 +360,126 @@ function CameraScreen({ navigation }) {
   }, [loading]);
 
   const takePicture = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Camera access is required to take photos');
-      return;
-    }
+    try {
+      console.log('Requesting camera permissions...');
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      console.log('Camera permission status:', status);
+      
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Camera access is required to take photos');
+        return;
+      }
 
-    const result = await ImagePicker.launchCameraAsync({
-      quality: 1,
-      allowsEditing: false,
-      exif: true,
-      base64: false,
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    });
+      console.log('Launching camera with raw file access...');
+      const result = await ImagePicker.launchCameraAsync({
+        quality: 1,
+        allowsEditing: false,
+        exif: false, // Don't process EXIF to avoid stripping
+        base64: false,
+        mediaTypes: 'Images',
+      });
+      
+      console.log('Camera result:', result);
 
-    if (!result.canceled) {
-      const asset = result.assets[0];
-      console.log('Camera EXIF:', asset.exif);
-      console.log('GPS Latitude:', asset.exif?.GPSLatitude);
-      console.log('GPS Longitude:', asset.exif?.GPSLongitude);
-      const timestampedUri = `${asset.uri}?t=${Date.now()}`;
-      setPhoto(timestampedUri);
-      analyzeImage(asset.uri, asset.exif, 'camera');
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        console.log('Camera image URI:', asset.uri);
+        
+        // Send raw file to API for EXIF extraction
+        const timestampedUri = `${asset.uri}?t=${Date.now()}`;
+        setPhoto(timestampedUri);
+        analyzeImage(asset.uri, null, 'raw-camera'); // No EXIF processing locally
+      } else {
+        console.log('Camera canceled or no assets');
+      }
+    } catch (error) {
+      console.error('Camera error:', error);
+      Alert.alert('Error', 'Failed to open camera: ' + error.message);
     }
   };
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Photo library access is required');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      quality: 1,
-      exif: true,
-      base64: false,
-    });
-
-    if (!result.canceled) {
-      const asset = result.assets[0];
-      console.log('Selected image EXIF:', asset.exif);
-      console.log('GPS Latitude:', asset.exif?.GPSLatitude);
-      console.log('GPS Longitude:', asset.exif?.GPSLongitude);
+  const pickRawImage = async () => {
+    try {
+      console.log('Launching document picker for raw image files...');
       
-      // Use original file directly to preserve EXIF GPS data
-      const timestampedUri = `${asset.uri}?t=${Date.now()}`;
-      setPhoto(timestampedUri);
-      analyzeImage(asset.uri, asset.exif, 'gallery');
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true, // Copy to accessible location
+      });
+      
+      console.log('Document picker result:', result);
+      
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        console.log('Raw image file:', asset.uri);
+        console.log('File size:', asset.size);
+        console.log('MIME type:', asset.mimeType);
+        
+        // Copy file to cache directory for proper access
+        const fileName = `raw_image_${Date.now()}.jpg`;
+        const newUri = `${FileSystem.cacheDirectory}${fileName}`;
+        
+        try {
+          await FileSystem.copyAsync({
+            from: asset.uri,
+            to: newUri
+          });
+          console.log('File copied to:', newUri);
+          
+          const timestampedUri = `${newUri}?t=${Date.now()}`;
+          setPhoto(timestampedUri);
+          analyzeImage(newUri, null, 'raw-copied'); // Use copied file
+        } catch (copyError) {
+          console.log('File copy failed, using original URI:', copyError.message);
+          const timestampedUri = `${asset.uri}?t=${Date.now()}`;
+          setPhoto(timestampedUri);
+          analyzeImage(asset.uri, null, 'raw-document');
+        }
+      } else {
+        console.log('Document picker canceled');
+      }
+    } catch (error) {
+      console.error('Document picker error:', error);
+      Alert.alert('Error', 'Failed to pick raw image file: ' + error.message);
+    }
+  };
+  
+  const pickImage = async () => {
+    try {
+      console.log('Requesting media library permissions...');
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log('Permission status:', status);
+      
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Photo library access is required');
+        return;
+      }
+
+      console.log('Launching image library with raw file access...');
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'Images',
+        allowsEditing: false,
+        quality: 1,
+        exif: false, // Don't process EXIF to avoid stripping
+        base64: false,
+      });
+      
+      console.log('Image picker result:', result);
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        console.log('Selected image URI:', asset.uri);
+        
+        // Send raw file to API for EXIF extraction
+        const timestampedUri = `${asset.uri}?t=${Date.now()}`;
+        setPhoto(timestampedUri);
+        analyzeImage(asset.uri, null, 'raw-gallery'); // No EXIF processing locally
+      } else {
+        console.log('Image selection canceled or no assets');
+      }
+    } catch (error) {
+      console.error('Image picker error:', error);
+      Alert.alert('Error', 'Failed to open image picker: ' + error.message);
     }
   };
 
@@ -443,30 +527,58 @@ function CameraScreen({ navigation }) {
       }
     }
     
-    // Parse GPS coordinates properly
-    if (exifData && exifData.GPSLatitude !== undefined && exifData.GPSLongitude !== undefined) {
-      gpsLat = parseFloat(exifData.GPSLatitude);
-      gpsLng = parseFloat(exifData.GPSLongitude);
+    // Parse GPS coordinates properly - handle both formats
+    if (exifData && (exifData.GPSLatitude !== undefined || exifData.GPS)) {
+      // Try standard EXIF GPS first
+      if (exifData.GPSLatitude !== undefined && exifData.GPSLongitude !== undefined) {
+        gpsLat = parseFloat(exifData.GPSLatitude);
+        gpsLng = parseFloat(exifData.GPSLongitude);
+        
+        // Apply GPS reference directions
+        if (exifData.GPSLatitudeRef === 'S') gpsLat = -gpsLat;
+        if (exifData.GPSLongitudeRef === 'W') gpsLng = -gpsLng;
+      }
       
-      // Apply GPS reference directions
-      if (exifData.GPSLatitudeRef === 'S') gpsLat = -gpsLat;
-      if (exifData.GPSLongitudeRef === 'W') gpsLng = -gpsLng;
+      // Try nested GPS object format
+      if ((gpsLat === 0 && gpsLng === 0) && exifData.GPS) {
+        if (exifData.GPS.GPSLatitude && exifData.GPS.GPSLongitude) {
+          gpsLat = parseFloat(exifData.GPS.GPSLatitude);
+          gpsLng = parseFloat(exifData.GPS.GPSLongitude);
+          
+          if (exifData.GPS.GPSLatitudeRef === 'S') gpsLat = -gpsLat;
+          if (exifData.GPS.GPSLongitudeRef === 'W') gpsLng = -gpsLng;
+        }
+      }
       
       if (gpsLat !== 0 || gpsLng !== 0) {
         hasGPS = true;
         console.log('Found GPS data in EXIF:', gpsLat, gpsLng);
-        console.log('GPS References:', exifData.GPSLatitudeRef, exifData.GPSLongitudeRef);
+        console.log('GPS References:', exifData.GPSLatitudeRef || exifData.GPS?.GPSLatitudeRef, exifData.GPSLongitudeRef || exifData.GPS?.GPSLongitudeRef);
       } else {
-        console.log('GPS coordinates are 0,0 - location services may have been disabled');
+        console.log('GPS coordinates are 0,0 - trying raw file extraction');
+        
+        // Try to extract GPS from raw file like web API does
+        try {
+          const base64Data = await FileSystem.readAsStringAsync(imageUri, {
+            encoding: FileSystem.EncodingType.Base64
+          });
+          
+          // Simple GPS pattern search in base64 data
+          if (base64Data.includes('GPS')) {
+            console.log('GPS data detected in raw file but extraction not supported in React Native');
+          }
+        } catch (error) {
+          console.log('Raw GPS extraction failed:', error.message);
+        }
       }
     } else {
       console.log('No GPS coordinates found in EXIF data');
     }
     
     if (hasGPS) {
-      console.log('Using GPS data from EXIF');
+      console.log('Using GPS data from EXIF - NOT using device location');
     } else {
-      console.log('No GPS data found, trying to get device location...');
+      console.log('No GPS data found in EXIF, trying to get device location...');
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
@@ -474,7 +586,7 @@ function CameraScreen({ navigation }) {
           gpsLat = location.coords.latitude;
           gpsLng = location.coords.longitude;
           hasGPS = true;
-          console.log('Using device location:', gpsLat, gpsLng);
+          console.log('Using device location as fallback:', gpsLat, gpsLng);
         } else {
           console.log('Location permission denied, using AI vision analysis');
         }
@@ -490,49 +602,56 @@ function CameraScreen({ navigation }) {
       const fileSizeMB = fileInfo.size / (1024 * 1024);
       console.log(`Original image size: ${fileSizeMB.toFixed(2)}MB`);
       
-      // Optimize large images while preserving text quality
-      let processedImage;
-      if (fileSizeMB > 4) {
-        console.log('Optimizing large image while preserving text quality');
+      // Reject images larger than 3.5MB
+      if (fileSizeMB > 3.5) {
+        Alert.alert('Image Too Large', `Image size is ${fileSizeMB.toFixed(1)}MB. Please select an image smaller than 3.5MB.`);
+        setLoading(false);
+        return;
+      }
+      
+      // Handle large images above 3.5MB
+      let processedImage = { uri: imageUri };
+      if (fileSizeMB > 3.5) {
+        console.log(`Compressing ${fileSizeMB.toFixed(2)}MB image for API`);
         processedImage = await manipulateAsync(
           imageUri,
-          [{ resize: { width: 2400 } }], // Higher resolution for text
-          { compress: 0.9, format: 'jpeg' } // Less compression
+          [{ resize: { width: 1600 } }],
+          { compress: 0.8, format: 'jpeg' }
         );
-        console.log('Image optimized for text recognition');
-      } else {
-        processedImage = { uri: imageUri };
+        const newSize = await FileSystem.getInfoAsync(processedImage.uri);
+        console.log(`Compressed to ${(newSize.size / (1024 * 1024)).toFixed(2)}MB`);
       }
       
       const formData = new FormData();
       
+      // Send raw file to API for EXIF extraction
       if (Platform.OS === 'web') {
-        // For web: create proper File object from processed image
         const response = await fetch(processedImage.uri);
         const blob = await response.blob();
         const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
         formData.append('image', file);
       } else {
-        // For mobile: use processed image for better API compatibility
+        // For mobile: send original file URI directly
         formData.append('image', {
-          uri: processedImage.uri,
+          uri: imageUri, // Use original URI, not processed
           type: 'image/jpeg',
           name: 'image.jpg',
         });
       }
       
-      // Enhanced AI analysis with GPS data if available
-      formData.append('latitude', gpsLat.toString());
-      formData.append('longitude', gpsLng.toString());
+      // Send device location as fallback for mobile
+      formData.append('latitude', hasGPS ? gpsLat.toString() : '0');
+      formData.append('longitude', hasGPS ? gpsLng.toString() : '0');
       formData.append('analyzeLandmarks', analyzeLandmarks.toString());
       formData.append('enhanced', 'true');
       formData.append('mobile', 'true');
       formData.append('hasGPS', hasGPS.toString());
       formData.append('platform', Platform.OS);
-      formData.append('exifSource', hasGPS ? 'image-gps' : 'device-location');
+      formData.append('exifSource', hasGPS ? 'device-location' : 'none');
+      formData.append('hasImageGPS', 'false');
       
       // Only add location bias if using device location (not image GPS)
-      if (!hasGPS || (gpsLat === 0 && gpsLng === 0)) {
+      if (!hasGPS || (exifData?.GPSLatitude === 0 && exifData?.GPSLongitude === 0)) {
         const country = gpsLat > 0 && gpsLat < 15 && gpsLng > 0 && gpsLng < 15 ? 'Nigeria' : 'auto-detect';
         formData.append('region_hint', country);
         if (country === 'Nigeria') {
@@ -548,6 +667,12 @@ function CameraScreen({ navigation }) {
       }
 
       console.log('Making API request with FormData');
+      console.log('FormData contents:');
+      console.log('- hasImageGPS:', formData.get ? formData.get('hasImageGPS') : 'FormData.get not available');
+      console.log('- exifSource:', formData.get ? formData.get('exifSource') : 'FormData.get not available');
+      console.log('- latitude:', gpsLat);
+      console.log('- longitude:', gpsLng);
+      console.log('- hasGPS:', hasGPS);
       
       // Create AbortController for custom timeout
       const controller = new AbortController();
@@ -789,6 +914,58 @@ function CameraScreen({ navigation }) {
       Linking.openURL(url);
     }
   };
+  
+  const submitCorrection = async () => {
+    if (!correctAddress.trim()) {
+      Alert.alert('Error', 'Please enter a correct address');
+      return;
+    }
+    
+    try {
+      console.log('Submitting correction:', {
+        originalAddress: result.address,
+        correctAddress: correctAddress.trim(),
+        coordinates: result.location
+      });
+      
+      const response = await fetch('https://ssabiroad.vercel.app/api/correct-location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          originalLocation: result.location,
+          originalAddress: result.address,
+          correctAddress: correctAddress.trim(),
+          coordinates: result.location,
+          imageFeatures: result.landmarks || [],
+          method: result.method,
+          confidence: result.confidence,
+          trainModel: true,
+          timestamp: new Date().toISOString()
+        })
+      });
+      
+      console.log('Correction API response:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      // Update the displayed result with corrected address
+      setResult(prev => ({
+        ...prev,
+        address: correctAddress.trim(),
+        corrected: true,
+        originalAddress: prev.address
+      }));
+      
+      Alert.alert('Success', 'Thank you! Your correction has been saved and will help improve our AI.');
+      setShowCorrectModal(false);
+      setCorrectAddress('');
+    } catch (error) {
+      console.error('Correction submission failed:', error);
+      Alert.alert('Error', `Failed to save correction: ${error.message}. Please try again.`);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -844,6 +1021,10 @@ function CameraScreen({ navigation }) {
               <TouchableOpacity style={styles.secondaryBtn} onPress={pickImage}>
                 <Text style={styles.secondaryBtnText}>Choose from Gallery</Text>
               </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.secondaryBtn} onPress={pickRawImage}>
+                <Text style={styles.secondaryBtnText}>Raw File (Preserves GPS)</Text>
+              </TouchableOpacity>
             </View>
           </View>
         ) : (
@@ -872,7 +1053,7 @@ function CameraScreen({ navigation }) {
                       <Text style={styles.successTitle}>Location Found</Text>
                     </View>
                     <Text style={styles.locationText}>
-                      {String(result.address || result.name || 'Location identified')}
+                      {(result.address || result.name || 'Location identified').toString()}
                     </Text>
                     
                     {/* Location Details */}
@@ -882,7 +1063,7 @@ function CameraScreen({ navigation }) {
                         {result.locationDetails.country && (
                           <View style={styles.detailRow}>
                             <Text style={styles.detailLabel}>Country</Text>
-                            <Text style={styles.detailValue}>{String(result.locationDetails.country)}</Text>
+                            <Text style={styles.detailValue}>{result.locationDetails.country}</Text>
                           </View>
                         )}
                         {result.locationDetails.state && (
@@ -1131,6 +1312,13 @@ function CameraScreen({ navigation }) {
                         </View>
                       </TouchableOpacity>
                     </View>
+                    
+                    <TouchableOpacity 
+                      style={styles.correctBtn}
+                      onPress={() => setShowCorrectModal(true)}
+                    >
+                      <Text style={styles.correctBtnText}>Address Incorrect? Correct It</Text>
+                    </TouchableOpacity>
                   </View>
                 ) : (
                   <View style={styles.errorCard}>
@@ -1189,6 +1377,49 @@ function CameraScreen({ navigation }) {
                 resizeMode="contain"
               />
             )}
+          </View>
+        </Modal>
+        
+        {/* Address Correction Modal */}
+        <Modal
+          visible={showCorrectModal}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowCorrectModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.correctionModal}>
+              <Text style={styles.correctionTitle}>Correct Address</Text>
+              <Text style={styles.correctionSubtitle}>Enter the correct address for this location:</Text>
+              
+              <TextInput
+                style={styles.addressInput}
+                value={correctAddress}
+                onChangeText={setCorrectAddress}
+                placeholder="Enter correct address..."
+                placeholderTextColor={theme.textSecondary}
+                multiline
+              />
+              
+              <View style={styles.correctionActions}>
+                <TouchableOpacity 
+                  style={styles.cancelBtn}
+                  onPress={() => {
+                    setShowCorrectModal(false);
+                    setCorrectAddress('');
+                  }}
+                >
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.submitBtn}
+                  onPress={submitCorrection}
+                >
+                  <Text style={styles.submitBtnText}>Submit</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </Modal>
       </ScrollView>
@@ -1290,7 +1521,7 @@ function ToolsScreen({ navigation }) {
   
   const selectMultiplePhotos = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: 'Images',
       allowsMultipleSelection: true,
       quality: 1,
       exif: true

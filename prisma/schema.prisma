@@ -69,3 +69,17 @@ model LocationCache {
 
   @@map("location_cache")
 }
+
+model LocationCorrection {
+  id                 String   @id @default(cuid())
+  originalAddress    String
+  correctAddress     String
+  latitude           Float
+  longitude          Float
+  originalMethod     String?
+  originalConfidence Float?
+  imageFeatures      String?
+  createdAt          DateTime @default(now())
+
+  @@map("location_corrections")
+}

@@ -3107,11 +3107,18 @@ async function handleRequest(request: NextRequest) {
   const lat = formData.get('latitude');
   const lng = formData.get('longitude');
   const analyzeLandmarks = formData.get('analyzeLandmarks') === 'true';
+  const hasImageGPS = formData.get('hasImageGPS') === 'true';
+  const exifSource = formData.get('exifSource') as string;
   
   const providedLocation = lat && lng ? {
     latitude: parseFloat(lat as string),
     longitude: parseFloat(lng as string)
   } : undefined;
+  
+  console.log('GPS source info:', { hasImageGPS, exifSource, providedLocation });
+  
+  // If image has GPS, don't use provided location as fallback
+  const locationForFallback = hasImageGPS ? undefined : providedLocation;
   
   console.log('Provided location:', providedLocation);
   console.log('Analyze landmarks:', analyzeLandmarks);
@@ -3126,7 +3133,7 @@ async function handleRequest(request: NextRequest) {
   console.log('Search priority:', searchPriority);
   
   const recognizer = new LocationRecognizer();
-  const result = await recognizer.recognize(buffer, providedLocation, analyzeLandmarks, regionHint, searchPriority);
+  const result = await recognizer.recognize(buffer, locationForFallback, analyzeLandmarks, regionHint, searchPriority);
   
   return NextResponse.json(result, {
     headers: {
