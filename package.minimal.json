@@ -1,0 +1,28 @@
+{
+  "name": "ssabiroad",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@google-cloud/vision": "^4.3.3",
+    "@prisma/client": "^6.5.0",
+    "axios": "^1.7.9",
+    "exif-parser": "^0.1.12",
+    "next": "^15.1.4",
+    "node-cache": "^5.1.2",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "prisma": "^6.5.0",
+    "typescript": "^5"
+  }
+}

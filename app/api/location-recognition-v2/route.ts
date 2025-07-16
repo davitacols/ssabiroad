@@ -921,7 +921,7 @@ Return JSON with the most specific location information you can identify:
         
         // Method 1: Use phone number to determine country context
         let phoneCountry = null;
-        if (result.phoneNumber) {
+        if (result.phoneNumber && result.phoneNumber !== 'not visible') {
           phoneCountry = this.getCountryFromPhone(result.phoneNumber);
           console.log('Phone country detected:', phoneCountry, 'for phone:', result.phoneNumber);
           
@@ -1081,16 +1081,51 @@ Return JSON with the most specific location information you can identify:
           console.log('⚠️ Priority searches completed but no Alexandra Park Road found');
         }
         
-        // Fallback to standard UK searches
-        const ukSearchQueries = [
-          `${cleanBusinessName} UK`,
-          `${cleanBusinessName} United Kingdom`, 
-          `${cleanBusinessName} London`,
-          `${cleanBusinessName} England`,
-          cleanBusinessName
-        ];
+        // Determine country context from phone number and other indicators
+        let countryContext = 'UK'; // Default
+        if (result.phoneNumber && result.phoneNumber !== 'not visible') {
+          const phoneCountry = this.getCountryFromPhone(result.phoneNumber);
+          if (phoneCountry && phoneCountry.includes('USA')) {
+            countryContext = 'USA';
+          } else if (phoneCountry && phoneCountry.includes('Florida')) {
+            countryContext = 'USA';
+          } else if (phoneCountry === 'UK') {
+            countryContext = 'UK';
+          }
+        }
         
-        for (const searchQuery of ukSearchQueries) {
+        // Detect US context from other indicators when no phone number
+        if (!result.phoneNumber || result.phoneNumber === 'not visible') {
+          // Check for US architectural/urban patterns
+          const areaText = (result.area || '').toLowerCase();
+          if (areaText.includes('mixed-use development') || 
+              areaText.includes('apartment complex') ||
+              areaText.includes('modern urban') ||
+              (result.address && result.address.match(/^\d{3,4}$/))) { // 3-4 digit addresses common in US
+            countryContext = 'USA';
+            console.log('🇺🇸 US context detected from architectural/address patterns');
+          }
+        }
+        
+        // Build search queries based on detected country
+        const countrySearchQueries = [];
+        if (countryContext === 'USA') {
+          countrySearchQueries.push(`${cleanBusinessName} USA`);
+          countrySearchQueries.push(`${cleanBusinessName} United States`);
+          if (result.area && result.area.toLowerCase().includes('florida')) {
+            countrySearchQueries.push(`${cleanBusinessName} Florida`);
+          }
+        } else {
+          countrySearchQueries.push(`${cleanBusinessName} UK`);
+          countrySearchQueries.push(`${cleanBusinessName} United Kingdom`);
+          countrySearchQueries.push(`${cleanBusinessName} London`);
+          countrySearchQueries.push(`${cleanBusinessName} England`);
+        }
+        countrySearchQueries.push(cleanBusinessName);
+        
+        console.log('Detected country context:', countryContext);
+        
+        for (const searchQuery of countrySearchQueries) {
           console.log('Claude fallback search:', searchQuery);
           
           try {
@@ -1099,8 +1134,8 @@ Return JSON with the most specific location information you can identify:
               console.log(`Found ${candidates.length} candidates for: ${searchQuery}`);
               
               // Filter candidates geographically first
-              const filteredCandidates = this.filterByGeography(candidates.slice(0, 5), cleanBusinessName, 'UK');
-              console.log(`Filtered to ${filteredCandidates.length} UK candidates`);
+              const filteredCandidates = this.filterByGeography(candidates.slice(0, 5), cleanBusinessName, countryContext);
+              console.log(`Filtered to ${filteredCandidates.length} ${countryContext} candidates`);
               
               if (filteredCandidates.length > 0) {
                 // Use first valid UK candidate
@@ -1117,9 +1152,9 @@ Return JSON with the most specific location information you can identify:
                     name: cleanBusinessName,
                     location,
                     confidence: 0.8,
-                    method: 'claude-direct-uk-search',
+                    method: `claude-direct-${countryContext.toLowerCase()}-search`,
                     address: addressValidation,
-                    description: `UK location found: ${cleanBusinessName}`
+                    description: `${countryContext} location found: ${cleanBusinessName}`
                   };
                 }
               }
@@ -1833,6 +1868,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       .replace(/[\r\n]+/g, ' ')
       .replace(/\s+/g, ' ')
       .replace(/[^\w\s&'.-]/g, ' ')
+      .replace(/\b(PLAY|NOW|HERE|NEW|MINI|MARKET)\b/gi, '') // Remove common OCR noise
       .trim();
   }
 
@@ -1857,7 +1893,8 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     
     const businessPatterns = [
       { pattern: /(McDonald's|Starbucks|Subway|KFC|Pizza Hut|Burger King|Taco Bell|Walmart|Target|CVS|Walgreens|Home Depot|Lowe's|Best Buy|Dunkin'|Shell|BP)/i, score: 0.95 },
-      { pattern: /\b([A-Z][a-zA-Z'&.\s]{2,40}?)\s+(Restaurant|Cafe|Coffee|Store|Shop|Bank|Hotel|Market|Center|Plaza|Pharmacy|Gas|Station|Deli|Bakery|Grill|Bar)\b/i, score: 0.9 },
+      { pattern: /\b([A-Z][a-zA-Z'&.\s]{2,40}?)\s+(Restaurant|Cafe|Coffee|Store|Shop|Bank|Hotel|Market|Center|Plaza|Pharmacy|Gas|Station|Deli|Bakery|Grill|Bar|Wines)\b/i, score: 0.9 },
+      { pattern: /\b([A-Z][a-zA-Z'&.\s]{3,25})\s+(WINES|FLOWERS?)\b/i, score: 0.95 }, // Wine shops and flower shops
       { pattern: /\b([A-Z]{2,}(?:\s+[A-Z&']{2,})*)\b/i, score: 0.8 },
       { pattern: /\b([A-Z][a-zA-Z'&.\s]{2,30})\s+(Inc|LLC|Corp|Ltd|Co)\b/i, score: 0.85 }
     ];
@@ -1990,7 +2027,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
   }
 
   private isCommonText(text: string): boolean {
-    const commonWords = /^(Open|Closed|Hours|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Welcome|Thank|Please|Exit|Enter|Push|Pull|No|Yes|Free|Sale|New|Old|Hot|Cold|Fresh|Daily|Special|Menu|Price|Cost|Total|Cash|Credit|Card|Plants|Sign)$/i;
+    const commonWords = /^(Open|Closed|Hours|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Welcome|Thank|Please|Exit|Enter|Push|Pull|No|Yes|Free|Sale|New|Old|Hot|Cold|Fresh|Daily|Special|Menu|Price|Cost|Total|Cash|Credit|Card|Plants|Sign|Play|Now|Here|Mini|Market|Letter|Paypoint|Groceries|Off|License|Newsagent|Oyster)$/i;
     return commonWords.test(text) || text.match(/^\d+$/) || text.match(/^\d+[A-Z-]+$/) || text.length < 3;
   }
 
@@ -2560,9 +2597,20 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const address = candidate.formatted_address?.toLowerCase() || '';
       
       // If area suggests UK, reject non-UK locations
-      if (areaLower.includes('uk') || areaLower.includes('london') || areaLower.includes('britain') || areaLower.includes('post box')) {
+      if (area === 'UK' || areaLower.includes('uk') || areaLower.includes('london') || areaLower.includes('britain') || areaLower.includes('post box')) {
         if (!address.includes('uk') && !address.includes('united kingdom') && !address.includes('england') && !address.includes('london')) {
           console.log(`Rejecting non-UK location for UK business: ${candidate.formatted_address}`);
+          return false;
+        }
+      }
+      
+      // If area is explicitly UK, validate coordinates
+      if (area === 'UK') {
+        const lat = candidate.geometry?.location?.lat || 0;
+        const lng = candidate.geometry?.location?.lng || 0;
+        // UK coordinates: roughly 49-61°N, -8-2°E
+        if (lat < 49 || lat > 61 || lng < -8 || lng > 2) {
+          console.log(`Rejecting non-UK coordinates for UK business: ${candidate.formatted_address} (${lat}, ${lng})`);
           return false;
         }
       }
@@ -2570,9 +2618,20 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
 
       
       // If area suggests US, reject non-US locations
-      if (areaLower.includes('usa') || areaLower.includes('florida') || areaLower.includes('america')) {
-        if (!address.includes('usa') && !address.includes('united states') && !address.includes('florida')) {
+      if (area === 'USA' || areaLower.includes('usa') || areaLower.includes('florida') || areaLower.includes('america')) {
+        if (!address.includes('usa') && !address.includes('united states') && !address.includes('florida') && !address.includes('fl,') && !address.includes('fl ')) {
           console.log(`Rejecting non-US location for US business: ${candidate.formatted_address}`);
+          return false;
+        }
+      }
+      
+      // If area is explicitly USA, prioritize US locations
+      if (area === 'USA') {
+        const lat = candidate.geometry?.location?.lat || 0;
+        const lng = candidate.geometry?.location?.lng || 0;
+        // USA coordinates: roughly 25-49°N, -125--66°W
+        if (lat < 25 || lat > 49 || lng < -125 || lng > -66) {
+          console.log(`Rejecting non-US coordinates for US business: ${candidate.formatted_address} (${lat}, ${lng})`);
           return false;
         }
       }
@@ -2586,10 +2645,18 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         }
       }
       
-      // General Nigeria filter for UK/US businesses
-      if ((areaLower.includes('uk') || areaLower.includes('usa') || businessLower.includes('sports bar')) && address.includes('nigeria')) {
-        console.log(`Rejecting Nigerian location for Western business: ${candidate.formatted_address}`);
-        return false;
+      // Strong Nigeria filter for UK/US businesses
+      if (address.includes('nigeria') || address.includes('lagos')) {
+        // Always reject Nigerian locations for UK businesses
+        if (areaLower.includes('uk') || areaLower.includes('london') || businessLower.includes('wines')) {
+          console.log(`Rejecting Nigerian location for UK business: ${candidate.formatted_address}`);
+          return false;
+        }
+        // Also reject for US businesses
+        if (areaLower.includes('usa') || areaLower.includes('florida')) {
+          console.log(`Rejecting Nigerian location for US business: ${candidate.formatted_address}`);
+          return false;
+        }
       }
       
       // Portugal filter for UK businesses (common wine bar name confusion)
@@ -2640,8 +2707,10 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       return 'USA';
     }
     
-    // UK phone numbers
-    if (phoneNumber.match(/^(\+44|0)?20\d{8}$/)) return 'UK'; // London
+    // UK phone numbers - more flexible patterns
+    if (phoneNumber.match(/^(\+44|0)?20[0-9\s]{8,}$/)) return 'UK'; // London
+    if (phoneNumber.match(/^(\+44|0)?207[0-9\s]{7,}$/)) return 'UK'; // London 020 7
+    if (phoneNumber.match(/^(\+44|0)?208[0-9\s]{7,}$/)) return 'UK'; // London 020 8
     if (phoneNumber.match(/^(\+44|0)?7\d{9}$/)) return 'UK'; // Mobile
     if (phoneNumber.match(/^(\+44|0)?1\d{9}$/)) return 'UK'; // Other UK
     
