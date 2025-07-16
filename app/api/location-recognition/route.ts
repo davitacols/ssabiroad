@@ -43,6 +43,47 @@ class APIError extends Error {
   }
 }
 
+// Correction lookup functionality
+const CORRECTIONS_FILE = path.join(process.cwd(), 'corrections.json')
+
+function loadCorrections() {
+  try {
+    if (fs.existsSync(CORRECTIONS_FILE)) {
+      return JSON.parse(fs.readFileSync(CORRECTIONS_FILE, 'utf8'))
+    }
+  } catch (error) {
+    console.error('Error loading corrections:', error)
+  }
+  return []
+}
+
+function lookupCorrection(coordinates: Location): { found: boolean; correctAddress?: string; originalAddress?: string } {
+  try {
+    const corrections = loadCorrections()
+    
+    // Find correction for similar coordinates (within ~100m)
+    const match = corrections.find((correction: any) => {
+      const latDiff = Math.abs(correction.coordinates.latitude - coordinates.latitude)
+      const lngDiff = Math.abs(correction.coordinates.longitude - coordinates.longitude)
+      return latDiff < 0.001 && lngDiff < 0.001 // ~100m radius
+    })
+    
+    if (match) {
+      console.log('Found correction match:', match.correctAddress)
+      return {
+        found: true,
+        correctAddress: match.correctAddress,
+        originalAddress: match.originalAddress
+      }
+    }
+    
+    return { found: false }
+  } catch (error) {
+    console.error('Error in correction lookup:', error)
+    return { found: false }
+  }
+}
+
 // Request validation
 function validateRequest(formData: FormData): { image?: File; location?: Location; operation?: string } {
   const operation = formData.get("operation") as string
@@ -225,6 +266,8 @@ interface LocationRecognitionResponse {
   providedLocation?: Location
   usingFallbackLocation?: boolean
   processingTime?: number
+  correctionApplied?: boolean
+  originalAddress?: string
   // Enhanced business recognition fields
   isBusinessLocation?: boolean
   businessName?: string
@@ -242,6 +285,8 @@ import { extractBusinessNameFromText, searchBusinessByName } from "./business-se
 import { lookupLogoLocation } from "./logo-database"
 import { searchBusinessLocation } from "./web-search"
 import { shouldUseWebSearch, getSearchQuery } from "../../../lib/smart-recognition"
+import fs from 'fs'
+import path from 'path'
 
 // Clean OCR text to fix common misreads
 function cleanOCRText(text: string): string {
@@ -786,6 +831,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     
     const buffer = Buffer.from(await image.arrayBuffer())
     const result = await recognizeLocation(buffer, location)
+    
+    // Check for address corrections before returning result
+    if (result.success && result.location) {
+      const correction = lookupCorrection(result.location)
+      if (correction.found && correction.correctAddress) {
+        console.log('Applying address correction:', correction.correctAddress)
+        result.address = correction.correctAddress
+        result.formattedAddress = correction.correctAddress
+        result.description = result.description ? 
+          `${result.description} (Address corrected)` : 
+          'Address corrected based on user feedback'
+        result.correctionApplied = true
+        result.originalAddress = correction.originalAddress
+      }
+    }
     
     // Database connection issue - keeping saves disabled
     if (result.success) {
