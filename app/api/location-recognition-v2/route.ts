@@ -151,8 +151,9 @@ class LocationRecognizer {
         }
       }
       
-      // Look for decimal coordinate patterns
+      // Look for decimal coordinate patterns with higher precision
       const coordPatterns = [
+        /([0-9]{1,2}\.[0-9]{6,}).*?([0-9]{1,2}\.[0-9]{6,})/g, // High precision coordinates
         /([0-9]{1,3}\.[0-9]{4,}).*?([0-9]{1,3}\.[0-9]{4,})/g,
         /GPS.*?([0-9.-]+).*?([0-9.-]+)/g
       ];
@@ -163,7 +164,7 @@ class LocationRecognizer {
           if (match[1] && match[2]) {
             const lat = parseFloat(match[1]);
             const lng = parseFloat(match[2]);
-            if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && lat !== 0 && lng !== 0) {
               console.log('Pattern match found:', { lat, lng });
               return { latitude: lat, longitude: lng };
             }

@@ -358,13 +358,13 @@ function CameraScreen({ navigation }) {
       exif: true,
       base64: false,
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      ...(Platform.OS !== 'web' && {
-        preserveExif: true,
-      }),
     });
 
     if (!result.canceled) {
       const asset = result.assets[0];
+      console.log('Camera EXIF:', asset.exif);
+      console.log('GPS Latitude:', asset.exif?.GPSLatitude);
+      console.log('GPS Longitude:', asset.exif?.GPSLongitude);
       const timestampedUri = `${asset.uri}?t=${Date.now()}`;
       setPhoto(timestampedUri);
       analyzeImage(asset.uri, asset.exif, 'camera');
@@ -389,6 +389,8 @@ function CameraScreen({ navigation }) {
     if (!result.canceled) {
       const asset = result.assets[0];
       console.log('Selected image EXIF:', asset.exif);
+      console.log('GPS Latitude:', asset.exif?.GPSLatitude);
+      console.log('GPS Longitude:', asset.exif?.GPSLongitude);
       
       // Use original file directly to preserve EXIF GPS data
       const timestampedUri = `${asset.uri}?t=${Date.now()}`;
@@ -403,8 +405,84 @@ function CameraScreen({ navigation }) {
     console.log('Starting API call...');
     console.log('Image EXIF data:', exifData);
     
-    // Always use AI vision analysis - don't rely on GPS
-    console.log('Using AI vision analysis to identify location from image content');
+    // Check for GPS data in EXIF
+    let hasGPS = false;
+    let gpsLat = 0;
+    let gpsLng = 0;
+    
+    console.log('All EXIF keys:', Object.keys(exifData || {}));
+    console.log('GPS fields from expo-image-picker:', {
+      GPSLatitude: exifData?.GPSLatitude,
+      GPSLongitude: exifData?.GPSLongitude,
+      GPSLatitudeRef: exifData?.GPSLatitudeRef,
+      GPSLongitudeRef: exifData?.GPSLongitudeRef,
+      GPSAltitude: exifData?.GPSAltitude
+    });
+    
+    // Try to read raw file data to extract GPS coordinates
+    if (Platform.OS !== 'web') {
+      try {
+        console.log('Attempting to read raw EXIF data from file...');
+        const fileInfo = await FileSystem.getInfoAsync(imageUri);
+        console.log('File info:', fileInfo);
+        
+        // Read first few KB of file to check for GPS data in raw EXIF
+        const base64Data = await FileSystem.readAsStringAsync(imageUri, {
+          encoding: FileSystem.EncodingType.Base64,
+          length: 65536 // Read first 64KB
+        });
+        
+        // Check if GPS data exists in raw file
+        if (base64Data.includes('GPS')) {
+          console.log('Raw GPS data found in file - expo-image-picker may be stripping it');
+        } else {
+          console.log('No GPS data found in raw file');
+        }
+      } catch (error) {
+        console.log('Error reading raw file data:', error.message);
+      }
+    }
+    
+    // Parse GPS coordinates properly
+    if (exifData && exifData.GPSLatitude !== undefined && exifData.GPSLongitude !== undefined) {
+      gpsLat = parseFloat(exifData.GPSLatitude);
+      gpsLng = parseFloat(exifData.GPSLongitude);
+      
+      // Apply GPS reference directions
+      if (exifData.GPSLatitudeRef === 'S') gpsLat = -gpsLat;
+      if (exifData.GPSLongitudeRef === 'W') gpsLng = -gpsLng;
+      
+      if (gpsLat !== 0 || gpsLng !== 0) {
+        hasGPS = true;
+        console.log('Found GPS data in EXIF:', gpsLat, gpsLng);
+        console.log('GPS References:', exifData.GPSLatitudeRef, exifData.GPSLongitudeRef);
+      } else {
+        console.log('GPS coordinates are 0,0 - location services may have been disabled');
+      }
+    } else {
+      console.log('No GPS coordinates found in EXIF data');
+    }
+    
+    if (hasGPS) {
+      console.log('Using GPS data from EXIF');
+    } else {
+      console.log('No GPS data found, trying to get device location...');
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const location = await Location.getCurrentPositionAsync({});
+          gpsLat = location.coords.latitude;
+          gpsLng = location.coords.longitude;
+          hasGPS = true;
+          console.log('Using device location:', gpsLat, gpsLng);
+        } else {
+          console.log('Location permission denied, using AI vision analysis');
+        }
+      } catch (error) {
+        console.log('Failed to get device location:', error.message);
+        console.log('Using AI vision analysis');
+      }
+    }
     
     try {
       // Optimize image for better API processing while preserving quality
@@ -443,21 +521,37 @@ function CameraScreen({ navigation }) {
         });
       }
       
-      // Enhanced AI analysis with configurable landmark detection
-      formData.append('latitude', '0');
-      formData.append('longitude', '0');
+      // Enhanced AI analysis with GPS data if available
+      formData.append('latitude', gpsLat.toString());
+      formData.append('longitude', gpsLng.toString());
       formData.append('analyzeLandmarks', analyzeLandmarks.toString());
       formData.append('enhanced', 'true');
       formData.append('mobile', 'true');
-      formData.append('region_hint', 'UK');
-      formData.append('search_priority', 'London,UK');
-      console.log(`Using enhanced AI analysis with landmark detection: ${analyzeLandmarks}`);
+      formData.append('hasGPS', hasGPS.toString());
+      formData.append('platform', Platform.OS);
+      formData.append('exifSource', hasGPS ? 'image-gps' : 'device-location');
+      
+      // Only add location bias if using device location (not image GPS)
+      if (!hasGPS || (gpsLat === 0 && gpsLng === 0)) {
+        const country = gpsLat > 0 && gpsLat < 15 && gpsLng > 0 && gpsLng < 15 ? 'Nigeria' : 'auto-detect';
+        formData.append('region_hint', country);
+        if (country === 'Nigeria') {
+          formData.append('search_priority', 'Lagos,Nigeria');
+          formData.append('country_bias', 'NG');
+        }
+      }
+      
+      if (hasGPS) {
+        console.log(`Using GPS coordinates: ${gpsLat}, ${gpsLng}`);
+      } else {
+        console.log(`Using enhanced AI analysis with landmark detection: ${analyzeLandmarks}`);
+      }
 
       console.log('Making API request with FormData');
       
       // Create AbortController for custom timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
       
       const response = await fetch(`https://ssabiroad.vercel.app/api/location-recognition-v2?t=${Date.now()}`, {
         method: 'POST',
@@ -517,7 +611,7 @@ function CameraScreen({ navigation }) {
           
           console.log('Making retry API request...');
           const retryController = new AbortController();
-          const retryTimeoutId = setTimeout(() => retryController.abort(), 30000);
+          const retryTimeoutId = setTimeout(() => retryController.abort(), 90000);
           
           const retryResponse = await fetch(`https://ssabiroad.vercel.app/api/location-recognition-v2?retry=1&t=${Date.now()}`, {
             method: 'POST',
@@ -642,15 +736,19 @@ function CameraScreen({ navigation }) {
 
   const handleVoiceCommand = (command) => {
     switch (command) {
+      case 'takePhoto':
+        takePicture();
+        break;
+      case 'openGallery':
+        pickImage();
+        break;
       case 'analyze':
         if (photo) {
-          Alert.alert('Voice Command', 'Analyzing photo...');
+          Alert.alert('Voice Command', 'Re-analyzing photo...');
+          analyzeImage(photo, currentExifData, 'voice');
         } else {
           Alert.alert('Voice Command', 'Please take a photo first');
         }
-        break;
-      case 'findSimilar':
-        Alert.alert('Voice Command', 'Finding similar architecture...');
         break;
       case 'saveLocation':
         if (result?.success) {
@@ -658,6 +756,9 @@ function CameraScreen({ navigation }) {
         } else {
           Alert.alert('Voice Command', 'No location to save');
         }
+        break;
+      case 'findSimilar':
+        Alert.alert('Voice Command', 'Finding similar locations...');
         break;
     }
   };
@@ -771,7 +872,7 @@ function CameraScreen({ navigation }) {
                       <Text style={styles.successTitle}>Location Found</Text>
                     </View>
                     <Text style={styles.locationText}>
-                      {result.address || result.name || 'Location identified'}
+                      {String(result.address || result.name || 'Location identified')}
                     </Text>
                     
                     {/* Location Details */}
@@ -781,7 +882,7 @@ function CameraScreen({ navigation }) {
                         {result.locationDetails.country && (
                           <View style={styles.detailRow}>
                             <Text style={styles.detailLabel}>Country</Text>
-                            <Text style={styles.detailValue}>{result.locationDetails.country}</Text>
+                            <Text style={styles.detailValue}>{String(result.locationDetails.country)}</Text>
                           </View>
                         )}
                         {result.locationDetails.state && (
