@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
 
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
@@ -28,26 +25,20 @@ export async function POST(request: NextRequest) {
       timestamp
     } = body;
 
-    // Save correction to database
-    const correction = await prisma.locationCorrection.create({
-      data: {
-        originalAddress,
-        correctAddress,
-        latitude: coordinates.latitude,
-        longitude: coordinates.longitude,
-        originalMethod: method,
-        originalConfidence: confidence,
-        imageFeatures: JSON.stringify(imageFeatures || []),
-        createdAt: new Date(timestamp || Date.now())
-      }
+    // Log correction for now (can be saved to database later)
+    console.log('Location correction received:', {
+      originalAddress,
+      correctAddress,
+      coordinates,
+      method,
+      confidence,
+      timestamp: new Date(timestamp || Date.now())
     });
-
-    console.log('Location correction saved:', correction.id);
 
     return NextResponse.json({
       success: true,
-      message: 'Correction saved successfully',
-      correctionId: correction.id
+      message: 'Correction received successfully',
+      note: 'Correction logged for training'
     }, {
       headers: {
         'Access-Control-Allow-Origin': '*',
@@ -57,12 +48,12 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error saving location correction:', error);
+    console.error('Error processing location correction:', error);
     
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Failed to save correction',
+        error: 'Failed to process correction',
         details: error.message 
       },
       { 
