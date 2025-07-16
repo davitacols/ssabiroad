@@ -1,4 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+
+const CORRECTIONS_FILE = path.join(process.cwd(), 'corrections.json');
+
+// Load existing corrections
+function loadCorrections() {
+  try {
+    if (fs.existsSync(CORRECTIONS_FILE)) {
+      return JSON.parse(fs.readFileSync(CORRECTIONS_FILE, 'utf8'));
+    }
+  } catch (error) {
+    console.error('Error loading corrections:', error);
+  }
+  return [];
+}
+
+// Save corrections to file
+function saveCorrections(corrections) {
+  try {
+    fs.writeFileSync(CORRECTIONS_FILE, JSON.stringify(corrections, null, 2));
+  } catch (error) {
+    console.error('Error saving corrections:', error);
+  }
+}
 
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
@@ -25,20 +50,33 @@ export async function POST(request: NextRequest) {
       timestamp
     } = body;
 
-    // Log correction for now (can be saved to database later)
-    console.log('Location correction received:', {
+    // Load existing corrections
+    const corrections = loadCorrections();
+    
+    // Add new correction
+    const newCorrection = {
+      id: Date.now(),
       originalAddress,
       correctAddress,
       coordinates,
       method,
       confidence,
-      timestamp: new Date(timestamp || Date.now())
-    });
+      timestamp: new Date(timestamp || Date.now()).toISOString(),
+      imageFeatures: imageFeatures || []
+    };
+    
+    corrections.push(newCorrection);
+    
+    // Save to file
+    saveCorrections(corrections);
+    
+    console.log('Location correction saved:', newCorrection.id);
 
     return NextResponse.json({
       success: true,
-      message: 'Correction received successfully',
-      note: 'Correction logged for training'
+      message: 'Correction saved successfully',
+      correctionId: newCorrection.id,
+      totalCorrections: corrections.length
     }, {
       headers: {
         'Access-Control-Allow-Origin': '*',

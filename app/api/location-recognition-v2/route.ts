@@ -2921,10 +2921,47 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     return null;
   }
 
+  // Check for existing corrections before AI analysis
+  private async checkCorrections(coordinates: Location): Promise<LocationResult | null> {
+    try {
+      const response = await fetch('/api/correction-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coordinates })
+      });
+      
+      const data = await response.json();
+      
+      if (data.found) {
+        console.log('Found existing correction:', data.correctAddress);
+        return {
+          success: true,
+          name: 'Corrected Location',
+          location: coordinates,
+          address: data.correctAddress,
+          confidence: 0.95,
+          method: 'user-correction',
+          description: `Previously corrected by user: ${data.correctAddress}`
+        };
+      }
+    } catch (error) {
+      console.log('Correction lookup failed:', error.message);
+    }
+    return null;
+  }
+
   // V2 pipeline - EXIF GPS data with AI vision fallback
   async recognize(buffer: Buffer, providedLocation?: Location, analyzeLandmarks: boolean = false, regionHint?: string, searchPriority?: string): Promise<LocationResult> {
     console.log('V2: Enhanced location recognition starting...');
     console.log('Buffer info - Size:', buffer.length, 'bytes');
+    
+    // Check for existing corrections first if we have coordinates
+    if (providedLocation) {
+      const correctionResult = await this.checkCorrections(providedLocation);
+      if (correctionResult) {
+        return await this.enrichLocationData(correctionResult, buffer, analyzeLandmarks);
+      }
+    }
     
     try {
       // Add overall timeout for the entire recognition process
