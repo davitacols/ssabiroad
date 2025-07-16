@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Pool } from '@neondatabase/serverless';
+import { PrismaClient } from '@prisma/client';
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient();
 
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
@@ -28,30 +28,26 @@ export async function POST(request: NextRequest) {
       timestamp
     } = body;
 
-    // Save correction to NeonDB
-    const result = await pool.query(
-      `INSERT INTO location_corrections 
-       (original_address, correct_address, latitude, longitude, original_method, original_confidence, image_features, created_at) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-       RETURNING id`,
-      [
+    // Save correction to database
+    const correction = await prisma.locationCorrection.create({
+      data: {
         originalAddress,
         correctAddress,
-        coordinates.latitude,
-        coordinates.longitude,
-        method,
-        confidence,
-        JSON.stringify(imageFeatures || []),
-        new Date(timestamp || Date.now())
-      ]
-    );
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+        originalMethod: method,
+        originalConfidence: confidence,
+        imageFeatures: JSON.stringify(imageFeatures || []),
+        createdAt: new Date(timestamp || Date.now())
+      }
+    });
 
-    console.log('Location correction saved:', result.rows[0].id);
+    console.log('Location correction saved:', correction.id);
 
     return NextResponse.json({
       success: true,
       message: 'Correction saved successfully',
-      correctionId: result.rows[0].id
+      correctionId: correction.id
     }, {
       headers: {
         'Access-Control-Allow-Origin': '*',
