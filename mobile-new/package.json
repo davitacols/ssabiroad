@@ -6,7 +6,9 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build:android": "eas build --platform android",
+    "build:apk": "eas build --platform android --profile preview"
   },
   "dependencies": {
     "expo": "~53.0.0",
@@ -30,7 +32,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "metro": "^0.80.0",
+    "metro": "^0.80.12",
     "@expo/metro-config": "~0.18.0"
   },
   "private": true
