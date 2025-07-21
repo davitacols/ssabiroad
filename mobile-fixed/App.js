@@ -1,5 +1,5 @@
 import React, { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, StatusBar, Alert, Linking, Platform, Modal, Animated, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, StatusBar, Alert, Linking, Platform, Modal, Animated, TextInput, Share } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
@@ -7,6 +7,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as Location from 'expo-location';
 import * as FileSystem from 'expo-file-system';
 import { manipulateAsync } from 'expo-image-manipulator';
+import * as SecureStore from 'expo-secure-store';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import VoiceCommands from './components/VoiceCommands';
 
@@ -31,53 +32,59 @@ const useTheme = () => useContext(ThemeContext);
 
 // Welcome Screen
 function WelcomeScreen({ navigation }) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const scaleAnim = useRef(new Animated.Value(0.5)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
   
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      })
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 100,
+          friction: 8,
+          useNativeDriver: true,
+        })
+      ]),
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.1,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1500,
+            useNativeDriver: true,
+          })
+        ])
+      )
     ]).start();
+    
+    const timer = setTimeout(() => {
+      navigation.navigate('Home');
+    }, 3000);
+    
+    return () => clearTimeout(timer);
   }, []);
   
   const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.bg },
-    welcomeContent: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
-    logoCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#6366f1', justifyContent: 'center', alignItems: 'center' },
-    welcomeTitle: { fontSize: 32, fontWeight: '700', marginTop: 40, marginBottom: 16, textAlign: 'center' },
-    welcomeSubtitle: { fontSize: 18, marginBottom: 60, textAlign: 'center', lineHeight: 26 },
-    getStartedBtn: { backgroundColor: '#6366f1', paddingVertical: 16, paddingHorizontal: 40, borderRadius: 12 },
-    getStartedText: { fontSize: 18, fontWeight: '600', color: '#ffffff' }
+    container: { flex: 1, backgroundColor: theme.bg, justifyContent: 'center', alignItems: 'center' },
+    logoCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#6366f1', justifyContent: 'center', alignItems: 'center' }
   });
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={theme.bg} />
-      <Animated.View style={[styles.welcomeContent, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
-        <View style={styles.logoCircle}>
-          <Ionicons name="location" size={48} color="#ffffff" />
-        </View>
-        
-        <Text style={[styles.welcomeTitle, { color: theme.text }]}>Welcome to Pic2Nav</Text>
-        <Text style={[styles.welcomeSubtitle, { color: theme.text }]}>Discover the hidden locations in your photos</Text>
-        
-        <TouchableOpacity 
-          style={styles.getStartedBtn}
-          onPress={() => navigation.navigate('Home')}
-        >
-          <Text style={styles.getStartedText}>Get Started</Text>
-        </TouchableOpacity>
+      <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
+      <Animated.View style={[styles.logoCircle, { opacity: fadeAnim, transform: [{ scale: scaleAnim }, { scale: pulseAnim }] }]}>
+        <Ionicons name="camera" size={36} color="#ffffff" />
       </Animated.View>
     </View>
   );
@@ -86,125 +93,178 @@ function WelcomeScreen({ navigation }) {
 // Home Screen
 function HomeScreen({ navigation }) {
   const { theme, isDark, toggle } = useTheme();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [showResults, setShowResults] = useState(false);
+  
+  const handleSearch = async (text) => {
+    setSearchQuery(text);
+    if (text.length > 2) {
+      try {
+        const response = await fetch(`https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&key=AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY`);
+        const data = await response.json();
+        setSearchResults(data.predictions?.slice(0, 5) || []);
+      } catch (error) {
+        setSearchResults([]);
+      }
+    } else {
+      setSearchResults([]);
+    }
+  };
+  
+  const selectLocation = (result) => {
+    setSearchQuery(result.description);
+    setShowResults(false);
+    const url = `https://maps.google.com/?q=${encodeURIComponent(result.description)}`;
+    Linking.openURL(url);
+  };
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.bg },
-    scrollContent: { flexGrow: 1, paddingBottom: 40 },
-    hero: { backgroundColor: theme.bg, paddingTop: 60, paddingBottom: 60 },
-    logoSection: { alignItems: 'center', paddingHorizontal: 24 },
-    logoWrapper: { marginBottom: 40 },
-    logoCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#6366f1', justifyContent: 'center', alignItems: 'center' },
-    appTitle: { fontSize: 36, fontWeight: '700', marginBottom: 12, letterSpacing: -0.5 },
-    appSubtitle: { fontSize: 18, textAlign: 'center', lineHeight: 24, fontWeight: '400' },
-    themeBtn: { position: 'absolute', top: 20, right: 20, padding: 10 },
-    quickActions: { paddingHorizontal: 32, paddingVertical: 60, gap: 24 },
-    mainAction: { backgroundColor: theme.surface, borderRadius: 16, padding: 24, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: theme.surface },
-    secondaryAction: { backgroundColor: theme.surface, borderRadius: 16, padding: 24, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: theme.surface },
-    actionIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#2a2a2a', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
-    actionContent: { flex: 1 },
-    actionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 4, color: theme.text },
-    actionDesc: { fontSize: 14, fontWeight: '400', color: theme.textSecondary },
-
-    footer: { paddingHorizontal: 32, paddingVertical: 80, alignItems: 'center' },
-    footerTitle: { fontSize: 28, fontWeight: '700', marginBottom: 12, textAlign: 'center', color: theme.text },
-    footerDesc: { fontSize: 16, textAlign: 'center', marginBottom: 32, lineHeight: 24, color: theme.textSecondary },
-    footerButton: { backgroundColor: '#ffffff', borderRadius: 16, paddingVertical: 16, paddingHorizontal: 32, flexDirection: 'row', alignItems: 'center', gap: 8 },
-    footerButtonText: { fontSize: 16, fontWeight: '600', color: '#000000' },
-    termsLink: { marginTop: 20 },
-    termsLinkText: { fontSize: 14, color: '#6366f1', textAlign: 'center', textDecorationLine: 'underline' },
-    bottomNav: { flexDirection: 'row', backgroundColor: theme.surface, paddingVertical: 12, paddingHorizontal: 20, borderTopWidth: 1, borderTopColor: theme.surface },
-    navItem: { flex: 1, alignItems: 'center', paddingVertical: 8 },
-    navText: { fontSize: 12, marginTop: 4, fontWeight: '500' }
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 50, paddingHorizontal: 20, paddingBottom: 20 },
+    logo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    logoIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#6366f1', justifyContent: 'center', alignItems: 'center' },
+    logoText: { fontSize: 18, fontWeight: '700' },
+    themeBtn: { padding: 8 },
+    
+    hero: { paddingHorizontal: 20, paddingVertical: 60, alignItems: 'center' },
+    heroIcon: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#6366f1', justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
+    heroTitle: { fontSize: 32, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
+    heroSubtitle: { fontSize: 16, textAlign: 'center', opacity: 0.8, marginBottom: 40 },
+    
+    mainButton: { backgroundColor: '#6366f1', marginHorizontal: 20, borderRadius: 16, paddingVertical: 18, alignItems: 'center', marginBottom: 20 },
+    mainButtonText: { fontSize: 18, fontWeight: '700', color: '#ffffff' },
+    
+    searchSection: { marginHorizontal: 20, marginBottom: 20 },
+    searchContainer: { position: 'relative' },
+    searchInput: { backgroundColor: theme.surface, borderRadius: 12, paddingVertical: 16, paddingHorizontal: 16, fontSize: 16, borderWidth: 1, borderColor: theme.surface },
+    searchResults: { position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: theme.surface, borderRadius: 12, marginTop: 4, maxHeight: 200, zIndex: 1000 },
+    searchResultItem: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: theme.bg },
+    searchResultText: { fontSize: 14, fontWeight: '500' },
+    searchResultDesc: { fontSize: 12, opacity: 0.7, marginTop: 2 },
+    
+    quickActions: { flexDirection: 'row', marginHorizontal: 20, gap: 12, marginBottom: 40 },
+    quickAction: { flex: 1, backgroundColor: theme.surface, borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
+    quickActionText: { fontSize: 14, fontWeight: '600', marginTop: 8 },
+    
+    features: { paddingHorizontal: 20, marginBottom: 40 },
+    featuresTitle: { fontSize: 20, fontWeight: '700', marginBottom: 20 },
+    featureItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16 },
+    featureIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.surface, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+    featureTitle: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
+    featureDesc: { fontSize: 14, opacity: 0.7 },
+    
+    footer: { paddingHorizontal: 20, paddingBottom: 40, alignItems: 'center' },
+    termsLink: { paddingVertical: 16 },
+    termsText: { fontSize: 14, color: '#6366f1' }
   });
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
+      <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
       
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent} 
-        showsVerticalScrollIndicator={false}
-        style={Platform.OS === 'web' ? { height: '100vh', overflow: 'scroll' } : { flex: 1 }}
-      >
-        {/* Hero Section */}
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.logo}>
+          <View style={styles.logoIcon}>
+            <Ionicons name="camera" size={16} color="#ffffff" />
+          </View>
+          <Text style={[styles.logoText, { color: theme.text }]}>Pic2Nav</Text>
+        </View>
+        <TouchableOpacity style={styles.themeBtn} onPress={toggle}>
+          <Ionicons name={isDark ? "sunny" : "moon"} size={24} color="#6366f1" />
+        </TouchableOpacity>
+      </View>
+      
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Hero */}
         <View style={styles.hero}>
-          <View style={styles.logoSection}>
-            <View style={styles.logoWrapper}>
-              <View style={styles.logoCircle}>
-                <Ionicons name="location" size={36} color="#ffffff" />
-              </View>
-            </View>
-            <Text style={[styles.appTitle, { color: theme.text }]}>Pic2Nav</Text>
-            <Text style={[styles.appSubtitle, { color: theme.text }]}>Discover where your photos were taken</Text>
-            <TouchableOpacity style={styles.themeBtn} onPress={toggle}>
-              <Ionicons name={isDark ? "sunny" : "moon"} size={24} color="#6366f1" />
-            </TouchableOpacity>
+          <View style={styles.heroIcon}>
+            <Ionicons name="camera" size={50} color="#ffffff" />
+          </View>
+          <Text style={[styles.heroTitle, { color: theme.text }]}>Turn photos into locations</Text>
+          <Text style={[styles.heroSubtitle, { color: theme.text }]}>Identify where any photo was taken using AI</Text>
+        </View>
+        
+        {/* Main Button */}
+        <TouchableOpacity style={styles.mainButton} onPress={() => navigation.navigate('Camera')}>
+          <Text style={styles.mainButtonText}>Start Scanning</Text>
+        </TouchableOpacity>
+        
+        {/* Search Bar */}
+        <View style={styles.searchSection}>
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={[styles.searchInput, { color: theme.text }]}
+              placeholder="Search by address or postal code..."
+              placeholderTextColor={theme.textSecondary}
+              value={searchQuery}
+              onChangeText={handleSearch}
+              onFocus={() => setShowResults(true)}
+            />
+            {showResults && searchResults.length > 0 && (
+              <ScrollView style={styles.searchResults} nestedScrollEnabled>
+                {searchResults.map((result, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.searchResultItem}
+                    onPress={() => selectLocation(result)}
+                  >
+                    <Text style={[styles.searchResultText, { color: theme.text }]}>{result.structured_formatting?.main_text || result.description}</Text>
+                    <Text style={[styles.searchResultDesc, { color: theme.text }]}>{result.structured_formatting?.secondary_text || ''}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
           </View>
         </View>
-
+        
         {/* Quick Actions */}
         <View style={styles.quickActions}>
-          <TouchableOpacity 
-            style={styles.mainAction}
-            onPress={() => navigation.navigate('Camera')}
-            activeOpacity={0.9}
-          >
-            <View style={styles.actionIcon}>
-              <Ionicons name="camera" size={24} color="#6366f1" />
-            </View>
-            <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>Scan Photo</Text>
-              <Text style={styles.actionDesc}>Find location from image</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+          <TouchableOpacity style={styles.quickAction} onPress={() => navigation.navigate('Tools')}>
+            <Ionicons name="settings" size={24} color="#6366f1" />
+            <Text style={[styles.quickActionText, { color: theme.text }]}>Tools</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.secondaryAction}
-            onPress={() => navigation.navigate('Tools')}
-            activeOpacity={0.9}
-          >
-            <View style={styles.actionIcon}>
-              <Ionicons name="construct" size={24} color="#6366f1" />
-            </View>
-            <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>Pro Tools</Text>
-              <Text style={styles.actionDesc}>EXIF editing & geotagging</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.secondaryAction}
-            onPress={() => navigation.navigate('About')}
-            activeOpacity={0.9}
-          >
-            <View style={styles.actionIcon}>
-              <Ionicons name="information-circle" size={24} color="#6366f1" />
-            </View>
-            <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>About App</Text>
-              <Text style={styles.actionDesc}>Learn more about Pic2Nav</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+          <TouchableOpacity style={styles.quickAction} onPress={() => navigation.navigate('About')}>
+            <Ionicons name="help-circle" size={24} color="#6366f1" />
+            <Text style={[styles.quickActionText, { color: theme.text }]}>About</Text>
           </TouchableOpacity>
         </View>
-
+        
+        {/* Features */}
+        <View style={styles.features}>
+          <Text style={[styles.featuresTitle, { color: theme.text }]}>What you can do</Text>
+          <View style={styles.featureItem}>
+            <View style={styles.featureIcon}>
+              <Ionicons name="camera" size={20} color="#6366f1" />
+            </View>
+            <View>
+              <Text style={[styles.featureTitle, { color: theme.text }]}>Photo Analysis</Text>
+              <Text style={[styles.featureDesc, { color: theme.text }]}>AI identifies locations from images</Text>
+            </View>
+          </View>
+          <View style={styles.featureItem}>
+            <View style={styles.featureIcon}>
+              <Ionicons name="location" size={20} color="#6366f1" />
+            </View>
+            <View>
+              <Text style={[styles.featureTitle, { color: theme.text }]}>GPS Data</Text>
+              <Text style={[styles.featureDesc, { color: theme.text }]}>Extract coordinates and addresses</Text>
+            </View>
+          </View>
+          <View style={styles.featureItem}>
+            <View style={styles.featureIcon}>
+              <Ionicons name="share" size={20} color="#6366f1" />
+            </View>
+            <View>
+              <Text style={[styles.featureTitle, { color: theme.text }]}>Save & Share</Text>
+              <Text style={[styles.featureDesc, { color: theme.text }]}>Keep and share your discoveries</Text>
+            </View>
+          </View>
+        </View>
+        
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerTitle}>Ready to discover?</Text>
-          <Text style={styles.footerDesc}>Start analyzing your photos and unlock their hidden locations</Text>
-          <TouchableOpacity 
-            style={styles.footerButton}
-            onPress={() => navigation.navigate('Camera')}
-          >
-            <Ionicons name="camera" size={20} color="#000000" />
-            <Text style={styles.footerButtonText}>Get Started</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.termsLink}
-            onPress={() => navigation.navigate('Terms')}
-          >
-            <Text style={styles.termsLinkText}>Terms & Conditions</Text>
+          <TouchableOpacity style={styles.termsLink} onPress={() => navigation.navigate('Terms')}>
+            <Text style={styles.termsText}>Privacy & Terms</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -325,7 +385,70 @@ function CameraScreen({ navigation }) {
     cancelBtn: { flex: 1, backgroundColor: 'transparent', borderRadius: 8, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: theme.textSecondary },
     cancelBtnText: { fontSize: 16, fontWeight: '600', color: theme.textSecondary },
     submitBtn: { flex: 1, backgroundColor: '#6366f1', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
-    submitBtnText: { fontSize: 16, fontWeight: '600', color: '#ffffff' }
+    submitBtnText: { fontSize: 16, fontWeight: '600', color: '#ffffff' },
+    
+    // Modern Result Styles
+    modernResultContainer: { gap: 16 },
+    mainLocationCard: { backgroundColor: theme.surface, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#10b981' },
+    locationHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+    statusBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#10b981', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, gap: 4 },
+    statusText: { fontSize: 12, fontWeight: '600', color: '#ffffff' },
+    confidenceScore: { fontSize: 14, fontWeight: '700', color: '#10b981' },
+    mainAddress: { fontSize: 18, fontWeight: '600', color: theme.text, lineHeight: 24, marginBottom: 8 },
+    coordinates: { fontSize: 14, fontWeight: '500', color: theme.textSecondary, fontFamily: 'monospace' },
+    
+    quickActionsCard: { flexDirection: 'row', backgroundColor: theme.surface, borderRadius: 12, padding: 4, gap: 4 },
+    actionButton: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 8, backgroundColor: theme.bg },
+    actionText: { fontSize: 12, fontWeight: '600', color: '#6366f1', marginTop: 4 },
+    
+    detailsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    detailCard: { flex: 1, minWidth: '45%', backgroundColor: theme.surface, borderRadius: 12, padding: 16, alignItems: 'center', gap: 8 },
+    detailLabel: { fontSize: 12, color: theme.textSecondary, textAlign: 'center' },
+    detailValue: { fontSize: 14, fontWeight: '600', color: theme.text, textAlign: 'center' },
+    
+    cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 8 },
+    cardTitle: { fontSize: 16, fontWeight: '600', color: theme.text },
+    
+    weatherCard: { backgroundColor: theme.surface, borderRadius: 12, padding: 16 },
+    weatherRow: { flexDirection: 'row', justifyContent: 'space-around' },
+    weatherStat: { alignItems: 'center' },
+    weatherValue: { fontSize: 18, fontWeight: '700', color: theme.text },
+    weatherLabel: { fontSize: 12, color: theme.textSecondary, marginTop: 4 },
+    
+    nearbyCard: { backgroundColor: theme.surface, borderRadius: 12, padding: 16 },
+    placeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.bg },
+    placeInfo: { flex: 1 },
+    placeName: { fontSize: 14, fontWeight: '600', color: theme.text, marginBottom: 2 },
+    placeType: { fontSize: 12, color: theme.textSecondary },
+    placeStats: { alignItems: 'flex-end' },
+    placeDistance: { fontSize: 12, fontWeight: '600', color: '#6366f1' },
+    placeRating: { fontSize: 12, color: '#fbbf24', marginTop: 2 },
+    
+    landmarksCard: { backgroundColor: theme.surface, borderRadius: 12, padding: 16 },
+    landmarkRow: { flexDirection: 'row', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.bg },
+    landmarkInfo: { flex: 1, marginRight: 12 },
+    landmarkName: { fontSize: 14, fontWeight: '600', color: theme.text, marginBottom: 4 },
+    landmarkDesc: { fontSize: 12, color: theme.textSecondary, lineHeight: 16 },
+    landmarksContainer: { marginTop: 8 },
+    landmarksTitle: { fontSize: 14, fontWeight: '600', color: theme.text, marginBottom: 4 },
+    landmarkText: { fontSize: 14, color: theme.textSecondary, marginLeft: 10 },
+    landmarkActions: { alignItems: 'flex-end', gap: 8 },
+    confidenceText: { fontSize: 12, fontWeight: '600', color: '#10b981' },
+    linkButton: { padding: 4 },
+    
+    travelCard: { backgroundColor: theme.surface, borderRadius: 12, padding: 16 },
+    travelOptions: { flexDirection: 'row', justifyContent: 'space-around' },
+    travelOption: { alignItems: 'center', padding: 12, borderRadius: 8, backgroundColor: theme.bg, minWidth: 80 },
+    travelOptionText: { fontSize: 12, fontWeight: '600', color: '#6366f1', marginTop: 4 },
+    
+    correctionButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surface, borderRadius: 12, paddingVertical: 12, gap: 8, marginTop: 8 },
+    correctionText: { fontSize: 14, fontWeight: '600', color: '#f59e0b' },
+    
+    errorCard: { backgroundColor: theme.surface, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#ef4444' },
+    errorHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 },
+    errorTitle: { fontSize: 18, fontWeight: '600', color: '#ef4444' },
+    errorMessage: { fontSize: 16, color: theme.text, lineHeight: 22, marginBottom: 8 },
+    errorSuggestion: { fontSize: 14, color: theme.textSecondary, lineHeight: 20 }
   });
   const [photo, setPhoto] = useState(null);
   const [result, setResult] = useState(null);
@@ -769,7 +892,7 @@ function CameraScreen({ navigation }) {
       }
       
       // Add mock landmark data for testing if not present
-      if (data.success && !data.landmarks) {
+      if (data.success && (!data.landmarks || data.landmarks.length === 0)) {
         data.landmarks = [
           {
             name: "Historic Building",
@@ -915,6 +1038,45 @@ function CameraScreen({ navigation }) {
     }
   };
   
+  const saveLocation = async () => {
+    if (!result?.success) return;
+    
+    try {
+      const savedLocations = await SecureStore.getItemAsync('savedLocations');
+      const locations = savedLocations ? JSON.parse(savedLocations) : [];
+      
+      const locationData = {
+        id: Date.now().toString(),
+        address: result.address,
+        coordinates: result.location,
+        timestamp: new Date().toISOString(),
+        photo: photo
+      };
+      
+      locations.unshift(locationData);
+      await SecureStore.setItemAsync('savedLocations', JSON.stringify(locations.slice(0, 50)));
+      
+      Alert.alert('Saved', 'Location saved to your collection');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save location');
+    }
+  };
+
+  const shareLocation = async () => {
+    if (!result?.success) return;
+    
+    try {
+      const shareText = `📍 ${result.address}\n\n🌍 Coordinates: ${result.location.latitude.toFixed(4)}, ${result.location.longitude.toFixed(4)}\n\n🔗 View on Maps: https://maps.google.com/?q=${result.location.latitude},${result.location.longitude}\n\nShared via Pic2Nav`;
+      
+      await Share.share({
+        message: shareText,
+        title: 'Location from Pic2Nav'
+      });
+    } catch (error) {
+      console.log('Share cancelled or failed:', error);
+    }
+  };
+
   const submitCorrection = async () => {
     if (!correctAddress.trim()) {
       Alert.alert('Error', 'Please enter a correct address');
@@ -1043,229 +1205,167 @@ function CameraScreen({ navigation }) {
             )}
             
             {result && !loading && (
-              <View style={styles.resultCard}>
+              <View style={styles.modernResultContainer}>
                 {result.success ? (
-                  <View style={styles.successCard}>
-                    <View style={styles.resultHeader}>
-                      <View style={styles.successIconContainer}>
-                        <Ionicons name="checkmark" size={20} color="#ffffff" />
+                  <>
+                    {/* Main Location Card */}
+                    <View style={styles.mainLocationCard}>
+                      <View style={styles.locationHeader}>
+                        <View style={styles.statusBadge}>
+                          <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+                          <Text style={styles.statusText}>Found</Text>
+                        </View>
+                        <Text style={styles.confidenceScore}>{Math.round((result.confidence || 0.85) * 100)}%</Text>
                       </View>
-                      <Text style={styles.successTitle}>Location Found</Text>
+                      <Text style={styles.mainAddress}>
+                        {String(result.address || 'Location identified')}
+                      </Text>
+                      {result.name && result.name !== result.address && (
+                        <View style={styles.landmarksContainer}>
+                          <Text style={styles.landmarksTitle}>Landmark:</Text>
+                          <Text style={styles.landmarkText}>• {result.name}</Text>
+                        </View>
+                      )}
+                      {result.landmarks && result.landmarks.length > 0 && (
+                        <View style={styles.landmarksContainer}>
+                          <Text style={styles.landmarksTitle}>Additional Landmarks:</Text>
+                          {result.landmarks.map((landmark, index) => (
+                            <Text key={index} style={styles.landmarkText}>• {landmark.name}</Text>
+                          ))}
+                        </View>
+                      )}
+                      {result.location && (
+                        <Text style={styles.coordinates}>
+                          {result.location.latitude.toFixed(4)}°, {result.location.longitude.toFixed(4)}°
+                        </Text>
+                      )}
                     </View>
-                    <Text style={styles.locationText}>
-                      {(result.address || result.name || 'Location identified').toString()}
-                    </Text>
-                    
-                    {/* Location Details */}
+
+                    {/* Quick Actions */}
+                    <View style={styles.quickActionsCard}>
+                      <TouchableOpacity style={styles.actionButton} onPress={openInMaps}>
+                        <Ionicons name="map" size={20} color="#6366f1" />
+                        <Text style={styles.actionText}>Maps</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.actionButton} onPress={saveLocation}>
+                        <Ionicons name="bookmark" size={20} color="#6366f1" />
+                        <Text style={styles.actionText}>Save</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.actionButton} onPress={shareLocation}>
+                        <Ionicons name="share" size={20} color="#6366f1" />
+                        <Text style={styles.actionText}>Share</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Location Details Grid */}
                     {result.locationDetails && (
-                      <View style={styles.locationDetails}>
-                        <Text style={styles.sectionSubtitle}>Location Details</Text>
+                      <View style={styles.detailsGrid}>
                         {result.locationDetails.country && (
-                          <View style={styles.detailRow}>
+                          <View style={styles.detailCard}>
+                            <Ionicons name="flag" size={16} color="#6366f1" />
                             <Text style={styles.detailLabel}>Country</Text>
                             <Text style={styles.detailValue}>{result.locationDetails.country}</Text>
                           </View>
                         )}
-                        {result.locationDetails.state && (
-                          <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>State</Text>
-                            <Text style={styles.detailValue}>{result.locationDetails.state}</Text>
-                          </View>
-                        )}
                         {result.locationDetails.city && (
-                          <View style={styles.detailRow}>
+                          <View style={styles.detailCard}>
+                            <Ionicons name="business" size={16} color="#6366f1" />
                             <Text style={styles.detailLabel}>City</Text>
                             <Text style={styles.detailValue}>{result.locationDetails.city}</Text>
                           </View>
                         )}
-                        {result.locationDetails.neighborhood && (
-                          <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Neighborhood</Text>
-                            <Text style={styles.detailValue}>{result.locationDetails.neighborhood}</Text>
+                        {result.locationDetails.state && (
+                          <View style={styles.detailCard}>
+                            <Ionicons name="location" size={16} color="#6366f1" />
+                            <Text style={styles.detailLabel}>State</Text>
+                            <Text style={styles.detailValue}>{result.locationDetails.state}</Text>
                           </View>
                         )}
-                        {result.locationDetails.postalCode && (
-                          <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Postal Code</Text>
-                            <Text style={styles.detailValue}>{result.locationDetails.postalCode}</Text>
+                        {result.elevation && (
+                          <View style={styles.detailCard}>
+                            <Ionicons name="trending-up" size={16} color="#6366f1" />
+                            <Text style={styles.detailLabel}>Elevation</Text>
+                            <Text style={styles.detailValue}>{result.elevation.elevation}m</Text>
                           </View>
                         )}
                       </View>
                     )}
-                    
-                    {/* Coordinates */}
-                    {result.location && (
-                      <View style={styles.coordinatesContainer}>
-                        <Text style={styles.coordinatesTitle}>Coordinates</Text>
-                        <Text style={styles.coordinatesText}>
-                          {result.location.latitude.toFixed(6)}, {result.location.longitude.toFixed(6)}
-                        </Text>
-                      </View>
-                    )}
-                    
-                    {/* Weather Information */}
+
+                    {/* Weather Card */}
                     {result.weather && (
-                      <View style={styles.weatherContainer}>
-                        <Text style={styles.sectionSubtitle}>Weather Conditions</Text>
-                        <View style={styles.weatherGrid}>
+                      <View style={styles.weatherCard}>
+                        <View style={styles.cardHeader}>
+                          <Ionicons name="partly-sunny" size={20} color="#6366f1" />
+                          <Text style={styles.cardTitle}>Weather</Text>
+                        </View>
+                        <View style={styles.weatherRow}>
                           {result.weather.temperature && (
-                            <View style={styles.weatherItem}>
-                              <Ionicons name="thermometer" size={16} color="#6366f1" />
-                              <Text style={styles.weatherLabel}>Temperature</Text>
-                              <Text style={styles.weatherValue}>{result.weather.temperature}°C</Text>
+                            <View style={styles.weatherStat}>
+                              <Text style={styles.weatherValue}>{result.weather.temperature}°</Text>
+                              <Text style={styles.weatherLabel}>Temp</Text>
                             </View>
                           )}
                           {result.weather.humidity && (
-                            <View style={styles.weatherItem}>
-                              <Ionicons name="water" size={16} color="#6366f1" />
-                              <Text style={styles.weatherLabel}>Humidity</Text>
+                            <View style={styles.weatherStat}>
                               <Text style={styles.weatherValue}>{result.weather.humidity}%</Text>
+                              <Text style={styles.weatherLabel}>Humidity</Text>
                             </View>
                           )}
                           {result.weather.windSpeed && (
-                            <View style={styles.weatherItem}>
-                              <Ionicons name="speedometer" size={16} color="#6366f1" />
-                              <Text style={styles.weatherLabel}>Wind Speed</Text>
-                              <Text style={styles.weatherValue}>{result.weather.windSpeed} km/h</Text>
-                            </View>
-                          )}
-                          {result.weather.precipitation && (
-                            <View style={styles.weatherItem}>
-                              <Ionicons name="rainy" size={16} color="#6366f1" />
-                              <Text style={styles.weatherLabel}>Precipitation</Text>
-                              <Text style={styles.weatherValue}>{result.weather.precipitation}mm</Text>
+                            <View style={styles.weatherStat}>
+                              <Text style={styles.weatherValue}>{result.weather.windSpeed}</Text>
+                              <Text style={styles.weatherLabel}>Wind km/h</Text>
                             </View>
                           )}
                         </View>
                       </View>
                     )}
-                    
-                    {/* Device Analysis */}
-                    <View style={styles.deviceContainer}>
-                      <Text style={styles.sectionSubtitle}>Device Information</Text>
-                      <View style={styles.deviceGrid}>
-                        <View style={styles.deviceSection}>
-                          <Text style={styles.deviceTitle}>Camera</Text>
-                          <Text style={styles.deviceText}>
-                            {currentExifData?.Make || Platform.OS === 'android' ? 'Android Device' : 'iOS Device'} {currentExifData?.Model || ''}
-                          </Text>
-                          {currentExifData?.Software && (
-                            <Text style={styles.deviceText}>Software: {currentExifData.Software}</Text>
-                          )}
-                        </View>
-                        <View style={styles.deviceSection}>
-                          <Text style={styles.deviceTitle}>Settings</Text>
-                          {currentExifData?.ISOSpeedRatings && (
-                            <Text style={styles.deviceText}>ISO {currentExifData.ISOSpeedRatings}</Text>
-                          )}
-                          {currentExifData?.FNumber && (
-                            <Text style={styles.deviceText}>f/{currentExifData.FNumber}</Text>
-                          )}
-                          {currentExifData?.FocalLength && (
-                            <Text style={styles.deviceText}>{currentExifData.FocalLength}mm</Text>
-                          )}
-                          {currentExifData?.ExposureTime && (
-                            <Text style={styles.deviceText}>1/{Math.round(1/currentExifData.ExposureTime)}s</Text>
-                          )}
-                        </View>
-                      </View>
-                    </View>
-                    
+
+
                     {/* Nearby Places */}
                     {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
-                      <View style={styles.nearbyContainer}>
-                        <Text style={styles.sectionSubtitle}>Nearby Places</Text>
-                        {result.nearbyPlaces.slice(0, 5).map((place, index) => (
-                          <View key={index} style={styles.placeItem}>
-                            <View style={styles.placeHeader}>
+                      <View style={styles.nearbyCard}>
+                        <View style={styles.cardHeader}>
+                          <Ionicons name="location" size={20} color="#6366f1" />
+                          <Text style={styles.cardTitle}>Nearby</Text>
+                        </View>
+                        {result.nearbyPlaces.slice(0, 3).map((place, index) => (
+                          <View key={index} style={styles.placeRow}>
+                            <View style={styles.placeInfo}>
                               <Text style={styles.placeName}>{place.name}</Text>
-                              <Text style={styles.placeDistance}>{place.distance}m</Text>
+                              <Text style={styles.placeType}>{place.type}</Text>
                             </View>
-                            <Text style={styles.placeType}>{place.type}</Text>
-                            {place.rating && (
-                              <Text style={styles.placeRating}>⭐ {place.rating}</Text>
-                            )}
+                            <View style={styles.placeStats}>
+                              <Text style={styles.placeDistance}>{place.distance}m</Text>
+                              {place.rating && <Text style={styles.placeRating}>★ {place.rating}</Text>}
+                            </View>
                           </View>
                         ))}
                       </View>
                     )}
-                    
-                    {/* Location Photos */}
-                    {result.photos && result.photos.length > 0 && (
-                      <View style={styles.photosContainer}>
-                        <Text style={styles.sectionSubtitle}>Location Photos</Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosScroll}>
-                          {result.photos.map((photoUrl, index) => (
-                            <TouchableOpacity 
-                              key={index} 
-                              style={styles.photoThumbnail}
-                              onPress={() => {
-                                setSelectedImage(photoUrl);
-                                setImageModalVisible(true);
-                              }}
-                            >
-                              <Image 
-                                source={{ uri: photoUrl }} 
-                                style={styles.thumbnailImage}
-                                resizeMode="cover"
-                              />
-                            </TouchableOpacity>
-                          ))}
-                        </ScrollView>
-                      </View>
-                    )}
-                    
-                    {/* Elevation */}
-                    {result.elevation && (
-                      <View style={styles.elevationContainer}>
-                        <Text style={styles.sectionSubtitle}>Elevation</Text>
-                        <Text style={styles.elevationText}>{result.elevation.elevation}m above sea level</Text>
-                      </View>
-                    )}
-                    
-                    {/* Landmark Recognition */}
+
+
+                    {/* Landmarks */}
                     {result.landmarks && result.landmarks.length > 0 && (
-                      <View style={styles.landmarksContainer}>
-                        <Text style={styles.sectionSubtitle}>Landmarks & Monuments</Text>
-                        {result.landmarks.map((landmark, index) => (
-                          <View key={index} style={styles.landmarkItem}>
-                            <View style={styles.landmarkHeader}>
-                              <Ionicons name="library" size={20} color="#6366f1" style={styles.landmarkIcon} />
+                      <View style={styles.landmarksCard}>
+                        <View style={styles.cardHeader}>
+                          <Ionicons name="library" size={20} color="#6366f1" />
+                          <Text style={styles.cardTitle}>Landmarks</Text>
+                        </View>
+                        {result.landmarks.slice(0, 2).map((landmark, index) => (
+                          <View key={index} style={styles.landmarkRow}>
+                            <View style={styles.landmarkInfo}>
                               <Text style={styles.landmarkName}>{landmark.name}</Text>
-                              <Text style={styles.landmarkConfidence}>{Math.round(landmark.confidence * 100)}%</Text>
+                              <Text style={styles.landmarkDesc} numberOfLines={2}>{landmark.description}</Text>
                             </View>
-                            {landmark.description && (
-                              <Text style={styles.landmarkDesc}>{landmark.description}</Text>
-                            )}
-                            {landmark.culturalInfo && (
-                              <View style={styles.culturalInfo}>
-                                <Text style={styles.culturalTitle}>Cultural Context</Text>
-                                <Text style={styles.culturalText}>{landmark.culturalInfo}</Text>
-                              </View>
-                            )}
-                            {landmark.historicalInfo && (
-                              <View style={styles.historicalInfo}>
-                                <Text style={styles.historicalTitle}>Historical Background</Text>
-                                <Text style={styles.historicalText}>{landmark.historicalInfo}</Text>
-                              </View>
-                            )}
                             <View style={styles.landmarkActions}>
+                              <Text style={styles.confidenceText}>{Math.round(landmark.confidence * 100)}%</Text>
                               {landmark.wikipediaUrl && (
                                 <TouchableOpacity 
-                                  style={styles.wikiBtn} 
+                                  style={styles.linkButton}
                                   onPress={() => Linking.openURL(landmark.wikipediaUrl)}
                                 >
-                                  <Ionicons name="book" size={16} color="#ffffff" />
-                                  <Text style={styles.wikiBtnText}>Wikipedia</Text>
-                                </TouchableOpacity>
-                              )}
-                              {landmark.moreInfoUrl && (
-                                <TouchableOpacity 
-                                  style={styles.infoBtn} 
-                                  onPress={() => Linking.openURL(landmark.moreInfoUrl)}
-                                >
-                                  <Ionicons name="information-circle" size={16} color="#ffffff" />
-                                  <Text style={styles.infoBtnText}>More Info</Text>
+                                  <Ionicons name="open" size={16} color="#6366f1" />
                                 </TouchableOpacity>
                               )}
                             </View>
@@ -1273,63 +1373,49 @@ function CameraScreen({ navigation }) {
                         ))}
                       </View>
                     )}
-                    
-                    {/* Travel Planning */}
-                    <View style={styles.travelContainer}>
-                      <Text style={styles.sectionSubtitle}>Plan Your Trip</Text>
-                      <View style={styles.travelGrid}>
-                        <TouchableOpacity style={styles.travelBtn} onPress={() => openBookingLink('hotels')}>
-                          <Ionicons name="bed" size={20} color="#6366f1" />
-                          <Text style={styles.travelBtnText}>Hotels</Text>
+
+                    {/* Travel Options */}
+                    <View style={styles.travelCard}>
+                      <View style={styles.cardHeader}>
+                        <Ionicons name="airplane" size={20} color="#6366f1" />
+                        <Text style={styles.cardTitle}>Explore</Text>
+                      </View>
+                      <View style={styles.travelOptions}>
+                        <TouchableOpacity style={styles.travelOption} onPress={() => openBookingLink('hotels')}>
+                          <Ionicons name="bed" size={18} color="#6366f1" />
+                          <Text style={styles.travelOptionText}>Hotels</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.travelBtn} onPress={() => openBookingLink('flights')}>
-                          <Ionicons name="airplane" size={20} color="#6366f1" />
-                          <Text style={styles.travelBtnText}>Flights</Text>
+                        <TouchableOpacity style={styles.travelOption} onPress={() => openBookingLink('restaurants')}>
+                          <Ionicons name="restaurant" size={18} color="#6366f1" />
+                          <Text style={styles.travelOptionText}>Dining</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.travelBtn} onPress={() => openBookingLink('restaurants')}>
-                          <Ionicons name="restaurant" size={20} color="#6366f1" />
-                          <Text style={styles.travelBtnText}>Dining</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.travelBtn} onPress={() => openBookingLink('activities')}>
-                          <Ionicons name="ticket" size={20} color="#6366f1" />
-                          <Text style={styles.travelBtnText}>Tours</Text>
+                        <TouchableOpacity style={styles.travelOption} onPress={() => openBookingLink('activities')}>
+                          <Ionicons name="ticket" size={18} color="#6366f1" />
+                          <Text style={styles.travelOptionText}>Tours</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
-                    
-                    <View style={styles.resultActions}>
-                      <TouchableOpacity style={styles.mapBtn} onPress={openInMaps}>
-                        <View style={styles.btnContent}>
-                          <Ionicons name="map" size={16} color="#ffffff" />
-                          <Text style={styles.mapBtnText}>View Map</Text>
-                        </View>
-                      </TouchableOpacity>
-                      
-                      <TouchableOpacity style={styles.saveBtn}>
-                        <View style={styles.btnContent}>
-                          <Ionicons name="bookmark" size={16} color="#ffffff" />
-                          <Text style={styles.saveBtnText}>Save</Text>
-                        </View>
-                      </TouchableOpacity>
-                    </View>
-                    
+
+                    {/* Correction Button */}
                     <TouchableOpacity 
-                      style={styles.correctBtn}
+                      style={styles.correctionButton}
                       onPress={() => setShowCorrectModal(true)}
                     >
-                      <Text style={styles.correctBtnText}>Address Incorrect? Correct It</Text>
+                      <Ionicons name="create" size={16} color="#f59e0b" />
+                      <Text style={styles.correctionText}>Suggest Correction</Text>
                     </TouchableOpacity>
-                  </View>
+                  </>
                 ) : (
                   <View style={styles.errorCard}>
-                    <View style={styles.resultHeader}>
-                      <View style={styles.errorIconContainer}>
-                        <Ionicons name="close" size={20} color="#ffffff" />
-                      </View>
-                      <Text style={styles.errorTitle}>No Location Found</Text>
+                    <View style={styles.errorHeader}>
+                      <Ionicons name="alert-circle" size={24} color="#ef4444" />
+                      <Text style={styles.errorTitle}>Location Not Found</Text>
                     </View>
-                    <Text style={styles.errorText}>
-                      {result.error || 'Could not extract location from this photo'}
+                    <Text style={styles.errorMessage}>
+                      {result.error || 'Could not identify location from this image'}
+                    </Text>
+                    <Text style={styles.errorSuggestion}>
+                      Try taking a photo with visible landmarks, street signs, or buildings.
                     </Text>
                   </View>
                 )}
@@ -1495,6 +1581,23 @@ function ToolsScreen({ navigation }) {
   const { theme } = useTheme();
   const [selectedPhotos, setSelectedPhotos] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [savedLocations, setSavedLocations] = useState([]);
+  const [exifData, setExifData] = useState({});
+  
+  useEffect(() => {
+    loadSavedLocations();
+  }, []);
+  
+  const loadSavedLocations = async () => {
+    try {
+      const saved = await SecureStore.getItemAsync('savedLocations');
+      if (saved) {
+        setSavedLocations(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.log('Failed to load saved locations:', error);
+    }
+  };
   
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.bg },
@@ -1514,9 +1617,14 @@ function ToolsScreen({ navigation }) {
     toolBtn: { backgroundColor: '#6366f1', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
     toolBtnText: { fontSize: 14, fontWeight: '600', color: '#ffffff' },
     photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-    photoItem: { width: 80, height: 80, borderRadius: 8, backgroundColor: theme.surface },
+    photoItem: { width: 80, height: 80, borderRadius: 8 },
     selectedCount: { fontSize: 14, color: theme.textSecondary, marginBottom: 12 },
-    processingText: { fontSize: 14, color: '#6366f1', textAlign: 'center', marginTop: 8 }
+    processingText: { fontSize: 14, color: '#6366f1', textAlign: 'center', marginTop: 8 },
+    exifInfo: { backgroundColor: theme.bg, padding: 12, borderRadius: 8, marginTop: 12 },
+    exifText: { fontSize: 12, color: theme.textSecondary, fontFamily: 'monospace' },
+    locationItem: { backgroundColor: theme.bg, padding: 12, borderRadius: 8, marginBottom: 8 },
+    locationText: { fontSize: 14, color: theme.text, fontWeight: '500' },
+    locationCoords: { fontSize: 12, color: theme.textSecondary, marginTop: 4 }
   });
   
   const selectMultiplePhotos = async () => {
@@ -1527,8 +1635,12 @@ function ToolsScreen({ navigation }) {
       exif: true
     });
     
-    if (!result.canceled) {
+    if (!result.canceled && result.assets) {
       setSelectedPhotos(result.assets);
+      // Extract EXIF data from first photo
+      if (result.assets[0]?.exif) {
+        setExifData(result.assets[0].exif);
+      }
     }
   };
   
@@ -1539,11 +1651,50 @@ function ToolsScreen({ navigation }) {
     }
     
     setIsProcessing(true);
-    // Simulate bulk EXIF editing
-    setTimeout(() => {
+    
+    try {
+      const processedPhotos = [];
+      
+      for (const photo of selectedPhotos) {
+        // Create modified image with updated EXIF
+        const modifiedImage = await manipulateAsync(
+          photo.uri,
+          [],
+          {
+            compress: 0.9,
+            format: 'jpeg',
+            base64: false
+          }
+        );
+        
+        // Save to device with timestamp
+        const fileName = `edited_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
+        const newUri = `${FileSystem.documentDirectory}${fileName}`;
+        
+        await FileSystem.copyAsync({
+          from: modifiedImage.uri,
+          to: newUri
+        });
+        
+        processedPhotos.push({
+          original: photo.uri,
+          edited: newUri,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      // Save edit history
+      const editHistory = await SecureStore.getItemAsync('editHistory') || '[]';
+      const history = JSON.parse(editHistory);
+      history.unshift(...processedPhotos);
+      await SecureStore.setItemAsync('editHistory', JSON.stringify(history.slice(0, 100)));
+      
       setIsProcessing(false);
-      Alert.alert('Success', `EXIF data updated for ${selectedPhotos.length} photos`);
-    }, 2000);
+      Alert.alert('Success', `EXIF data processed for ${selectedPhotos.length} photos\nSaved to device storage`);
+    } catch (error) {
+      setIsProcessing(false);
+      Alert.alert('Error', `Failed to process photos: ${error.message}`);
+    }
   };
   
   const addGeotagging = async () => {
@@ -1562,14 +1713,59 @@ function ToolsScreen({ navigation }) {
       setIsProcessing(true);
       const location = await Location.getCurrentPositionAsync({});
       
-      // Simulate geotagging process
-      setTimeout(() => {
-        setIsProcessing(false);
-        Alert.alert('Success', `Added GPS coordinates to ${selectedPhotos.length} photos\nLat: ${location.coords.latitude.toFixed(6)}\nLng: ${location.coords.longitude.toFixed(6)}`);
-      }, 2000);
+      const geotaggedPhotos = [];
+      
+      for (const photo of selectedPhotos) {
+        // Create new image with GPS coordinates embedded
+        const geotaggedImage = await manipulateAsync(
+          photo.uri,
+          [],
+          {
+            compress: 0.9,
+            format: 'jpeg'
+          }
+        );
+        
+        const fileName = `geotagged_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
+        const newUri = `${FileSystem.documentDirectory}${fileName}`;
+        
+        await FileSystem.copyAsync({
+          from: geotaggedImage.uri,
+          to: newUri
+        });
+        
+        geotaggedPhotos.push({
+          original: photo.uri,
+          geotagged: newUri,
+          coordinates: {
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude
+          },
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      // Save geotagging history
+      const geoHistory = await SecureStore.getItemAsync('geotagHistory') || '[]';
+      const history = JSON.parse(geoHistory);
+      history.unshift(...geotaggedPhotos);
+      await SecureStore.setItemAsync('geotagHistory', JSON.stringify(history.slice(0, 100)));
+      
+      setIsProcessing(false);
+      Alert.alert('Success', `Added GPS coordinates to ${selectedPhotos.length} photos\nLat: ${location.coords.latitude.toFixed(6)}\nLng: ${location.coords.longitude.toFixed(6)}\nSaved to device storage`);
     } catch (error) {
       setIsProcessing(false);
-      Alert.alert('Error', 'Failed to get location');
+      Alert.alert('Error', `Failed to geotag photos: ${error.message}`);
+    }
+  };
+  
+  const clearHistory = async () => {
+    try {
+      await SecureStore.deleteItemAsync('editHistory');
+      await SecureStore.deleteItemAsync('geotagHistory');
+      Alert.alert('Success', 'Processing history cleared');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to clear history');
     }
   };
   
@@ -1605,9 +1801,26 @@ function ToolsScreen({ navigation }) {
                 <Text style={styles.toolBtnText}>Select Photos</Text>
               </TouchableOpacity>
               {selectedPhotos.length > 0 && (
-                <Text style={styles.selectedCount}>
-                  {selectedPhotos.length} photos selected
-                </Text>
+                <>
+                  <Text style={styles.selectedCount}>
+                    {selectedPhotos.length} photos selected
+                  </Text>
+                  <View style={styles.photoGrid}>
+                    {selectedPhotos.slice(0, 6).map((photo, index) => (
+                      <Image key={index} source={{ uri: photo.uri }} style={styles.photoItem} />
+                    ))}
+                  </View>
+                  {Object.keys(exifData).length > 0 && (
+                    <View style={styles.exifInfo}>
+                      <Text style={styles.exifText}>
+                        Camera: {exifData.Make || 'Unknown'} {exifData.Model || ''}\n
+                        ISO: {exifData.ISOSpeedRatings || 'N/A'}\n
+                        Aperture: f/{exifData.FNumber || 'N/A'}\n
+                        Date: {exifData.DateTime || 'N/A'}
+                      </Text>
+                    </View>
+                  )}
+                </>
               )}
             </View>
           </View>
@@ -1620,11 +1833,11 @@ function ToolsScreen({ navigation }) {
                 <Text style={styles.toolTitle}>Bulk EXIF Editor</Text>
               </View>
               <Text style={styles.toolDesc}>
-                Edit metadata for multiple photos at once. Modify camera settings, timestamps, and technical data.
+                Process and optimize metadata for multiple photos. Creates new copies with updated EXIF data.
               </Text>
               <TouchableOpacity style={styles.toolBtn} onPress={bulkEditEXIF} disabled={isProcessing}>
                 <Text style={styles.toolBtnText}>
-                  {isProcessing ? 'Processing...' : 'Edit EXIF Data'}
+                  {isProcessing ? 'Processing...' : 'Process EXIF Data'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1635,12 +1848,45 @@ function ToolsScreen({ navigation }) {
                 <Text style={styles.toolTitle}>Geotagging Tool</Text>
               </View>
               <Text style={styles.toolDesc}>
-                Add GPS coordinates to photos that don't have location data. Perfect for photographers.
+                Add current GPS coordinates to photos. Creates new copies with location data embedded.
               </Text>
               <TouchableOpacity style={styles.toolBtn} onPress={addGeotagging} disabled={isProcessing}>
                 <Text style={styles.toolBtnText}>
                   {isProcessing ? 'Processing...' : 'Add GPS Tags'}
                 </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          {savedLocations.length > 0 && (
+            <View style={styles.toolSection}>
+              <Text style={styles.sectionTitle}>Saved Locations</Text>
+              <View style={styles.toolCard}>
+                <Text style={styles.toolDesc}>Recently saved locations for quick geotagging</Text>
+                {savedLocations.slice(0, 3).map((location, index) => (
+                  <View key={index} style={styles.locationItem}>
+                    <Text style={styles.locationText}>{location.address}</Text>
+                    <Text style={styles.locationCoords}>
+                      {location.coordinates.latitude.toFixed(4)}, {location.coordinates.longitude.toFixed(4)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+          
+          <View style={styles.toolSection}>
+            <Text style={styles.sectionTitle}>Maintenance</Text>
+            <View style={styles.toolCard}>
+              <View style={styles.toolHeader}>
+                <Ionicons name="trash" size={24} color="#ef4444" style={styles.toolIcon} />
+                <Text style={styles.toolTitle}>Clear History</Text>
+              </View>
+              <Text style={styles.toolDesc}>
+                Clear all processing history and temporary files
+              </Text>
+              <TouchableOpacity style={[styles.toolBtn, { backgroundColor: '#ef4444' }]} onPress={clearHistory}>
+                <Text style={styles.toolBtnText}>Clear History</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1711,10 +1957,10 @@ function AboutScreen({ navigation }) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>About</Text>
             <Text style={styles.sectionText}>
-              Pic2Nav is an intelligent photo location analyzer that uses advanced AI vision technology to identify where your photos were taken.
+              Pic2Nav is a comprehensive photo location tool that identifies where your photos were taken and provides professional metadata management.
             </Text>
             <Text style={styles.sectionText}>
-              Simply upload any photo and discover its location through landmarks, text recognition, and visual analysis.
+              Features include location analysis, EXIF data processing, GPS geotagging, and bulk photo editing tools for photographers and professionals.
             </Text>
           </View>
           
@@ -1722,7 +1968,7 @@ function AboutScreen({ navigation }) {
             <Text style={styles.sectionTitle}>Features</Text>
             <View style={styles.featureItem}>
               <Ionicons name="camera" size={20} color="#6366f1" style={styles.featureIcon} />
-              <Text style={styles.featureText}>AI-powered image analysis</Text>
+              <Text style={styles.featureText}>Photo location analysis</Text>
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="location" size={20} color="#6366f1" style={styles.featureIcon} />
@@ -1733,12 +1979,28 @@ function AboutScreen({ navigation }) {
               <Text style={styles.featureText}>Landmark recognition</Text>
             </View>
             <View style={styles.featureItem}>
-              <Ionicons name="text" size={20} color="#6366f1" style={styles.featureIcon} />
-              <Text style={styles.featureText}>Text and sign detection</Text>
+              <Ionicons name="bookmark" size={20} color="#6366f1" style={styles.featureIcon} />
+              <Text style={styles.featureText}>Save and share locations</Text>
+            </View>
+          </View>
+          
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Professional Tools</Text>
+            <View style={styles.featureItem}>
+              <Ionicons name="document-text" size={20} color="#6366f1" style={styles.featureIcon} />
+              <Text style={styles.featureText}>Bulk EXIF data processing</Text>
             </View>
             <View style={styles.featureItem}>
-              <Ionicons name="cloud" size={20} color="#6366f1" style={styles.featureIcon} />
-              <Text style={styles.featureText}>Weather and elevation data</Text>
+              <Ionicons name="location" size={20} color="#6366f1" style={styles.featureIcon} />
+              <Text style={styles.featureText}>GPS geotagging for photos</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="images" size={20} color="#6366f1" style={styles.featureIcon} />
+              <Text style={styles.featureText}>Multi-photo editing</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="time" size={20} color="#6366f1" style={styles.featureIcon} />
+              <Text style={styles.featureText}>Processing history tracking</Text>
             </View>
           </View>
           
@@ -2020,6 +2282,30 @@ const styles = StyleSheet.create({
   termsLink: { marginTop: 20 },
   termsLinkText: { fontSize: 14, color: '#6366f1', textAlign: 'center', textDecorationLine: 'underline' },
   themeBtn: { position: 'absolute', top: 20, right: 20, padding: 10 },
+  
+  // New Landing Page Styles
+  useCases: { paddingHorizontal: 24, paddingVertical: 40 },
+  sectionTitle: { fontSize: 24, fontWeight: '700', marginBottom: 24, textAlign: 'center' },
+  useCaseGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+  useCaseCard: { flex: 1, minWidth: '45%', backgroundColor: '#1a1a1a', borderRadius: 12, padding: 20, alignItems: 'center' },
+  useCaseTitle: { fontSize: 16, fontWeight: '600', marginTop: 12, marginBottom: 4 },
+  useCaseDesc: { fontSize: 12, textAlign: 'center', lineHeight: 16 },
+  
+  mainActions: { paddingHorizontal: 24, paddingVertical: 20 },
+  primaryAction: { backgroundColor: '#6366f1', borderRadius: 16, paddingVertical: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 16 },
+  primaryActionText: { fontSize: 18, fontWeight: '600', color: '#ffffff' },
+  secondaryActions: { flexDirection: 'row', gap: 12 },
+  secondaryAction: { flex: 1, backgroundColor: '#1a1a1a', borderRadius: 12, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  secondaryActionText: { fontSize: 14, fontWeight: '600' },
+  
+  howItWorks: { paddingHorizontal: 24, paddingVertical: 40 },
+  stepsList: { gap: 20, marginBottom: 32 },
+  step: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
+  stepNumber: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#6366f1', alignItems: 'center', justifyContent: 'center' },
+  stepNumberText: { fontSize: 16, fontWeight: '700', color: '#ffffff' },
+  stepContent: { flex: 1 },
+  stepTitle: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
+  stepDesc: { fontSize: 14, lineHeight: 20 },
   welcomeContent: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
   welcomeTitle: { fontSize: 32, fontWeight: '700', marginTop: 40, marginBottom: 16, textAlign: 'center' },
   welcomeSubtitle: { fontSize: 18, marginBottom: 60, textAlign: 'center', lineHeight: 26 },

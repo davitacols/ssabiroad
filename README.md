@@ -31,6 +31,13 @@ SSABIRoad is a sophisticated web application built with Next.js that provides co
   - Detection history
   - Custom building collections
 
+- **Professional Tools**
+  - Bulk EXIF data processing
+  - GPS geotagging for photos
+  - Multi-photo selection and editing
+  - Metadata optimization
+  - Processing history tracking
+
 ## 🛠 Technology Stack
 
 - **Frontend**
@@ -86,9 +93,23 @@ SSABIRoad is a sophisticated web application built with Next.js that provides co
 
 6. Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
 
+## 📱 Mobile App (Pic2Nav)
+
+The mobile companion app provides photo location analysis and professional tools:
+
+- **Photo Scanner**: Identify locations from images using GPS data and visual analysis
+- **Professional Tools**: 
+  - Bulk EXIF editor for metadata management
+  - GPS geotagging tool for adding location data
+  - Multi-photo processing capabilities
+  - Processing history and file management
+- **Location Management**: Save, share, and organize discovered locations
+- **Cross-platform**: Built with React Native and Expo
+
 ## 📚 Project Structure
 
 - `/app` - Next.js application routes and pages
+- `/mobile-fixed` - React Native mobile app
 - `/components` - Reusable React components
 - `/prisma` - Database schema and migrations
 - `/public` - Static assets
