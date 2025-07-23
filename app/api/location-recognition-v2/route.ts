@@ -758,12 +758,14 @@ class LocationRecognizer {
 
       const base64Image = buffer.toString('base64');
       const prompt = `Analyze this storefront/restaurant image carefully. Look at:
-1. Business name on signs
+1. Business name on signs - read text very carefully, letter by letter
 2. Address numbers visible
 3. Street names or area indicators
 4. Phone numbers (especially UK format like 020)
 5. Architectural style and surroundings
 6. Any logos or brand identifiers
+
+Read all text very carefully to avoid OCR-like errors. Pay attention to partial words that might be cut off.
 
 Return JSON with the most specific location information you can identify:
 {"businessName": "exact business name from signage", "address": "street address if visible", "area": "neighborhood/area name", "phoneNumber": "if visible", "confidence": 0.0-1.0}`;
@@ -803,7 +805,7 @@ Return JSON with the most specific location information you can identify:
 
         
         // Only proceed if we have high confidence and specific business details
-        if (result.confidence < 0.7) { // Lower threshold to allow more attempts
+        if (result.confidence < 0.7) { // Standard threshold
           console.log('Claude confidence too low:', result.confidence);
           return null;
         }
@@ -1405,8 +1407,10 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
 
       if (texts.length > 0) {
         const fullText = texts[0].description || '';
-        const enhancedText = documentText || fullText;
-        console.log('Analyzing text:', enhancedText.substring(0, 200));
+        const rawText = documentText || fullText;
+        const enhancedText = this.enhanceTextDetection(rawText);
+        console.log('Raw OCR text:', rawText.substring(0, 200));
+        console.log('Enhanced text:', enhancedText.substring(0, 200));
         
         // Enhanced text extraction with scene context analysis
         const sceneContext = this.analyzeSceneContext(objectResult, logoResult, enhancedText);
@@ -1875,8 +1879,10 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
 
   // Extract business name with enhanced patterns
   private extractBusinessName(text: string): string | null {
-    const cleanText = this.preprocessText(text);
-    const lines = text.split(/[\r\n]+/).map(line => line.trim()).filter(line => line.length > 2);
+    // Apply text corrections first
+    const enhancedText = this.enhanceTextDetection(text);
+    const cleanText = this.preprocessText(enhancedText);
+    const lines = enhancedText.split(/[\r\n]+/).map(line => line.trim()).filter(line => line.length > 2);
     
     // Analyze all text for comprehensive business identification
     const allTextAnalysis = this.analyzeAllText(text);
@@ -2147,6 +2153,15 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     if (address.length >= 10 && address.length <= 100) score += 0.1;
     else if (address.length > 100) score -= 0.2;
     return Math.max(0, Math.min(1, score));
+  }
+
+  // Enhanced text detection with better OCR accuracy
+  private enhanceTextDetection(text: string): string {
+    // Only basic text cleaning, no hard-coded corrections
+    return text
+      .replace(/[\r\n]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   // Enhanced business search with geographic and scene context
