@@ -725,14 +725,14 @@ function CameraScreen({ navigation }) {
         return;
       }
       
-      // Compress only if over 4MB for Vercel compatibility
+      // Compress for Vercel 4.5MB limit
       let processedImage = { uri: imageUri };
-      if (fileSizeMB > 4) {
+      if (fileSizeMB > 4.4) {
         console.log(`Compressing ${fileSizeMB.toFixed(2)}MB image for Vercel`);
         processedImage = await manipulateAsync(
           imageUri,
-          [{ resize: { width: 2000 } }],
-          { compress: 0.8, format: 'jpeg' }
+          [{ resize: { width: 1600 } }],
+          { compress: 0.7, format: 'jpeg' }
         );
         const newSize = await FileSystem.getInfoAsync(processedImage.uri);
         console.log(`Compressed to ${(newSize.size / (1024 * 1024)).toFixed(2)}MB`);
@@ -749,7 +749,7 @@ function CameraScreen({ navigation }) {
       } else {
         // For mobile: send original file URI directly
         formData.append('image', {
-          uri: imageUri, // Use original URI, not processed
+          uri: processedImage.uri, // Use processed URI
           type: 'image/jpeg',
           name: 'image.jpg',
         });
