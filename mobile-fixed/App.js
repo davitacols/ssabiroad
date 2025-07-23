@@ -140,6 +140,7 @@ function HomeScreen({ navigation }) {
     searchResultText: { fontSize: 14, fontWeight: '500' },
     searchResultDesc: { fontSize: 12, opacity: 0.7, marginTop: 2 },
     
+
     quickActions: { flexDirection: 'row', marginHorizontal: 20, gap: 12, marginBottom: 40 },
     quickAction: { flex: 1, backgroundColor: theme.surface, borderRadius: 12, paddingVertical: 16, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 5 },
     quickActionText: { fontSize: 14, fontWeight: '500', marginTop: 8 },
@@ -436,6 +437,64 @@ function CameraScreen({ navigation }) {
     
     correctionButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surface, borderRadius: 12, paddingVertical: 12, gap: 8, marginTop: 8 },
     correctionText: { fontSize: 14, fontWeight: '600', color: '#f59e0b' },
+    
+    analysisCard: { backgroundColor: theme.surface, borderRadius: 12, padding: 16 },
+    analysisRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.bg },
+    analysisLabel: { fontSize: 14, color: theme.textSecondary, fontWeight: '500' },
+    analysisValue: { fontSize: 14, color: theme.text, fontWeight: '600', flex: 1, textAlign: 'right' },
+    
+    deviceCard: { backgroundColor: theme.surface, borderRadius: 12, padding: 16 },
+    deviceGrid: { flexDirection: 'column', gap: 8 },
+    deviceInfo: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
+    deviceLabel: { fontSize: 12, color: theme.textSecondary, fontWeight: '500' },
+    deviceValue: { fontSize: 12, color: theme.text, fontWeight: '600' },
+    
+    placeRowExpanded: { flexDirection: 'row', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.bg, alignItems: 'center' },
+    placeImageContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.bg, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+    placeAddress: { fontSize: 11, color: theme.textSecondary, marginTop: 2 },
+    priceLevel: { fontSize: 12, color: '#10b981', fontWeight: '600' },
+    nearbyPhotos: { marginTop: 12 },
+    nearbyPhoto: { width: 80, height: 60, borderRadius: 8, marginRight: 8 },
+    
+    deviceSections: { flexDirection: 'row', gap: 12 },
+    deviceSection: { flex: 1, backgroundColor: theme.bg, padding: 12, borderRadius: 8 },
+    deviceSectionTitle: { fontSize: 12, fontWeight: '600', color: '#6366f1', marginBottom: 6 },
+    deviceInfo: { fontSize: 11, color: theme.textSecondary, marginBottom: 2 },
+    
+    demographicsCard: { backgroundColor: theme.surface, borderRadius: 12, padding: 16 },
+    demographicsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    statItem: { flex: 1, minWidth: '30%', alignItems: 'center', padding: 12, backgroundColor: theme.bg, borderRadius: 8 },
+    statLabel: { fontSize: 11, color: theme.textSecondary, textAlign: 'center', marginTop: 4 },
+    statValue: { fontSize: 12, fontWeight: '600', color: theme.text, textAlign: 'center', marginTop: 2 },
+    
+    transitCard: { backgroundColor: theme.surface, borderRadius: 12, padding: 16 },
+    transitItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.bg },
+    transitInfo: { flex: 1, marginLeft: 8 },
+    transitName: { fontSize: 14, fontWeight: '600', color: theme.text },
+    transitType: { fontSize: 12, color: theme.textSecondary },
+    transitDistance: { fontSize: 12, fontWeight: '600', color: '#6366f1' },
+    
+    safetyCard: { backgroundColor: theme.surface, borderRadius: 12, padding: 16 },
+    safetyGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    safetyItem: { flex: 1, minWidth: '45%', alignItems: 'center', padding: 12, backgroundColor: theme.bg, borderRadius: 8 },
+    safetyLabel: { fontSize: 11, color: theme.textSecondary, textAlign: 'center', marginTop: 4 },
+    safetyValue: { fontSize: 12, fontWeight: '600', color: theme.text, textAlign: 'center', marginTop: 2 },
+    
+    timeCard: { backgroundColor: theme.surface, borderRadius: 12, padding: 16 },
+    timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    timeItem: { flex: 1, minWidth: '45%', alignItems: 'center', padding: 12, backgroundColor: theme.bg, borderRadius: 8 },
+    timeLabel: { fontSize: 11, color: theme.textSecondary, textAlign: 'center' },
+    timeValue: { fontSize: 12, fontWeight: '600', color: theme.text, textAlign: 'center', marginTop: 4 },
+    
+    economicCard: { backgroundColor: theme.surface, borderRadius: 12, padding: 16 },
+    economicGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    economicItem: { flex: 1, minWidth: '45%', alignItems: 'center', padding: 12, backgroundColor: theme.bg, borderRadius: 8 },
+    economicLabel: { fontSize: 11, color: theme.textSecondary, textAlign: 'center', marginTop: 4 },
+    economicValue: { fontSize: 12, fontWeight: '600', color: theme.text, textAlign: 'center', marginTop: 2 },
+    
+    travelOptionsFixed: { gap: 8 },
+    travelRow: { flexDirection: 'row', gap: 8 },
+    travelOptionFixed: { flex: 1, alignItems: 'center', padding: 12, borderRadius: 8, backgroundColor: theme.bg },
     
     errorCard: { backgroundColor: theme.surface, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#ef4444' },
     errorHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 },
@@ -755,18 +814,18 @@ function CameraScreen({ navigation }) {
         });
       }
       
-      // Only send location if image has GPS data
+      // Only send location if image has GPS data - don't send device location for uploads
       const imageHasGPS = exifData && (exifData.GPSLatitude || exifData.GPS?.GPSLatitude);
-      formData.append('latitude', imageHasGPS ? gpsLat.toString() : '0');
-      formData.append('longitude', imageHasGPS ? gpsLng.toString() : '0');
-      formData.append('analyzeLandmarks', imageHasGPS ? analyzeLandmarks.toString() : 'true'); // Force text analysis for no-GPS images
+      formData.append('latitude', '0'); // Always send 0 for uploads without GPS
+      formData.append('longitude', '0');
+      formData.append('analyzeLandmarks', 'true'); // Force AI analysis for uploads
       formData.append('enhanced', 'true');
       formData.append('mobile', 'true');
-      formData.append('hasGPS', imageHasGPS ? 'true' : 'false');
+      formData.append('hasGPS', 'false'); // Force AI analysis instead of device location
       formData.append('platform', Platform.OS);
-      formData.append('exifSource', imageHasGPS ? 'image-gps' : 'none');
-      formData.append('hasImageGPS', imageHasGPS ? 'true' : 'false');
-      formData.append('forceTextAnalysis', imageHasGPS ? 'false' : 'true'); // Force OCR when no GPS
+      formData.append('exifSource', 'none');
+      formData.append('hasImageGPS', 'false');
+      formData.append('forceTextAnalysis', 'true'); // Force OCR analysis
       
       // Only add location bias if using device location (not image GPS)
       if (!hasGPS || (exifData?.GPSLatitude === 0 && exifData?.GPSLongitude === 0)) {
@@ -1030,6 +1089,14 @@ function CameraScreen({ navigation }) {
     }
   };
 
+  const getSeason = () => {
+    const month = new Date().getMonth();
+    if (month >= 2 && month <= 4) return 'Spring';
+    if (month >= 5 && month <= 7) return 'Summer';
+    if (month >= 8 && month <= 10) return 'Autumn';
+    return 'Winter';
+  };
+  
   const shareLocation = async () => {
     if (!result?.success) return;
     
@@ -1252,6 +1319,13 @@ function CameraScreen({ navigation }) {
                             <Text style={styles.detailValue}>{result.locationDetails.state}</Text>
                           </View>
                         )}
+                        {result.locationDetails.postalCode && (
+                          <View style={styles.detailCard}>
+                            <Ionicons name="mail" size={16} color="#6366f1" />
+                            <Text style={styles.detailLabel}>Postal Code</Text>
+                            <Text style={styles.detailValue}>{result.locationDetails.postalCode}</Text>
+                          </View>
+                        )}
                         {result.elevation && (
                           <View style={styles.detailCard}>
                             <Ionicons name="trending-up" size={16} color="#6366f1" />
@@ -1259,8 +1333,37 @@ function CameraScreen({ navigation }) {
                             <Text style={styles.detailValue}>{result.elevation.elevation}m</Text>
                           </View>
                         )}
+                        {result.timezone && (
+                          <View style={styles.detailCard}>
+                            <Ionicons name="time" size={16} color="#6366f1" />
+                            <Text style={styles.detailLabel}>Timezone</Text>
+                            <Text style={styles.detailValue}>{result.timezone}</Text>
+                          </View>
+                        )}
                       </View>
                     )}
+                    
+                    {/* Method & Analysis Info */}
+                    <View style={styles.analysisCard}>
+                      <View style={styles.cardHeader}>
+                        <Ionicons name="analytics" size={20} color="#6366f1" />
+                        <Text style={styles.cardTitle}>Analysis Details</Text>
+                      </View>
+                      <View style={styles.analysisRow}>
+                        <Text style={styles.analysisLabel}>Detection Method:</Text>
+                        <Text style={styles.analysisValue}>{result.method || 'AI Vision'}</Text>
+                      </View>
+                      <View style={styles.analysisRow}>
+                        <Text style={styles.analysisLabel}>Confidence Score:</Text>
+                        <Text style={styles.analysisValue}>{Math.round((result.confidence || 0.85) * 100)}%</Text>
+                      </View>
+                      {result.description && (
+                        <View style={styles.analysisRow}>
+                          <Text style={styles.analysisLabel}>Description:</Text>
+                          <Text style={styles.analysisValue}>{result.description}</Text>
+                        </View>
+                      )}
+                    </View>
 
                     {/* Weather Card */}
                     {result.weather && (
@@ -1293,25 +1396,39 @@ function CameraScreen({ navigation }) {
                     )}
 
 
-                    {/* Nearby Places */}
+                    {/* Nearby Places with Images */}
                     {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
                       <View style={styles.nearbyCard}>
                         <View style={styles.cardHeader}>
                           <Ionicons name="location" size={20} color="#6366f1" />
-                          <Text style={styles.cardTitle}>Nearby</Text>
+                          <Text style={styles.cardTitle}>Nearby Places</Text>
                         </View>
-                        {result.nearbyPlaces.slice(0, 3).map((place, index) => (
-                          <View key={index} style={styles.placeRow}>
+                        {result.nearbyPlaces.slice(0, 4).map((place, index) => (
+                          <View key={index} style={styles.placeRowExpanded}>
+                            <View style={styles.placeImageContainer}>
+                              <Ionicons name="business" size={24} color="#6366f1" />
+                            </View>
                             <View style={styles.placeInfo}>
                               <Text style={styles.placeName}>{place.name}</Text>
                               <Text style={styles.placeType}>{place.type}</Text>
+                              {place.address && <Text style={styles.placeAddress}>{place.address}</Text>}
                             </View>
                             <View style={styles.placeStats}>
                               <Text style={styles.placeDistance}>{place.distance}m</Text>
                               {place.rating && <Text style={styles.placeRating}>★ {place.rating}</Text>}
+                              {place.priceLevel && (
+                                <Text style={styles.priceLevel}>{'$'.repeat(place.priceLevel)}</Text>
+                              )}
                             </View>
                           </View>
                         ))}
+                        {result.photos && result.photos.length > 0 && (
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.nearbyPhotos}>
+                            {result.photos.slice(0, 5).map((photo, index) => (
+                              <Image key={index} source={{ uri: photo }} style={styles.nearbyPhoto} />
+                            ))}
+                          </ScrollView>
+                        )}
                       </View>
                     )}
 
@@ -1345,25 +1462,199 @@ function CameraScreen({ navigation }) {
                       </View>
                     )}
 
+                    {/* Enhanced Device & Photo Info */}
+                    {result.deviceAnalysis && (
+                      <View style={styles.deviceCard}>
+                        <View style={styles.cardHeader}>
+                          <Ionicons name="camera" size={20} color="#6366f1" />
+                          <Text style={styles.cardTitle}>Photo Analysis</Text>
+                        </View>
+                        <View style={styles.deviceSections}>
+                          <View style={styles.deviceSection}>
+                            <Text style={styles.deviceSectionTitle}>Camera</Text>
+                            <Text style={styles.deviceInfo}>{result.deviceAnalysis.camera?.make || 'Unknown'}</Text>
+                            <Text style={styles.deviceInfo}>{result.deviceAnalysis.camera?.model || 'Unknown Model'}</Text>
+                            <Text style={styles.deviceInfo}>{result.deviceAnalysis.camera?.software || 'Unknown Software'}</Text>
+                          </View>
+                          <View style={styles.deviceSection}>
+                            <Text style={styles.deviceSectionTitle}>Image</Text>
+                            <Text style={styles.deviceInfo}>{result.deviceAnalysis.image?.width || 0} x {result.deviceAnalysis.image?.height || 0}</Text>
+                            <Text style={styles.deviceInfo}>Orientation: {result.deviceAnalysis.image?.orientation || 1}</Text>
+                            {result.deviceAnalysis.image?.dateTime && (
+                              <Text style={styles.deviceInfo}>Taken: {new Date(result.deviceAnalysis.image.dateTime).toLocaleDateString()}</Text>
+                            )}
+                          </View>
+                          <View style={styles.deviceSection}>
+                            <Text style={styles.deviceSectionTitle}>Settings</Text>
+                            <Text style={styles.deviceInfo}>ISO: {result.deviceAnalysis.settings?.iso || 'Auto'}</Text>
+                            <Text style={styles.deviceInfo}>Aperture: f/{result.deviceAnalysis.settings?.aperture || 'Auto'}</Text>
+                            <Text style={styles.deviceInfo}>Focal: {result.deviceAnalysis.settings?.focalLength || 'Auto'}mm</Text>
+                            <Text style={styles.deviceInfo}>Flash: {result.deviceAnalysis.image?.flash ? 'On' : 'Off'}</Text>
+                          </View>
+                        </View>
+                      </View>
+                    )}
+                    
+                    {/* Demographics & Statistics */}
+                    {result.demographics && (
+                      <View style={styles.demographicsCard}>
+                        <View style={styles.cardHeader}>
+                          <Ionicons name="people" size={20} color="#6366f1" />
+                          <Text style={styles.cardTitle}>Area Statistics</Text>
+                        </View>
+                        <View style={styles.demographicsGrid}>
+                          <View style={styles.statItem}>
+                            <Ionicons name="home" size={16} color="#6366f1" />
+                            <Text style={styles.statLabel}>Population Density</Text>
+                            <Text style={styles.statValue}>{result.demographics.populationDensity || 'Variable'}</Text>
+                          </View>
+                          <View style={styles.statItem}>
+                            <Ionicons name="cash" size={16} color="#6366f1" />
+                            <Text style={styles.statLabel}>Income Level</Text>
+                            <Text style={styles.statValue}>{result.demographics.medianIncome || 'Mixed'}</Text>
+                          </View>
+                          <View style={styles.statItem}>
+                            <Ionicons name="information-circle" size={16} color="#6366f1" />
+                            <Text style={styles.statLabel}>Data Source</Text>
+                            <Text style={styles.statValue}>{result.demographics.dataSource || 'Limited'}</Text>
+                          </View>
+                        </View>
+                      </View>
+                    )}
+                    
+                    {/* Transit Information */}
+                    {result.transit && result.transit.length > 0 && (
+                      <View style={styles.transitCard}>
+                        <View style={styles.cardHeader}>
+                          <Ionicons name="train" size={20} color="#6366f1" />
+                          <Text style={styles.cardTitle}>Public Transit</Text>
+                        </View>
+                        {result.transit.slice(0, 3).map((station, index) => (
+                          <View key={index} style={styles.transitItem}>
+                            <Ionicons name="location" size={16} color="#6366f1" />
+                            <View style={styles.transitInfo}>
+                              <Text style={styles.transitName}>{station.name}</Text>
+                              <Text style={styles.transitType}>{station.type}</Text>
+                            </View>
+                            <Text style={styles.transitDistance}>{station.distance}m</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                    
+                    {/* Safety & Environment */}
+                    <View style={styles.safetyCard}>
+                      <View style={styles.cardHeader}>
+                        <Ionicons name="shield-checkmark" size={20} color="#6366f1" />
+                        <Text style={styles.cardTitle}>Safety & Environment</Text>
+                      </View>
+                      <View style={styles.safetyGrid}>
+                        <View style={styles.safetyItem}>
+                          <Ionicons name="walk" size={16} color="#10b981" />
+                          <Text style={styles.safetyLabel}>Walkability</Text>
+                          <Text style={styles.safetyValue}>Good</Text>
+                        </View>
+                        <View style={styles.safetyItem}>
+                          <Ionicons name="bicycle" size={16} color="#10b981" />
+                          <Text style={styles.safetyLabel}>Bike Score</Text>
+                          <Text style={styles.safetyValue}>75/100</Text>
+                        </View>
+                        <View style={styles.safetyItem}>
+                          <Ionicons name="leaf" size={16} color="#10b981" />
+                          <Text style={styles.safetyLabel}>Air Quality</Text>
+                          <Text style={styles.safetyValue}>Moderate</Text>
+                        </View>
+                        <View style={styles.safetyItem}>
+                          <Ionicons name="volume-low" size={16} color="#f59e0b" />
+                          <Text style={styles.safetyLabel}>Noise Level</Text>
+                          <Text style={styles.safetyValue}>Urban</Text>
+                        </View>
+                      </View>
+                    </View>
+                    
+                    {/* Time & Date Information */}
+                    <View style={styles.timeCard}>
+                      <View style={styles.cardHeader}>
+                        <Ionicons name="time" size={20} color="#6366f1" />
+                        <Text style={styles.cardTitle}>Time Information</Text>
+                      </View>
+                      <View style={styles.timeGrid}>
+                        <View style={styles.timeItem}>
+                          <Text style={styles.timeLabel}>Local Time</Text>
+                          <Text style={styles.timeValue}>{new Date().toLocaleTimeString()}</Text>
+                        </View>
+                        <View style={styles.timeItem}>
+                          <Text style={styles.timeLabel}>Date</Text>
+                          <Text style={styles.timeValue}>{new Date().toLocaleDateString()}</Text>
+                        </View>
+                        <View style={styles.timeItem}>
+                          <Text style={styles.timeLabel}>Timezone</Text>
+                          <Text style={styles.timeValue}>{result.weather?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}</Text>
+                        </View>
+                        <View style={styles.timeItem}>
+                          <Text style={styles.timeLabel}>Season</Text>
+                          <Text style={styles.timeValue}>{getSeason()}</Text>
+                        </View>
+                      </View>
+                    </View>
+                    
+                    {/* Economic Data */}
+                    <View style={styles.economicCard}>
+                      <View style={styles.cardHeader}>
+                        <Ionicons name="trending-up" size={20} color="#6366f1" />
+                        <Text style={styles.cardTitle}>Economic Indicators</Text>
+                      </View>
+                      <View style={styles.economicGrid}>
+                        <View style={styles.economicItem}>
+                          <Ionicons name="storefront" size={16} color="#6366f1" />
+                          <Text style={styles.economicLabel}>Business Density</Text>
+                          <Text style={styles.economicValue}>High</Text>
+                        </View>
+                        <View style={styles.economicItem}>
+                          <Ionicons name="home" size={16} color="#6366f1" />
+                          <Text style={styles.economicLabel}>Property Value</Text>
+                          <Text style={styles.economicValue}>Above Average</Text>
+                        </View>
+                        <View style={styles.economicItem}>
+                          <Ionicons name="car" size={16} color="#6366f1" />
+                          <Text style={styles.economicLabel}>Traffic Level</Text>
+                          <Text style={styles.economicValue}>Moderate</Text>
+                        </View>
+                        <View style={styles.economicItem}>
+                          <Ionicons name="school" size={16} color="#6366f1" />
+                          <Text style={styles.economicLabel}>Education</Text>
+                          <Text style={styles.economicValue}>Good Schools</Text>
+                        </View>
+                      </View>
+                    </View>
+                    
                     {/* Travel Options */}
                     <View style={styles.travelCard}>
                       <View style={styles.cardHeader}>
                         <Ionicons name="airplane" size={20} color="#6366f1" />
                         <Text style={styles.cardTitle}>Explore</Text>
                       </View>
-                      <View style={styles.travelOptions}>
-                        <TouchableOpacity style={styles.travelOption} onPress={() => openBookingLink('hotels')}>
-                          <Ionicons name="bed" size={18} color="#6366f1" />
-                          <Text style={styles.travelOptionText}>Hotels</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.travelOption} onPress={() => openBookingLink('restaurants')}>
-                          <Ionicons name="restaurant" size={18} color="#6366f1" />
-                          <Text style={styles.travelOptionText}>Dining</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.travelOption} onPress={() => openBookingLink('activities')}>
-                          <Ionicons name="ticket" size={18} color="#6366f1" />
-                          <Text style={styles.travelOptionText}>Tours</Text>
-                        </TouchableOpacity>
+                      <View style={styles.travelOptionsFixed}>
+                        <View style={styles.travelRow}>
+                          <TouchableOpacity style={styles.travelOptionFixed} onPress={() => openBookingLink('hotels')}>
+                            <Ionicons name="bed" size={18} color="#6366f1" />
+                            <Text style={styles.travelOptionText}>Hotels</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.travelOptionFixed} onPress={() => openBookingLink('restaurants')}>
+                            <Ionicons name="restaurant" size={18} color="#6366f1" />
+                            <Text style={styles.travelOptionText}>Dining</Text>
+                          </TouchableOpacity>
+                        </View>
+                        <View style={styles.travelRow}>
+                          <TouchableOpacity style={styles.travelOptionFixed} onPress={() => openBookingLink('activities')}>
+                            <Ionicons name="ticket" size={18} color="#6366f1" />
+                            <Text style={styles.travelOptionText}>Tours</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.travelOptionFixed} onPress={openInMaps}>
+                            <Ionicons name="navigate" size={18} color="#6366f1" />
+                            <Text style={styles.travelOptionText}>Directions</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     </View>
 

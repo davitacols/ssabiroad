@@ -3081,7 +3081,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     
     console.log('All AI methods failed - trying device location fallback...');
     
-    // 3. Skip device location fallback for uploaded images without GPS
+    // 3. Skip device location fallback entirely - force AI analysis
     if (false) { // Disabled device location fallback
       console.log('Using device location as fallback');
       const fallbackResult = {
@@ -3185,8 +3185,8 @@ async function handleRequest(request: NextRequest) {
   
   console.log('GPS source info:', { hasImageGPS, exifSource, providedLocation });
   
-  // Only use provided location if image actually has GPS data
-  const locationForFallback = hasImageGPS ? providedLocation : undefined;
+  // Never use provided location for fallback - force AI analysis
+  const locationForFallback = undefined;
   
   console.log('Provided location:', providedLocation);
   console.log('Analyze landmarks:', analyzeLandmarks);
