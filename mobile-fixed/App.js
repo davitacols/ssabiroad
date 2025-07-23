@@ -827,15 +827,8 @@ function CameraScreen({ navigation }) {
       formData.append('hasImageGPS', 'false');
       formData.append('forceTextAnalysis', 'true'); // Force OCR analysis
       
-      // Only add location bias if using device location (not image GPS)
-      if (!hasGPS || (exifData?.GPSLatitude === 0 && exifData?.GPSLongitude === 0)) {
-        const country = gpsLat > 0 && gpsLat < 15 && gpsLng > 0 && gpsLng < 15 ? 'Nigeria' : 'auto-detect';
-        formData.append('region_hint', country);
-        if (country === 'Nigeria') {
-          formData.append('search_priority', 'Lagos,Nigeria');
-          formData.append('country_bias', 'NG');
-        }
-      }
+      // Remove location bias to let AI determine correct location
+      // formData.append('region_hint', 'auto-detect');
       
       if (hasGPS) {
         console.log(`Using GPS coordinates: ${gpsLat}, ${gpsLng}`);
