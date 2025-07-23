@@ -1,0 +1,23 @@
+
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="512" cy="512" r="512" fill="#6366f1"/>
+  
+  <!-- Camera body -->
+  <rect x="256" y="384" width="384" height="256" rx="32" fill="white"/>
+  
+  <!-- Camera lens -->
+  <circle cx="448" cy="512" r="80" fill="#6366f1"/>
+  <circle cx="448" cy="512" r="48" fill="white"/>
+  <circle cx="448" cy="512" r="24" fill="#6366f1"/>
+  
+  <!-- Location pin -->
+  <path d="M576 320 C576 320 640 320 640 384 C640 448 576 512 576 512 C576 512 512 448 512 384 C512 320 576 320 576 320 Z" fill="#ef4444"/>
+  <circle cx="576" cy="384" r="24" fill="white"/>
+  
+  <!-- Flash -->
+  <rect x="544" y="416" width="32" height="16" rx="8" fill="#fbbf24"/>
+  
+  <!-- Viewfinder -->
+  <rect x="576" y="400" width="48" height="32" rx="4" fill="#374151"/>
+</svg>

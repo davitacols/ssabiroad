@@ -1,0 +1,33 @@
+
+<svg width="1284" height="2778" viewBox="0 0 1284 2778" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1284" height="2778" fill="#0a0a0a"/>
+  
+  <!-- Logo container -->
+  <g transform="translate(392, 1139)">
+    <!-- Background circle -->
+    <circle cx="250" cy="250" r="200" fill="#6366f1"/>
+    
+    <!-- Camera body -->
+    <rect x="150" y="200" width="200" height="100" rx="16" fill="white"/>
+    
+    <!-- Camera lens -->
+    <circle cx="225" cy="250" r="40" fill="#6366f1"/>
+    <circle cx="225" cy="250" r="24" fill="white"/>
+    <circle cx="225" cy="250" r="12" fill="#6366f1"/>
+    
+    <!-- Location pin -->
+    <path d="M275 180 C275 180 315 180 315 220 C315 260 275 300 275 300 C275 300 235 260 235 220 C235 180 275 180 275 180 Z" fill="#ef4444"/>
+    <circle cx="275" cy="220" r="12" fill="white"/>
+    
+    <!-- Flash -->
+    <rect x="260" y="225" width="16" height="8" rx="4" fill="#fbbf24"/>
+    
+    <!-- Viewfinder -->
+    <rect x="275" y="235" width="24" height="16" rx="2" fill="#374151"/>
+  </g>
+  
+  <!-- App name -->
+  <text x="642" y="1600" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="72" font-weight="bold">Pic2Nav</text>
+  <text x="642" y="1680" text-anchor="middle" fill="#a1a1aa" font-family="Arial, sans-serif" font-size="32">Photo Location Analysis</text>
+</svg>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext, useRef } from 'react';
+import React, { useState, useEffect, createContext, useContext, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, StatusBar, Alert, Linking, Platform, Modal, Animated, TextInput, Share } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -9,7 +9,8 @@ import * as FileSystem from 'expo-file-system';
 import { manipulateAsync } from 'expo-image-manipulator';
 import * as SecureStore from 'expo-secure-store';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import VoiceCommands from './components/VoiceCommands';
+import * as SplashScreen from 'expo-splash-screen';
+
 
 const Stack = createStackNavigator();
 
@@ -83,8 +84,8 @@ function WelcomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
-      <Animated.View style={[styles.logoCircle, { opacity: fadeAnim, transform: [{ scale: scaleAnim }, { scale: pulseAnim }] }]}>
-        <Ionicons name="camera" size={36} color="#ffffff" />
+      <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }, { scale: pulseAnim }] }}>
+        <Image source={require('./assets/pic2nav.png')} style={{ width: 350, height: 350 }} resizeMode="contain" />
       </Animated.View>
     </View>
   );
@@ -120,36 +121,33 @@ function HomeScreen({ navigation }) {
   };
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.bg },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 50, paddingHorizontal: 20, paddingBottom: 20 },
-    logo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    logoIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#6366f1', justifyContent: 'center', alignItems: 'center' },
-    logoText: { fontSize: 18, fontWeight: '700' },
-    themeBtn: { padding: 8 },
+    searchHeader: { paddingTop: 50, paddingHorizontal: 20, paddingBottom: 16 },
+    searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surface, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, position: 'relative', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+    searchIcon: { marginRight: 12 },
+    themeToggle: { marginLeft: 12, padding: 4 },
     
     hero: { paddingHorizontal: 20, paddingVertical: 60, alignItems: 'center' },
     heroIcon: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#6366f1', justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
     heroTitle: { fontSize: 32, fontWeight: '800', textAlign: 'center', marginBottom: 8 },
     heroSubtitle: { fontSize: 16, textAlign: 'center', opacity: 0.8, marginBottom: 40 },
     
-    mainButton: { backgroundColor: '#6366f1', marginHorizontal: 20, borderRadius: 16, paddingVertical: 18, alignItems: 'center', marginBottom: 20 },
-    mainButtonText: { fontSize: 18, fontWeight: '700', color: '#ffffff' },
+    mainButton: { backgroundColor: '#6366f1', marginHorizontal: 20, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 8 },
+    mainButtonText: { fontSize: 16, fontWeight: '600', color: '#ffffff' },
     
-    searchSection: { marginHorizontal: 20, marginBottom: 20 },
-    searchContainer: { position: 'relative' },
-    searchInput: { backgroundColor: theme.surface, borderRadius: 12, paddingVertical: 16, paddingHorizontal: 16, fontSize: 16, borderWidth: 1, borderColor: theme.surface },
-    searchResults: { position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: theme.surface, borderRadius: 12, marginTop: 4, maxHeight: 200, zIndex: 1000 },
+    searchInput: { flex: 1, fontSize: 16, color: theme.text },
+    searchResults: { position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: theme.surface, borderRadius: 12, marginTop: 8, maxHeight: 200, zIndex: 1000, shadowColor: theme.text, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 8 },
     searchResultItem: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: theme.bg },
     searchResultText: { fontSize: 14, fontWeight: '500' },
     searchResultDesc: { fontSize: 12, opacity: 0.7, marginTop: 2 },
     
     quickActions: { flexDirection: 'row', marginHorizontal: 20, gap: 12, marginBottom: 40 },
-    quickAction: { flex: 1, backgroundColor: theme.surface, borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
-    quickActionText: { fontSize: 14, fontWeight: '600', marginTop: 8 },
+    quickAction: { flex: 1, backgroundColor: theme.surface, borderRadius: 12, paddingVertical: 16, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 5 },
+    quickActionText: { fontSize: 14, fontWeight: '500', marginTop: 8 },
     
     features: { paddingHorizontal: 20, marginBottom: 40 },
     featuresTitle: { fontSize: 20, fontWeight: '700', marginBottom: 20 },
     featureItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16 },
-    featureIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.surface, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+    featureIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.surface, justifyContent: 'center', alignItems: 'center', marginRight: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 3 },
     featureTitle: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
     featureDesc: { fontSize: 14, opacity: 0.7 },
     
@@ -157,65 +155,48 @@ function HomeScreen({ navigation }) {
     termsLink: { paddingVertical: 16 },
     termsText: { fontSize: 14, color: '#6366f1' }
   });
+  
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
       
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.logo}>
-          <View style={styles.logoIcon}>
-            <Ionicons name="camera" size={16} color="#ffffff" />
-          </View>
-          <Text style={[styles.logoText, { color: theme.text }]}>Pic2Nav</Text>
+      {/* Search Header */}
+      <View style={styles.searchHeader}>
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color={theme.textSecondary} style={styles.searchIcon} />
+          <TextInput
+            style={[styles.searchInput, { color: theme.text }]}
+            placeholder="Search by address or postal code..."
+            placeholderTextColor={theme.textSecondary}
+            value={searchQuery}
+            onChangeText={handleSearch}
+            onFocus={() => setShowResults(true)}
+          />
+          <TouchableOpacity style={styles.themeToggle} onPress={toggle}>
+            <Ionicons name={isDark ? "sunny" : "moon"} size={20} color="#6366f1" />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.themeBtn} onPress={toggle}>
-          <Ionicons name={isDark ? "sunny" : "moon"} size={24} color="#6366f1" />
-        </TouchableOpacity>
+        {showResults && searchResults.length > 0 && (
+          <ScrollView style={styles.searchResults} nestedScrollEnabled>
+            {searchResults.map((result, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.searchResultItem}
+                onPress={() => selectLocation(result)}
+              >
+                <Text style={[styles.searchResultText, { color: theme.text }]}>{result.structured_formatting?.main_text || result.description}</Text>
+                <Text style={[styles.searchResultDesc, { color: theme.text }]}>{result.structured_formatting?.secondary_text || ''}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </View>
       
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Hero */}
-        <View style={styles.hero}>
-          <View style={styles.heroIcon}>
-            <Ionicons name="camera" size={50} color="#ffffff" />
-          </View>
-          <Text style={[styles.heroTitle, { color: theme.text }]}>Turn photos into locations</Text>
-          <Text style={[styles.heroSubtitle, { color: theme.text }]}>Identify where any photo was taken using AI</Text>
-        </View>
-        
         {/* Main Button */}
         <TouchableOpacity style={styles.mainButton} onPress={() => navigation.navigate('Camera')}>
           <Text style={styles.mainButtonText}>Start Scanning</Text>
         </TouchableOpacity>
-        
-        {/* Search Bar */}
-        <View style={styles.searchSection}>
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={[styles.searchInput, { color: theme.text }]}
-              placeholder="Search by address or postal code..."
-              placeholderTextColor={theme.textSecondary}
-              value={searchQuery}
-              onChangeText={handleSearch}
-              onFocus={() => setShowResults(true)}
-            />
-            {showResults && searchResults.length > 0 && (
-              <ScrollView style={styles.searchResults} nestedScrollEnabled>
-                {searchResults.map((result, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.searchResultItem}
-                    onPress={() => selectLocation(result)}
-                  >
-                    <Text style={[styles.searchResultText, { color: theme.text }]}>{result.structured_formatting?.main_text || result.description}</Text>
-                    <Text style={[styles.searchResultDesc, { color: theme.text }]}>{result.structured_formatting?.secondary_text || ''}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-          </View>
-        </View>
         
         {/* Quick Actions */}
         <View style={styles.quickActions}>
@@ -283,14 +264,26 @@ function CameraScreen({ navigation }) {
     backBtn: { width: 40, height: 40, justifyContent: 'center' },
     headerTitle: { fontSize: 16, fontWeight: '500', color: theme.text, flex: 1, textAlign: 'center' },
     headerSpacer: { width: 40 },
-    scannerSection: { padding: 20 },
-    scannerArea: { alignItems: 'center', marginBottom: 40 },
-    scannerFrame: { width: 260, height: 260, borderRadius: 24, backgroundColor: theme.surface, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#3b82f6', borderStyle: 'dashed' },
-    scannerIcon: { marginBottom: 16 },
-    scannerText: { fontSize: 16, color: theme.textSecondary },
-    scannerActions: { gap: 12 },
-    landmarkToggle: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, gap: 8, marginBottom: 12 },
-    landmarkToggleText: { fontSize: 14, fontWeight: '500' },
+    scannerSection: { flex: 1, justifyContent: 'space-between', padding: 24 },
+    centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    scanFrame: { width: 280, height: 280, justifyContent: 'center', alignItems: 'center', position: 'relative', marginBottom: 40 },
+    frameCorners: { position: 'absolute', width: '100%', height: '100%' },
+    corner: { position: 'absolute', width: 30, height: 30, borderColor: '#6366f1', borderWidth: 3 },
+    topLeft: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0 },
+    topRight: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0 },
+    bottomLeft: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0 },
+    bottomRight: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0 },
+    frameText: { fontSize: 16, marginTop: 16, textAlign: 'center' },
+    toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 16, backgroundColor: theme.surface, borderRadius: 12 },
+    toggleText: { flex: 1, fontSize: 16, fontWeight: '500' },
+    switch: { width: 44, height: 24, borderRadius: 12, justifyContent: 'center', position: 'relative' },
+    switchThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#ffffff', position: 'absolute' },
+    actionButtons: { gap: 16 },
+    mainButton: { backgroundColor: '#6366f1', borderRadius: 16, paddingVertical: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
+    mainButtonText: { fontSize: 18, fontWeight: '600', color: '#ffffff' },
+    secondaryButtons: { flexDirection: 'row', gap: 12 },
+    secondaryButton: { flex: 1, backgroundColor: theme.surface, borderRadius: 12, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    secondaryButtonText: { fontSize: 14, fontWeight: '500' },
     primaryBtn: { backgroundColor: '#ffffff', borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
     primaryBtnText: { fontSize: 16, fontWeight: '600', color: '#000000' },
     secondaryBtn: { backgroundColor: 'transparent', borderRadius: 12, paddingVertical: 16, alignItems: 'center', borderWidth: 1, borderColor: theme.text },
@@ -456,7 +449,7 @@ function CameraScreen({ navigation }) {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [currentExifData, setCurrentExifData] = useState(null);
-  const [voiceEnabled, setVoiceEnabled] = useState(false);
+
   const [showCorrectModal, setShowCorrectModal] = useState(false);
   const [correctAddress, setCorrectAddress] = useState('');
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -499,7 +492,7 @@ function CameraScreen({ navigation }) {
         allowsEditing: false,
         exif: false, // Don't process EXIF to avoid stripping
         base64: false,
-        mediaTypes: 'Images',
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
       });
       
       console.log('Camera result:', result);
@@ -580,7 +573,7 @@ function CameraScreen({ navigation }) {
 
       console.log('Launching image library with raw file access...');
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'Images',
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: false,
         quality: 1,
         exif: false, // Don't process EXIF to avoid stripping
@@ -725,25 +718,15 @@ function CameraScreen({ navigation }) {
       const fileSizeMB = fileInfo.size / (1024 * 1024);
       console.log(`Original image size: ${fileSizeMB.toFixed(2)}MB`);
       
-      // Reject images larger than 3.5MB
-      if (fileSizeMB > 3.5) {
-        Alert.alert('Image Too Large', `Image size is ${fileSizeMB.toFixed(1)}MB. Please select an image smaller than 3.5MB.`);
+      // Reject images larger than 10MB
+      if (fileSizeMB > 10) {
+        Alert.alert('Image Too Large', `Image size is ${fileSizeMB.toFixed(1)}MB. Please select an image smaller than 10MB.`);
         setLoading(false);
         return;
       }
       
-      // Handle large images above 3.5MB
+      // Use original image without compression
       let processedImage = { uri: imageUri };
-      if (fileSizeMB > 3.5) {
-        console.log(`Compressing ${fileSizeMB.toFixed(2)}MB image for API`);
-        processedImage = await manipulateAsync(
-          imageUri,
-          [{ resize: { width: 1600 } }],
-          { compress: 0.8, format: 'jpeg' }
-        );
-        const newSize = await FileSystem.getInfoAsync(processedImage.uri);
-        console.log(`Compressed to ${(newSize.size / (1024 * 1024)).toFixed(2)}MB`);
-      }
       
       const formData = new FormData();
       
@@ -799,7 +782,7 @@ function CameraScreen({ navigation }) {
       
       // Create AbortController for custom timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
       
       const response = await fetch(`https://ssabiroad.vercel.app/api/location-recognition-v2?t=${Date.now()}`, {
         method: 'POST',
@@ -859,7 +842,7 @@ function CameraScreen({ navigation }) {
           
           console.log('Making retry API request...');
           const retryController = new AbortController();
-          const retryTimeoutId = setTimeout(() => retryController.abort(), 90000);
+          const retryTimeoutId = setTimeout(() => retryController.abort(), 180000);
           
           const retryResponse = await fetch(`https://ssabiroad.vercel.app/api/location-recognition-v2?retry=1&t=${Date.now()}`, {
             method: 'POST',
@@ -982,34 +965,7 @@ function CameraScreen({ navigation }) {
     }
   };
 
-  const handleVoiceCommand = (command) => {
-    switch (command) {
-      case 'takePhoto':
-        takePicture();
-        break;
-      case 'openGallery':
-        pickImage();
-        break;
-      case 'analyze':
-        if (photo) {
-          Alert.alert('Voice Command', 'Re-analyzing photo...');
-          analyzeImage(photo, currentExifData, 'voice');
-        } else {
-          Alert.alert('Voice Command', 'Please take a photo first');
-        }
-        break;
-      case 'saveLocation':
-        if (result?.success) {
-          Alert.alert('Voice Command', 'Location saved!');
-        } else {
-          Alert.alert('Voice Command', 'No location to save');
-        }
-        break;
-      case 'findSimilar':
-        Alert.alert('Voice Command', 'Finding similar locations...');
-        break;
-    }
-  };
+
   
   const openBookingLink = (type) => {
     if (!result?.success || !result.location) return;
@@ -1139,12 +1095,7 @@ function CameraScreen({ navigation }) {
           <Ionicons name="chevron-back" size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Photo Scanner</Text>
-        <TouchableOpacity 
-          style={styles.backBtn}
-          onPress={() => setVoiceEnabled(!voiceEnabled)}
-        >
-          <Ionicons name={voiceEnabled ? "mic" : "mic-off"} size={24} color={voiceEnabled ? "#6366f1" : theme.text} />
-        </TouchableOpacity>
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView 
@@ -1154,39 +1105,47 @@ function CameraScreen({ navigation }) {
       >
         {!photo ? (
           <View style={styles.scannerSection}>
-            <View style={styles.scannerArea}>
-              <View style={styles.scannerFrame}>
-                <Ionicons name="camera-outline" size={64} color="#6366f1" style={styles.scannerIcon} />
-                <Text style={styles.scannerText}>Ready to scan</Text>
+            <View style={styles.centerContent}>
+              <View style={styles.scanFrame}>
+                <View style={styles.frameCorners}>
+                  <View style={[styles.corner, styles.topLeft]} />
+                  <View style={[styles.corner, styles.topRight]} />
+                  <View style={[styles.corner, styles.bottomLeft]} />
+                  <View style={[styles.corner, styles.bottomRight]} />
+                </View>
+                <Ionicons name="camera-outline" size={80} color="#6366f1" />
+                <Text style={[styles.frameText, { color: theme.textSecondary }]}>Position photo here</Text>
+              </View>
+              
+              <View style={styles.toggleRow}>
+                <Ionicons name="eye" size={20} color={analyzeLandmarks ? "#6366f1" : theme.textSecondary} />
+                <Text style={[styles.toggleText, { color: theme.text }]}>Landmark Detection</Text>
+                <TouchableOpacity 
+                  style={[styles.switch, { backgroundColor: analyzeLandmarks ? '#6366f1' : '#e5e7eb' }]}
+                  onPress={() => setAnalyzeLandmarks(!analyzeLandmarks)}
+                >
+                  <View style={[styles.switchThumb, { transform: [{ translateX: analyzeLandmarks ? 18 : 2 }] }]} />
+                </TouchableOpacity>
               </View>
             </View>
             
-            <View style={styles.scannerActions}>
-              <TouchableOpacity 
-                style={[styles.landmarkToggle, { backgroundColor: analyzeLandmarks ? '#6366f1' : theme.surface }]}
-                onPress={() => setAnalyzeLandmarks(!analyzeLandmarks)}
-              >
-                <Ionicons 
-                  name={analyzeLandmarks ? "checkmark-circle" : "ellipse-outline"} 
-                  size={20} 
-                  color={analyzeLandmarks ? "#ffffff" : theme.text} 
-                />
-                <Text style={[styles.landmarkToggleText, { color: analyzeLandmarks ? "#ffffff" : theme.text }]}>
-                  Landmark Detection
-                </Text>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity style={styles.mainButton} onPress={takePicture}>
+                <Ionicons name="camera" size={24} color="#ffffff" />
+                <Text style={styles.mainButtonText}>Take Photo</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity style={styles.primaryBtn} onPress={takePicture}>
-                <Text style={styles.primaryBtnText}>Take Photo</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.secondaryBtn} onPress={pickImage}>
-                <Text style={styles.secondaryBtnText}>Choose from Gallery</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.secondaryBtn} onPress={pickRawImage}>
-                <Text style={styles.secondaryBtnText}>Raw File (Preserves GPS)</Text>
-              </TouchableOpacity>
+              <View style={styles.secondaryButtons}>
+                <TouchableOpacity style={styles.secondaryButton} onPress={pickImage}>
+                  <Ionicons name="images" size={20} color="#6366f1" />
+                  <Text style={[styles.secondaryButtonText, { color: theme.text }]}>Gallery</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.secondaryButton} onPress={pickRawImage}>
+                  <Ionicons name="document" size={20} color="#6366f1" />
+                  <Text style={[styles.secondaryButtonText, { color: theme.text }]}>Raw File</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         ) : (
@@ -1437,10 +1396,7 @@ function CameraScreen({ navigation }) {
           </View>
         )}
         
-        <VoiceCommands 
-          onCommand={handleVoiceCommand}
-          isActive={voiceEnabled}
-        />
+
         
         {/* Image Preview Modal */}
         <Modal
@@ -1947,9 +1903,7 @@ function AboutScreen({ navigation }) {
       >
         <View style={styles.aboutContent}>
           <View style={styles.logoSection}>
-            <View style={styles.logoCircle}>
-              <Ionicons name="location" size={50} color="#ffffff" />
-            </View>
+            <Image source={require('./assets/pic2nav.png')} style={{ width: 250, height: 250, marginBottom: 20 }} resizeMode="contain" />
             <Text style={styles.appName}>Pic2Nav</Text>
             <Text style={styles.version}>Version 1.0.0</Text>
           </View>
@@ -2025,38 +1979,72 @@ function AboutScreen({ navigation }) {
 
 // Main App
 export default function App() {
+  const [appIsReady, setAppIsReady] = useState(false);
+
+  useEffect(() => {
+    async function prepare() {
+      try {
+        // Keep the splash screen visible while we fetch resources
+        await SplashScreen.preventAutoHideAsync();
+        
+        // Pre-load fonts, make any API calls you need to do here
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        // Tell the application to render
+        setAppIsReady(true);
+      }
+    }
+
+    prepare();
+  }, []);
+
+  const onLayoutRootView = useCallback(async () => {
+    if (appIsReady) {
+      // This tells the splash screen to hide immediately
+      await SplashScreen.hideAsync();
+    }
+  }, [appIsReady]);
+
+  if (!appIsReady) {
+    return null;
+  }
+
   return (
-    <ThemeProvider>
-      <NavigationContainer>
-        <Stack.Navigator 
-          initialRouteName="Welcome"
-          screenOptions={{ 
-            headerShown: false,
-            cardStyleInterpolator: ({ current, layouts }) => {
-              return {
-                cardStyle: {
-                  transform: [
-                    {
-                      translateX: current.progress.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [layouts.screen.width, 0],
-                      }),
-                    },
-                  ],
-                },
-              };
-            },
-          }}
-        >
-          <Stack.Screen name="Welcome" component={WelcomeScreen} />
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="Camera" component={CameraScreen} />
-          <Stack.Screen name="Tools" component={ToolsScreen} />
-          <Stack.Screen name="About" component={AboutScreen} />
-          <Stack.Screen name="Terms" component={TermsScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </ThemeProvider>
+    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+      <ThemeProvider>
+        <NavigationContainer>
+          <Stack.Navigator 
+            initialRouteName="Welcome"
+            screenOptions={{ 
+              headerShown: false,
+              cardStyleInterpolator: ({ current, layouts }) => {
+                return {
+                  cardStyle: {
+                    transform: [
+                      {
+                        translateX: current.progress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [layouts.screen.width, 0],
+                        }),
+                      },
+                    ],
+                  },
+                };
+              },
+            }}
+          >
+            <Stack.Screen name="Welcome" component={WelcomeScreen} />
+            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="Camera" component={CameraScreen} />
+            <Stack.Screen name="Tools" component={ToolsScreen} />
+            <Stack.Screen name="About" component={AboutScreen} />
+            <Stack.Screen name="Terms" component={TermsScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </ThemeProvider>
+    </View>
   );
 }
 

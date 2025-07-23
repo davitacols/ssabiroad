@@ -3092,11 +3092,27 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
   }
 }
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   console.log('POST request received at:', new Date().toISOString());
   
   try {
+    // Check content length
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: 'File too large. Maximum size is 10MB.' },
+        { status: 413, headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }}
+      );
+    }
+    
     // Add timeout to the entire request
     const requestPromise = handleRequest(request);
     const timeoutPromise = new Promise((_, reject) => {
