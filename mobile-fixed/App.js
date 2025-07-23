@@ -490,7 +490,7 @@ function CameraScreen({ navigation }) {
       const result = await ImagePicker.launchCameraAsync({
         quality: 1,
         allowsEditing: false,
-        exif: false, // Don't process EXIF to avoid stripping
+        exif: true, // Enable EXIF to get GPS data
         base64: false,
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
       });
@@ -576,7 +576,7 @@ function CameraScreen({ navigation }) {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: false,
         quality: 1,
-        exif: false, // Don't process EXIF to avoid stripping
+        exif: true, // Enable EXIF to get GPS data
         base64: false,
       });
       
@@ -725,8 +725,18 @@ function CameraScreen({ navigation }) {
         return;
       }
       
-      // Use original image without compression
+      // Compress only if over 4MB for Vercel compatibility
       let processedImage = { uri: imageUri };
+      if (fileSizeMB > 4) {
+        console.log(`Compressing ${fileSizeMB.toFixed(2)}MB image for Vercel`);
+        processedImage = await manipulateAsync(
+          imageUri,
+          [{ resize: { width: 2000 } }],
+          { compress: 0.8, format: 'jpeg' }
+        );
+        const newSize = await FileSystem.getInfoAsync(processedImage.uri);
+        console.log(`Compressed to ${(newSize.size / (1024 * 1024)).toFixed(2)}MB`);
+      }
       
       const formData = new FormData();
       
@@ -745,16 +755,18 @@ function CameraScreen({ navigation }) {
         });
       }
       
-      // Send device location as fallback for mobile
-      formData.append('latitude', hasGPS ? gpsLat.toString() : '0');
-      formData.append('longitude', hasGPS ? gpsLng.toString() : '0');
-      formData.append('analyzeLandmarks', analyzeLandmarks.toString());
+      // Only send location if image has GPS data
+      const imageHasGPS = exifData && (exifData.GPSLatitude || exifData.GPS?.GPSLatitude);
+      formData.append('latitude', imageHasGPS ? gpsLat.toString() : '0');
+      formData.append('longitude', imageHasGPS ? gpsLng.toString() : '0');
+      formData.append('analyzeLandmarks', imageHasGPS ? analyzeLandmarks.toString() : 'true'); // Force text analysis for no-GPS images
       formData.append('enhanced', 'true');
       formData.append('mobile', 'true');
-      formData.append('hasGPS', hasGPS.toString());
+      formData.append('hasGPS', imageHasGPS ? 'true' : 'false');
       formData.append('platform', Platform.OS);
-      formData.append('exifSource', hasGPS ? 'device-location' : 'none');
-      formData.append('hasImageGPS', 'false');
+      formData.append('exifSource', imageHasGPS ? 'image-gps' : 'none');
+      formData.append('hasImageGPS', imageHasGPS ? 'true' : 'false');
+      formData.append('forceTextAnalysis', imageHasGPS ? 'false' : 'true'); // Force OCR when no GPS
       
       // Only add location bias if using device location (not image GPS)
       if (!hasGPS || (exifData?.GPSLatitude === 0 && exifData?.GPSLongitude === 0)) {

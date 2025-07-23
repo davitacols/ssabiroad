@@ -3066,8 +3066,9 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     
     console.log('All AI methods failed - trying device location fallback...');
     
-    // 3. Smart fallback: Use device location if available (low accuracy)
-    if (providedLocation && providedLocation.latitude !== 0 && providedLocation.longitude !== 0) {
+    // 3. Only use device location if explicitly requested (hasGPS=true from mobile)
+    const hasImageGPS = formData?.get?.('hasImageGPS') === 'true';
+    if (hasImageGPS && providedLocation && providedLocation.latitude !== 0 && providedLocation.longitude !== 0) {
       console.log('Using device location as fallback');
       const fallbackResult = {
         success: true,
