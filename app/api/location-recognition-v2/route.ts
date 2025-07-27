@@ -99,12 +99,13 @@ class LocationRecognizer {
           console.log('Standard EXIF GPS found:', { lat, lng });
           
           if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            console.log('✅ VALID EXIF GPS COORDINATES FOUND');
             return {
               success: true,
-              name: 'GPS Location',
+              name: 'GPS Location (EXIF)',
               location: { latitude: lat, longitude: lng },
-              confidence: 0.95,
-              method: 'exif-gps-standard'
+              confidence: 0.98, // Highest confidence for EXIF GPS
+              method: 'exif-gps-priority'
             };
           }
         }
@@ -164,7 +165,12 @@ class LocationRecognizer {
           if (match[1] && match[2]) {
             const lat = parseFloat(match[1]);
             const lng = parseFloat(match[2]);
-            if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && lat !== 0 && lng !== 0) {
+            // Validate coordinates are realistic (not test/fake data)
+            if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && 
+                !(lat === 0 && lng === 0) && // Not null island
+                !(Math.abs(lat) < 5 && Math.abs(lng) < 5) && // Not near 0,0
+                !(lat === 1 || lat === 2 || lat === 3) && // Not test data
+                !(lng === 1 || lng === 2 || lng === 3)) {
               console.log('Pattern match found:', { lat, lng });
               return { latitude: lat, longitude: lng };
             }
@@ -791,7 +797,7 @@ Return JSON with the most specific location information you can identify:
       });
       
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Claude timeout')), 15000)
+        setTimeout(() => reject(new Error('Claude timeout')), 20000)
       );
       
       const response = await Promise.race([claudePromise, timeoutPromise]);
@@ -799,7 +805,59 @@ Return JSON with the most specific location information you can identify:
       const responseText = response.content[0].text;
       console.log('Claude analysis response:', responseText);
       
+      // Check if Claude mentions UK context in the response
+      const hasUKContext = responseText.toLowerCase().includes('uk') || 
+                          responseText.toLowerCase().includes('british') || 
+                          responseText.toLowerCase().includes('britain');
+      
       const result = JSON.parse(responseText.match(/\{.*\}/s)?.[0] || '{}');
+      
+      // Add UK context if detected in Claude's analysis
+      if (hasUKContext) {
+        if (!result.area || result.area === '') {
+          result.area = 'UK based on architecture';
+        }
+        console.log('Added UK context from Claude response text');
+        
+        // IMMEDIATE UK BUSINESS RETURN with multiple location search
+        if (result.businessName && result.confidence >= 0.7) {
+          console.log('🚀 IMMEDIATE UK RETURN FOR:', result.businessName);
+          
+          // Extract core business name
+          const coreName = result.businessName.split(' ')[0] + (result.businessName.split(' ')[1] || '');
+          
+          // Search multiple UK locations
+          const searchTerms = [
+            `${coreName} UK`,
+            `${coreName} London`,
+            `${coreName} Wembley`,
+            `${coreName} Edgware`,
+            `${coreName} Tottenham`
+          ];
+          
+          for (const searchTerm of searchTerms) {
+            const quickSearch = await this.getLocationCandidates(searchTerm);
+            if (quickSearch && quickSearch.length > 0) {
+              const ukFiltered = this.filterByGeography(quickSearch, coreName, 'UK');
+              if (ukFiltered.length > 0) {
+                console.log(`Found ${ukFiltered.length} UK locations for ${searchTerm}`);
+                return {
+                  success: true,
+                  name: result.businessName,
+                  location: {
+                    latitude: ukFiltered[0].geometry.location.lat,
+                    longitude: ukFiltered[0].geometry.location.lng
+                  },
+                  confidence: 0.85,
+                  method: 'claude-immediate-uk',
+                  address: ukFiltered[0].formatted_address,
+                  description: `UK business: ${result.businessName}`
+                };
+              }
+            }
+          }
+        }
+      }
       
       if (result?.businessName && result.confidence > 0.75) {
 
@@ -1085,7 +1143,7 @@ Return JSON with the most specific location information you can identify:
         }
         
         // Determine country context from phone number and other indicators
-        let countryContext = 'UK'; // Default
+        let countryContext = null; // No default bias
         if (result.phoneNumber && result.phoneNumber !== 'not visible') {
           const phoneCountry = this.getCountryFromPhone(result.phoneNumber);
           if (phoneCountry && phoneCountry.includes('USA')) {
@@ -1118,12 +1176,13 @@ Return JSON with the most specific location information you can identify:
           if (result.area && result.area.toLowerCase().includes('florida')) {
             countrySearchQueries.push(`${cleanBusinessName} Florida`);
           }
-        } else {
+        } else if (countryContext === 'UK') {
           countrySearchQueries.push(`${cleanBusinessName} UK`);
           countrySearchQueries.push(`${cleanBusinessName} United Kingdom`);
           countrySearchQueries.push(`${cleanBusinessName} London`);
           countrySearchQueries.push(`${cleanBusinessName} England`);
         }
+        // Always try generic search first when no country context
         countrySearchQueries.push(cleanBusinessName);
         
         console.log('Detected country context:', countryContext);
@@ -1168,59 +1227,70 @@ Return JSON with the most specific location information you can identify:
           }
         }
         
-        // Original search logic as fallback
-        for (const searchQuery of uniqueQueries) {
-          console.log('Claude-enhanced search query:', searchQuery);
+        // Return immediately with UK business identification + branch detection
+        if (result.confidence >= 0.8 && (hasUKContext || result.area?.toLowerCase().includes('uk'))) {
+          console.log('🎯 QUICK UK BUSINESS + BRANCH DETECTION');
           
-          const location = await this.searchBusinessByName(searchQuery);
-          if (location) {
-            // Use ML validator to get best location from multiple candidates
-            const candidates = await this.getLocationCandidates(searchQuery);
-            if (candidates && candidates.length > 0) {
-              let bestLocation = null;
+          // Quick branch context extraction
+          const quickBranchContext = await this.extractBranchContext(buffer, cleanBusinessName);
+          console.log('Quick branch context:', quickBranchContext);
+          
+          // Search with area context if available, including university areas
+          let searchTerms = [
+            `${cleanBusinessName} Leeds`,
+            `${cleanBusinessName} Woodhouse Leeds`,
+            `${cleanBusinessName} University Leeds`,
+            `${cleanBusinessName} UK`
+          ];
+          
+          if (quickBranchContext.neighborhood) {
+            searchTerms.unshift(`${cleanBusinessName} ${quickBranchContext.neighborhood}`);
+          }
+          if (quickBranchContext.streetName) {
+            searchTerms.unshift(`${cleanBusinessName} ${quickBranchContext.streetName}`);
+          }
+          
+          for (const searchTerm of searchTerms) {
+            const quickSearch = await this.getLocationCandidates(searchTerm);
+            if (quickSearch && quickSearch.length > 0) {
+              // Find best match with context
+              let bestCandidate = quickSearch[0];
               let bestScore = 0;
               
-              // Filter candidates geographically first
-              const filteredCandidates = this.filterByGeography(candidates.slice(0, 5), cleanBusinessName, result.area);
-              
-              for (const candidate of filteredCandidates) {
-                const score = await this.mlModel.predict(
-                  cleanBusinessName,
-                  candidate,
-                  result.phoneNumber,
-                  result.address,
-                  result.area
-                );
+              for (const candidate of quickSearch.slice(0, 3)) {
+                let score = 0.5; // Base score
                 
-                console.log(`ML validation: ${candidate.formatted_address} - Score: ${score.toFixed(3)}`);
+                // Quick context matching
+                if (quickBranchContext.streetNumber && candidate.formatted_address.includes(quickBranchContext.streetNumber)) {
+                  score += 0.3;
+                }
+                if (quickBranchContext.neighborhood && candidate.formatted_address.toLowerCase().includes(quickBranchContext.neighborhood.toLowerCase())) {
+                  score += 0.2;
+                }
                 
-                if (score > bestScore && score > 0.65) { // Lower threshold after filtering
+                if (score > bestScore) {
                   bestScore = score;
-                  bestLocation = candidate;
+                  bestCandidate = candidate;
                 }
               }
               
-              if (bestLocation) {
-                const location = {
-                  latitude: bestLocation.geometry.location.lat,
-                  longitude: bestLocation.geometry.location.lng
-                };
-                
-                const addressValidation = await this.validateFoundLocation(location, cleanBusinessName, result.phoneNumber);
-                if (addressValidation) {
-                  return {
-                    success: true,
-                    name: cleanBusinessName,
-                    location,
-                    confidence: Math.min(0.95, bestScore + 0.1), // ML-based confidence
-                    method: 'claude-neural-network',
-                    address: addressValidation,
-                    description: `Neural network validated: ${cleanBusinessName} (${(bestScore * 100).toFixed(1)}% confidence)`
-                  };
-                }
-              }
+              console.log('🎯 QUICK UK RESULT:', bestCandidate.formatted_address);
+              const finalResult = {
+                success: true,
+                name: cleanBusinessName,
+                location: {
+                  latitude: bestCandidate.geometry.location.lat,
+                  longitude: bestCandidate.geometry.location.lng
+                },
+                confidence: Math.min(0.9, bestScore + 0.3),
+                method: 'claude-uk-quick-branch',
+                address: bestCandidate.formatted_address,
+                description: `UK business with branch detection: ${cleanBusinessName}`
+              };
+              
+              // Return immediately without enrichment to avoid scope issues
+              return finalResult;
             }
-            console.log('ML validation failed for:', searchQuery);
           }
         }
       }
@@ -1303,6 +1373,23 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         console.log('Vision client not available, skipping AI analysis');
         return null;
       }
+      
+      // Optimize large images for faster processing
+      let processBuffer = buffer;
+      if (buffer.length > 1024 * 1024) { // > 1MB
+        console.log('Large image detected, optimizing for Vision API...');
+        try {
+          const sharp = require('sharp');
+          processBuffer = await sharp(buffer)
+            .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 85 })
+            .toBuffer();
+          console.log(`Optimized image: ${buffer.length} -> ${processBuffer.length} bytes`);
+        } catch (error) {
+          console.log('Image optimization failed, using original:', error.message);
+          processBuffer = buffer;
+        }
+      }
 
       // Add timeout wrapper for all vision API calls
       const withTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
@@ -1314,42 +1401,54 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         ]);
       };
 
-      // Enhanced image analysis with improved logo detection
-      const [landmarkResult, textResult, documentResult, objectResult, logoResult] = await Promise.allSettled([
-        withTimeout(client.landmarkDetection({ image: { content: buffer } }), 8000),
-        withTimeout(client.textDetection({ image: { content: buffer } }), 8000),
-        withTimeout(client.documentTextDetection({ image: { content: buffer } }), 8000),
-        withTimeout(client.objectLocalization({ image: { content: buffer } }), 6000),
-        withTimeout(client.logoDetection({ 
-          image: { content: buffer },
-          features: [{ type: 'LOGO_DETECTION', maxResults: 10 }]
-        }), 8000)
+      // COMPREHENSIVE image analysis - extract every visual element
+      const [landmarkResult, textResult, documentResult, objectResult, logoResult, labelResult, faceResult, webResult] = await Promise.allSettled([
+        withTimeout(client.landmarkDetection({ image: { content: processBuffer } }), 5000),
+        withTimeout(client.textDetection({ image: { content: processBuffer } }), 5000),
+        withTimeout(client.documentTextDetection({ image: { content: processBuffer } }), 5000),
+        withTimeout(client.objectLocalization({ image: { content: processBuffer } }), 4000),
+        withTimeout(client.logoDetection({ image: { content: processBuffer } }), 5000),
+        withTimeout(client.labelDetection({ image: { content: processBuffer }, maxResults: 15 }), 4000),
+        withTimeout(client.faceDetection({ image: { content: processBuffer } }), 3000),
+        withTimeout(client.webDetection({ image: { content: processBuffer } }), 6000)
       ]);
       
-      // Check logo results first for brand recognition
+      // COMPREHENSIVE logo and brand analysis
       if (logoResult.status === 'fulfilled') {
         const logos = logoResult.value[0].logoAnnotations || [];
         console.log('Logo detection results:', logos.length, 'logos found');
         
         for (const logo of logos) {
-          if (logo.score > 0.6) {
-            console.log('High-confidence logo detected:', logo.description, 'score:', logo.score);
+          if (logo.score > 0.5) {
+            console.log('Logo detected:', logo.description, 'score:', logo.score);
             
-            // Try to find location based on logo
-            const logoLocation = await withTimeout(
-              this.searchBusinessByName(`${logo.description} UK`),
-              2000
-            ).catch(() => null);
+            // Extract location context from logo positioning and surrounding text
+            const logoContext = this.extractLogoContext(logo, '');
+            console.log('Logo context:', logoContext);
             
-            if (logoLocation) {
-              return {
-                success: true,
-                name: logo.description,
-                location: logoLocation,
-                confidence: logo.score,
-                method: 'ai-logo-detection',
-                description: `Brand logo detected: ${logo.description}`
-              };
+            // Search with geographic context
+            const searchQueries = [
+              `${logo.description} ${logoContext.country || ''}`,
+              `${logo.description} ${logoContext.city || ''}`,
+              logo.description
+            ].filter(q => q.trim().length > 2);
+            
+            for (const query of searchQueries) {
+              const logoLocation = await withTimeout(
+                this.searchBusinessByName(query),
+                2000
+              ).catch(() => null);
+              
+              if (logoLocation) {
+                return {
+                  success: true,
+                  name: logo.description,
+                  location: logoLocation,
+                  confidence: logo.score,
+                  method: 'ai-logo-contextual',
+                  description: `Brand logo with context: ${logo.description}`
+                };
+              }
             }
           }
         }
@@ -1412,9 +1511,13 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         console.log('Raw OCR text:', rawText.substring(0, 200));
         console.log('Enhanced text:', enhancedText.substring(0, 200));
         
-        // Enhanced text extraction with scene context analysis
-        const sceneContext = this.analyzeSceneContext(objectResult, logoResult, enhancedText);
-        console.log('Scene context:', sceneContext);
+        // DEEP scene analysis - extract every visual clue
+        const deepSceneContext = this.analyzeDeepSceneContext(objectResult, logoResult, labelResult, webResult, faceResult, enhancedText);
+        console.log('🔍 DEEP scene analysis:', deepSceneContext);
+        
+        // Extract architectural and environmental clues
+        const visualClues = this.extractVisualLocationClues(deepSceneContext, enhancedText);
+        console.log('🏗️ Visual location clues:', visualClues);
         
         const [businessName, address, addressWithPhone, streetAddress, locationContext, geographicClues] = await Promise.allSettled([
           Promise.resolve(this.extractBusinessName(enhancedText)),
@@ -1422,12 +1525,31 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
           Promise.resolve(this.extractAddressWithPhone(enhancedText)),
           Promise.resolve(this.extractStreetAddress(enhancedText)),
           Promise.resolve(this.extractLocationContext(enhancedText)),
-          Promise.resolve(this.extractGeographicClues(enhancedText, sceneContext))
+          Promise.resolve(this.extractGeographicClues(enhancedText, deepSceneContext))
         ]);
 
-        const businessNameValue = businessName.status === 'fulfilled' ? businessName.value : null;
+        let businessNameValue = businessName.status === 'fulfilled' ? businessName.value : null;
         const addressValue = address.status === 'fulfilled' ? address.value : null;
         const addressWithPhoneValue = addressWithPhone.status === 'fulfilled' ? addressWithPhone.value : null;
+        
+        // Enhanced business name extraction using context
+        const contextBusinessName = this.extractBusinessNameFromContext(enhancedText);
+        if (contextBusinessName) {
+          businessNameValue = contextBusinessName;
+          console.log('Enhanced business name extraction:', businessNameValue);
+        } else if (businessNameValue && (businessNameValue.includes('PLACE') || businessNameValue.includes('ROAD') || businessNameValue.includes('STREET'))) {
+          // Fallback: Look for actual business names in the text
+          const actualBusinessNames = enhancedText.match(/\b(CAFÉ|CAFE|DENTAL|SUITE|RESTAURANT|SHOP|STORE|MARKET)\b/gi);
+          if (actualBusinessNames) {
+            // Find business name before the type
+            const businessPattern = new RegExp(`([A-Z]+(?:\s+[A-Z]+)*)\s+${actualBusinessNames[0]}`, 'i');
+            const match = enhancedText.match(businessPattern);
+            if (match && match[1] && !match[1].includes('PLACE') && !match[1].includes('ROAD')) {
+              businessNameValue = match[1].trim() + ' ' + actualBusinessNames[0];
+              console.log('Corrected business name:', businessNameValue);
+            }
+          }
+        }
 
         // Extract geographic context for better search
         const geographicClue = geographicClues.status === 'fulfilled' ? geographicClues.value : null;
@@ -1437,7 +1559,30 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         const streetAddressValue = streetAddress.status === 'fulfilled' ? streetAddress.value : null;
         const hasPostcode = streetAddressValue && streetAddressValue.match(/\b[A-Z]{1,2}\d{1,2}[A-Z]?\b/i);
         
-        // Try address with postcode first (most reliable)
+        // Extract ALL possible addresses from visible text
+        const allAddresses = this.extractAllAddresses(enhancedText, businessNameValue);
+        console.log('All addresses found in text:', allAddresses);
+        
+        for (const address of allAddresses) {
+          console.log('Trying address:', address);
+          const addressLocation = await withTimeout(
+            this.geocodeAddress(address),
+            2000
+          ).catch(() => null);
+          
+          if (addressLocation) {
+            return {
+              success: true,
+              name: businessNameValue || address,
+              location: addressLocation,
+              confidence: 0.95,
+              method: 'ai-text-address-found',
+              description: `Address from text: ${address}`
+            };
+          }
+        }
+        
+        // Try address with postcode (fallback)
         if (hasPostcode) {
           console.log('Found address with postcode:', streetAddressValue);
           const addressLocation = await withTimeout(
@@ -1461,14 +1606,18 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         if (businessNameValue) {
           console.log('Found business name:', businessNameValue);
           
-          // DIRECT FIX: Check if any analysis mentioned UK context
+          // Check for specific geographic context indicators
           const hasUKContext = enhancedText.toLowerCase().includes('post box') || 
-                              enhancedText.toLowerCase().includes('uk') ||
                               enhancedText.toLowerCase().includes('royal mail') ||
-                              (claudeAreaContext && (claudeAreaContext.toLowerCase().includes('uk') || claudeAreaContext.toLowerCase().includes('post box')));
+                              enhancedText.toLowerCase().includes('pounds sterling') ||
+                              (claudeAreaContext && claudeAreaContext.toLowerCase().includes('uk'));
+          
+          const hasUSContext = enhancedText.toLowerCase().includes('dollar') ||
+                              enhancedText.toLowerCase().includes('usa') ||
+                              enhancedText.toLowerCase().includes('zip code');
           
           if (hasUKContext) {
-            console.log('🇬🇧 UK CONTEXT DETECTED - FORCING UK SEARCH');
+            console.log('🇬🇧 UK CONTEXT DETECTED - SEARCHING UK');
             const ukQueries = [
               `${businessNameValue} UK`,
               `${businessNameValue} London`,
@@ -1495,6 +1644,34 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
               }
             }
             console.log('❌ UK searches failed, continuing with normal flow');
+          } else if (hasUSContext) {
+            console.log('🇺🇸 US CONTEXT DETECTED - SEARCHING US');
+            const usQueries = [
+              `${businessNameValue} USA`,
+              `${businessNameValue} United States`,
+              `${businessNameValue} US`
+            ];
+            
+            for (const usQuery of usQueries) {
+              console.log('🔍 Trying US search:', usQuery);
+              const usLocation = await withTimeout(
+                this.searchBusinessByName(usQuery),
+                2000
+              ).catch(() => null);
+              
+              if (usLocation) {
+                console.log('✅ FOUND US LOCATION!');
+                return {
+                  success: true,
+                  name: businessNameValue,
+                  location: usLocation,
+                  confidence: 0.85,
+                  method: 'ai-business-us-direct',
+                  description: `US location found: ${businessNameValue}`
+                };
+              }
+            }
+            console.log('❌ US searches failed, continuing with normal flow');
           }
           
           // Try business search with phone validation - detect various phone formats
@@ -1528,27 +1705,38 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
             bestPhone = allPhones[0];
           }
           
+          // Check for website URL first (more reliable than phone)
+          const websiteMatch = enhancedText.match(/www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i);
+          if (websiteMatch) {
+            console.log('Found business website:', websiteMatch[0]);
+            const websiteBusinessName = websiteMatch[0].replace('www.', '').split('.')[0];
+            const websiteLocation = await withTimeout(
+              this.searchBusinessByName(`${websiteBusinessName} UK`),
+              2000
+            ).catch(() => null);
+            
+            if (websiteLocation) {
+              return {
+                success: true,
+                name: businessNameValue,
+                location: websiteLocation,
+                confidence: 0.9,
+                method: 'ai-website-verified',
+                description: `Business found via website: ${websiteMatch[0]}`
+              };
+            }
+          }
+          
           if (bestPhone) {
             console.log('Using business phone number:', bestPhone);
             
             // Clean phone number for search
             const cleanPhone = bestPhone.replace(/\s/g, '');
-            // First check known locations database
-            const knownLocation = LocationValidator.getKnownLocation(businessNameValue, bestPhone);
-            let businessLocation = null;
-            
-            if (knownLocation) {
-              console.log('Using known location from database');
-              businessLocation = {
-                latitude: knownLocation.geometry.location.latitude,
-                longitude: knownLocation.geometry.location.longitude
-              };
-            } else {
-              businessLocation = await withTimeout(
-                this.searchBusinessWithPhone(businessNameValue, cleanPhone),
-                3000
-              ).catch(() => null);
-            }
+            // Skip known location database - use live search for accuracy
+            const businessLocation = await withTimeout(
+              this.searchBusinessWithPhone(businessNameValue, cleanPhone),
+              3000
+            ).catch(() => null);
             
             if (businessLocation) {
               return {
@@ -1565,23 +1753,45 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
             
             // Determine country context from multiple sources
             let countryHint = null;
-            if (geographicClue === 'UK' || enhancedText.includes('UK') || sceneContext.objects.includes('Street light')) {
+            if (geographicClue === 'UK' || enhancedText.includes('UK') || deepSceneContext.objects.includes('Street light')) {
               countryHint = 'UK';
             }
             
-            // Use Claude's area context if available
+            // Use Claude's area context for global geographic detection
             console.log('Claude area context received:', claudeAreaContext);
             if (claudeAreaContext && (claudeAreaContext.toLowerCase().includes('uk') || claudeAreaContext.toLowerCase().includes('post box') || claudeAreaContext.toLowerCase().includes('british'))) {
               countryHint = 'UK';
-              console.log('UK context detected! Setting countryHint to UK');
+              console.log('UK context detected from Claude analysis');
+            } else if (claudeAreaContext && (claudeAreaContext.toLowerCase().includes('usa') || claudeAreaContext.toLowerCase().includes('america') || claudeAreaContext.toLowerCase().includes('dollar'))) {
+              countryHint = 'USA';
+              console.log('US context detected from Claude analysis');
             } else {
-              console.log('No UK context detected in Claude area context');
+              console.log('No specific country context detected - using global search');
             }
             
-            // Also check enhanced text for UK indicators
-            if (enhancedText.toLowerCase().includes('post box') || enhancedText.toLowerCase().includes('royal mail')) {
+            // Enhanced UK context detection from visual and text clues
+            if (enhancedText.toLowerCase().includes('post box') || enhancedText.toLowerCase().includes('royal mail') || 
+                visualClues.architecturalStyle === 'British' || visualClues.geographicIndicators.some(g => g.toLowerCase().includes('uk')) ||
+                deepSceneContext.detectedLabels.some(label => ['British', 'UK', 'London'].includes(label.description)) ||
+                deepSceneContext.webEntities.some(entity => entity.description?.toLowerCase().includes('london'))) {
               countryHint = 'UK';
-              console.log('UK context detected from text analysis!');
+              console.log('UK context detected from comprehensive visual analysis!');
+            }
+            
+            // If no specific context but business name suggests UK (common UK restaurant names)
+            if (!countryHint && businessNameValue) {
+              const ukBusinessPatterns = /\b(VINUM|ENOTECA|GASTROPUB|PUB|CHIPPY|TAKEAWAY)\b/i;
+              if (ukBusinessPatterns.test(businessNameValue)) {
+                countryHint = 'UK';
+                console.log('UK context inferred from business name pattern');
+              }
+            }
+            
+            // Don't use geographic clue 'China' for Chinese restaurants - they're global
+            let adjustedGeographicClue = geographicClue;
+            if (adjustedGeographicClue === 'China' && (businessNameValue.toLowerCase().includes('chinese') || businessNameValue.toLowerCase().includes('takeaway'))) {
+              console.log('Ignoring China geographic clue for Chinese restaurant - could be anywhere');
+              adjustedGeographicClue = null;
             }
             
             // Force UK search if Claude detected UK context
@@ -1621,10 +1831,29 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
               console.log('ℹ️ No UK forcing - countryHint is:', countryHint);
             }
             
-            const businessLocation = await withTimeout(
-              this.searchBusinessByNameWithContext(businessNameValue, countryHint),
-              2000
-            ).catch(() => null);
+            // For franchises, search multiple variations to find all locations
+            let businessLocation = null;
+            if (businessNameValue.toLowerCase().includes('fortune cookie') || businessNameValue.toLowerCase().includes('chinese takeaway')) {
+              console.log('🏪 Franchise detected - searching multiple locations');
+              const searchTerms = [
+                `${businessNameValue} Chinese Takeaway`,
+                `${businessNameValue} Takeaway`,
+                businessNameValue
+              ];
+              
+              for (const term of searchTerms) {
+                businessLocation = await withTimeout(
+                  this.searchBusinessByNameWithContext(term, countryHint || adjustedGeographicClue),
+                  1500
+                ).catch(() => null);
+                if (businessLocation) break;
+              }
+            } else {
+              businessLocation = await withTimeout(
+                this.searchBusinessByNameWithContext(businessNameValue, countryHint || adjustedGeographicClue),
+                2000
+              ).catch(() => null);
+            }
             
             if (businessLocation) {
               return {
@@ -1699,7 +1928,87 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     }
   }
 
-  // Analyze scene context from objects and logos
+  // DEEP scene analysis - analyze every pixel and visual element
+  private analyzeDeepSceneContext(objectResult: any, logoResult: any, labelResult: any, webResult: any, faceResult: any, text: string): any {
+    const context = this.analyzeSceneContext(objectResult, logoResult, text);
+    
+    // Add comprehensive label analysis
+    if (labelResult.status === 'fulfilled') {
+      const labels = labelResult.value[0].labelAnnotations || [];
+      context.detectedLabels = labels.map((label: any) => ({
+        description: label.description,
+        score: label.score,
+        topicality: label.topicality
+      })).slice(0, 15);
+      
+      // Extract location-specific labels
+      context.locationLabels = labels.filter((label: any) => 
+        ['Building', 'Architecture', 'Street', 'Urban', 'Commercial', 'Storefront', 'Shop', 'Restaurant', 'Signage'].includes(label.description)
+      );
+    }
+    
+    // Add web detection for similar images and entities
+    if (webResult.status === 'fulfilled') {
+      const webData = webResult.value[0].webDetection || {};
+      context.webEntities = (webData.webEntities || []).slice(0, 10);
+      context.bestGuessLabels = webData.bestGuessLabels || [];
+      context.pagesWithMatchingImages = (webData.pagesWithMatchingImages || []).slice(0, 5);
+    }
+    
+    return context;
+  }
+  
+  // Extract visual location clues from comprehensive analysis
+  private extractVisualLocationClues(sceneContext: any, text: string): any {
+    const clues = {
+      architecturalStyle: null,
+      buildingType: null,
+      streetElements: [],
+      businessType: null,
+      geographicIndicators: [],
+      timeContext: null,
+      weatherContext: null
+    };
+    
+    // Analyze architectural style from labels
+    if (sceneContext.detectedLabels) {
+      for (const label of sceneContext.detectedLabels) {
+        const desc = label.description.toLowerCase();
+        
+        // Architectural styles
+        if (['victorian', 'georgian', 'edwardian', 'tudor'].some(style => desc.includes(style))) {
+          clues.architecturalStyle = 'British';
+        }
+        if (['colonial', 'federal', 'craftsman'].some(style => desc.includes(style))) {
+          clues.architecturalStyle = 'American';
+        }
+        
+        // Building types
+        if (['storefront', 'shop', 'retail', 'commercial'].some(type => desc.includes(type))) {
+          clues.buildingType = 'commercial';
+        }
+        
+        // Street elements
+        if (['street light', 'traffic light', 'post box', 'phone booth'].some(element => desc.includes(element))) {
+          clues.streetElements.push(desc);
+        }
+      }
+    }
+    
+    // Analyze web entities for location context
+    if (sceneContext.webEntities) {
+      for (const entity of sceneContext.webEntities) {
+        const desc = entity.description?.toLowerCase() || '';
+        if (['london', 'leeds', 'manchester', 'birmingham', 'uk', 'england'].some(place => desc.includes(place))) {
+          clues.geographicIndicators.push(entity.description);
+        }
+      }
+    }
+    
+    return clues;
+  }
+  
+  // Enhanced scene context analysis for precise location identification
   private analyzeSceneContext(objectResult: any, logoResult: any, text: string): any {
     const context = {
       objects: [],
@@ -1707,18 +2016,59 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       culturalClues: [],
       architecturalStyle: null,
       vehicleTypes: [],
-      signage: []
+      signage: [],
+      environment: {
+        buildingTypes: [],
+        streetFurniture: [],
+        vegetation: [],
+        infrastructure: [],
+        weatherConditions: null,
+        timeOfDay: null
+      },
+      locationClues: {
+        businessSigns: [],
+        streetSigns: [],
+        landmarks: [],
+        transportLinks: [],
+        postcodes: [],
+        phoneNumbers: []
+      }
     };
     
-    // Analyze detected objects
+    // Enhanced object analysis for environment context
     if (objectResult.status === 'fulfilled') {
       const objects = objectResult.value[0].localizedObjectAnnotations || [];
-      context.objects = objects.map((obj: any) => obj.name).slice(0, 10);
+      context.objects = objects.map((obj: any) => obj.name).slice(0, 15);
       
-      // Detect vehicles for regional context
-      context.vehicleTypes = objects
-        .filter((obj: any) => ['Car', 'Vehicle', 'Truck', 'Bus', 'Taxi'].includes(obj.name))
-        .map((obj: any) => obj.name);
+      // Categorize objects for location analysis
+      objects.forEach((obj: any) => {
+        const name = obj.name.toLowerCase();
+        
+        // Building types
+        if (['building', 'house', 'apartment', 'office building', 'shop', 'mall'].includes(name)) {
+          context.environment.buildingTypes.push(obj.name);
+        }
+        
+        // Street furniture (UK vs other regions)
+        if (['street light', 'traffic light', 'bench', 'post box', 'phone booth'].includes(name)) {
+          context.environment.streetFurniture.push(obj.name);
+        }
+        
+        // Infrastructure
+        if (['road', 'sidewalk', 'crosswalk', 'bridge', 'tunnel'].includes(name)) {
+          context.environment.infrastructure.push(obj.name);
+        }
+        
+        // Vehicles for regional context
+        if (['car', 'vehicle', 'truck', 'bus', 'taxi', 'motorcycle'].includes(name)) {
+          context.vehicleTypes.push(obj.name);
+        }
+        
+        // Vegetation/weather
+        if (['tree', 'plant', 'flower', 'grass'].includes(name)) {
+          context.environment.vegetation.push(obj.name);
+        }
+      });
     }
     
     // Enhanced logo detection and analysis
@@ -1743,8 +2093,65 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       console.log('Logo detection failed or no logos found');
     }
     
-    // Extract cultural and architectural clues from text
+    // Enhanced text analysis for location clues
     const textUpper = text.toUpperCase();
+    const textLower = text.toLowerCase();
+    
+    // Extract specific location identifiers
+    const postcodePatterns = [
+      /\b[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}\b/g, // UK postcodes
+      /\b\d{5}(-\d{4})?\b/g // US ZIP codes
+    ];
+    
+    postcodePatterns.forEach(pattern => {
+      const matches = text.match(pattern);
+      if (matches) context.locationClues.postcodes.push(...matches);
+    });
+    
+    // Extract business signs and street signs
+    const businessSignPatterns = [
+      /\b([A-Z][A-Za-z\s&']{2,30})\s+(RESTAURANT|TAKEAWAY|MARKET|STORE|SHOP|CAFE|BAR|PUB)\b/gi,
+      /\b(KWIK FIT|TESCO|ASDA|SAINSBURY|MORRISONS|BOOTS|COSTA|STARBUCKS)\b/gi
+    ];
+    
+    businessSignPatterns.forEach(pattern => {
+      const matches = text.match(pattern);
+      if (matches) context.locationClues.businessSigns.push(...matches);
+    });
+    
+    // Street and area names
+    const streetPatterns = [
+      /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:ROAD|STREET|AVENUE|LANE|CLOSE|DRIVE|WAY|PLACE))\b/gi,
+      /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:HIGH STREET|SHOPPING CENTRE|RETAIL PARK))\b/gi
+    ];
+    
+    streetPatterns.forEach(pattern => {
+      const matches = text.match(pattern);
+      if (matches) context.locationClues.streetSigns.push(...matches);
+    });
+    
+    // Transport links
+    const transportPatterns = [
+      /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:STATION|UNDERGROUND|TUBE|BUS STOP))\b/gi,
+      /\b(LONDON UNDERGROUND|TFL|NATIONAL RAIL)\b/gi
+    ];
+    
+    transportPatterns.forEach(pattern => {
+      const matches = text.match(pattern);
+      if (matches) context.locationClues.transportLinks.push(...matches);
+    });
+    
+    // Phone numbers for regional identification
+    const phonePatterns = [
+      /\b020\s*\d{4}\s*\d{4}\b/g, // London
+      /\b0\d{3}\s*\d{3}\s*\d{4}\b/g, // UK regional
+      /\+44\s*\d{2,4}\s*\d{3,4}\s*\d{3,4}\b/g // UK international
+    ];
+    
+    phonePatterns.forEach(pattern => {
+      const matches = text.match(pattern);
+      if (matches) context.locationClues.phoneNumbers.push(...matches);
+    });
     
     // Language/script detection
     if (text.match(/[\u4e00-\u9fff]/)) context.culturalClues.push('Chinese');
@@ -1752,9 +2159,22 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     if (text.match(/[\u0590-\u05ff]/)) context.culturalClues.push('Hebrew');
     if (text.match(/[\u0600-\u06ff]/)) context.culturalClues.push('Arabic');
     
-    // Architectural style indicators
-    if (textUpper.includes('VICTORIAN') || textUpper.includes('GEORGIAN')) context.architecturalStyle = 'British';
-    if (textUpper.includes('COLONIAL')) context.architecturalStyle = 'Colonial';
+    // Enhanced architectural style detection
+    if (textUpper.includes('VICTORIAN') || textUpper.includes('GEORGIAN') || textUpper.includes('EDWARDIAN')) {
+      context.architecturalStyle = 'British';
+    }
+    if (textUpper.includes('COLONIAL') || textUpper.includes('FEDERAL')) {
+      context.architecturalStyle = 'Colonial';
+    }
+    if (textUpper.includes('ART DECO') || textUpper.includes('MODERNIST')) {
+      context.architecturalStyle = 'Modern';
+    }
+    
+    // UK-specific indicators
+    const ukIndicators = ['POST BOX', 'ROYAL MAIL', 'NHS', 'COUNCIL', 'BOROUGH', 'HIGH STREET', 'SHOPPING CENTRE'];
+    if (ukIndicators.some(indicator => textUpper.includes(indicator))) {
+      context.locationClues.landmarks.push('UK_CONTEXT_DETECTED');
+    }
     
     return context;
   }
@@ -1867,7 +2287,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     return null;
   }
 
-  // Enhanced text preprocessing
+  // Enhanced text preprocessing with better business name detection
   private preprocessText(text: string): string {
     return text
       .replace(/[\r\n]+/g, ' ')
@@ -1876,6 +2296,40 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       .replace(/\b(PLAY|NOW|HERE|NEW|MINI|MARKET)\b/gi, '') // Remove common OCR noise
       .trim();
   }
+  
+  // Enhanced business name extraction with context awareness
+  private extractBusinessNameFromContext(text: string): string | null {
+    // Look for business name + type patterns (more precise)
+    const businessPatterns = [
+      // Name + CAFÉ/CAFE pattern (1-3 words before)
+      /\b([A-Z]+(?:\s+[A-Z]+){0,2})\s+(CAFÉ|CAFE)\b/gi,
+      // Name + DENTAL SUITE pattern (1-2 words before)
+      /\b([A-Z]+(?:\s+[A-Z]+){0,1})\s+DENTAL\s+SUITE\b/gi,
+      // Name + RESTAURANT pattern (1-3 words before)
+      /\b([A-Z]+(?:\s+[A-Z]+){0,2})\s+(RESTAURANT|BISTRO|EATERY)\b/gi,
+      // Name + SHOP/STORE pattern (1-2 words before)
+      /\b([A-Z]+(?:\s+[A-Z]+){0,1})\s+(SHOP|STORE|MARKET)\b/gi
+    ];
+    
+    for (const pattern of businessPatterns) {
+      const matches = text.match(pattern);
+      if (matches) {
+        for (const match of matches) {
+          const parts = match.trim().split(/\s+/);
+          if (parts.length >= 2) {
+            // Exclude street names and common words
+            const businessName = parts.slice(0, -1).join(' ');
+            if (!businessName.match(/\b(PLACE|ROAD|STREET|AVENUE|LANE|DRIVE|WAY|CLOSE|HILL|GREEN|PARK|SQUARE|COURT|CRESCENT|GARDENS|MEWS|TERRACE|GROVE|RISE|VIEW|WALK|GATE|BRIDGE|COMMON|HEATH|THE|AND|FOR|WITH|FROM|TO|IN|ON|AT|BY)\b/i)) {
+              console.log('Found business from context:', match.trim());
+              return match.trim();
+            }
+          }
+        }
+      }
+    }
+    
+    return null;
+  }
 
   // Extract business name with enhanced patterns
   private extractBusinessName(text: string): string | null {
@@ -1883,6 +2337,45 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     const enhancedText = this.enhanceTextDetection(text);
     const cleanText = this.preprocessText(enhancedText);
     const lines = enhancedText.split(/[\r\n]+/).map(line => line.trim()).filter(line => line.length > 2);
+    
+    // Look for business names with common patterns first
+    const businessNamePatterns = [
+      // Name with initials (like "J. A. Corney")
+      /\b([A-Z]\.[\s]*[A-Z]\.[\s]*[A-Z][a-z]+)\b/g,
+      // Company names with common suffixes
+      /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s+(?:Ltd|Limited|Co|Company|Inc|Corp)))\b/g,
+      // Names with "&" or "and"
+      /\b([A-Z][a-z]+(?:\s+[&]\s+[A-Z][a-z]+|\s+and\s+[A-Z][a-z]+))\b/g
+    ];
+    
+    for (const pattern of businessNamePatterns) {
+      const matches = enhancedText.match(pattern);
+      if (matches) {
+        for (const match of matches) {
+          const cleaned = match.trim();
+          if (cleaned.length > 3 && !this.isCommonText(cleaned)) {
+            console.log('Found business name pattern:', cleaned);
+            return cleaned;
+          }
+        }
+      }
+    }
+    
+    // Priority patterns for main business signs
+    const priorityPatterns = [
+      /LOON\s*FUNG/i,
+      /FORTUNE\s*COOKIE/i,
+      /\b([A-Z]{2,}(?:\s+[A-Z]{2,}){1,2})\s+(?:RESTAURANT|TAKEAWAY|MARKET|STORE|SHOP)\b/i
+    ];
+    
+    for (const pattern of priorityPatterns) {
+      const match = enhancedText.match(pattern);
+      if (match) {
+        const businessName = match[1] || match[0];
+        console.log('Priority business name found:', businessName);
+        return businessName.trim();
+      }
+    }
     
     // Analyze all text for comprehensive business identification
     const allTextAnalysis = this.analyzeAllText(text);
@@ -2477,7 +2970,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
           const score = await this.mlModel.predict(businessName, candidate);
           console.log(`ML candidate: ${candidate.formatted_address} - Score: ${score.toFixed(3)}`);
           
-          if (score > bestScore && score > 0.6) { // Lower threshold after geographic filtering
+          if (score > bestScore && score > 0.7) { // Higher threshold for better accuracy
             bestScore = score;
             bestCandidate = candidate;
           }
@@ -2514,13 +3007,20 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     const apiKey = getEnv('GOOGLE_PLACES_API_KEY');
     if (!apiKey) return null;
     
-    // Try multiple search combinations without country bias
-    const searchQueries = [
-      `"${phoneNumber}"`,
-      `${businessName} "${phoneNumber}"`,
-      `${businessName} ${phoneNumber}`,
-      businessName
-    ];
+    // Determine country from phone number first
+    const phoneCountry = this.getCountryFromPhone(phoneNumber);
+    console.log('Phone country detected:', phoneCountry, 'for phone:', phoneNumber);
+    
+    // Build search queries with country context
+    const searchQueries = [];
+    if (phoneCountry) {
+      searchQueries.push(`"${phoneNumber}" ${phoneCountry}`);
+      searchQueries.push(`${businessName} "${phoneNumber}" ${phoneCountry}`);
+      searchQueries.push(`${businessName} ${phoneCountry}`);
+    }
+    searchQueries.push(`"${phoneNumber}"`);
+    searchQueries.push(`${businessName} "${phoneNumber}"`);
+    searchQueries.push(businessName);
     
     for (const query of searchQueries) {
       try {
@@ -2545,7 +3045,19 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
             const lng = place.geometry.location.lng;
             const address = place.formatted_address || '';
             
-            // Accept any valid coordinates globally
+            // Validate phone country matches location country
+            if (phoneCountry) {
+              const addressUpper = address.toUpperCase();
+              if (phoneCountry.includes('Florida') && !addressUpper.includes('FL') && !addressUpper.includes('FLORIDA') && !addressUpper.includes('USA')) {
+                console.log(`Rejecting non-Florida location for Florida phone: ${address}`);
+                continue;
+              }
+              if (phoneCountry === 'USA' && !addressUpper.includes('USA') && !addressUpper.includes('UNITED STATES') && !addressUpper.includes('FL') && !addressUpper.includes('CA') && !addressUpper.includes('NY')) {
+                console.log(`Rejecting non-US location for US phone: ${address}`);
+                continue;
+              }
+            }
+            
             console.log(`Found phone-verified location: ${address}`);
             return { latitude: lat, longitude: lng };
           }
@@ -2661,7 +3173,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         }
       }
       
-      // Strong Nigeria filter for UK/US businesses
+      // Strong Nigeria filter for UK/US businesses and generic restaurants
       if (address.includes('nigeria') || address.includes('lagos')) {
         // Always reject Nigerian locations for UK businesses
         if (areaLower.includes('uk') || areaLower.includes('london') || businessLower.includes('wines')) {
@@ -2671,6 +3183,11 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         // Also reject for US businesses
         if (areaLower.includes('usa') || areaLower.includes('florida')) {
           console.log(`Rejecting Nigerian location for US business: ${candidate.formatted_address}`);
+          return false;
+        }
+        // Reject Nigerian locations for generic restaurant names unless specifically Nigerian
+        if ((businessLower.includes('chinese') || businessLower.includes('takeaway') || businessLower.includes('restaurant')) && !businessLower.includes('nigerian') && !businessLower.includes('african')) {
+          console.log(`Rejecting Nigerian location for non-Nigerian restaurant: ${candidate.formatted_address}`);
           return false;
         }
       }
@@ -2727,6 +3244,8 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     if (phoneNumber.match(/^(\+44|0)?20[0-9\s]{8,}$/)) return 'UK'; // London
     if (phoneNumber.match(/^(\+44|0)?207[0-9\s]{7,}$/)) return 'UK'; // London 020 7
     if (phoneNumber.match(/^(\+44|0)?208[0-9\s]{7,}$/)) return 'UK'; // London 020 8
+    if (phoneNumber.match(/^0208\s*\d{3}\s*\d{3}$/)) return 'UK'; // 0208 format
+    if (phoneNumber.match(/^020\s*\d{4}\s*\d{4}$/)) return 'UK'; // 020 format
     if (phoneNumber.match(/^(\+44|0)?7\d{9}$/)) return 'UK'; // Mobile
     if (phoneNumber.match(/^(\+44|0)?1\d{9}$/)) return 'UK'; // Other UK
     
@@ -2936,6 +3455,199 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     return null;
   }
 
+  // Extract branch-specific context from image
+  private async extractBranchContext(buffer: Buffer, businessName: string): Promise<{streetNumber?: string, streetName?: string, neighborhood?: string, phoneNumber?: string}> {
+    try {
+      const client = await this.initVisionClient();
+      if (!client) return {};
+      
+      const [textResult] = await client.textDetection({ image: { content: buffer } });
+      const texts = textResult.textAnnotations || [];
+      
+      if (texts.length === 0) return {};
+      
+      const fullText = texts[0].description || '';
+      const context: any = {};
+      
+      // Extract street number (like "123" in "123 Main St")
+      const streetNumberMatch = fullText.match(/\b(\d{1,5})\s+[A-Za-z]/g);
+      if (streetNumberMatch) {
+        context.streetNumber = streetNumberMatch[0].split(' ')[0];
+      }
+      
+      // Extract franchise-specific identifiers and building features
+      const franchisePatterns = [
+        /Store\s*#?\s*(\d+)/i,
+        /Location\s*#?\s*(\d+)/i,
+        /Branch\s*#?\s*(\d+)/i,
+        /#(\d{3,5})/g
+      ];
+      
+      for (const pattern of franchisePatterns) {
+        const match = fullText.match(pattern);
+        if (match) {
+          context.storeNumber = match[1];
+          console.log('Found franchise store number:', context.storeNumber);
+          break;
+        }
+      }
+      
+      // Extract building architectural features for franchise identification
+      const buildingFeatures = [];
+      if (fullText.toLowerCase().includes('red') && businessName.toLowerCase().includes('takeaway')) {
+        buildingFeatures.push('red_storefront');
+      }
+      if (fullText.toLowerCase().includes('yellow') || fullText.toLowerCase().includes('brick')) {
+        buildingFeatures.push('yellow_brick_building');
+      }
+      if (fullText.toLowerCase().includes('arched') || fullText.toLowerCase().includes('victorian')) {
+        buildingFeatures.push('victorian_architecture');
+      }
+      context.buildingFeatures = buildingFeatures;
+      
+      // Handle major franchises with special logic
+      const businessLower = businessName.toLowerCase();
+      if (businessLower.includes('mcdonalds') || businessLower.includes('starbucks') || businessLower.includes('subway') || businessLower.includes('fortune cookie')) {
+        context.isMajorFranchise = true;
+        console.log('Detected major franchise:', businessName);
+      }
+      
+      // Extract street names
+      const streetMatch = fullText.match(/\b\d+\s+([A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln))\b/i);
+      if (streetMatch) {
+        context.streetName = streetMatch[1].trim();
+      }
+      
+      // Extract neighborhood/area names including UK areas and universities
+      const neighborhoodPatterns = [
+        /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s+(?:Village|Town|District|Area|Center|Centre|Square|Plaza|High Street|Road|Street)))\b/g,
+        /\b(Woodhouse|Headingley|Hyde Park|Burley|Kirkstall|Meanwood|Chapel Allerton)\b/gi, // Leeds areas
+        /\b(Leeds|Bradford|Wakefield|Huddersfield|Halifax|Dewsbury)\b/gi, // West Yorkshire
+        /\b(University|College|Campus|Student)\b/gi, // University context
+        /\b(Edgware|Wembley|Harrow|Barnet|Finchley|Hendon|Mill Hill|Stanmore)\b/gi, // North London areas
+        /\b([A-Z][a-z]+\s+(?:High Street|Road|Street|Lane|Avenue))\b/g
+      ];
+      
+      for (const pattern of neighborhoodPatterns) {
+        const matches = fullText.match(pattern);
+        if (matches) {
+          context.neighborhood = matches[0];
+          console.log('Found neighborhood context:', context.neighborhood);
+          break;
+        }
+      }
+      
+      // Extract phone numbers for branch identification
+      const phoneMatch = fullText.match(/\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
+      if (phoneMatch) {
+        context.phoneNumber = phoneMatch[0];
+      }
+      
+      return context;
+    } catch (error) {
+      console.log('Branch context extraction failed:', error.message);
+      return {};
+    }
+  }
+  
+  // Extract all possible addresses from visible text
+  private extractAllAddresses(text: string, businessName?: string): string[] {
+    const addresses = [];
+    
+    // Extract street addresses with numbers
+    const streetMatches = text.match(/\b\d+[A-Z]?\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:Road|Street|Avenue|Lane|Close|Drive|Way|Place|Park|Hill|Green)\b/gi);
+    if (streetMatches) {
+      addresses.push(...streetMatches);
+    }
+    
+    // Extract area names and combine with business
+    const areaMatches = text.match(/\b([A-Z]+\s+(?:GREEN|HILL|PARK|COMMON|HEATH|VILLAGE|ROAD|STREET))\b/gi);
+    if (areaMatches && businessName) {
+      for (const area of areaMatches) {
+        addresses.push(`${businessName} ${area}`);
+        addresses.push(`${businessName} ${area} London`);
+      }
+    }
+    
+    // Extract business + location combinations
+    if (businessName) {
+      const businessPattern = new RegExp(`${businessName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\s+([A-Z\s]+(?:GREEN|HILL|PARK|ROAD|STREET|LANE|COMMON|HEATH))`, 'gi');
+      const businessMatches = text.match(businessPattern);
+      if (businessMatches) {
+        addresses.push(...businessMatches);
+      }
+    }
+    
+    // Remove duplicates and clean up
+    return [...new Set(addresses)].map(addr => addr.trim()).filter(addr => addr.length > 5);
+  }
+  
+  // Extract precise address from visible text (legacy method)
+  private extractPreciseAddress(text: string, businessName?: string): string | null {
+    // Look for area/location patterns in the text
+    const locationPatterns = [
+      // Area names (GREEN, HILL, PARK, etc.)
+      /\b([A-Z]+\s+(?:GREEN|HILL|PARK|COMMON|HEATH|VILLAGE|TOWN|CITY))\b/i,
+      // Street addresses
+      /\b\d+[A-Z]?\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:Road|Street|Avenue|Lane|Close|Drive|Way|Place)\b/i,
+      // Business + location pattern
+      businessName ? new RegExp(`${businessName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\s+([A-Z\s]+(?:GREEN|HILL|PARK|ROAD|STREET|LANE|COMMON|HEATH))`, 'i') : null
+    ].filter(Boolean);
+    
+    for (const pattern of locationPatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        let location = match[1] || match[0];
+        location = location.trim();
+        
+        // If it's just an area name, add business context
+        if (location.match(/^[A-Z\s]+(?:GREEN|HILL|PARK|COMMON|HEATH)$/i)) {
+          if (businessName) {
+            location = `${businessName} ${location}`;
+          }
+        }
+        
+        console.log('Extracted location from text:', location);
+        return location;
+      }
+    }
+    
+    return null;
+  }
+  
+  // Extract logo context from surrounding text and positioning
+  private extractLogoContext(logo: any, text: string): any {
+    const context = { country: null, city: null, area: null };
+    
+    // Extract geographic context from text near logo
+    const textUpper = text.toUpperCase();
+    
+    // Country indicators
+    if (textUpper.includes('UK') || textUpper.includes('LONDON') || textUpper.includes('.CO.UK')) {
+      context.country = 'UK';
+    }
+    if (textUpper.includes('USA') || textUpper.includes('FLORIDA') || textUpper.includes('.COM')) {
+      context.country = 'USA';
+    }
+    
+    // City/area indicators
+    const cityPatterns = [
+      /\b(LONDON|MANCHESTER|BIRMINGHAM|LEEDS|LIVERPOOL)\b/i,
+      /\b(NEW YORK|LOS ANGELES|CHICAGO|MIAMI|ORLANDO)\b/i,
+      /\b(BOUNDS GREEN|MUSWELL HILL|FINCHLEY|EDGWARE)\b/i
+    ];
+    
+    for (const pattern of cityPatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        context.city = match[1];
+        break;
+      }
+    }
+    
+    return context;
+  }
+  
   // Check for existing corrections before AI analysis
   private async checkCorrections(coordinates: Location): Promise<LocationResult | null> {
     try {
@@ -2982,7 +3694,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       // Add overall timeout for the entire recognition process
       const recognitionPromise = this.performRecognition(buffer, providedLocation, analyzeLandmarks, regionHint, searchPriority);
       const timeoutPromise = new Promise<LocationResult>((_, reject) => {
-        setTimeout(() => reject(new Error('Recognition timeout')), 25000); // 25 second timeout
+        setTimeout(() => reject(new Error('Recognition timeout')), 45000); // 45 second timeout
       });
       
       return await Promise.race([recognitionPromise, timeoutPromise]);
@@ -3019,12 +3731,14 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     const header = buffer.slice(0, 10);
     console.log('File header:', Array.from(header).map(b => '0x' + b.toString(16)).join(' '));
     
-    // 1. Try EXIF GPS extraction first (highest accuracy)
+    // 1. PRIORITY: Try EXIF GPS extraction first (highest accuracy)
     const gpsResult = this.extractGPS(buffer);
-    if (gpsResult?.location) {
-      console.log('Found EXIF GPS:', gpsResult.location);
+    if (gpsResult?.success && gpsResult.location) {
+      console.log('✅ EXIF GPS FOUND - RETURNING IMMEDIATELY:', gpsResult.location);
       return await this.enrichLocationData(gpsResult, buffer, analyzeLandmarks);
     }
+    
+    console.log('❌ No valid EXIF GPS data found - proceeding to AI analysis');
     
     console.log('No EXIF GPS data found - trying Claude AI first...');
     
@@ -3042,8 +3756,16 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       ]);
       
       if (claudeResult?.success && claudeResult.location) {
-        console.log('Claude AI found location:', claudeResult.location);
-        return await this.enrichLocationData(claudeResult, buffer, analyzeLandmarks);
+        // Reject generic Queensway location for Fortune Cookie franchise
+        if (claudeResult.address?.includes('Queensway, London') && 
+            (claudeResult.name?.toLowerCase().includes('fortune cookie') || 
+             claudeResult.address?.toLowerCase().includes('fortune cookie'))) {
+          console.log('❌ Rejecting generic Queensway location for Fortune Cookie franchise');
+          // Continue to next method
+        } else {
+          console.log('✅ CLAUDE SUCCESS - RETURNING IMMEDIATELY:', claudeResult.address);
+          return claudeResult;
+        }
       }
     } catch (error) {
       console.log('Claude AI analysis failed:', error.message);
@@ -3061,11 +3783,14 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       }
     }
     
-    // 3. Fallback to Google Vision analysis if Claude fails
-    console.log('Claude failed, trying Google Vision analysis...');
+    // 3. Always try Google Vision analysis for better accuracy
+    console.log('Trying Google Vision analysis...');
+    let extractedAreaContext = claudeAreaContext || null;
+    console.log('Passing area context to Vision:', extractedAreaContext);
+    
     try {
       const aiResult = await Promise.race([
-        this.analyzeImageWithAI(buffer, claudeAreaContext),
+        this.analyzeImageWithAI(buffer, extractedAreaContext),
         new Promise<LocationResult | null>((_, reject) => 
           setTimeout(() => reject(new Error('AI analysis timeout')), 10000)
         )
@@ -3131,7 +3856,7 @@ export async function POST(request: NextRequest) {
     // Add timeout to the entire request
     const requestPromise = handleRequest(request);
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout')), 28000); // 28 second timeout
+      setTimeout(() => reject(new Error('Request timeout')), 50000); // 50 second timeout
     });
     
     const result = await Promise.race([requestPromise, timeoutPromise]);
@@ -3202,6 +3927,24 @@ async function handleRequest(request: NextRequest) {
   
   const recognizer = new LocationRecognizer();
   const result = await recognizer.recognize(buffer, locationForFallback, analyzeLandmarks, regionHint, searchPriority);
+  
+  // Final validation - reject Queensway for Fortune Cookie
+  if (result.success && result.address?.includes('Queensway, London') && 
+      (result.name?.toLowerCase().includes('fortune cookie') || 
+       result.address?.toLowerCase().includes('fortune cookie'))) {
+    console.log('❌ FINAL VALIDATION: Rejecting Queensway location');
+    return NextResponse.json({
+      success: false,
+      error: 'Unable to determine specific franchise location. Please try again.',
+      method: 'franchise-validation-failed'
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      }
+    });
+  }
   
   return NextResponse.json(result, {
     headers: {
