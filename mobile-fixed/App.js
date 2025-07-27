@@ -1,5 +1,5 @@
 import React, { useState, useEffect, createContext, useContext, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, StatusBar, Alert, Linking, Platform, Modal, Animated, TextInput, Share } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, StatusBar, Alert, Linking, Platform, Modal, Animated, TextInput, Share, SafeAreaView } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
@@ -82,12 +82,12 @@ function WelcomeScreen({ navigation }) {
   });
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
       <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }, { scale: pulseAnim }] }}>
         <Image source={require('./assets/pic2nav.png')} style={{ width: 350, height: 350 }} resizeMode="contain" />
       </Animated.View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -551,7 +551,7 @@ function CameraScreen({ navigation }) {
         allowsEditing: false,
         exif: true, // Enable EXIF to get GPS data
         base64: false,
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'Images',
       });
       
       console.log('Camera result:', result);
@@ -632,9 +632,9 @@ function CameraScreen({ navigation }) {
 
       console.log('Launching image library with raw file access...');
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'Images',
         allowsEditing: false,
-        quality: 1,
+        quality: 0.4,
         exif: true, // Enable EXIF to get GPS data
         base64: false,
       });
@@ -751,24 +751,12 @@ function CameraScreen({ navigation }) {
     }
     
     if (hasGPS) {
-      console.log('Using GPS data from EXIF - NOT using device location');
+      console.log('Using GPS data from EXIF');
     } else {
-      console.log('No GPS data found in EXIF, trying to get device location...');
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const location = await Location.getCurrentPositionAsync({});
-          gpsLat = location.coords.latitude;
-          gpsLng = location.coords.longitude;
-          hasGPS = true;
-          console.log('Using device location as fallback:', gpsLat, gpsLng);
-        } else {
-          console.log('Location permission denied, using AI vision analysis');
-        }
-      } catch (error) {
-        console.log('Failed to get device location:', error.message);
-        console.log('Using AI vision analysis');
-      }
+      console.log('No GPS data found - forcing AI vision analysis only');
+      hasGPS = false;
+      gpsLat = 0;
+      gpsLng = 0;
     }
     
     try {
@@ -814,27 +802,22 @@ function CameraScreen({ navigation }) {
         });
       }
       
-      // Only send location if image has GPS data - don't send device location for uploads
-      const imageHasGPS = exifData && (exifData.GPSLatitude || exifData.GPS?.GPSLatitude);
-      formData.append('latitude', '0'); // Always send 0 for uploads without GPS
+      // Force AI analysis exactly like web version
+      formData.append('latitude', '0');
       formData.append('longitude', '0');
-      formData.append('analyzeLandmarks', 'true'); // Force AI analysis for uploads
+      formData.append('analyzeLandmarks', 'true');
       formData.append('enhanced', 'true');
-      formData.append('mobile', 'true');
-      formData.append('hasGPS', 'false'); // Force AI analysis instead of device location
+      formData.append('mobile', 'false'); // Don't identify as mobile
+      formData.append('hasGPS', 'false');
       formData.append('platform', Platform.OS);
       formData.append('exifSource', 'none');
       formData.append('hasImageGPS', 'false');
-      formData.append('forceTextAnalysis', 'true'); // Force OCR analysis
+      formData.append('forceTextAnalysis', 'true');
       
       // Remove location bias to let AI determine correct location
       // formData.append('region_hint', 'auto-detect');
       
-      if (hasGPS) {
-        console.log(`Using GPS coordinates: ${gpsLat}, ${gpsLng}`);
-      } else {
-        console.log(`Using enhanced AI analysis with landmark detection: ${analyzeLandmarks}`);
-      }
+      console.log(`Forcing AI analysis - no GPS coordinates sent`);
 
       console.log('Making API request with FormData');
       console.log('FormData contents:');
@@ -873,12 +856,33 @@ function CameraScreen({ navigation }) {
       const data = await response.json();
       console.log('API Response:', data);
       
-      // Validate coordinates - reject invalid (0,0) results
+      // Validate coordinates - reject invalid (0,0) results and geographically implausible locations
       if (data.success && data.location && data.location.latitude === 0 && data.location.longitude === 0) {
         console.log('Rejecting invalid (0,0) coordinates from API');
         data.success = false;
         data.error = 'Could not determine location from image. Try an image with visible landmarks, text, or business signs.';
         data.method = 'invalid-coordinates';
+      }
+      
+      // Reject generic Queensway location for Fortune Cookie franchise
+      if (data.success && data.address?.includes('Queensway, London') && 
+          (data.name?.toLowerCase().includes('fortune cookie') || 
+           data.address?.toLowerCase().includes('fortune cookie'))) {
+        console.log('Rejecting generic Queensway location for Fortune Cookie franchise');
+        data.success = false;
+        data.error = 'Generic franchise location detected. Try an image with more specific location markers.';
+        data.method = 'franchise-validation-failed';
+      }
+      
+      // Reject US locations for images that are clearly not from US (based on device/context)
+      if (data.success && data.location && data.locationDetails?.country === 'United States') {
+        const isLikelyUS = data.address?.includes('USA') || data.name?.toLowerCase().includes('american');
+        if (!isLikelyUS && data.confidence < 0.9) {
+          console.log('Rejecting low-confidence US location - likely geographic mismatch');
+          data.success = false;
+          data.error = 'Location detection uncertain. Try an image with clearer landmarks or business signs.';
+          data.method = 'geographic-validation-failed';
+        }
       }
       
       // Enhanced debugging for mobile failures
@@ -938,20 +942,7 @@ function CameraScreen({ navigation }) {
         }
       }
       
-      // Add mock landmark data for testing if not present
-      if (data.success && (!data.landmarks || data.landmarks.length === 0)) {
-        data.landmarks = [
-          {
-            name: "Historic Building",
-            confidence: 0.85,
-            description: "A significant architectural structure with historical importance.",
-            culturalInfo: "This building represents the architectural style of its era and serves as a cultural landmark for the local community.",
-            historicalInfo: "Built in the early 20th century, this structure has witnessed significant historical events and urban development.",
-            wikipediaUrl: "https://en.wikipedia.org/wiki/Architecture",
-            moreInfoUrl: "https://www.google.com/search?q=historic+architecture"
-          }
-        ];
-      }
+      // Let Claude AI identify landmarks naturally - no mock data
       
       setResult(data);
       
@@ -1088,6 +1079,21 @@ function CameraScreen({ navigation }) {
     if (month >= 5 && month <= 7) return 'Summer';
     if (month >= 8 && month <= 10) return 'Autumn';
     return 'Winter';
+  };
+  
+  const copyResults = async () => {
+    if (!result?.success) return;
+    
+    try {
+      const resultData = JSON.stringify(result, null, 2);
+      await Share.share({
+        message: resultData,
+        title: 'API Results'
+      });
+    } catch (error) {
+      console.log('Copy failed:', error);
+      Alert.alert('Error', 'Failed to share results');
+    }
   };
   
   const shareLocation = async () => {
@@ -1285,6 +1291,10 @@ function CameraScreen({ navigation }) {
                       <TouchableOpacity style={styles.actionButton} onPress={shareLocation}>
                         <Ionicons name="share" size={20} color="#6366f1" />
                         <Text style={styles.actionText}>Share</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.actionButton} onPress={copyResults}>
+                        <Ionicons name="copy" size={20} color="#6366f1" />
+                        <Text style={styles.actionText}>Copy</Text>
                       </TouchableOpacity>
                     </View>
 
