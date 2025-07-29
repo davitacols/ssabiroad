@@ -20,7 +20,10 @@
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to camera to take photos for location analysis.",
         "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select images for location analysis.",
-        "ITSAppUsesNonExemptEncryption": false
+        "NSLocationWhenInUseUsageDescription": "This app needs location access to show your current position on the map."
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
       }
     },
     "android": {
@@ -32,8 +35,14 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.ACCESS_FINE_LOCATION"
-      ]
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -44,12 +53,18 @@
         {
           "photosPermission": "Allow Pic2Nav to access your photos for location analysis."
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Pic2Nav to use your location to show your position on the map."
+        }
+      ],
+      "expo-secure-store"
     ],
     "extra": {
-      "eas": {
-        "projectId": "34bf28af-9961-40f3-8789-b5ba52b54f96"
-      }
+      "GOOGLE_PLACES_API_KEY": "AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+      "GOOGLE_MAPS_API_KEY": "AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
     }
   }
 }
