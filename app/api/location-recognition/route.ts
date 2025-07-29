@@ -482,14 +482,39 @@ async function extractExifLocation(buffer: Buffer): Promise<{
     let camera: string | undefined
     let orientation: number | undefined
 
-    // Extract GPS coordinates
-    if (result.tags.GPSLatitude && result.tags.GPSLongitude) {
-      const lat = result.tags.GPSLatitude
-      const lng = result.tags.GPSLongitude
+    console.log("EXIF tags found:", Object.keys(result.tags))
+    console.log("GPS-related tags:", {
+      GPSLatitude: result.tags.GPSLatitude,
+      GPSLongitude: result.tags.GPSLongitude,
+      GPSLatitudeRef: result.tags.GPSLatitudeRef,
+      GPSLongitudeRef: result.tags.GPSLongitudeRef
+    })
 
-      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-        location = { latitude: lat, longitude: lng }
+    // Extract GPS coordinates with better validation
+    if (result.tags.GPSLatitude !== undefined && result.tags.GPSLongitude !== undefined) {
+      let lat = result.tags.GPSLatitude
+      let lng = result.tags.GPSLongitude
+      
+      // Apply GPS reference directions (N/S for latitude, E/W for longitude)
+      if (result.tags.GPSLatitudeRef === 'S') {
+        lat = -Math.abs(lat)
       }
+      if (result.tags.GPSLongitudeRef === 'W') {
+        lng = -Math.abs(lng)
+      }
+
+      // Validate coordinates
+      if (typeof lat === 'number' && typeof lng === 'number' && 
+          !isNaN(lat) && !isNaN(lng) &&
+          lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 &&
+          lat !== 0 && lng !== 0) {
+        location = { latitude: lat, longitude: lng }
+        console.log("Valid GPS coordinates extracted:", location)
+      } else {
+        console.log("Invalid GPS coordinates:", { lat, lng })
+      }
+    } else {
+      console.log("No GPS coordinates found in EXIF data")
     }
     
     // Extract timestamp
@@ -830,6 +855,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
     
     const buffer = Buffer.from(await image.arrayBuffer())
+    console.log("Provided location coordinates:", location)
     const result = await recognizeLocation(buffer, location)
     
     // Check for address corrections before returning result

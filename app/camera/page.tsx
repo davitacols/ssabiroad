@@ -1,49 +1,27 @@
 "use client";
 
-import { CameraRecognition } from "@/components/pic2nav";
-import { CameraDiagnostic } from "@/components/CameraDiagnostic";
-import { SimpleCamera } from "@/components/SimpleCamera";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PhotoScanner } from "@/components/pic2nav/photo-scanner";
 
 export default function CameraPage() {
   return (
-    <div className="container max-w-4xl mx-auto py-6 px-4">
-      <div className="space-y-2 mb-6">
-        <h1 className="text-2xl font-bold">Camera & Location Recognition</h1>
-        <p className="text-sm text-muted-foreground">
-          Take a photo to identify buildings, landmarks, and businesses
-        </p>
-      </div>
-      
-      <Tabs defaultValue="camera" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="camera">Camera Recognition</TabsTrigger>
-          <TabsTrigger value="diagnostic">Camera Test</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="camera" className="space-y-4">
-          <CameraRecognition />
-          <div className="mt-8 text-xs text-muted-foreground">
-            <p className="mb-1">
-              This feature uses your camera and location to identify places around you.
-            </p>
-            <p>
-              Results include environmental data, business information, and architectural details when available.
-            </p>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="diagnostic">
-          <div className="space-y-6">
-            <CameraDiagnostic />
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold mb-4">Simple Camera Test</h3>
-              <SimpleCamera />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <div className="container max-w-6xl mx-auto py-8 px-4">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-3 mb-4">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center shadow-lg">
+              <span className="text-2xl">📸</span>
             </div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+              Photo Scanner
+            </h1>
           </div>
-        </TabsContent>
-      </Tabs>
+          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+            Instantly identify locations, buildings, and landmarks using AI-powered image recognition
+          </p>
+        </div>
+        
+        <PhotoScanner />
+      </div>
     </div>
   );
 }
