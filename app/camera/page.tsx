@@ -1,6 +1,6 @@
 "use client";
 
-import { PhotoScanner } from "@/components/pic2nav/photo-scanner";
+import { CameraRecognition } from "@/components/pic2nav/camera-recognition";
 
 export default function CameraPage() {
   return (
@@ -20,7 +20,7 @@ export default function CameraPage() {
           </p>
         </div>
         
-        <PhotoScanner />
+        <CameraRecognition />
       </div>
     </div>
   );
