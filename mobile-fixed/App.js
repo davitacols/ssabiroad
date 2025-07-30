@@ -33,6 +33,20 @@ function ThemeProvider({ children }) {
 
 const useTheme = () => useContext(ThemeContext);
 
+// Helper function to determine region from coordinates
+function getRegionFromCoordinates(lat, lng) {
+  // UK coordinates: roughly 49-61°N, -8-2°E
+  if (lat >= 49 && lat <= 61 && lng >= -8 && lng <= 2) {
+    return 'UK';
+  }
+  // USA coordinates: roughly 25-49°N, -125--66°W
+  if (lat >= 25 && lat <= 49 && lng >= -125 && lng <= -66) {
+    return 'USA';
+  }
+  // Add more regions as needed
+  return null;
+}
+
 // Welcome Screen
 function WelcomeScreen({ navigation }) {
   const { theme } = useTheme();
@@ -597,8 +611,24 @@ function CameraScreen({ navigation }) {
             GPS: asset.exif.GPS
           } : null
         });
-        setPhoto(asset.uri);
-        analyzeImage(asset.uri, asset.exif);
+        
+        // Compress images to prevent payload errors
+        let processedUri = asset.uri;
+        console.log('📐 Compressing image for upload...');
+        try {
+          const compressed = await manipulateAsync(
+            asset.uri,
+            [{ resize: { width: 800 } }],
+            { compress: 0.6, format: 'jpeg' }
+          );
+          processedUri = compressed.uri;
+          console.log('✅ Image compressed successfully');
+        } catch (error) {
+          console.log('⚠️ Image compression failed, using original:', error.message);
+        }
+        
+        setPhoto(processedUri);
+        analyzeImage(processedUri, asset.exif);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to open camera: ' + error.message);
@@ -639,8 +669,24 @@ function CameraScreen({ navigation }) {
             GPS: asset.exif.GPS
           } : null
         });
-        setPhoto(asset.uri);
-        analyzeImage(asset.uri, asset.exif);
+        
+        // Compress images to prevent payload errors
+        let processedUri = asset.uri;
+        console.log('📐 Compressing image for upload...');
+        try {
+          const compressed = await manipulateAsync(
+            asset.uri,
+            [{ resize: { width: 800 } }],
+            { compress: 0.6, format: 'jpeg' }
+          );
+          processedUri = compressed.uri;
+          console.log('✅ Image compressed successfully');
+        } catch (error) {
+          console.log('⚠️ Image compression failed, using original:', error.message);
+        }
+        
+        setPhoto(processedUri);
+        analyzeImage(processedUri, asset.exif);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to open image picker: ' + error.message);
@@ -681,29 +727,19 @@ function CameraScreen({ navigation }) {
         }
       }
       
-      // If no GPS data from image, try to get current location as fallback
+      // Don't send fallback location to avoid biasing results
       if (!gpsAdded) {
-        console.log('⚠️ No valid GPS data found in EXIF, attempting to get current location as fallback');
-        try {
-          const { status } = await Location.requestForegroundPermissionsAsync();
-          if (status === 'granted') {
-            const currentLocation = await Location.getCurrentPositionAsync({
-              accuracy: Location.Accuracy.Balanced,
-              timeout: 5000
-            });
-            if (currentLocation?.coords) {
-              formData.append('latitude', currentLocation.coords.latitude.toString());
-              formData.append('longitude', currentLocation.coords.longitude.toString());
-              console.log('📍 Using current location as fallback:', {
-                lat: currentLocation.coords.latitude,
-                lng: currentLocation.coords.longitude
-              });
-            }
-          }
-        } catch (locationError) {
-          console.log('⚠️ Could not get current location:', locationError.message);
+        console.log('⚠️ No GPS data in image - letting server handle location detection');
+      }
+      
+      // Add dynamic region hint based on current location
+      if (currentLocation?.coords) {
+        const region = getRegionFromCoordinates(currentLocation.coords.latitude, currentLocation.coords.longitude);
+        if (region) {
+          formData.append('region_hint', region);
         }
       }
+      formData.append('user_agent', 'Pic2Nav-Mobile');
       
       console.log('📤 FormData prepared, uploading to server...');
       setProcessingStep('Uploading to server...');
@@ -718,6 +754,9 @@ function CameraScreen({ navigation }) {
       const response = await fetch(apiUrl, {
         method: 'POST',
         body: formData,
+        headers: {
+          'User-Agent': 'Pic2Nav-Mobile/1.0'
+        }
       });
       
       console.log('📥 Response received:', {

@@ -256,7 +256,7 @@ class LocationRecognizer {
     
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
       
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=1000&key=${apiKey}`,
@@ -305,7 +305,7 @@ class LocationRecognizer {
     
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
       
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=500&key=${apiKey}`,
@@ -510,7 +510,7 @@ class LocationRecognizer {
   private async getWeatherData(lat: number, lng: number): Promise<any> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
       
       const response = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&hourly=temperature_2m,relative_humidity_2m,precipitation&timezone=auto&forecast_days=1`,
@@ -541,7 +541,7 @@ class LocationRecognizer {
   private async getElevationData(lat: number, lng: number): Promise<any> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1500);
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       
       const response = await fetch(
         `https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`,
@@ -571,7 +571,7 @@ class LocationRecognizer {
     
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
       
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=1000&type=transit_station&key=${apiKey}`,
@@ -797,7 +797,7 @@ Return JSON with the most specific location information you can identify:
       });
       
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Claude timeout')), 20000)
+        setTimeout(() => reject(new Error('Claude timeout')), 45000)
       );
       
       const response = await Promise.race([claudePromise, timeoutPromise]);
@@ -1403,14 +1403,14 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
 
       // COMPREHENSIVE image analysis - extract every visual element
       const [landmarkResult, textResult, documentResult, objectResult, logoResult, labelResult, faceResult, webResult] = await Promise.allSettled([
-        withTimeout(client.landmarkDetection({ image: { content: processBuffer } }), 5000),
-        withTimeout(client.textDetection({ image: { content: processBuffer } }), 5000),
+        withTimeout(client.landmarkDetection({ image: { content: processBuffer } }), 12000),
+        withTimeout(client.textDetection({ image: { content: processBuffer } }), 12000),
         withTimeout(client.documentTextDetection({ image: { content: processBuffer } }), 5000),
-        withTimeout(client.objectLocalization({ image: { content: processBuffer } }), 4000),
-        withTimeout(client.logoDetection({ image: { content: processBuffer } }), 5000),
-        withTimeout(client.labelDetection({ image: { content: processBuffer }, maxResults: 15 }), 4000),
-        withTimeout(client.faceDetection({ image: { content: processBuffer } }), 3000),
-        withTimeout(client.webDetection({ image: { content: processBuffer } }), 6000)
+        withTimeout(client.objectLocalization({ image: { content: processBuffer } }), 10000),
+        withTimeout(client.logoDetection({ image: { content: processBuffer } }), 12000),
+        withTimeout(client.labelDetection({ image: { content: processBuffer }, maxResults: 15 }), 10000),
+        withTimeout(client.faceDetection({ image: { content: processBuffer } }), 8000),
+        withTimeout(client.webDetection({ image: { content: processBuffer } }), 15000)
       ]);
       
       // COMPREHENSIVE logo and brand analysis
@@ -3124,6 +3124,20 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     return candidates.filter(candidate => {
       const address = candidate.formatted_address?.toLowerCase() || '';
       
+      // PRIORITY: For Chinese takeaways without area context, prioritize UK locations
+      if (!area && (businessLower.includes('fortune cookie') || businessLower.includes('chinese takeaway'))) {
+        const lat = candidate.geometry?.location?.lat || 0;
+        const lng = candidate.geometry?.location?.lng || 0;
+        // UK coordinates: roughly 49-61°N, -8-2°E
+        if (lat >= 49 && lat <= 61 && lng >= -8 && lng <= 2) {
+          console.log(`Prioritizing UK location for Chinese takeaway: ${candidate.formatted_address}`);
+          return true;
+        } else {
+          console.log(`Rejecting non-UK location for Chinese takeaway: ${candidate.formatted_address} (${lat}, ${lng})`);
+          return false;
+        }
+      }
+      
       // If area suggests UK, reject non-UK locations
       if (area === 'UK' || areaLower.includes('uk') || areaLower.includes('london') || areaLower.includes('britain') || areaLower.includes('post box')) {
         if (!address.includes('uk') && !address.includes('united kingdom') && !address.includes('england') && !address.includes('london')) {
@@ -3694,7 +3708,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       // Add overall timeout for the entire recognition process
       const recognitionPromise = this.performRecognition(buffer, providedLocation, analyzeLandmarks, regionHint, searchPriority);
       const timeoutPromise = new Promise<LocationResult>((_, reject) => {
-        setTimeout(() => reject(new Error('Recognition timeout')), 45000); // 45 second timeout
+        setTimeout(() => reject(new Error('Recognition timeout')), 90000); // 90 second timeout
       });
       
       return await Promise.race([recognitionPromise, timeoutPromise]);
@@ -3751,7 +3765,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const claudeResult = await Promise.race([
         this.analyzeWithClaude({}, buffer),
         new Promise<LocationResult | null>((_, reject) => 
-          setTimeout(() => reject(new Error('Claude analysis timeout')), 18000) // Increased timeout
+          setTimeout(() => reject(new Error('Claude analysis timeout')), 35000) // Increased timeout
         )
       ]);
       
@@ -3821,19 +3835,34 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       return await this.enrichLocationData(fallbackResult, buffer, analyzeLandmarks);
     }
     
-    // 4. Complete failure - no location data available
+    // 4. Use provided location as final fallback
+    if (providedLocation) {
+      console.log('Using provided location as final fallback:', providedLocation);
+      const fallbackResult = {
+        success: true,
+        name: 'Current Location',
+        location: providedLocation,
+        confidence: 0.3,
+        method: 'provided-location-fallback',
+        description: 'Using provided GPS coordinates as fallback'
+      };
+      
+      return await this.enrichLocationData(fallbackResult, buffer, analyzeLandmarks);
+    }
+    
+    // 5. Complete failure - no location data available
     return {
       success: false,
       confidence: 0,
       method: 'no-location-data',
       error: 'Unable to determine location. Image has no GPS data, AI analysis found no recognizable landmarks/businesses, and no device location provided.',
-      location: null // Explicitly set to null instead of potentially returning 0,0
+      location: null
     };
   }
 }
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -3856,7 +3885,7 @@ export async function POST(request: NextRequest) {
     // Add timeout to the entire request
     const requestPromise = handleRequest(request);
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout')), 50000); // 50 second timeout
+      setTimeout(() => reject(new Error('Request timeout')), 120000); // 120 second timeout
     });
     
     const result = await Promise.race([requestPromise, timeoutPromise]);
@@ -3903,15 +3932,19 @@ async function handleRequest(request: NextRequest) {
   const hasImageGPS = formData.get('hasImageGPS') === 'true';
   const exifSource = formData.get('exifSource') as string;
   
+  console.log('Raw form data:', {
+    latitude: lat,
+    longitude: lng,
+    hasImageGPS,
+    exifSource
+  });
+  
   const providedLocation = lat && lng ? {
     latitude: parseFloat(lat as string),
     longitude: parseFloat(lng as string)
   } : undefined;
   
   console.log('GPS source info:', { hasImageGPS, exifSource, providedLocation });
-  
-  // Never use provided location for fallback - force AI analysis
-  const locationForFallback = undefined;
   
   console.log('Provided location:', providedLocation);
   console.log('Analyze landmarks:', analyzeLandmarks);
@@ -3926,7 +3959,7 @@ async function handleRequest(request: NextRequest) {
   console.log('Search priority:', searchPriority);
   
   const recognizer = new LocationRecognizer();
-  const result = await recognizer.recognize(buffer, locationForFallback, analyzeLandmarks, regionHint, searchPriority);
+  const result = await recognizer.recognize(buffer, providedLocation, analyzeLandmarks, regionHint, searchPriority);
   
   // Final validation - reject Queensway for Fortune Cookie
   if (result.success && result.address?.includes('Queensway, London') && 
