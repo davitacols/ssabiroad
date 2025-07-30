@@ -440,7 +440,7 @@ async function geocodeTextToLocation(text: string): Promise<{
         address: text,
         key: getEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"),
       },
-      timeout: 5000,
+      timeout: 12000,
     })
 
     if (response.data.results && response.data.results.length > 0) {
@@ -897,6 +897,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     )
   }
 }
+
+export const maxDuration = 120;
 
 export function OPTIONS(): NextResponse {
   return NextResponse.json({
