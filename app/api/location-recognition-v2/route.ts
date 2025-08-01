@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as exifParser from 'exif-parser';
+const piexif = require('piexifjs');
 import NodeCache from 'node-cache';
 import * as vision from '@google-cloud/vision';
 import axios from 'axios';
@@ -70,7 +71,45 @@ class LocationRecognizer {
     console.log('Extracting GPS from buffer, size:', buffer.length);
     
     try {
-      // Method 1: Standard EXIF parser with proper GPS coordinate conversion
+      // Method 1: Try piexifjs (most reliable for GPS)
+      console.log('Trying piexifjs GPS extraction...');
+      try {
+        const dataUrl = 'data:image/jpeg;base64,' + buffer.toString('base64');
+        const exifData = piexif.load(dataUrl);
+        
+        if (exifData.GPS) {
+          console.log('GPS data found in piexifjs:', Object.keys(exifData.GPS));
+          
+          const gpsLat = exifData.GPS[piexif.GPSIFD.GPSLatitude];
+          const gpsLatRef = exifData.GPS[piexif.GPSIFD.GPSLatitudeRef];
+          const gpsLng = exifData.GPS[piexif.GPSIFD.GPSLongitude];
+          const gpsLngRef = exifData.GPS[piexif.GPSIFD.GPSLongitudeRef];
+          
+          console.log('Raw GPS data:', { gpsLat, gpsLatRef, gpsLng, gpsLngRef });
+          
+          if (gpsLat && gpsLng) {
+            const lat = this.convertDMSArrayToDecimal(gpsLat, gpsLatRef);
+            const lng = this.convertDMSArrayToDecimal(gpsLng, gpsLngRef);
+            
+            console.log('Converted coordinates:', { lat, lng });
+            
+            if (this.isValidCoordinate(lat, lng)) {
+              console.log('✅ VALID GPS COORDINATES FROM PIEXIFJS:', { lat, lng });
+              return {
+                success: true,
+                name: 'GPS Location (EXIF)',
+                location: { latitude: lat, longitude: lng },
+                confidence: 0.98,
+                method: 'piexifjs-gps'
+              };
+            }
+          }
+        }
+      } catch (piexifError) {
+        console.log('Piexifjs failed:', piexifError.message);
+      }
+      
+      // Method 2: Standard EXIF parser
       console.log('Trying standard EXIF parser...');
       try {
         const parser = exifParser.create(buffer);
@@ -174,6 +213,23 @@ class LocationRecognizer {
     }
     console.log('🔍 GPS extraction complete - no valid coordinates found');
     return null;
+  }
+  
+  // Convert DMS array from piexifjs to decimal degrees
+  private convertDMSArrayToDecimal(dmsArray: number[][], ref: string): number {
+    if (!dmsArray || dmsArray.length !== 3) return 0;
+    
+    const degrees = dmsArray[0][0] / dmsArray[0][1];
+    const minutes = dmsArray[1][0] / dmsArray[1][1];
+    const seconds = dmsArray[2][0] / dmsArray[2][1];
+    
+    let decimal = degrees + (minutes / 60) + (seconds / 3600);
+    
+    if (ref === 'S' || ref === 'W') {
+      decimal = -decimal;
+    }
+    
+    return decimal;
   }
   
   // Convert DMS (Degrees, Minutes, Seconds) to decimal degrees

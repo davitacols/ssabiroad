@@ -75,6 +75,7 @@
     "node-cache": "^5.1.2",
     "node-fetch": "2",
     "pg": "^8.16.3",
+    "piexifjs": "^1.0.6",
     "react": "^19",
     "react-dom": "^19",
     "react-feather": "^2.0.10",
