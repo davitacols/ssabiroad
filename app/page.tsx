@@ -40,23 +40,23 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative py-32 px-6">
         <div className="container mx-auto text-center max-w-5xl">
-          <Badge className="mb-6 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border-emerald-500/20 text-emerald-700 px-4 py-2">
-            <Sparkles className="h-4 w-4 mr-2" />
-            AI-Powered Location Discovery
+          <Badge className="mb-6 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-2">
+            <MapPin className="h-4 w-4 mr-2" />
+            Photo Location Finder
           </Badge>
           
           <h1 className="text-6xl md:text-7xl font-bold tracking-tight mb-8">
-            <span className="bg-gradient-to-r from-slate-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
-              Navigate
+            <span className="text-slate-900 dark:text-white">
+              Find places from
             </span>
             <br />
-            <span className="bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
-              with Pictures
+            <span className="text-blue-600 dark:text-blue-400">
+              your photos
             </span>
           </h1>
           
-          <p className="text-2xl text-slate-600 dark:text-slate-300 mb-12 max-w-3xl mx-auto">
-            Transform any photo into detailed location insights. Our advanced AI recognizes places, extracts GPS data, and discovers nearby attractions.
+          <p className="text-xl text-slate-600 dark:text-slate-300 mb-12 max-w-3xl mx-auto">
+            Upload a photo and we'll tell you where it was taken. Works with GPS data or by recognizing landmarks and businesses.
           </p>
           
           <div className="flex justify-center mb-16">
@@ -73,22 +73,22 @@ export default function HomePage() {
               <div className="h-12 w-12 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
                 <Check className="h-6 w-6 text-white" />
               </div>
-              <span className="font-semibold text-slate-900 dark:text-white">100% Free</span>
-              <span className="text-sm text-slate-600 dark:text-slate-400">No hidden costs</span>
+              <span className="font-semibold text-slate-900 dark:text-white">Free to use</span>
+              <span className="text-sm text-slate-600 dark:text-slate-400">No signup required</span>
             </div>
             <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/20 dark:border-slate-700/50">
               <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
                 <Zap className="h-6 w-6 text-white" />
               </div>
-              <span className="font-semibold text-slate-900 dark:text-white">Instant Results</span>
-              <span className="text-sm text-slate-600 dark:text-slate-400">Under 2 seconds</span>
+              <span className="font-semibold text-slate-900 dark:text-white">Quick results</span>
+              <span className="text-sm text-slate-600 dark:text-slate-400">Usually under 5 seconds</span>
             </div>
             <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/20 dark:border-slate-700/50">
               <div className="h-12 w-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
                 <Shield className="h-6 w-6 text-white" />
               </div>
-              <span className="font-semibold text-slate-900 dark:text-white">Privacy First</span>
-              <span className="text-sm text-slate-600 dark:text-slate-400">No registration needed</span>
+              <span className="font-semibold text-slate-900 dark:text-white">Private</span>
+              <span className="text-sm text-slate-600 dark:text-slate-400">Photos aren't stored</span>
             </div>
           </div>
         </div>
@@ -98,8 +98,8 @@ export default function HomePage() {
       <section className="py-32 px-6 bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-950">
         <div className="container mx-auto">
           <div className="text-center mb-20">
-            <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-              Two Modes, Endless Possibilities
+            <h2 className="text-4xl font-bold mb-6 text-slate-900 dark:text-white">
+              How it works
             </h2>
           </div>
           
@@ -109,9 +109,9 @@ export default function HomePage() {
                 <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-8">
                   <Zap className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold mb-4 text-slate-900 dark:text-white">Smart Analysis Mode</h3>
+                <h3 className="text-2xl font-bold mb-4 text-slate-900 dark:text-white">Photo Analysis</h3>
                 <p className="text-slate-600 dark:text-slate-300 mb-8 text-lg">
-                  Advanced AI examines every detail—from storefront signs to architectural features.
+                  We look for text, signs, and landmarks in your photos to identify the location.
                 </p>
               </CardContent>
             </Card>
@@ -121,9 +121,9 @@ export default function HomePage() {
                 <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mb-8">
                   <MapPin className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold mb-4 text-slate-900 dark:text-white">GPS Precision Mode</h3>
+                <h3 className="text-2xl font-bold mb-4 text-slate-900 dark:text-white">GPS Data</h3>
                 <p className="text-slate-600 dark:text-slate-300 mb-8 text-lg">
-                  Extract exact coordinates from photo metadata and discover nearby attractions.
+                  If your photo has GPS coordinates, we'll use those to find the exact location and nearby places.
                 </p>
               </CardContent>
             </Card>

@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as SplashScreen from 'expo-splash-screen';
 import Constants from 'expo-constants';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { extractGPSFromExif, hasGPSData, getGPSDataSummary } from './utils/gpsUtils';
+import { extractGPSFromExif, hasGPSData, getGPSDataSummary, extractFullExifData, hasExifData, getExifSummary } from './utils/gpsUtils';
 
 const Stack = createStackNavigator();
 
@@ -388,7 +388,7 @@ function NavigateScreen({ navigation }) {
                   </View>
                 </View>
                 <View style={styles.resultArrow}>
-                  <Ionicons name="arrow-forward" size={16} color="#6366F1" />
+                  <Ionicons name="arrow-forward" size={16} color="#1a73e8" />
                 </View>
               </TouchableOpacity>
             ))}
@@ -497,7 +497,7 @@ function NavigateScreen({ navigation }) {
             {placePhotos.length > 0 && (
               <View style={styles.photosSection}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="images" size={20} color="#6366F1" />
+                  <Ionicons name="images" size={20} color="#1a73e8" />
                   <Text style={styles.sectionTitle}>Photos</Text>
                 </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosScroll}>
@@ -546,7 +546,7 @@ function NavigateScreen({ navigation }) {
                 {nearbyPlaces.map((place, index) => (
                   <View key={index} style={styles.nearbyCard}>
                     <View style={styles.nearbyIcon}>
-                      <Ionicons name="business" size={16} color="#6366F1" />
+                      <Ionicons name="business" size={16} color="#1a73e8" />
                     </View>
                     <View style={styles.nearbyContent}>
                       <Text style={styles.nearbyName}>{place.name}</Text>
@@ -569,7 +569,7 @@ function NavigateScreen({ navigation }) {
   );
 }
 
-// Camera Screen
+// Camera Screen - Modern Mobile-First Design
 function CameraScreen({ navigation }) {
   const { theme } = useTheme();
   const [photo, setPhoto] = useState(null);
@@ -577,6 +577,29 @@ function CameraScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [processingStep, setProcessingStep] = useState('');
   const [confidence, setConfidence] = useState(0);
+  const [scanMode, setScanMode] = useState('instant'); // instant, batch, pro
+  const [showTips, setShowTips] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true })
+    ]).start();
+    
+    // Pulse animation for scan button
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true })
+      ])
+    );
+    pulse.start();
+    
+    return () => pulse.stop();
+  }, []);
   
   const takePicture = async () => {
     try {
@@ -612,23 +635,9 @@ function CameraScreen({ navigation }) {
           } : null
         });
         
-        // Compress images to prevent payload errors
-        let processedUri = asset.uri;
-        console.log('📐 Compressing image for upload...');
-        try {
-          const compressed = await manipulateAsync(
-            asset.uri,
-            [{ resize: { width: 800 } }],
-            { compress: 0.6, format: 'jpeg' }
-          );
-          processedUri = compressed.uri;
-          console.log('✅ Image compressed successfully');
-        } catch (error) {
-          console.log('⚠️ Image compression failed, using original:', error.message);
-        }
-        
-        setPhoto(processedUri);
-        analyzeImage(processedUri, asset.exif);
+        console.log('📍 Using original image to preserve GPS/EXIF data');
+        setPhoto(asset.uri);
+        analyzeImage(asset.uri, asset.exif, asset.uri);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to open camera: ' + error.message);
@@ -670,38 +679,30 @@ function CameraScreen({ navigation }) {
           } : null
         });
         
-        // Compress images to prevent payload errors
-        let processedUri = asset.uri;
-        console.log('📐 Compressing image for upload...');
-        try {
-          const compressed = await manipulateAsync(
-            asset.uri,
-            [{ resize: { width: 800 } }],
-            { compress: 0.6, format: 'jpeg' }
-          );
-          processedUri = compressed.uri;
-          console.log('✅ Image compressed successfully');
-        } catch (error) {
-          console.log('⚠️ Image compression failed, using original:', error.message);
-        }
-        
-        setPhoto(processedUri);
-        analyzeImage(processedUri, asset.exif);
+        // Use original image without modification to preserve any existing GPS
+        console.log('📍 Using original gallery image');
+        setPhoto(asset.uri);
+        analyzeImage(asset.uri, asset.exif, asset.uri);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to open image picker: ' + error.message);
     }
   };
 
-  const analyzeImage = async (imageUri, exifData) => {
+  const analyzeImage = async (imageUri, exifData, originalUri = null) => {
     setLoading(true);
     setConfidence(0);
     
     try {
       console.log('🚀 Starting image analysis for:', imageUri);
       console.log('📊 EXIF data received:', exifData);
-      setProcessingStep('Preparing image...');
+      setProcessingStep('Extracting image metadata...');
       setConfidence(10);
+      
+      // Extract comprehensive EXIF data using exif-parser from original image
+      const sourceUri = originalUri || imageUri;
+      const fullExifData = await extractFullExifData(sourceUri);
+      console.log('📸 Full EXIF extraction from', originalUri ? 'original' : 'compressed', 'image:', fullExifData ? 'Success' : 'Failed');
       
       const formData = new FormData();
       formData.append('image', {
@@ -710,42 +711,148 @@ function CameraScreen({ navigation }) {
         name: 'photo.jpg',
       });
       
-      // Add GPS data from EXIF if available
+      // Always extract and send GPS as separate fields to prevent loss during upload
+      const gpsFromExif = extractGPSFromExif(exifData);
+      if (gpsFromExif) {
+        formData.append('exifGPSLatitude', gpsFromExif.latitude.toString());
+        formData.append('exifGPSLongitude', gpsFromExif.longitude.toString());
+        formData.append('hasExifGPS', 'true');
+        console.log('📍 GPS extracted and added as form fields:', gpsFromExif);
+      }
+      
+      setProcessingStep('Analyzing GPS data...');
+      setConfidence(20);
+      
+      // Check for GPS data in both expo-image-picker EXIF and full EXIF extraction
       let gpsAdded = false;
+      let hasAnyExifData = false;
+      
+      // First try expo-image-picker EXIF data
       if (exifData) {
+        hasAnyExifData = hasExifData(exifData);
         const gpsSummary = getGPSDataSummary(exifData);
-        console.log('🗺️ GPS Data Summary:', gpsSummary);
+        console.log('🗺️ Expo EXIF GPS Summary:', gpsSummary);
         
         const gpsCoords = extractGPSFromExif(exifData);
         if (gpsCoords) {
           formData.append('latitude', gpsCoords.latitude.toString());
           formData.append('longitude', gpsCoords.longitude.toString());
+          formData.append('hasImageGPS', 'true');
+          formData.append('exifSource', 'expo-exif');
           gpsAdded = true;
-          console.log('📍 Added GPS from EXIF:', gpsCoords);
+          console.log('📍 Added GPS from Expo EXIF:', gpsCoords);
+        }
+      }
+      
+      // If no GPS from expo-image-picker, try full EXIF extraction
+      if (!gpsAdded && fullExifData) {
+        hasAnyExifData = true;
+        const fullGpsSummary = getGPSDataSummary(fullExifData);
+        console.log('🗺️ Full EXIF GPS Summary:', fullGpsSummary);
+        
+        const fullGpsCoords = extractGPSFromExif(fullExifData);
+        if (fullGpsCoords) {
+          formData.append('latitude', fullGpsCoords.latitude.toString());
+          formData.append('longitude', fullGpsCoords.longitude.toString());
+          formData.append('hasImageGPS', 'true');
+          formData.append('exifSource', 'exif-parser');
+          gpsAdded = true;
+          console.log('📍 Added GPS from full EXIF:', fullGpsCoords);
         } else {
-          console.log('⚠️ No valid GPS coordinates found in EXIF');
+          // Try location estimation from EXIF metadata
+          const { estimateLocationFromExif } = require('./utils/gpsUtils');
+          const locationEstimate = estimateLocationFromExif(fullExifData);
+          if (locationEstimate) {
+            formData.append('latitude', locationEstimate.estimatedLocation.latitude.toString());
+            formData.append('longitude', locationEstimate.estimatedLocation.longitude.toString());
+            formData.append('hasImageGPS', 'false');
+            formData.append('isEstimatedLocation', 'true');
+            formData.append('estimationMethod', locationEstimate.method);
+            formData.append('estimationConfidence', locationEstimate.confidence.toString());
+            formData.append('exifSource', 'metadata-estimation');
+            gpsAdded = true;
+            console.log('📍 Added estimated location from EXIF:', locationEstimate);
+          }
         }
       }
       
-      // Don't send fallback location to avoid biasing results
+      // Add EXIF metadata information
+      if (hasAnyExifData) {
+        const exifSummary = getExifSummary(fullExifData || exifData);
+        console.log('📋 EXIF Summary:', exifSummary);
+        
+        formData.append('hasExifData', 'true');
+        
+        // Add camera info from expo-image-picker EXIF (more reliable)
+        const cameraData = exifData || {};
+        if (cameraData.Make) formData.append('cameraMake', cameraData.Make);
+        if (cameraData.Model) formData.append('cameraModel', cameraData.Model);
+        if (cameraData.Software) formData.append('cameraSoftware', cameraData.Software);
+        if (cameraData.DateTime) formData.append('dateTime', cameraData.DateTime);
+        if (cameraData.DateTimeOriginal) formData.append('dateTimeOriginal', cameraData.DateTimeOriginal);
+        
+        console.log('📷 Camera metadata added:', {
+          make: cameraData.Make,
+          model: cameraData.Model,
+          software: cameraData.Software,
+          dateTime: cameraData.DateTime
+        });
+      } else {
+        formData.append('hasExifData', 'false');
+      }
+      
       if (!gpsAdded) {
-        console.log('⚠️ No GPS data in image - letting server handle location detection');
-      }
-      
-      // Add dynamic region hint based on current location
-      if (currentLocation?.coords) {
-        const region = getRegionFromCoordinates(currentLocation.coords.latitude, currentLocation.coords.longitude);
-        if (region) {
-          formData.append('region_hint', region);
+        console.log('⚠️ No GPS coordinates found in image EXIF data');
+        formData.append('hasImageGPS', 'false');
+        formData.append('exifSource', hasAnyExifData ? 'exif-no-gps' : 'none');
+        
+        if (hasAnyExifData) {
+          console.log('✅ Image has comprehensive EXIF data but no GPS coordinates');
+          console.log('🔍 This means location services were disabled when photo was taken');
+        }
+        
+        // Always try device location as fallback for gallery photos
+        console.log('📱 Adding device location as fallback for gallery photo');
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status === 'granted') {
+            const deviceLocation = await Location.getCurrentPositionAsync({});
+            formData.append('deviceLatitude', deviceLocation.coords.latitude.toString());
+            formData.append('deviceLongitude', deviceLocation.coords.longitude.toString());
+            formData.append('isDeviceLocation', 'true');
+            console.log('📱 Added device location as fallback:', {
+              lat: deviceLocation.coords.latitude,
+              lng: deviceLocation.coords.longitude
+            });
+          }
+        } catch (error) {
+          console.log('❌ Could not get device location:', error.message);
         }
       }
-      formData.append('user_agent', 'Pic2Nav-Mobile');
+      
+      formData.append('analyzeLandmarks', 'true');
+      formData.append('analyzeText', 'true');
+      formData.append('detectSimilarity', 'true');
+      formData.append('analyzeObjects', 'true');
+      formData.append('analyzeLogos', 'true');
+      formData.append('analyzeWebEntities', 'true');
+      
+      // Add mobile-specific headers
+      const headers = {
+        'User-Agent': 'Pic2Nav-Mobile/1.0'
+      };
       
       console.log('📤 FormData prepared, uploading to server...');
       setProcessingStep('Uploading to server...');
       setConfidence(30);
       
-      setProcessingStep('Analyzing image content...');
+      if (gpsAdded) {
+        setProcessingStep('Analyzing location from GPS data...');
+      } else if (hasAnyExifData) {
+        setProcessingStep('Using AI to identify location from image...');
+      } else {
+        setProcessingStep('Analyzing image content...');
+      }
       setConfidence(60);
       
       const apiUrl = 'https://www.pic2nav.com/api/location-recognition-v2';
@@ -754,9 +861,7 @@ function CameraScreen({ navigation }) {
       const response = await fetch(apiUrl, {
         method: 'POST',
         body: formData,
-        headers: {
-          'User-Agent': 'Pic2Nav-Mobile/1.0'
-        }
+        headers
       });
       
       console.log('📥 Response received:', {
@@ -836,100 +941,232 @@ function CameraScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+    <View style={[styles.modernContainer, { backgroundColor: theme.bg }]}>
       <StatusBar barStyle={theme.isDark ? "light-content" : "dark-content"} backgroundColor={theme.bg} />
       
-      <View style={[styles.header, { backgroundColor: theme.bg, borderBottomColor: theme.surface }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={theme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Photo Scanner</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {!photo ? (
-          <View style={styles.scannerSection}>
-            <View style={styles.heroSection}>
-              <View style={styles.scannerIcon}>
-                <View style={styles.iconGradient}>
-                  <Ionicons name="scan" size={40} color="#FFFFFF" />
-                </View>
-              </View>
-              <Text style={[styles.heroTitle, { color: theme.text }]}>AI Photo Scanner</Text>
-              <Text style={[styles.heroSubtitle, { color: theme.textSecondary }]}>
-                Instantly identify locations from photos using advanced AI recognition
-              </Text>
+      {/* Modern Header with Gradient */}
+      <Animated.View style={[styles.modernHeader, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+        <View style={styles.headerGradient}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.modernBackBtn}>
+            <View style={styles.backBtnCircle}>
+              <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
             </View>
-            
-            <View style={styles.featuresGrid}>
-              <View style={[styles.featureCard, { backgroundColor: theme.surface }]}>
-                <View style={styles.featureIcon}>
-                  <Ionicons name="location" size={20} color="#10B981" />
-                </View>
-                <Text style={[styles.featureTitle, { color: theme.text }]}>GPS Detection</Text>
-                <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>Extract location from photo metadata</Text>
-              </View>
-              
-              <View style={[styles.featureCard, { backgroundColor: theme.surface }]}>
-                <View style={styles.featureIcon}>
-                  <Ionicons name="eye" size={20} color="#6366F1" />
-                </View>
-                <Text style={[styles.featureTitle, { color: theme.text }]}>Visual Analysis</Text>
-                <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>Identify landmarks and buildings</Text>
-              </View>
-            </View>
-            
-            <View style={styles.actionButtons}>
-              <TouchableOpacity style={styles.primaryButton} onPress={takePicture}>
-                <View style={styles.buttonIconContainer}>
-                  <Ionicons name="camera" size={24} color="#FFFFFF" />
-                </View>
-                <Text style={styles.primaryButtonText}>Take Photo</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: theme.surface, borderColor: theme.surface }]} onPress={pickImage}>
-                <Ionicons name="images" size={20} color="#6366F1" />
-                <Text style={[styles.secondaryButtonText, { color: theme.text }]}>Choose from Gallery</Text>
-              </TouchableOpacity>
-            </View>
+          </TouchableOpacity>
+          
+          <View style={styles.headerCenter}>
+            <Text style={styles.modernHeaderTitle}>AI Scanner</Text>
+            <Text style={styles.modernHeaderSubtitle}>Instant location detection</Text>
           </View>
-        ) : (
-          <View style={styles.resultSection}>
-            <View style={styles.photoPreview}>
-              <Image source={{ uri: photo }} style={styles.photoImage} />
-              <TouchableOpacity 
-                style={styles.photoOverlay}
-                onPress={() => { setPhoto(null); setResult(null); setLoading(false); }}
-              >
-                <Ionicons name="close" size={20} color="#FFFFFF" />
+          
+          <TouchableOpacity onPress={() => setShowTips(!showTips)} style={styles.tipsBtn}>
+            <View style={styles.tipsBtnCircle}>
+              <Ionicons name="information-circle" size={20} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
+        </View>
+        
+
+      </Animated.View>
+
+      <ScrollView 
+        contentContainerStyle={styles.modernContent} 
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+      >
+        {!photo ? (
+          <Animated.View style={[styles.modernScannerSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            {/* Hero Section with 3D Effect */}
+            <View style={styles.modernHeroSection}>
+              <Animated.View style={[styles.modernScannerIcon, { transform: [{ scale: pulseAnim }] }]}>
+                <View style={styles.iconGradientModern}>
+                  <View style={styles.iconInner}>
+                    <Ionicons name="scan-circle" size={48} color="#FFFFFF" />
+                  </View>
+                </View>
+                <View style={styles.iconGlow} />
+              </Animated.View>
+              
+              <Text style={[styles.modernHeroTitle, { color: theme.text }]}>Smart Scanner</Text>
+              <Text style={[styles.modernHeroSubtitle, { color: theme.textSecondary }]}>
+                AI-powered location detection with instant results
+              </Text>
+              
+              {/* Stats Row */}
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>99%</Text>
+                  <Text style={styles.statLabel}>Accuracy</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>{'< 3s'}</Text>
+                  <Text style={styles.statLabel}>Speed</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>24/7</Text>
+                  <Text style={styles.statLabel}>Available</Text>
+                </View>
+              </View>
+            </View>
+            
+            {/* Modern Features Grid */}
+            <View style={styles.modernFeaturesGrid}>
+              <View style={[styles.modernFeatureCard, { backgroundColor: theme.surface }]}>
+                <View style={[styles.modernFeatureIcon, { backgroundColor: '#10B981' }]}>
+                  <Ionicons name="location" size={24} color="#FFFFFF" />
+                </View>
+                <Text style={[styles.modernFeatureTitle, { color: theme.text }]}>GPS Extraction</Text>
+                <Text style={[styles.modernFeatureDesc, { color: theme.textSecondary }]}>Precise coordinates from metadata</Text>
+                <View style={styles.featureBadge}>
+                  <Text style={styles.featureBadgeText}>INSTANT</Text>
+                </View>
+              </View>
+              
+              <View style={[styles.modernFeatureCard, { backgroundColor: theme.surface }]}>
+                <View style={[styles.modernFeatureIcon, { backgroundColor: '#6366F1' }]}>
+                  <Ionicons name="eye" size={24} color="#FFFFFF" />
+                </View>
+                <Text style={[styles.modernFeatureTitle, { color: theme.text }]}>Visual AI</Text>
+                <Text style={[styles.modernFeatureDesc, { color: theme.textSecondary }]}>Landmark & building recognition</Text>
+                <View style={styles.featureBadge}>
+                  <Text style={styles.featureBadgeText}>SMART</Text>
+                </View>
+              </View>
+              
+              <View style={[styles.modernFeatureCard, { backgroundColor: theme.surface }]}>
+                <View style={[styles.modernFeatureIcon, { backgroundColor: '#F59E0B' }]}>
+                  <Ionicons name="flash" size={24} color="#FFFFFF" />
+                </View>
+                <Text style={[styles.modernFeatureTitle, { color: theme.text }]}>Real-time</Text>
+                <Text style={[styles.modernFeatureDesc, { color: theme.textSecondary }]}>Live processing & analysis</Text>
+                <View style={styles.featureBadge}>
+                  <Text style={styles.featureBadgeText}>FAST</Text>
+                </View>
+              </View>
+            </View>
+            
+            {/* Modern Action Buttons */}
+            <View style={styles.modernActionButtons}>
+              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                <TouchableOpacity style={styles.modernPrimaryButton} onPress={takePicture}>
+                  <View style={styles.buttonGradient}>
+                    <View style={styles.modernButtonIconContainer}>
+                      <Ionicons name="camera" size={28} color="#FFFFFF" />
+                    </View>
+                    <View style={styles.buttonTextContainer}>
+                      <Text style={styles.modernPrimaryButtonText}>Scan Now</Text>
+                      <Text style={styles.modernPrimaryButtonSubtext}>Take photo to analyze</Text>
+                    </View>
+                    <View style={styles.buttonArrow}>
+                      <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+              
+              <TouchableOpacity style={[styles.modernSecondaryButton, { backgroundColor: theme.surface }]} onPress={pickImage}>
+                <View style={styles.secondaryButtonContent}>
+                  <View style={styles.secondaryButtonIcon}>
+                    <Ionicons name="images" size={24} color="#6366F1" />
+                  </View>
+                  <View style={styles.secondaryButtonTextContainer}>
+                    <Text style={[styles.modernSecondaryButtonText, { color: theme.text }]}>Choose Photo</Text>
+                    <Text style={[styles.modernSecondaryButtonSubtext, { color: theme.textSecondary }]}>From gallery</Text>
+                  </View>
+                </View>
               </TouchableOpacity>
             </View>
             
-            {loading && (
-              <View style={[styles.processingCard, { backgroundColor: theme.surface }]}>
-                <View style={styles.processingHeader}>
-                  <View style={styles.processingIcon}>
-                    <Ionicons name="analytics" size={24} color="#6366F1" />
-                  </View>
-                  <Text style={[styles.processingTitle, { color: theme.text }]}>Analyzing Photo</Text>
+            {/* Quick Tips */}
+            {showTips && (
+              <Animated.View style={[styles.tipsContainer, { backgroundColor: theme.surface }]}>
+                <View style={styles.tipsHeader}>
+                  <Ionicons name="bulb" size={20} color="#F59E0B" />
+                  <Text style={[styles.tipsTitle, { color: theme.text }]}>Pro Tips</Text>
                 </View>
-                
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressBar}>
-                    <View style={[styles.progressFill, { width: `${confidence}%` }]} />
-                  </View>
-                  <Text style={[styles.progressText, { color: theme.textSecondary }]}>{confidence}%</Text>
+                <View style={styles.tipsList}>
+                  <Text style={[styles.tipItem, { color: theme.textSecondary }]}>• Ensure good lighting for better accuracy</Text>
+                  <Text style={[styles.tipItem, { color: theme.textSecondary }]}>• Include text or signs in the photo</Text>
+                  <Text style={[styles.tipItem, { color: theme.textSecondary }]}>• Hold steady for clearer images</Text>
                 </View>
+              </Animated.View>
+            )}
+          </Animated.View>
+        ) : (
+          <Animated.View style={[styles.modernResultSection, { opacity: fadeAnim }]}>
+            {/* Modern Photo Preview */}
+            <View style={styles.modernPhotoPreview}>
+              <View style={styles.photoContainer}>
+                <Image source={{ uri: photo }} style={styles.modernPhotoImage} />
+                <View style={styles.photoOverlayGradient} />
+                <TouchableOpacity 
+                  style={styles.modernPhotoOverlay}
+                  onPress={() => { setPhoto(null); setResult(null); setLoading(false); }}
+                >
+                  <View style={styles.closeButtonCircle}>
+                    <Ionicons name="close" size={18} color="#FFFFFF" />
+                  </View>
+                </TouchableOpacity>
                 
-                <Text style={[styles.processingStep, { color: theme.textSecondary }]}>
-                  {processingStep}
-                </Text>
+                {/* Photo Info Badge */}
+                <View style={styles.photoInfoBadge}>
+                  <Ionicons name="image" size={14} color="#FFFFFF" />
+                  <Text style={styles.photoInfoText}>Analyzing...</Text>
+                </View>
               </View>
+            </View>
+            
+            {/* Modern Processing Card */}
+            {loading && (
+              <Animated.View style={[styles.modernProcessingCard, { backgroundColor: theme.surface }]}>
+                <View style={styles.modernProcessingHeader}>
+                  <View style={styles.modernProcessingIcon}>
+                    <View style={styles.processingIconGradient}>
+                      <Ionicons name="analytics" size={28} color="#FFFFFF" />
+                    </View>
+                    <View style={styles.processingIconGlow} />
+                  </View>
+                  <View style={styles.processingTextContainer}>
+                    <Text style={[styles.modernProcessingTitle, { color: theme.text }]}>AI Analysis</Text>
+                    <Text style={[styles.modernProcessingSubtitle, { color: theme.textSecondary }]}>Processing your image</Text>
+                  </View>
+                </View>
+                
+                {/* Modern Progress Bar */}
+                <View style={styles.modernProgressContainer}>
+                  <View style={styles.progressLabelContainer}>
+                    <Text style={[styles.progressLabel, { color: theme.text }]}>Progress</Text>
+                    <Text style={[styles.modernProgressText, { color: theme.text }]}>{confidence}%</Text>
+                  </View>
+                  <View style={styles.modernProgressBar}>
+                    <Animated.View style={[styles.modernProgressFill, { width: `${confidence}%` }]} />
+                    <View style={styles.progressGlow} />
+                  </View>
+                </View>
+                
+                {/* Processing Steps */}
+                <View style={styles.processingStepsContainer}>
+                  <View style={styles.stepIndicator}>
+                    <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                  </View>
+                  <Text style={[styles.modernProcessingStep, { color: theme.textSecondary }]}>
+                    {processingStep || 'Initializing AI analysis...'}
+                  </Text>
+                </View>
+                
+                {/* Processing Animation */}
+                <View style={styles.processingAnimation}>
+                  <View style={styles.animationDot} />
+                  <View style={[styles.animationDot, { animationDelay: '0.2s' }]} />
+                  <View style={[styles.animationDot, { animationDelay: '0.4s' }]} />
+                </View>
+              </Animated.View>
             )}
             
+            {/* Modern Result Card */}
             {result && !loading && (
-              <View style={styles.resultCard}>
+              <Animated.View style={[styles.modernResultCard, { opacity: fadeAnim }]}>
                 {result.success ? (
                   <View style={[styles.successCard, { backgroundColor: theme.surface }]}>
                     <View style={styles.resultHeader}>
@@ -996,7 +1233,7 @@ function CameraScreen({ navigation }) {
                     </Text>
                   </View>
                 )}
-              </View>
+              </Animated.View>
             )}
             
             <TouchableOpacity 
@@ -1011,10 +1248,10 @@ function CameraScreen({ navigation }) {
               <Ionicons name="refresh" size={20} color="#6366F1" />
               <Text style={[styles.retryButtonText, { color: theme.text }]}>Scan Another Photo</Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -1069,7 +1306,7 @@ const styles = StyleSheet.create({
   content: { flexGrow: 1, paddingBottom: 40 },
   
   // Welcome Screen
-  welcomeContainer: { flex: 1, backgroundColor: '#6366F1' },
+  welcomeContainer: { flex: 1, backgroundColor: '#1a73e8' },
   welcomeBackground: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   gradientOverlay: {
     position: 'absolute',
@@ -1077,7 +1314,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(99, 102, 241, 0.9)',
+    backgroundColor: 'rgba(26, 115, 232, 0.9)',
   },
   floatingShapes: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   shape: { position: 'absolute', borderRadius: 50 },
@@ -1186,7 +1423,7 @@ const styles = StyleSheet.create({
   cameraButton: {
     width: 48,
     height: 48,
-    backgroundColor: '#6366F1',
+    backgroundColor: '#1a73e8',
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1260,10 +1497,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#6366F1',
+    backgroundColor: '#1a73e8',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#6366F1',
+    shadowColor: '#1a73e8',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1472,7 +1709,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#6366F1',
+    backgroundColor: '#1a73e8',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#6366F1',
@@ -1558,134 +1795,505 @@ const styles = StyleSheet.create({
   nearbyRating: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   nearbyRatingText: { fontSize: 12, fontWeight: '600', color: '#64748B' },
   
-  // Scanner
-  scannerSection: { flex: 1, padding: 24 },
-  heroSection: { alignItems: 'center', marginBottom: 40, marginTop: 20 },
-  scannerIcon: { marginBottom: 24 },
-  iconGradient: {
+  // Modern Scanner Styles
+  modernContainer: { flex: 1 },
+  modernHeader: {
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
+  headerGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  modernBackBtn: { zIndex: 10 },
+  backBtnCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backdropFilter: 'blur(10px)',
+  },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  modernHeaderTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  modernHeaderSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  tipsBtn: { zIndex: 10 },
+  tipsBtnCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanModeSelector: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 25,
+    padding: 4,
+  },
+  modeTab: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    alignItems: 'center',
+  },
+  modeTabActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  modeTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  modeTabTextActive: {
+    color: '#6366F1',
+  },
+  modernContent: { flexGrow: 1, paddingBottom: 40 },
+  modernScannerSection: { flex: 1, padding: 20 },
+  modernHeroSection: {
+    alignItems: 'center',
+    marginBottom: 40,
+    marginTop: 20,
+  },
+  modernScannerIcon: {
+    marginBottom: 24,
+    position: 'relative',
+  },
+  iconGradientModern: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#1a73e8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#1a73e8',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  iconInner: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#6366F1',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  iconGlow: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(99,102,241,0.2)',
+    top: -10,
+    left: -10,
+    zIndex: -1,
+  },
+  modernHeroTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modernHeroSubtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(99,102,241,0.1)',
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    marginBottom: 20,
+  },
+  statItem: { flex: 1, alignItems: 'center' },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#6366F1',
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#64748B',
+    textTransform: 'uppercase',
+  },
+  statDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(99,102,241,0.2)',
+    marginHorizontal: 16,
+  },
+  
+  modernFeaturesGrid: { gap: 16, marginBottom: 40 },
+  modernFeatureCard: {
+    padding: 20,
+    borderRadius: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
+    marginBottom: 16,
+    position: 'relative',
+  },
+  modernFeatureIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  modernFeatureTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modernFeatureDesc: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  featureBadge: {
+    backgroundColor: 'rgba(99,102,241,0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    position: 'absolute',
+    top: 16,
+    right: 16,
+  },
+  featureBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#6366F1',
+    letterSpacing: 0.5,
+  },
+  
+  modernActionButtons: { gap: 16 },
+  modernPrimaryButton: {
+    borderRadius: 20,
     shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,
+    marginBottom: 16,
   },
-  heroTitle: { fontSize: 28, fontWeight: '800', marginBottom: 12, textAlign: 'center' },
-  heroSubtitle: { fontSize: 16, textAlign: 'center', lineHeight: 24, paddingHorizontal: 20 },
-  
-  featuresGrid: { flexDirection: 'row', gap: 16, marginBottom: 40 },
-  featureCard: {
-    flex: 1,
-    padding: 20,
-    borderRadius: 16,
+  buttonGradient: {
+    backgroundColor: '#6366F1',
+    borderRadius: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.1)',
+    justifyContent: 'space-between',
   },
-  featureIcon: {
+  modernButtonIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonTextContainer: { flex: 1, marginLeft: 16 },
+  modernPrimaryButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  modernPrimaryButtonSubtext: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  buttonArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modernSecondaryButton: {
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(99,102,241,0.2)',
+  },
+  secondaryButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  secondaryButtonIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: 'rgba(99,102,241,0.1)',
     justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  secondaryButtonTextContainer: { flex: 1 },
+  modernSecondaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  modernSecondaryButtonSubtext: {
+    fontSize: 12,
+  },
+  tipsContainer: {
+    marginTop: 20,
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.2)',
+  },
+  tipsHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
   },
-  featureTitle: { fontSize: 14, fontWeight: '700', marginBottom: 6, textAlign: 'center' },
-  featureDesc: { fontSize: 12, textAlign: 'center', lineHeight: 16 },
+  tipsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  tipsList: { gap: 8 },
+  tipItem: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
   
-  actionButtons: { gap: 16 },
-  primaryButton: {
-    backgroundColor: '#6366F1',
-    borderRadius: 16,
-    paddingVertical: 18,
+  // Modern Results
+  modernResultSection: { padding: 20 },
+  modernPhotoPreview: {
+    marginBottom: 24,
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  photoContainer: { position: 'relative' },
+  modernPhotoImage: {
+    width: '100%',
+    height: 280,
+    borderRadius: 24,
+  },
+  photoOverlayGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+    background: 'linear-gradient(180deg, rgba(0,0,0,0.6) 0%, transparent 100%)',
+  },
+  modernPhotoOverlay: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+  },
+  closeButtonCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backdropFilter: 'blur(10px)',
+  },
+  photoInfoBadge: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backdropFilter: 'blur(10px)',
+  },
+  photoInfoText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+    marginLeft: 6,
+  },
+  
+  modernProcessingCard: {
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.2)',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  modernProcessingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modernProcessingIcon: {
+    position: 'relative',
+    marginRight: 16,
+  },
+  processingIconGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#6366F1',
     justifyContent: 'center',
+    alignItems: 'center',
     shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
-  buttonIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  primaryButtonText: { fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
-  secondaryButton: {
-    borderRadius: 16,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1,
-  },
-  secondaryButtonText: { fontSize: 16, fontWeight: '600' },
-  
-  // Results
-  resultSection: { padding: 24 },
-  photoPreview: { position: 'relative', marginBottom: 24, borderRadius: 20, overflow: 'hidden' },
-  photoImage: { width: '100%', height: 240, borderRadius: 20 },
-  photoOverlay: {
+  processingIconGlow: {
     position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(99,102,241,0.2)',
+    top: -7,
+    left: -7,
+    zIndex: -1,
+  },
+  processingTextContainer: { flex: 1 },
+  modernProcessingTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  modernProcessingSubtitle: {
+    fontSize: 14,
+  },
+  modernProgressContainer: { marginBottom: 20 },
+  progressLabelContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
   },
-  
-  processingCard: {
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
+  progressLabel: {
+    fontSize: 14,
+    fontWeight: '600',
   },
-  processingHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  processingIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  modernProgressText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  modernProgressBar: {
+    height: 12,
     backgroundColor: 'rgba(99, 102, 241, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  processingTitle: { fontSize: 20, fontWeight: '700' },
-  progressContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  progressBar: {
-    flex: 1,
-    height: 8,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
-    borderRadius: 4,
-    marginRight: 12,
+    borderRadius: 6,
     overflow: 'hidden',
+    position: 'relative',
   },
-  progressFill: {
+  modernProgressFill: {
     height: '100%',
     backgroundColor: '#6366F1',
-    borderRadius: 4,
+    borderRadius: 6,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
   },
-  progressText: { fontSize: 14, fontWeight: '600', minWidth: 40 },
-  processingStep: { fontSize: 14, fontStyle: 'italic' },
+  progressGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(99,102,241,0.1)',
+    borderRadius: 6,
+  },
+  processingStepsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  stepIndicator: { marginRight: 8 },
+  modernProcessingStep: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    flex: 1,
+  },
+  processingAnimation: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  animationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#6366F1',
+    opacity: 0.3,
+  },
   
-  resultCard: { marginBottom: 24 },
+  modernResultCard: {
+    marginBottom: 24,
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 8,
+  },
   successCard: { borderRadius: 20, padding: 24, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.2)' },
   errorCard: { borderRadius: 20, padding: 24, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.2)' },
   resultHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },

@@ -20,7 +20,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to camera to take photos for location analysis.",
         "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select images for location analysis.",
-        "NSLocationWhenInUseUsageDescription": "This app needs location access to show your current position on the map."
+        "NSLocationWhenInUseUsageDescription": "This app needs location access to show your current position on the map.",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "config": {
         "googleMapsApiKey": "AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
@@ -36,7 +37,8 @@
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION"
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ],
       "config": {
         "googleMaps": {
@@ -64,7 +66,11 @@
     ],
     "extra": {
       "GOOGLE_PLACES_API_KEY": "AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
-      "GOOGLE_MAPS_API_KEY": "AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY"
-    }
+      "GOOGLE_MAPS_API_KEY": "AIzaSyCZBx_VHFbaGx-8Y5V81rkL2U-lITY4yhY",
+      "eas": {
+        "projectId": "34bf28af-9961-40f3-8789-b5ba52b54f96"
+      }
+    },
+    "owner": "davitacols"
   }
 }
