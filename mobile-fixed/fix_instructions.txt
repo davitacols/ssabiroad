@@ -1,0 +1,18 @@
+JSX Tag Mismatch Fix Instructions:
+
+The error is on line 1251 where there's an <Animated.View> opening tag that's being closed with </View> instead of </Animated.View>.
+
+To fix this:
+1. Find the tips section around line 1251
+2. Look for the pattern where showTips && ( opens an <Animated.View>
+3. Change the closing </View> to </Animated.View> to match the opening tag
+
+The specific line that needs to be changed is around line 1251 where it says:
+              </View>
+            )}
+
+It should be changed to:
+              </Animated.View>
+            )}
+
+This will resolve the JSX syntax error.

@@ -70,60 +70,141 @@ class LocationRecognizer {
     console.log('Extracting GPS from buffer, size:', buffer.length);
     
     try {
-      // Method 1: Binary GPS extraction first (for injected GPS)
-      console.log('Trying binary GPS extraction...');
-      const gpsData = this.extractGPSFromBinary(buffer);
-      if (gpsData) {
-        console.log('Binary GPS found:', gpsData);
-        return {
-          success: true,
-          name: 'GPS Location (Injected)',
-          location: gpsData,
-          confidence: 0.95,
-          method: 'exif-gps-injected'
-        };
-      }
-      
-      // Method 2: Standard EXIF parser (with error handling)
+      // Method 1: Standard EXIF parser with proper GPS coordinate conversion
       console.log('Trying standard EXIF parser...');
       try {
         const parser = exifParser.create(buffer);
         const result = parser.parse();
         
         console.log('EXIF tags found:', Object.keys(result.tags || {}));
+        console.log('GPS-related tags:', {
+          GPSLatitude: result.tags.GPSLatitude,
+          GPSLongitude: result.tags.GPSLongitude,
+          GPSLatitudeRef: result.tags.GPSLatitudeRef,
+          GPSLongitudeRef: result.tags.GPSLongitudeRef,
+          gps: result.tags.gps
+        });
         
+        // Check for GPS coordinates in various formats
+        let lat = null;
+        let lng = null;
+        
+        // Try direct GPS coordinates
         if (result.tags.GPSLatitude && result.tags.GPSLongitude) {
-          const lat = result.tags.GPSLatitude;
-          const lng = result.tags.GPSLongitude;
-          
-          console.log('Standard EXIF GPS found:', { lat, lng });
-          
-          if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-            console.log('✅ VALID EXIF GPS COORDINATES FOUND');
-            return {
-              success: true,
-              name: 'GPS Location (EXIF)',
-              location: { latitude: lat, longitude: lng },
-              confidence: 0.98, // Highest confidence for EXIF GPS
-              method: 'exif-gps-priority'
-            };
+          lat = result.tags.GPSLatitude;
+          lng = result.tags.GPSLongitude;
+          console.log('Direct GPS coordinates:', { lat, lng });
+        }
+        
+        // Try GPS coordinate arrays (DMS format)
+        if (!lat && result.tags.gps) {
+          const gps = result.tags.gps;
+          console.log('GPS object found:', gps);
+          if (gps.GPSLatitude && gps.GPSLongitude) {
+            lat = this.convertDMSToDecimal(gps.GPSLatitude, gps.GPSLatitudeRef);
+            lng = this.convertDMSToDecimal(gps.GPSLongitude, gps.GPSLongitudeRef);
+            console.log('DMS GPS coordinates converted:', { lat, lng });
           }
+        }
+        
+        // Try alternative GPS tag formats
+        if (!lat) {
+          // Check for GPS tags with different casing or structure
+          const allTags = result.tags;
+          for (const [key, value] of Object.entries(allTags)) {
+            if (key.toLowerCase().includes('gps') && key.toLowerCase().includes('lat')) {
+              console.log(`Found GPS latitude tag ${key}:`, value);
+              if (typeof value === 'number' && value !== 0) {
+                lat = value;
+              }
+            }
+            if (key.toLowerCase().includes('gps') && key.toLowerCase().includes('lon')) {
+              console.log(`Found GPS longitude tag ${key}:`, value);
+              if (typeof value === 'number' && value !== 0) {
+                lng = value;
+              }
+            }
+          }
+        }
+        
+        // Validate coordinates
+        console.log('Final coordinate validation:', { lat, lng, isNaN_lat: isNaN(lat), isNaN_lng: isNaN(lng) });
+        if (lat !== null && lng !== null && 
+            !isNaN(lat) && !isNaN(lng) && 
+            lat !== 0 && lng !== 0 &&
+            lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          console.log('✅ VALID EXIF GPS COORDINATES FOUND:', { lat, lng });
+          return {
+            success: true,
+            name: 'GPS Location (EXIF)',
+            location: { latitude: lat, longitude: lng },
+            confidence: 0.98,
+            method: 'exif-gps-standard'
+          };
+        } else {
+          console.log('❌ GPS coordinates failed validation:', {
+            lat, lng,
+            lat_valid: lat !== null && !isNaN(lat) && lat !== 0 && lat >= -90 && lat <= 90,
+            lng_valid: lng !== null && !isNaN(lng) && lng !== 0 && lng >= -180 && lng <= 180
+          });
         }
       } catch (exifError) {
         console.log('EXIF parser failed:', exifError.message);
+        console.log('EXIF error stack:', exifError.stack);
       }
       
-      console.log('No GPS data found in buffer');
+      // Method 2: Binary GPS extraction (for injected GPS)
+      console.log('Trying binary GPS extraction...');
+      const gpsData = this.extractGPSFromBinary(buffer);
+      if (gpsData) {
+        console.log('Binary GPS found:', gpsData);
+        return {
+          success: true,
+          name: 'GPS Location (Binary)',
+          location: gpsData,
+          confidence: 0.95,
+          method: 'exif-gps-binary'
+        };
+      }
+      
+      console.log('❌ No valid GPS data found in EXIF - all methods failed');
     } catch (error) {
-      console.log('GPS extraction error:', error);
+      console.log('GPS extraction error:', error.message);
+      console.log('GPS extraction error stack:', error.stack);
     }
+    console.log('🔍 GPS extraction complete - no valid coordinates found');
     return null;
+  }
+  
+  // Convert DMS (Degrees, Minutes, Seconds) to decimal degrees
+  private convertDMSToDecimal(dmsArray: number[], ref: string): number {
+    if (!dmsArray || dmsArray.length < 3) return 0;
+    
+    const degrees = dmsArray[0] || 0;
+    const minutes = dmsArray[1] || 0;
+    const seconds = dmsArray[2] || 0;
+    
+    let decimal = degrees + (minutes / 60) + (seconds / 3600);
+    
+    // Apply hemisphere reference
+    if (ref === 'S' || ref === 'W') {
+      decimal = -decimal;
+    }
+    
+    return decimal;
   }
   
   // Binary search for GPS coordinates in JPEG data
   private extractGPSFromBinary(buffer: Buffer): Location | null {
     try {
-      // Convert buffer to string for pattern matching
+      // Method 1: Look for GPS IFD (Image File Directory) entries
+      const gpsIFD = this.findGPSIFD(buffer);
+      if (gpsIFD) {
+        console.log('Found GPS IFD coordinates:', gpsIFD);
+        return gpsIFD;
+      }
+      
+      // Method 2: Convert buffer to string for pattern matching
       const bufferStr = buffer.toString('latin1');
       
       // Look for our custom GPS comment first
@@ -132,19 +213,16 @@ class LocationRecognizer {
         const lat = parseFloat(customGPS[1]);
         const lng = parseFloat(customGPS[2]);
         console.log('Found custom GPS comment:', { lat, lng });
-        if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        if (this.isValidCoordinate(lat, lng)) {
           return { latitude: lat, longitude: lng };
         }
       }
       
-      // Look for EXIF GPS tags in binary
+      // Method 3: Look for EXIF GPS tags in binary
       const gpsLat = buffer.indexOf('GPSLatitude');
       const gpsLng = buffer.indexOf('GPSLongitude');
       
-      console.log('GPS tag positions:', { gpsLat, gpsLng });
-      
       if (gpsLat > 0 && gpsLng > 0) {
-        // Extract coordinates from binary positions
         const coords = this.extractCoordsFromPositions(buffer, gpsLat, gpsLng);
         if (coords) {
           console.log('Extracted coords from positions:', coords);
@@ -152,9 +230,9 @@ class LocationRecognizer {
         }
       }
       
-      // Look for decimal coordinate patterns with higher precision
+      // Method 4: Look for decimal coordinate patterns
       const coordPatterns = [
-        /([0-9]{1,2}\.[0-9]{6,}).*?([0-9]{1,2}\.[0-9]{6,})/g, // High precision coordinates
+        /([0-9]{1,2}\.[0-9]{6,}).*?([0-9]{1,2}\.[0-9]{6,})/g,
         /([0-9]{1,3}\.[0-9]{4,}).*?([0-9]{1,3}\.[0-9]{4,})/g,
         /GPS.*?([0-9.-]+).*?([0-9.-]+)/g
       ];
@@ -165,12 +243,7 @@ class LocationRecognizer {
           if (match[1] && match[2]) {
             const lat = parseFloat(match[1]);
             const lng = parseFloat(match[2]);
-            // Validate coordinates are realistic (not test/fake data)
-            if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && 
-                !(lat === 0 && lng === 0) && // Not null island
-                !(Math.abs(lat) < 5 && Math.abs(lng) < 5) && // Not near 0,0
-                !(lat === 1 || lat === 2 || lat === 3) && // Not test data
-                !(lng === 1 || lng === 2 || lng === 3)) {
+            if (this.isValidCoordinate(lat, lng)) {
               console.log('Pattern match found:', { lat, lng });
               return { latitude: lat, longitude: lng };
             }
@@ -184,19 +257,158 @@ class LocationRecognizer {
     return null;
   }
   
-  private parseGPSFromMatch(match: string): Location | null {
+  // Find GPS IFD (Image File Directory) in JPEG EXIF data
+  private findGPSIFD(buffer: Buffer): Location | null {
     try {
-      const numbers = match.match(/[0-9]{1,3}\.[0-9]{4,}/g);
-      if (numbers && numbers.length >= 2) {
-        const lat = parseFloat(numbers[0]);
-        const lng = parseFloat(numbers[1]);
-        if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      // Look for EXIF header
+      const exifMarker = buffer.indexOf('Exif\0\0');
+      if (exifMarker === -1) return null;
+      
+      // Skip to TIFF header
+      const tiffStart = exifMarker + 6;
+      if (tiffStart + 8 > buffer.length) return null;
+      
+      // Read byte order
+      const byteOrder = buffer.readUInt16BE(tiffStart);
+      const isLittleEndian = byteOrder === 0x4949;
+      
+      // Read IFD offset
+      const ifdOffset = isLittleEndian ? 
+        buffer.readUInt32LE(tiffStart + 4) : 
+        buffer.readUInt32BE(tiffStart + 4);
+      
+      // Look for GPS IFD tag (0x8825)
+      const ifdStart = tiffStart + ifdOffset;
+      if (ifdStart + 2 > buffer.length) return null;
+      
+      const entryCount = isLittleEndian ? 
+        buffer.readUInt16LE(ifdStart) : 
+        buffer.readUInt16BE(ifdStart);
+      
+      for (let i = 0; i < entryCount; i++) {
+        const entryOffset = ifdStart + 2 + (i * 12);
+        if (entryOffset + 12 > buffer.length) break;
+        
+        const tag = isLittleEndian ? 
+          buffer.readUInt16LE(entryOffset) : 
+          buffer.readUInt16BE(entryOffset);
+        
+        if (tag === 0x8825) { // GPS IFD tag
+          const gpsIfdOffset = isLittleEndian ? 
+            buffer.readUInt32LE(entryOffset + 8) : 
+            buffer.readUInt32BE(entryOffset + 8);
+          
+          return this.parseGPSIFD(buffer, tiffStart + gpsIfdOffset, isLittleEndian);
+        }
+      }
+    } catch (error) {
+      console.log('GPS IFD parsing error:', error);
+    }
+    return null;
+  }
+  
+  // Parse GPS IFD entries
+  private parseGPSIFD(buffer: Buffer, gpsIfdStart: number, isLittleEndian: boolean): Location | null {
+    try {
+      if (gpsIfdStart + 2 > buffer.length) return null;
+      
+      const entryCount = isLittleEndian ? 
+        buffer.readUInt16LE(gpsIfdStart) : 
+        buffer.readUInt16BE(gpsIfdStart);
+      
+      let lat = null;
+      let lng = null;
+      let latRef = '';
+      let lngRef = '';
+      
+      for (let i = 0; i < entryCount; i++) {
+        const entryOffset = gpsIfdStart + 2 + (i * 12);
+        if (entryOffset + 12 > buffer.length) break;
+        
+        const tag = isLittleEndian ? 
+          buffer.readUInt16LE(entryOffset) : 
+          buffer.readUInt16BE(entryOffset);
+        
+        switch (tag) {
+          case 1: // GPSLatitudeRef
+            latRef = String.fromCharCode(buffer[entryOffset + 8]);
+            break;
+          case 2: // GPSLatitude
+            lat = this.readGPSCoordinate(buffer, entryOffset, isLittleEndian);
+            break;
+          case 3: // GPSLongitudeRef
+            lngRef = String.fromCharCode(buffer[entryOffset + 8]);
+            break;
+          case 4: // GPSLongitude
+            lng = this.readGPSCoordinate(buffer, entryOffset, isLittleEndian);
+            break;
+        }
+      }
+      
+      if (lat !== null && lng !== null) {
+        // Apply hemisphere references
+        if (latRef === 'S') lat = -lat;
+        if (lngRef === 'W') lng = -lng;
+        
+        if (this.isValidCoordinate(lat, lng)) {
           return { latitude: lat, longitude: lng };
         }
       }
-    } catch {}
+    } catch (error) {
+      console.log('GPS IFD entry parsing error:', error);
+    }
     return null;
   }
+  
+  // Read GPS coordinate from rational values
+  private readGPSCoordinate(buffer: Buffer, entryOffset: number, isLittleEndian: boolean): number | null {
+    try {
+      const dataOffset = isLittleEndian ? 
+        buffer.readUInt32LE(entryOffset + 8) : 
+        buffer.readUInt32BE(entryOffset + 8);
+      
+      // Read three rational values (degrees, minutes, seconds)
+      const degrees = this.readRational(buffer, dataOffset, isLittleEndian);
+      const minutes = this.readRational(buffer, dataOffset + 8, isLittleEndian);
+      const seconds = this.readRational(buffer, dataOffset + 16, isLittleEndian);
+      
+      if (degrees !== null && minutes !== null && seconds !== null) {
+        return degrees + (minutes / 60) + (seconds / 3600);
+      }
+    } catch (error) {
+      console.log('GPS coordinate reading error:', error);
+    }
+    return null;
+  }
+  
+  // Read rational number (numerator/denominator)
+  private readRational(buffer: Buffer, offset: number, isLittleEndian: boolean): number | null {
+    try {
+      if (offset + 8 > buffer.length) return null;
+      
+      const numerator = isLittleEndian ? 
+        buffer.readUInt32LE(offset) : 
+        buffer.readUInt32BE(offset);
+      const denominator = isLittleEndian ? 
+        buffer.readUInt32LE(offset + 4) : 
+        buffer.readUInt32BE(offset + 4);
+      
+      return denominator !== 0 ? numerator / denominator : null;
+    } catch (error) {
+      return null;
+    }
+  }
+  
+  // Validate GPS coordinates
+  private isValidCoordinate(lat: number, lng: number): boolean {
+    return !isNaN(lat) && !isNaN(lng) && 
+           lat !== 0 && lng !== 0 &&
+           lat >= -90 && lat <= 90 && 
+           lng >= -180 && lng <= 180 &&
+           !(Math.abs(lat) < 0.001 && Math.abs(lng) < 0.001); // Not near 0,0
+  }
+  
+
   
   private extractCoordsFromPositions(buffer: Buffer, latPos: number, lngPos: number): Location | null {
     try {
