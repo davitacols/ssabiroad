@@ -368,17 +368,16 @@ class LocationRecognizer {
       
       if (gpsLat > 0 && gpsLng > 0) {
         const coords = this.extractCoordsFromPositions(buffer, gpsLat, gpsLng);
-        if (coords) {
+        if (coords && this.isValidCoordinate(coords.latitude, coords.longitude)) {
           console.log('Extracted coords from positions:', coords);
           return coords;
         }
       }
       
-      // Method 4: Look for decimal coordinate patterns
+      // Method 4: Look for decimal coordinate patterns - but validate them strictly
       const coordPatterns = [
         /([0-9]{1,2}\.[0-9]{6,}).*?([0-9]{1,2}\.[0-9]{6,})/g,
-        /([0-9]{1,3}\.[0-9]{4,}).*?([0-9]{1,3}\.[0-9]{4,})/g,
-        /GPS.*?([0-9.-]+).*?([0-9.-]+)/g
+        /([0-9]{1,3}\.[0-9]{4,}).*?([0-9]{1,3}\.[0-9]{4,})/g
       ];
       
       for (const pattern of coordPatterns) {
@@ -387,6 +386,13 @@ class LocationRecognizer {
           if (match[1] && match[2]) {
             const lat = parseFloat(match[1]);
             const lng = parseFloat(match[2]);
+            
+            // Extra validation to reject fake coordinates
+            if (lat === 20000 || lng === 100000 || lat > 1000 || lng > 1000) {
+              console.log('❌ Rejecting fake coordinates from pattern:', { lat, lng });
+              continue;
+            }
+            
             if (this.isValidCoordinate(lat, lng)) {
               console.log('Pattern match found:', { lat, lng });
               return { latitude: lat, longitude: lng };
@@ -395,6 +401,7 @@ class LocationRecognizer {
         }
       }
       
+      console.log('❌ No valid GPS coordinates found in binary data');
     } catch (error) {
       console.log('Binary extraction error:', error);
     }
@@ -517,7 +524,15 @@ class LocationRecognizer {
       const seconds = this.readRational(buffer, dataOffset + 16, isLittleEndian);
       
       if (degrees !== null && minutes !== null && seconds !== null) {
-        return degrees + (minutes / 60) + (seconds / 3600);
+        const coordinate = degrees + (minutes / 60) + (seconds / 3600);
+        
+        // Validate the coordinate before returning
+        if (coordinate > 1000 || coordinate < -1000) {
+          console.log('❌ Rejecting invalid coordinate from rational values:', coordinate);
+          return null;
+        }
+        
+        return coordinate;
       }
     } catch (error) {
       console.log('GPS coordinate reading error:', error);
@@ -537,7 +552,17 @@ class LocationRecognizer {
         buffer.readUInt32LE(offset + 4) : 
         buffer.readUInt32BE(offset + 4);
       
-      return denominator !== 0 ? numerator / denominator : null;
+      if (denominator === 0) return null;
+      
+      const result = numerator / denominator;
+      
+      // Validate rational result - reject obviously wrong values
+      if (result > 10000 || result < -10000) {
+        console.log('❌ Rejecting invalid rational result:', { numerator, denominator, result });
+        return null;
+      }
+      
+      return result;
     } catch (error) {
       return null;
     }
@@ -549,7 +574,11 @@ class LocationRecognizer {
            lat !== 0 && lng !== 0 &&
            lat >= -90 && lat <= 90 && 
            lng >= -180 && lng <= 180 &&
-           !(Math.abs(lat) < 0.001 && Math.abs(lng) < 0.001); // Not near 0,0
+           !(Math.abs(lat) < 0.001 && Math.abs(lng) < 0.001) && // Not near 0,0
+           !(lat === 2.0 && lng === 1.0) && // Reject the specific fake coordinates
+           !(Math.abs(lat - 2.0) < 0.001 && Math.abs(lng - 1.0) < 0.001) && // Reject near 2,1
+           !(lat === 20000 || lng === 100000) && // Reject the fake coordinates being returned
+           !(Math.abs(lat) > 1000 || Math.abs(lng) > 1000); // Reject obviously invalid large numbers
   }
   
 

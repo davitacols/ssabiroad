@@ -12,7 +12,12 @@ import { Ionicons } from '@expo/vector-icons';
 import * as SplashScreen from 'expo-splash-screen';
 import Constants from 'expo-constants';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { extractGPSFromExif, hasGPSData, getGPSDataSummary, extractFullExifData, hasExifData, getExifSummary } from './utils/gpsUtils';
+import { extractGPSFromExif, hasGPSData, getGPSDataSummary, extractFullExifData, hasExifData, getExifSummary, isProcessedImage, validateGPSCoordinates, debugImageAnalysis } from './utils/gpsUtils';
+import { ImageProcessor } from './components/ImageProcessor';
+import { LocationCache } from './components/LocationCache';
+import { OfflineManager } from './components/OfflineManager';
+import HistoryScreen from './components/HistoryScreen';
+import BatchProcessor from './components/BatchProcessor';
 
 const Stack = createStackNavigator();
 
@@ -24,8 +29,21 @@ const themes = {
 
 function ThemeProvider({ children }) {
   const [isDark, setIsDark] = useState(true);
+  const [isOnline, setIsOnline] = useState(true);
+  
+  useEffect(() => {
+    OfflineManager.init();
+    const unsubscribe = OfflineManager.addListener(setIsOnline);
+    return unsubscribe;
+  }, []);
+  
   return (
-    <ThemeContext.Provider value={{ theme: themes[isDark ? 'dark' : 'light'], isDark, toggle: () => setIsDark(!isDark) }}>
+    <ThemeContext.Provider value={{ 
+      theme: themes[isDark ? 'dark' : 'light'], 
+      isDark, 
+      toggle: () => setIsDark(!isDark),
+      isOnline
+    }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -143,7 +161,7 @@ function WelcomeScreen({ navigation }) {
 
 // Navigate Screen
 function NavigateScreen({ navigation }) {
-  const { theme } = useTheme();
+  const { theme, isOnline } = useTheme();
   const [currentLocation, setCurrentLocation] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -342,12 +360,20 @@ function NavigateScreen({ navigation }) {
             />
           </View>
           
-          <TouchableOpacity 
-            style={styles.cameraButton}
-            onPress={() => navigation.navigate('Camera')}
-          >
-            <Ionicons name="camera" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity 
+              style={styles.historyButton}
+              onPress={() => navigation.navigate('History')}
+            >
+              <Ionicons name="time" size={20} color="#6366F1" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.cameraButton}
+              onPress={() => navigation.navigate('Camera')}
+            >
+              <Ionicons name="camera" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
         
         
@@ -571,7 +597,7 @@ function NavigateScreen({ navigation }) {
 
 // Camera Screen - Modern Mobile-First Design
 function CameraScreen({ navigation }) {
-  const { theme } = useTheme();
+  const { theme, isOnline } = useTheme();
   const [photo, setPhoto] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -579,6 +605,8 @@ function CameraScreen({ navigation }) {
   const [confidence, setConfidence] = useState(0);
   const [scanMode, setScanMode] = useState('instant'); // instant, batch, pro
   const [showTips, setShowTips] = useState(false);
+  const [showBatchProcessor, setShowBatchProcessor] = useState(false);
+  const [imageSize, setImageSize] = useState(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -610,6 +638,7 @@ function CameraScreen({ navigation }) {
       }
 
       const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaType.Images,
         quality: 1.0,
         allowsEditing: false,
         exif: true,
@@ -635,8 +664,22 @@ function CameraScreen({ navigation }) {
           } : null
         });
         
-        console.log('📍 Using original image to preserve GPS/EXIF data');
+        console.log('📍 Using original camera image to preserve GPS/EXIF data');
         setPhoto(asset.uri);
+        
+        // Get image size for display
+        ImageProcessor.getImageSize(asset.uri).then(size => {
+          setImageSize(ImageProcessor.formatFileSize(size));
+        });
+        
+        // Check if image has GPS data and inform user
+        if (hasGPSData(asset.exif)) {
+          console.log('✅ Camera image contains GPS data - will be preserved');
+        } else {
+          console.log('⚠️ Camera image has no GPS data - location services may have been disabled');
+        }
+        
+        // Use original image without any processing to preserve GPS/EXIF
         analyzeImage(asset.uri, asset.exif, asset.uri);
       }
     } catch (error) {
@@ -653,7 +696,7 @@ function CameraScreen({ navigation }) {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'Images',
+        mediaTypes: ImagePicker.MediaType.Images,
         allowsEditing: false,
         quality: 1.0,
         exif: true,
@@ -679,9 +722,23 @@ function CameraScreen({ navigation }) {
           } : null
         });
         
-        // Use original image without modification to preserve any existing GPS
-        console.log('📍 Using original gallery image');
+        // Use original gallery image without modification to preserve GPS/EXIF
+        console.log('📍 Using original gallery image to preserve GPS/EXIF data');
         setPhoto(asset.uri);
+        
+        // Get image size for display
+        ImageProcessor.getImageSize(asset.uri).then(size => {
+          setImageSize(ImageProcessor.formatFileSize(size));
+        });
+        
+        // Check if image has GPS data and inform user
+        if (hasGPSData(asset.exif)) {
+          console.log('✅ Gallery image contains GPS data - will be preserved');
+        } else {
+          console.log('⚠️ Gallery image has no GPS data - will use AI analysis');
+        }
+        
+        // Use original image without any processing to preserve GPS/EXIF
         analyzeImage(asset.uri, asset.exif, asset.uri);
       }
     } catch (error) {
@@ -693,32 +750,83 @@ function CameraScreen({ navigation }) {
     setLoading(true);
     setConfidence(0);
     
+    // Check if offline
+    if (!isOnline) {
+      try {
+        const offlineResult = await OfflineManager.handleOfflineRequest(imageUri, { exif: exifData });
+        setResult(offlineResult);
+        setLoading(false);
+        return;
+      } catch (error) {
+        console.error('Offline processing failed:', error);
+      }
+    }
+    
+    // Check cache first
+    const imageHash = LocationCache.generateImageHash(imageUri);
+    const cachedResult = await LocationCache.getCachedLocation(imageHash);
+    if (cachedResult) {
+      console.log('📦 Using cached result');
+      setResult({ ...cachedResult, fromCache: true });
+      setLoading(false);
+      return;
+    }
+    
     try {
       console.log('🚀 Starting image analysis for:', imageUri);
       console.log('📊 EXIF data received:', exifData);
+      
+      // Debug GPS/EXIF analysis
+      await debugImageAnalysis(imageUri, exifData);
+      
       setProcessingStep('Extracting image metadata...');
       setConfidence(10);
       
       // Extract comprehensive EXIF data using exif-parser from original image
       const sourceUri = originalUri || imageUri;
       const fullExifData = await extractFullExifData(sourceUri);
-      console.log('📸 Full EXIF extraction from', originalUri ? 'original' : 'compressed', 'image:', fullExifData ? 'Success' : 'Failed');
+      console.log('📸 Full EXIF extraction from', originalUri ? 'original' : 'processed', 'image:', fullExifData ? 'Success' : 'Failed');
+      
+      if (originalUri) {
+        console.log('✅ Using original image - GPS/EXIF data should be preserved');
+        if (isProcessedImage(originalUri)) {
+          console.log('⚠️ Warning: Image URI suggests it may have been processed');
+        }
+      } else {
+        console.log('⚠️ Using processed image - GPS/EXIF data may be lost');
+      }
+      
+      // Final validation of GPS coordinates before sending
+      if (gpsAdded) {
+        console.log('🔍 Final GPS validation before upload...');
+      }
       
       const formData = new FormData();
+      
+      // Use original image URI to preserve GPS/EXIF data
+      const uploadUri = originalUri || imageUri;
+      console.log('📤 Uploading image:', uploadUri === originalUri ? 'original (with EXIF)' : 'processed');
+      
       formData.append('image', {
-        uri: imageUri,
+        uri: uploadUri,
         type: 'image/jpeg',
         name: 'photo.jpg',
       });
       
-      // Always extract and send GPS as separate fields to prevent loss during upload
+      // Extract and send GPS as separate fields to prevent loss during upload
       const gpsFromExif = extractGPSFromExif(exifData);
       if (gpsFromExif) {
         formData.append('exifGPSLatitude', gpsFromExif.latitude.toString());
         formData.append('exifGPSLongitude', gpsFromExif.longitude.toString());
         formData.append('hasExifGPS', 'true');
         console.log('📍 GPS extracted and added as form fields:', gpsFromExif);
+      } else {
+        formData.append('hasExifGPS', 'false');
+        console.log('📍 No GPS data found in EXIF, marked as false');
       }
+      
+      // Add flag to indicate we're preserving original image
+      formData.append('preservedOriginal', originalUri ? 'true' : 'false');
       
       setProcessingStep('Analyzing GPS data...');
       setConfidence(20);
@@ -741,6 +849,8 @@ function CameraScreen({ navigation }) {
           formData.append('exifSource', 'expo-exif');
           gpsAdded = true;
           console.log('📍 Added GPS from Expo EXIF:', gpsCoords);
+        } else {
+          console.log('📍 No GPS found in Expo EXIF data');
         }
       }
       
@@ -804,6 +914,8 @@ function CameraScreen({ navigation }) {
       if (!gpsAdded) {
         console.log('⚠️ No GPS coordinates found in image EXIF data');
         formData.append('hasImageGPS', 'false');
+        formData.append('latitude', '0');
+        formData.append('longitude', '0');
         formData.append('exifSource', hasAnyExifData ? 'exif-no-gps' : 'none');
         
         if (hasAnyExifData) {
@@ -843,6 +955,12 @@ function CameraScreen({ navigation }) {
       };
       
       console.log('📤 FormData prepared, uploading to server...');
+      console.log('📍 GPS Status Summary:', {
+        hasGPS: gpsAdded,
+        hasExif: hasAnyExifData,
+        usingOriginal: !!originalUri,
+        imageSize: imageSize || 'unknown'
+      });
       setProcessingStep('Uploading to server...');
       setConfidence(30);
       
@@ -885,7 +1003,7 @@ function CameraScreen({ navigation }) {
       
       if (data.success) {
         console.log('🎉 Success! Location found:', data.name || data.address);
-        setResult({
+        const result = {
           success: true,
           name: data.name || 'Location Found',
           address: data.address || 'Address not available',
@@ -894,7 +1012,13 @@ function CameraScreen({ navigation }) {
           category: data.category || 'Location',
           rating: data.rating,
           description: data.description
-        });
+        };
+        
+        // Cache the result and add to history
+        await LocationCache.cacheLocation(imageHash, result);
+        await LocationCache.addToHistory(result);
+        
+        setResult(result);
       } else {
         console.log('⚠️ API returned failure:', data.error);
         setResult({
@@ -958,11 +1082,18 @@ function CameraScreen({ navigation }) {
             <Text style={styles.modernHeaderSubtitle}>Instant location detection</Text>
           </View>
           
-          <TouchableOpacity onPress={() => setShowTips(!showTips)} style={styles.tipsBtn}>
-            <View style={styles.tipsBtnCircle}>
-              <Ionicons name="information-circle" size={20} color="#FFFFFF" />
-            </View>
-          </TouchableOpacity>
+          <View style={styles.headerRightActions}>
+            <TouchableOpacity onPress={() => setShowBatchProcessor(true)} style={styles.batchBtn}>
+              <View style={styles.batchBtnCircle}>
+                <Ionicons name="layers" size={20} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowTips(!showTips)} style={styles.tipsBtn}>
+              <View style={styles.tipsBtnCircle}>
+                <Ionicons name="information-circle" size={20} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
         
 
@@ -1112,8 +1243,24 @@ function CameraScreen({ navigation }) {
                 {/* Photo Info Badge */}
                 <View style={styles.photoInfoBadge}>
                   <Ionicons name="image" size={14} color="#FFFFFF" />
-                  <Text style={styles.photoInfoText}>Analyzing...</Text>
+                  <Text style={styles.photoInfoText}>
+                    {imageSize || 'Analyzing...'}
+                  </Text>
                 </View>
+                
+                {/* GPS Preserved Badge */}
+                <View style={styles.gpsPreservedBadge}>
+                  <Ionicons name="location" size={12} color="#10B981" />
+                  <Text style={styles.gpsPreservedText}>GPS Preserved</Text>
+                </View>
+                
+                {/* Offline Indicator */}
+                {!isOnline && (
+                  <View style={styles.offlineBadge}>
+                    <Ionicons name="cloud-offline" size={14} color="#FFFFFF" />
+                    <Text style={styles.offlineText}>Offline</Text>
+                  </View>
+                )}
               </View>
             </View>
             
@@ -1236,21 +1383,44 @@ function CameraScreen({ navigation }) {
               </Animated.View>
             )}
             
-            <TouchableOpacity 
-              style={[styles.retryButton, { backgroundColor: theme.surface }]}
-              onPress={() => { 
-                setPhoto(null); 
-                setResult(null); 
-                setLoading(false);
-                setConfidence(0);
-              }}
-            >
-              <Ionicons name="refresh" size={20} color="#6366F1" />
-              <Text style={[styles.retryButtonText, { color: theme.text }]}>Scan Another Photo</Text>
-            </TouchableOpacity>
+            <View style={styles.actionRow}>
+              <TouchableOpacity 
+                style={[styles.retryButton, { backgroundColor: theme.surface }]}
+                onPress={() => { 
+                  setPhoto(null); 
+                  setResult(null); 
+                  setLoading(false);
+                  setConfidence(0);
+                  setImageSize(null);
+                }}
+              >
+                <Ionicons name="refresh" size={20} color="#6366F1" />
+                <Text style={[styles.retryButtonText, { color: theme.text }]}>Scan Another</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.historyButton, { backgroundColor: theme.surface }]}
+                onPress={() => navigation.navigate('History')}
+              >
+                <Ionicons name="time" size={20} color="#6366F1" />
+                <Text style={[styles.historyButtonText, { color: theme.text }]}>View History</Text>
+              </TouchableOpacity>
+            </View>
           </Animated.View>
         )}
       </ScrollView>
+      
+      {/* Batch Processor Modal */}
+      <Modal
+        visible={showBatchProcessor}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <BatchProcessor 
+          theme={theme} 
+          onComplete={() => setShowBatchProcessor(false)}
+        />
+      </Modal>
     </View>
   );
 }
@@ -1294,6 +1464,7 @@ export default function App() {
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="Navigate" component={NavigateScreen} />
             <Stack.Screen name="Camera" component={CameraScreen} />
+            <Stack.Screen name="History" component={HistoryScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </ThemeProvider>
@@ -2352,5 +2523,99 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(99, 102, 241, 0.2)',
   },
-  retryButtonText: { fontSize: 16, fontWeight: '600' },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  retryButton: {
+    flex: 1,
+    borderRadius: 16,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.2)',
+  },
+  retryButtonText: { fontSize: 14, fontWeight: '600' },
+  historyButton: {
+    flex: 1,
+    borderRadius: 16,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.2)',
+  },
+  historyButtonText: { fontSize: 14, fontWeight: '600' },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  historyButton: {
+    width: 48,
+    height: 48,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  batchBtn: { zIndex: 10 },
+  batchBtnCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  offlineBadge: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239,68,68,0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backdropFilter: 'blur(10px)',
+  },
+  offlineText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  gpsPreservedBadge: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16,185,129,0.9)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backdropFilter: 'blur(10px)',
+  },
+  gpsPreservedText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
 });

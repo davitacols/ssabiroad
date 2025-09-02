@@ -132,14 +132,8 @@ export function extractGPSFromExif(exifData) {
 
   console.log('🧮 Final coordinates before validation:', { lat, lng });
 
-  // Validate coordinates - reject 0,0 and invalid ranges
-  if (lat !== null && lng !== null && 
-      typeof lat === 'number' && typeof lng === 'number' && 
-      !isNaN(lat) && !isNaN(lng) &&
-      !(lat === 0 && lng === 0) && // Reject 0,0 coordinates
-      Math.abs(lat) > 0.001 && Math.abs(lng) > 0.001 && // Reject near-zero coordinates
-      lat >= -90 && lat <= 90 && 
-      lng >= -180 && lng <= 180) {
+  // Validate coordinates using comprehensive validation
+  if (lat !== null && lng !== null && validateGPSCoordinates(lat, lng)) {
     console.log('✅ Valid GPS coordinates found:', { latitude: lat, longitude: lng });
     return { latitude: lat, longitude: lng };
   }
@@ -328,5 +322,117 @@ export function getExifSummary(exifData) {
     summary.datetime = tags.DateTime || tags.dateTime || tags.DateTimeOriginal || tags.dateTimeOriginal;
   }
 
+  return summary;
+}
+
+/**
+ * Check if image URI indicates it has been processed/compressed
+ * @param {string} imageUri - Image URI to check
+ * @returns {boolean} True if image appears to be processed
+ */
+export function isProcessedImage(imageUri) {
+  if (!imageUri) return false;
+  
+  // Check for common processed image indicators
+  const processedIndicators = [
+    'ImageManipulator', // expo-image-manipulator
+    'compressed',
+    'resized',
+    'optimized',
+    'processed'
+  ];
+  
+  return processedIndicators.some(indicator => 
+    imageUri.toLowerCase().includes(indicator.toLowerCase())
+  );
+}
+
+/**
+ * Validate that GPS coordinates are reasonable and not fake
+ * @param {number} lat - Latitude
+ * @param {number} lng - Longitude
+ * @returns {boolean} True if coordinates appear valid
+ */
+export function validateGPSCoordinates(lat, lng) {
+  if (typeof lat !== 'number' || typeof lng !== 'number') {
+    return false;
+  }
+  
+  if (isNaN(lat) || isNaN(lng)) {
+    return false;
+  }
+  
+  // Check for obviously fake coordinates
+  if (lat === 0 && lng === 0) return false; // Null Island
+  if (lat === 1 && lng === 1) return false; // Common fake coordinate
+  if (lat === 2 && lng === 1) return false; // Another fake coordinate pattern
+  
+  // Check for valid coordinate ranges
+  if (lat < -90 || lat > 90) return false;
+  if (lng < -180 || lng > 180) return false;
+  
+  // Check for suspiciously precise coordinates (often fake)
+  if (Math.abs(lat) < 0.001 && Math.abs(lng) < 0.001) return false;
+  
+  return true;
+}
+
+/**
+ * Debug function to log comprehensive image analysis
+ * @param {string} imageUri - Image URI
+ * @param {Object} exifData - EXIF data from expo-image-picker
+ * @returns {Promise<Object>} Debug information
+ */
+export async function debugImageAnalysis(imageUri, exifData) {
+  console.log('🔍 === GPS/EXIF DEBUG ANALYSIS ===');
+  console.log('📁 Image URI:', imageUri);
+  console.log('🏷️ Is processed image:', isProcessedImage(imageUri));
+  
+  // Analyze expo-image-picker EXIF
+  console.log('📊 Expo EXIF Data:', {
+    hasData: !!exifData,
+    keys: exifData ? Object.keys(exifData) : [],
+    gpsKeys: exifData ? Object.keys(exifData).filter(k => k.toLowerCase().includes('gps')) : []
+  });
+  
+  if (exifData) {
+    const gpsFromExpo = extractGPSFromExif(exifData);
+    console.log('📍 GPS from Expo EXIF:', gpsFromExpo);
+    console.log('✅ Has GPS data (Expo):', hasGPSData(exifData));
+  }
+  
+  // Analyze full EXIF extraction
+  const fullExif = await extractFullExifData(imageUri);
+  if (fullExif) {
+    console.log('📸 Full EXIF extraction successful');
+    const gpsFromFull = extractGPSFromExif(fullExif);
+    console.log('📍 GPS from Full EXIF:', gpsFromFull);
+    console.log('✅ Has GPS data (Full):', hasGPSData(fullExif));
+  } else {
+    console.log('❌ Full EXIF extraction failed');
+  }
+  
+  // Summary
+  const summary = {
+    imageUri,
+    isProcessed: isProcessedImage(imageUri),
+    hasExpoExif: !!exifData,
+    hasFullExif: !!fullExif,
+    gpsFromExpo: exifData ? extractGPSFromExif(exifData) : null,
+    gpsFromFull: fullExif ? extractGPSFromExif(fullExif) : null,
+    recommendation: ''
+  };
+  
+  if (summary.gpsFromExpo || summary.gpsFromFull) {
+    summary.recommendation = '✅ GPS data found - location detection should be accurate';
+  } else if (summary.hasExpoExif || summary.hasFullExif) {
+    summary.recommendation = '⚠️ EXIF data found but no GPS - will use AI analysis';
+  } else {
+    summary.recommendation = '❌ No EXIF data - image may have been processed or GPS was disabled';
+  }
+  
+  console.log('📋 Analysis Summary:', summary);
+  console.log('🔍 === END DEBUG ANALYSIS ===');
+  
   return summary;
 }
