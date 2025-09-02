@@ -796,10 +796,8 @@ function CameraScreen({ navigation }) {
         console.log('⚠️ Using processed image - GPS/EXIF data may be lost');
       }
       
-      // Final validation of GPS coordinates before sending
-      if (gpsAdded) {
-        console.log('🔍 Final GPS validation before upload...');
-      }
+      // This will be set after GPS processing
+      let gpsAdded = false;
       
       const formData = new FormData();
       
@@ -832,7 +830,6 @@ function CameraScreen({ navigation }) {
       setConfidence(20);
       
       // Check for GPS data in both expo-image-picker EXIF and full EXIF extraction
-      let gpsAdded = false;
       let hasAnyExifData = false;
       
       // First try expo-image-picker EXIF data
