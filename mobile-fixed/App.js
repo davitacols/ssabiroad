@@ -638,7 +638,7 @@ function CameraScreen({ navigation }) {
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaType.Images,
+        mediaTypes: 'Images',
         quality: 1.0,
         allowsEditing: false,
         exif: true,
@@ -696,7 +696,7 @@ function CameraScreen({ navigation }) {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaType.Images,
+        mediaTypes: 'Images',
         allowsEditing: false,
         quality: 1.0,
         exif: true,
@@ -817,6 +817,8 @@ function CameraScreen({ navigation }) {
         formData.append('exifGPSLatitude', gpsFromExif.latitude.toString());
         formData.append('exifGPSLongitude', gpsFromExif.longitude.toString());
         formData.append('hasExifGPS', 'true');
+        formData.append('clientGPSLatitude', gpsFromExif.latitude.toString());
+        formData.append('clientGPSLongitude', gpsFromExif.longitude.toString());
         console.log('📍 GPS extracted and added as form fields:', gpsFromExif);
       } else {
         formData.append('hasExifGPS', 'false');

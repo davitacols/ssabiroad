@@ -41,7 +41,7 @@ export default function BatchProcessor({ theme, onComplete }) {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaType.Images,
+        mediaTypes: 'Images',
         allowsMultipleSelection: true,
         quality: 1.0, // Maximum quality to preserve data
         exif: true, // Extract EXIF data
