@@ -21,6 +21,8 @@ class LocationMatcher {
     let similarity = 0;
     let matchType: 'exact' | 'nearby' | 'business' | 'landmark' = 'nearby';
     
+    if (!loc1?.location?.latitude || !loc1?.location?.longitude || !loc2?.location?.latitude || !loc2?.location?.longitude) return null;
+
     if (loc1.name && loc2.name && 
         this.normalizeBusinessName(loc1.name) === this.normalizeBusinessName(loc2.name)) {
       similarity = 0.95;
@@ -69,6 +71,10 @@ class LocationMatcher {
 export async function POST(request: NextRequest) {
   try {
     const { location, recentLocations } = await request.json();
+
+    if (!location?.location?.latitude || !location?.location?.longitude) {
+      return NextResponse.json({ error: 'Invalid location data' }, { status: 400 });
+    }
     
     if (!location?.location?.latitude || !location?.location?.longitude) {
       return NextResponse.json({ error: 'Invalid location data' }, { status: 400 });
