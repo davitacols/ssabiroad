@@ -13,6 +13,11 @@ interface LocationSimilarity {
 
 class LocationMatcher {
   calculateSimilarity(loc1: any, loc2: any): LocationSimilarity | null {
+    // Check for null/undefined locations first
+    if (!loc1?.location?.latitude || !loc1?.location?.longitude || !loc2?.location?.latitude || !loc2?.location?.longitude) {
+      return null;
+    }
+    
     const distance = this.calculateDistance(
       loc1.location.latitude, loc1.location.longitude,
       loc2.location.latitude, loc2.location.longitude
@@ -20,8 +25,6 @@ class LocationMatcher {
     
     let similarity = 0;
     let matchType: 'exact' | 'nearby' | 'business' | 'landmark' = 'nearby';
-    
-    if (!loc1?.location?.latitude || !loc1?.location?.longitude || !loc2?.location?.latitude || !loc2?.location?.longitude) return null;
 
     if (loc1.name && loc2.name && 
         this.normalizeBusinessName(loc1.name) === this.normalizeBusinessName(loc2.name)) {

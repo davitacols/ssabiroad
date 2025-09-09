@@ -68,7 +68,7 @@ class LocationRecognizer {
 
   // Enhanced EXIF GPS extraction with multiple methods
   extractGPS(buffer: Buffer): LocationResult | null {
-    console.log('Extracting GPS from buffer, size:', buffer.length);
+    console.log('🔍 Extracting GPS from buffer, size:', buffer.length);
     
     try {
       // Method 1: Try piexifjs (most reliable for GPS)
@@ -1128,13 +1128,31 @@ class LocationRecognizer {
         console.warn('Google Cloud credentials JSON file path not configured');
         return null;
       }
+      
+      // Check if credentials file exists
+      const fs = require('fs');
+      if (!fs.existsSync(credentialsPath)) {
+        console.error('Google Cloud credentials file not found at:', credentialsPath);
+        return null;
+      }
+      
       const client = new vision.ImageAnnotatorClient({
         keyFilename: credentialsPath,
+        projectId: 'pic2nav'
       });
       
-            
-      console.log('Vision client initialized successfully');
-      return client;
+      // Test the client with a simple API call
+      try {
+        await client.getProjectId();
+        console.log('Vision client initialized and authenticated successfully');
+        return client;
+      } catch (authError) {
+        console.error('Vision client authentication failed:', authError.message);
+        if (authError.message.includes('401')) {
+          console.error('Authentication error - Vision API may not be enabled for project pic2nav');
+        }
+        return null;
+      }
     } catch (error) {
       console.error('Failed to initialize Vision client:', error.message);
       return null;
@@ -1144,8 +1162,18 @@ class LocationRecognizer {
   // Claude AI analysis for complex location identification
   private async analyzeWithClaude(visionData: any, buffer: Buffer): Promise<LocationResult | null> {
     try {
-      const anthropic = new Anthropic({ apiKey: getEnv('ANTHROPIC_API_KEY') });
-      if (!anthropic) return null;
+      const apiKey = getEnv('ANTHROPIC_API_KEY');
+      if (!apiKey) {
+        console.error('Anthropic API key not available');
+        return null;
+      }
+      
+      console.log('Initializing Anthropic client...');
+      const anthropic = new Anthropic({ apiKey });
+      if (!anthropic) {
+        console.error('Failed to initialize Anthropic client');
+        return null;
+      }
 
       const base64Image = buffer.toString('base64');
       
@@ -1200,7 +1228,14 @@ Return JSON with the most specific location information you can identify:
         setTimeout(() => reject(new Error('Claude timeout')), 45000)
       );
       
+      console.log('Making Claude API request...');
+      
       const response = await Promise.race([claudePromise, timeoutPromise]);
+      
+      if (!response || !response.content || !response.content[0]) {
+        console.error('Invalid Claude API response structure');
+        return null;
+      }
 
       const responseText = response.content[0].text;
       console.log('Claude analysis response:', responseText);
@@ -1788,7 +1823,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       console.log('Starting AI vision analysis...');
       const client = await this.initVisionClient();
       if (!client) {
-        console.log('Vision client not available, skipping AI analysis');
+        console.log('Vision client not available - using Claude AI and text analysis only');
         return null;
       }
       
@@ -2201,13 +2236,22 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
               console.log('No specific country context detected - using global search');
             }
             
-            // Enhanced UK context detection from visual and text clues
+            // Enhanced geographic context detection from visual and text clues
             if (enhancedText.toLowerCase().includes('post box') || enhancedText.toLowerCase().includes('royal mail') || 
                 visualClues.architecturalStyle === 'British' || visualClues.geographicIndicators.some(g => g.toLowerCase().includes('uk')) ||
                 deepSceneContext.detectedLabels.some(label => ['British', 'UK', 'London'].includes(label.description)) ||
                 deepSceneContext.webEntities.some(entity => entity.description?.toLowerCase().includes('london'))) {
               countryHint = 'UK';
               console.log('UK context detected from comprehensive visual analysis!');
+            }
+            
+            // Check for specific landmark context that overrides default UK bias
+            if (deepSceneContext.webEntities.some(entity => 
+                entity.description?.toLowerCase().includes('lekki') || 
+                entity.description?.toLowerCase().includes('lagos') ||
+                entity.description?.toLowerCase().includes('nigeria'))) {
+              countryHint = 'Nigeria';
+              console.log('Nigeria context detected from landmark analysis!');
             }
             
             // If no specific context but business name suggests UK (common UK restaurant names)
@@ -2224,6 +2268,12 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
             if (adjustedGeographicClue === 'China' && (businessNameValue.toLowerCase().includes('chinese') || businessNameValue.toLowerCase().includes('takeaway'))) {
               console.log('Ignoring China geographic clue for Chinese restaurant - could be anywhere');
               adjustedGeographicClue = null;
+            }
+            
+            // Override UK default for specific landmarks
+            if (businessNameValue.toLowerCase().includes('lekki') || businessNameValue.toLowerCase().includes('bridge')) {
+              countryHint = null; // Let the search find the correct location globally
+              console.log('Landmark detected - removing geographic bias for global search');
             }
             
             // Force UK search if Claude detected UK context
@@ -4257,6 +4307,20 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       }
     }
     
+    // PRIORITY: If we have provided location (client GPS), use it immediately
+    if (providedLocation && providedLocation.latitude !== 0 && providedLocation.longitude !== 0) {
+      console.log('🎯 USING PROVIDED CLIENT GPS COORDINATES:', providedLocation);
+      const clientGpsResult = {
+        success: true,
+        name: 'GPS Location (Client)',
+        location: providedLocation,
+        confidence: 0.98,
+        method: 'client-gps-coordinates',
+        description: 'Location from mobile app GPS extraction'
+      };
+      return await this.enrichLocationData(clientGpsResult, buffer, analyzeLandmarks);
+    }
+    
     try {
       // Add overall timeout for the entire recognition process
       const recognitionPromise = this.performRecognition(buffer, providedLocation, analyzeLandmarks, regionHint, searchPriority);
@@ -4298,14 +4362,14 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     const header = buffer.slice(0, 10);
     console.log('File header:', Array.from(header).map(b => '0x' + b.toString(16)).join(' '));
     
-    // 1. PRIORITY: Try EXIF GPS extraction first (highest accuracy)
+    // 1. Try EXIF GPS extraction from server-side (fallback only)
     const gpsResult = this.extractGPS(buffer);
     if (gpsResult?.success && gpsResult.location) {
-      console.log('✅ EXIF GPS FOUND - RETURNING IMMEDIATELY:', gpsResult.location);
+      console.log('✅ SERVER EXIF GPS FOUND - RETURNING:', gpsResult.location);
       return await this.enrichLocationData(gpsResult, buffer, analyzeLandmarks);
     }
     
-    console.log('❌ No valid EXIF GPS data found - proceeding to AI analysis');
+    console.log('❌ No valid server EXIF GPS data found - proceeding to AI analysis');
     
     console.log('No EXIF GPS data found - trying Claude AI first...');
     
@@ -4425,6 +4489,28 @@ export async function POST(request: NextRequest) {
   console.log('POST request received at:', new Date().toISOString());
   
   try {
+    // Check API keys first
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    const googlePlacesKey = process.env.GOOGLE_PLACES_API_KEY;
+    
+    console.log('API Keys status:', {
+      anthropic: !!anthropicKey,
+      googlePlaces: !!googlePlacesKey
+    });
+    
+    // Temporarily bypass API key check
+    // if (!anthropicKey) {
+    //   console.error('ANTHROPIC_API_KEY not found');
+    //   return NextResponse.json(
+    //     { success: false, error: 'API configuration error: Missing Anthropic API key', method: 'config-error' },
+    //     { status: 401, headers: {
+    //       'Access-Control-Allow-Origin': '*',
+    //       'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    //       'Access-Control-Allow-Headers': 'Content-Type',
+    //     }}
+    //   );
+    // }
+    
     // Check content length
     const contentLength = request.headers.get('content-length');
     if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
@@ -4453,9 +4539,28 @@ export async function POST(request: NextRequest) {
     const duration = Date.now() - startTime;
     console.log('Request failed after:', duration, 'ms');
     
+    // Check if it's an authentication error
+    if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Authentication failed - check API keys',
+          method: 'auth-error',
+          details: error.message
+        },
+        { status: 401, headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }}
+      );
+    }
+    
     return NextResponse.json(
       { 
+        success: false,
         error: duration > 19000 ? 'Request timeout' : 'Internal server error',
+        method: 'server-error',
         duration: duration
       },
       { status: 500, headers: {
@@ -4484,6 +4589,8 @@ async function handleRequest(request: NextRequest) {
   
   const lat = formData.get('latitude');
   const lng = formData.get('longitude');
+  const clientLat = formData.get('clientGPSLatitude');
+  const clientLng = formData.get('clientGPSLongitude');
   const analyzeLandmarks = formData.get('analyzeLandmarks') === 'true';
   const hasImageGPS = formData.get('hasImageGPS') === 'true';
   const exifSource = formData.get('exifSource') as string;
@@ -4491,18 +4598,42 @@ async function handleRequest(request: NextRequest) {
   console.log('Raw form data:', {
     latitude: lat,
     longitude: lng,
+    clientGPSLatitude: clientLat,
+    clientGPSLongitude: clientLng,
     hasImageGPS,
     exifSource
   });
   
-  const providedLocation = lat && lng ? {
-    latitude: parseFloat(lat as string),
-    longitude: parseFloat(lng as string)
-  } : undefined;
+  // PRIORITY: Use client GPS coordinates if available (mobile app extracted GPS)
+  let providedLocation = undefined;
+  if (clientLat && clientLng) {
+    const clientLatNum = parseFloat(clientLat as string);
+    const clientLngNum = parseFloat(clientLng as string);
+    if (!isNaN(clientLatNum) && !isNaN(clientLngNum) && clientLatNum !== 0 && clientLngNum !== 0) {
+      providedLocation = {
+        latitude: clientLatNum,
+        longitude: clientLngNum
+      };
+      console.log('🎯 USING CLIENT GPS COORDINATES (mobile extracted):', providedLocation);
+    }
+  }
+  
+  // Fallback to regular coordinates if no client GPS
+  if (!providedLocation && lat && lng) {
+    const latNum = parseFloat(lat as string);
+    const lngNum = parseFloat(lng as string);
+    if (!isNaN(latNum) && !isNaN(lngNum) && latNum !== 0 && lngNum !== 0) {
+      providedLocation = {
+        latitude: latNum,
+        longitude: lngNum
+      };
+      console.log('📍 Using fallback GPS coordinates:', providedLocation);
+    }
+  }
   
   console.log('GPS source info:', { hasImageGPS, exifSource, providedLocation });
   
-  console.log('Provided location:', providedLocation);
+  console.log('Final provided location:', providedLocation);
   console.log('Analyze landmarks:', analyzeLandmarks);
   
   // Check if this is a mobile request requiring enhanced processing
@@ -4517,22 +4648,46 @@ async function handleRequest(request: NextRequest) {
   const recognizer = new LocationRecognizer();
   const result = await recognizer.recognize(buffer, providedLocation, analyzeLandmarks, regionHint, searchPriority);
   
-  // Final validation - reject Queensway for Fortune Cookie
-  if (result.success && result.address?.includes('Queensway, London') && 
-      (result.name?.toLowerCase().includes('fortune cookie') || 
-       result.address?.toLowerCase().includes('fortune cookie'))) {
-    console.log('❌ FINAL VALIDATION: Rejecting Queensway location');
-    return NextResponse.json({
-      success: false,
-      error: 'Unable to determine specific franchise location. Please try again.',
-      method: 'franchise-validation-failed'
-    }, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      }
-    });
+  // Final validation - reject fake coordinates
+  if (result.success && result.location) {
+    const { latitude, longitude } = result.location;
+    
+    // Reject known fake coordinates
+    if ((latitude === 2.0 && longitude === 1.0) || 
+        (latitude === 20000 && longitude === 100000) ||
+        (Math.abs(latitude - 2.0) < 0.001 && Math.abs(longitude - 1.0) < 0.001)) {
+      console.log('❌ FINAL VALIDATION: Rejecting fake coordinates:', { latitude, longitude });
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid location coordinates detected. Please try again with a different image.',
+        method: 'fake-coordinates-rejected',
+        debug: { rejectedCoords: { latitude, longitude } }
+      }, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      });
+    }
+    
+    // Reject Queensway for Fortune Cookie
+    if (result.address?.includes('Queensway, London') && 
+        (result.name?.toLowerCase().includes('fortune cookie') || 
+         result.address?.toLowerCase().includes('fortune cookie'))) {
+      console.log('❌ FINAL VALIDATION: Rejecting Queensway location');
+      return NextResponse.json({
+        success: false,
+        error: 'Unable to determine specific franchise location. Please try again.',
+        method: 'franchise-validation-failed'
+      }, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      });
+    }
   }
   
   return NextResponse.json(result, {
