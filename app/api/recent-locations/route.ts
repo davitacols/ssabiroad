@@ -10,10 +10,13 @@ const pool = new Pool({
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('Recent locations API called');
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '20');
     
+    console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
     const client = await pool.connect();
+    console.log('Database connected for recent locations');
     
     try {
       const result = await client.query(`
@@ -60,17 +63,45 @@ export async function GET(request: NextRequest) {
         deviceModel: row.device_model
       }));
       
-      return NextResponse.json({ locations });
+      return NextResponse.json({ locations }, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      });
       
     } finally {
       client.release();
     }
     
   } catch (error) {
-    console.error('Database error:', error);
+    console.error('Recent locations database error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code
+    });
     return NextResponse.json(
-      { error: 'Failed to fetch recent locations' },
-      { status: 500 }
+      { error: 'Failed to fetch recent locations', details: error.message },
+      { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      }
     );
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
 }

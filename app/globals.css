@@ -127,5 +127,30 @@
     background-color: rgba(17, 25, 40, 0.75);
     border: 1px solid rgba(255, 255, 255, 0.125);
   }
+  
+  /* Claude-inspired clean design */
+  .claude-card {
+    @apply bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm;
+  }
+  
+  .claude-button {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background;
+  }
+  
+  .claude-text-primary {
+    @apply text-gray-900 dark:text-white;
+  }
+  
+  .claude-text-secondary {
+    @apply text-gray-600 dark:text-gray-400;
+  }
+  
+  .claude-text-muted {
+    @apply text-gray-500 dark:text-gray-500;
+  }
+  
+  .claude-hover {
+    @apply hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors;
+  }
 }
 

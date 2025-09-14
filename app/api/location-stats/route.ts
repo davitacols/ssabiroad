@@ -8,9 +8,15 @@ const pool = new Pool({
   }
 });
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  console.log('Location stats API called');
+  console.log('Request headers:', Object.fromEntries(request.headers.entries()));
+  
   try {
+    console.log('Connecting to database...');
+    console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
     const client = await pool.connect();
+    console.log('Database connected successfully');
     
     try {
       // Get overall stats
@@ -48,7 +54,7 @@ export async function GET() {
       
       const stats = statsResult.rows[0];
       
-      return NextResponse.json({
+      const response = {
         totalLocations: parseInt(stats.total_locations),
         v1Count: parseInt(stats.v1_count),
         v2Count: parseInt(stats.v2_count),
@@ -57,6 +63,15 @@ export async function GET() {
         weekCount: parseInt(stats.week_count),
         methods: methodsResult.rows,
         topDevices: devicesResult.rows
+      };
+      
+      console.log('Returning stats response:', response);
+      return NextResponse.json(response, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
       });
       
     } finally {
@@ -65,9 +80,32 @@ export async function GET() {
     
   } catch (error) {
     console.error('Database error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
     return NextResponse.json(
-      { error: 'Failed to fetch stats' },
-      { status: 500 }
+      { error: 'Failed to fetch stats', details: error.message },
+      { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      }
     );
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
 }

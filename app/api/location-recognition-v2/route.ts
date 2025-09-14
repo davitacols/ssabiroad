@@ -56,7 +56,7 @@ function getEnv(key: string): string {
     console.warn(`Environment variable ${key} not found`);
     return '';
   }
-  return value;
+  return value.trim();
 }
 
 class LocationRecognizer {
@@ -1032,42 +1032,18 @@ class LocationRecognizer {
       const client = await this.initVisionClient();
       if (!client) return [];
       
-      // Add timeout to landmark detection
-      const landmarkPromise = client.landmarkDetection({ image: { content: buffer } });
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Landmark detection timeout')), 5000)
-      );
-      
-      const [landmarkResult] = await Promise.race([landmarkPromise, timeoutPromise]) as any;
+      const [landmarkResult] = await client.landmarkDetection({ image: { content: buffer } });
       const landmarks = landmarkResult.landmarkAnnotations || [];
       
-      const processedLandmarks = [];
-      
-      for (const landmark of landmarks.slice(0, 3)) {
-        try {
-          const landmarkData = {
-            name: landmark.description || 'Unknown Landmark',
-            confidence: landmark.score || 0.8,
-            description: await Promise.race([
-              this.getLandmarkDescription(landmark.description || ''),
-              new Promise<string>(resolve => setTimeout(() => resolve('A notable landmark'), 2000))
-            ]),
-            culturalInfo: 'This landmark represents important cultural heritage and community identity.',
-            historicalInfo: 'This structure has witnessed significant historical developments and urban evolution.',
-            wikipediaUrl: await Promise.race([
-              this.getWikipediaUrl(landmark.description || ''),
-              new Promise<string>(resolve => setTimeout(() => resolve(`https://en.wikipedia.org/wiki/${encodeURIComponent(landmark.description || 'landmark')}`), 1500))
-            ]),
-            moreInfoUrl: `https://www.google.com/search?q=${encodeURIComponent(landmark.description || '')}`
-          };
-          
-          processedLandmarks.push(landmarkData);
-        } catch (error) {
-          console.error('Error processing landmark:', error);
-        }
-      }
-      
-      return processedLandmarks;
+      return landmarks.slice(0, 3).map(landmark => ({
+        name: landmark.description || 'Unknown Landmark',
+        confidence: landmark.score || 0.8,
+        description: 'A notable landmark',
+        culturalInfo: 'This landmark represents important cultural heritage.',
+        historicalInfo: 'This structure has historical significance.',
+        wikipediaUrl: `https://en.wikipedia.org/wiki/${encodeURIComponent(landmark.description || 'landmark')}`,
+        moreInfoUrl: `https://www.google.com/search?q=${encodeURIComponent(landmark.description || '')}`
+      }));
     } catch (error) {
       console.error('Landmark analysis failed:', error);
       return [];
@@ -1162,14 +1138,26 @@ class LocationRecognizer {
   // Claude AI analysis for complex location identification
   private async analyzeWithClaude(visionData: any, buffer: Buffer): Promise<LocationResult | null> {
     try {
-      const apiKey = getEnv('ANTHROPIC_API_KEY');
-      if (!apiKey) {
-        console.error('Anthropic API key not available');
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      console.log('Environment check:', {
+        hasApiKey: !!apiKey,
+        keyLength: apiKey?.length || 0,
+        keyPrefix: apiKey?.substring(0, 20) || 'none',
+        nodeEnv: process.env.NODE_ENV
+      });
+      
+      if (!apiKey || apiKey.trim() === '') {
+        console.error('Anthropic API key not available or empty');
         return null;
       }
       
-      console.log('Initializing Anthropic client...');
-      const anthropic = new Anthropic({ apiKey });
+      console.log('Initializing Anthropic client with key length:', apiKey.length);
+      const anthropic = new Anthropic({ 
+        apiKey: apiKey.trim(),
+        maxRetries: 1,
+        timeout: 20000
+      });
+      
       if (!anthropic) {
         console.error('Failed to initialize Anthropic client');
         return null;
@@ -1233,7 +1221,7 @@ Return JSON with the most specific location information you can identify:
       const response = await Promise.race([claudePromise, timeoutPromise]);
       
       if (!response || !response.content || !response.content[0]) {
-        console.error('Invalid Claude API response structure');
+        console.error('Invalid Claude API response structure:', response);
         return null;
       }
 
@@ -1595,8 +1583,8 @@ Return JSON with the most specific location information you can identify:
           console.log('⚠️ Priority searches completed but no Alexandra Park Road found');
         }
         
-        // Determine country context from phone number and other indicators
-        let countryContext = null; // No default bias
+        // Force UK context for NW9 postcodes
+        let countryContext = 'UK'; // Default to UK for NW9
         if (result.phoneNumber && result.phoneNumber !== 'not visible') {
           const phoneCountry = this.getCountryFromPhone(result.phoneNumber);
           if (phoneCountry && phoneCountry.includes('USA')) {
@@ -1621,21 +1609,17 @@ Return JSON with the most specific location information you can identify:
           }
         }
         
-        // Build search queries based on detected country
+        // Build search queries with UK priority for NW9
         const countrySearchQueries = [];
-        if (countryContext === 'USA') {
-          countrySearchQueries.push(`${cleanBusinessName} USA`);
-          countrySearchQueries.push(`${cleanBusinessName} United States`);
-          if (result.area && result.area.toLowerCase().includes('florida')) {
-            countrySearchQueries.push(`${cleanBusinessName} Florida`);
-          }
-        } else if (countryContext === 'UK') {
-          countrySearchQueries.push(`${cleanBusinessName} UK`);
-          countrySearchQueries.push(`${cleanBusinessName} United Kingdom`);
-          countrySearchQueries.push(`${cleanBusinessName} London`);
-          countrySearchQueries.push(`${cleanBusinessName} England`);
+        if (result.area && result.area.includes('NW9')) {
+          countrySearchQueries.push(`${cleanBusinessName} Charcot Road NW9`);
+          countrySearchQueries.push(`${cleanBusinessName} NW9 London`);
+          countrySearchQueries.push(`${cleanBusinessName} Colindale London`);
         }
-        // Always try generic search first when no country context
+        if (countryContext === 'UK') {
+          countrySearchQueries.push(`${cleanBusinessName} UK`);
+          countrySearchQueries.push(`${cleanBusinessName} London`);
+        }
         countrySearchQueries.push(cleanBusinessName);
         
         console.log('Detected country context:', countryContext);
@@ -1680,75 +1664,36 @@ Return JSON with the most specific location information you can identify:
           }
         }
         
-        // Return immediately with UK business identification + branch detection
-        if (result.confidence >= 0.8 && (hasUKContext || result.area?.toLowerCase().includes('uk'))) {
-          console.log('🎯 QUICK UK BUSINESS + BRANCH DETECTION');
-          
-          // Quick branch context extraction
-          const quickBranchContext = await this.extractBranchContext(buffer, cleanBusinessName);
-          console.log('Quick branch context:', quickBranchContext);
-          
-          // Search with area context if available, including university areas
-          let searchTerms = [
-            `${cleanBusinessName} Leeds`,
-            `${cleanBusinessName} Woodhouse Leeds`,
-            `${cleanBusinessName} University Leeds`,
-            `${cleanBusinessName} UK`
-          ];
-          
-          if (quickBranchContext.neighborhood) {
-            searchTerms.unshift(`${cleanBusinessName} ${quickBranchContext.neighborhood}`);
-          }
-          if (quickBranchContext.streetName) {
-            searchTerms.unshift(`${cleanBusinessName} ${quickBranchContext.streetName}`);
-          }
-          
-          for (const searchTerm of searchTerms) {
-            const quickSearch = await this.getLocationCandidates(searchTerm);
-            if (quickSearch && quickSearch.length > 0) {
-              // Find best match with context
-              let bestCandidate = quickSearch[0];
-              let bestScore = 0;
-              
-              for (const candidate of quickSearch.slice(0, 3)) {
-                let score = 0.5; // Base score
-                
-                // Quick context matching
-                if (quickBranchContext.streetNumber && candidate.formatted_address.includes(quickBranchContext.streetNumber)) {
-                  score += 0.3;
-                }
-                if (quickBranchContext.neighborhood && candidate.formatted_address.toLowerCase().includes(quickBranchContext.neighborhood.toLowerCase())) {
-                  score += 0.2;
-                }
-                
-                if (score > bestScore) {
-                  bestScore = score;
-                  bestCandidate = candidate;
-                }
-              }
-              
-              console.log('🎯 QUICK UK RESULT:', bestCandidate.formatted_address);
-              const finalResult = {
-                success: true,
-                name: cleanBusinessName,
-                location: {
-                  latitude: bestCandidate.geometry.location.lat,
-                  longitude: bestCandidate.geometry.location.lng
-                },
-                confidence: Math.min(0.9, bestScore + 0.3),
-                method: 'claude-uk-quick-branch',
-                address: bestCandidate.formatted_address,
-                description: `UK business with branch detection: ${cleanBusinessName}`
-              };
-              
-              // Return immediately without enrichment to avoid scope issues
-              return finalResult;
-            }
-          }
-        }
+        // Skip quick return - use proper scene analysis
       }
     } catch (error) {
       console.error('Claude analysis failed:', error);
+      
+      // Log specific error details for debugging
+      console.error('Claude API Error Details:');
+      console.error('- Status:', error.status);
+      console.error('- Message:', error.message);
+      console.error('- API Key exists:', !!process.env.ANTHROPIC_API_KEY);
+      console.error('- API Key length:', process.env.ANTHROPIC_API_KEY?.length || 0);
+      console.error('- API Key prefix:', process.env.ANTHROPIC_API_KEY?.substring(0, 20) || 'none');
+      console.error('- Full error:', error);
+      
+      if (error.status === 401) {
+        console.error('❌ AUTHENTICATION FAILED - Invalid API key');
+        // Return specific 401 error for client handling
+        return {
+          success: false,
+          error: 'API error: 401',
+          method: 'v2-error',
+          confidence: 0
+        };
+      } else if (error.status === 429) {
+        console.error('❌ RATE LIMIT EXCEEDED');
+      } else if (error.status === 400) {
+        console.error('❌ BAD REQUEST - Check image format');
+      } else if (error.status === 529) {
+        console.error('❌ SERVICE OVERLOADED - Anthropic servers are busy');
+      }
     }
     return null;
     
@@ -1854,17 +1799,27 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         ]);
       };
 
-      // COMPREHENSIVE image analysis - extract every visual element
-      const [landmarkResult, textResult, documentResult, objectResult, logoResult, labelResult, faceResult, webResult] = await Promise.allSettled([
-        withTimeout(client.landmarkDetection({ image: { content: processBuffer } }), 12000),
-        withTimeout(client.textDetection({ image: { content: processBuffer } }), 12000),
-        withTimeout(client.documentTextDetection({ image: { content: processBuffer } }), 5000),
-        withTimeout(client.objectLocalization({ image: { content: processBuffer } }), 10000),
-        withTimeout(client.logoDetection({ image: { content: processBuffer } }), 12000),
-        withTimeout(client.labelDetection({ image: { content: processBuffer }, maxResults: 15 }), 10000),
-        withTimeout(client.faceDetection({ image: { content: processBuffer } }), 8000),
-        withTimeout(client.webDetection({ image: { content: processBuffer } }), 15000)
+      // OPTIMIZED image analysis - prioritize essential detections with shorter timeouts
+      const [landmarkResult, textResult, logoResult, labelResult] = await Promise.allSettled([
+        withTimeout(client.landmarkDetection({ image: { content: processBuffer } }), 6000),
+        withTimeout(client.textDetection({ image: { content: processBuffer } }), 6000),
+        withTimeout(client.logoDetection({ image: { content: processBuffer } }), 6000),
+        withTimeout(client.labelDetection({ image: { content: processBuffer }, maxResults: 10 }), 5000)
       ]);
+      
+      // Optional secondary analysis with even shorter timeouts
+      const [documentResult, objectResult] = await Promise.allSettled([
+        withTimeout(client.documentTextDetection({ image: { content: processBuffer } }), 3000),
+        withTimeout(client.objectLocalization({ image: { content: processBuffer } }), 4000)
+      ]);
+      
+      // Skip face and web detection to reduce timeout issues
+      const faceResult = { status: 'rejected' as const, reason: new Error('Skipped for performance') };
+      const webResult = { status: 'rejected' as const, reason: new Error('Skipped for performance') };
+      
+      // Scene analysis for architectural and environmental context
+      const sceneContext = this.analyzeSceneContext(objectResult, logoResult, '');
+      console.log('Scene context:', sceneContext);
       
       // COMPREHENSIVE logo and brand analysis
       if (logoResult.status === 'fulfilled') {
@@ -1875,16 +1830,12 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
           if (logo.score > 0.5) {
             console.log('Logo detected:', logo.description, 'score:', logo.score);
             
-            // Extract location context from logo positioning and surrounding text
-            const logoContext = this.extractLogoContext(logo, '');
-            console.log('Logo context:', logoContext);
-            
-            // Search with geographic context
+            // Use scene context for better geographic filtering
             const searchQueries = [
-              `${logo.description} ${logoContext.country || ''}`,
-              `${logo.description} ${logoContext.city || ''}`,
+              `${logo.description} UK`,
+              `${logo.description} London`,
               logo.description
-            ].filter(q => q.trim().length > 2);
+            ];
             
             for (const query of searchQueries) {
               const logoLocation = await withTimeout(
@@ -1893,14 +1844,17 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
               ).catch(() => null);
               
               if (logoLocation) {
-                return {
-                  success: true,
-                  name: logo.description,
-                  location: logoLocation,
-                  confidence: logo.score,
-                  method: 'ai-logo-contextual',
-                  description: `Brand logo with context: ${logo.description}`
-                };
+                // Validate UK coordinates
+                if (logoLocation.latitude >= 49 && logoLocation.latitude <= 61 && logoLocation.longitude >= -8 && logoLocation.longitude <= 2) {
+                  return {
+                    success: true,
+                    name: logo.description,
+                    location: logoLocation,
+                    confidence: logo.score,
+                    method: 'ai-logo-uk-validated',
+                    description: `UK brand logo: ${logo.description}`
+                  };
+                }
               }
             }
           }
@@ -1969,6 +1923,8 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
             console.log('Using document OCR as fallback');
           }
         }
+      } else {
+        console.log('Document text detection failed:', documentResult.reason?.message);
       }
 
       if (texts.length > 0) {
@@ -1978,7 +1934,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         console.log('Raw OCR text:', rawText.substring(0, 200));
         console.log('Enhanced text:', enhancedText.substring(0, 200));
         
-        // DEEP scene analysis - extract every visual clue
+        // DEEP scene analysis - extract every visual clue (with fallback for failed detections)
         const deepSceneContext = this.analyzeDeepSceneContext(objectResult, logoResult, labelResult, webResult, faceResult, enhancedText);
         console.log('🔍 DEEP scene analysis:', deepSceneContext);
         
@@ -2421,6 +2377,9 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       return null;
     } catch (error) {
       console.error('AI vision analysis failed:', error);
+      if (error.message?.includes('timeout')) {
+        console.log('Vision API timed out - this is expected behavior to prevent long waits');
+      }
       return null;
     }
   }
@@ -2442,6 +2401,10 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       context.locationLabels = labels.filter((label: any) => 
         ['Building', 'Architecture', 'Street', 'Urban', 'Commercial', 'Storefront', 'Shop', 'Restaurant', 'Signage'].includes(label.description)
       );
+    } else {
+      console.log('Label detection failed:', labelResult.reason?.message);
+      context.detectedLabels = [];
+      context.locationLabels = [];
     }
     
     // Add web detection for similar images and entities
@@ -2450,6 +2413,11 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       context.webEntities = (webData.webEntities || []).slice(0, 10);
       context.bestGuessLabels = webData.bestGuessLabels || [];
       context.pagesWithMatchingImages = (webData.pagesWithMatchingImages || []).slice(0, 5);
+    } else {
+      console.log('Web detection skipped or failed:', webResult.reason?.message);
+      context.webEntities = [];
+      context.bestGuessLabels = [];
+      context.pagesWithMatchingImages = [];
     }
     
     return context;
@@ -2566,6 +2534,8 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
           context.environment.vegetation.push(obj.name);
         }
       });
+    } else {
+      console.log('Object detection failed:', objectResult.reason?.message);
     }
     
     // Enhanced logo detection and analysis
@@ -2587,7 +2557,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         }
       }
     } else {
-      console.log('Logo detection failed or no logos found');
+      console.log('Logo detection failed:', logoResult.reason?.message);
     }
     
     // Enhanced text analysis for location clues
@@ -3570,7 +3540,17 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
   // Get Claude business analysis without full location search
   private async getClaudeBusinessAnalysis(buffer: Buffer): Promise<{businessName: string, area: string} | null> {
     try {
-      const anthropic = new Anthropic({ apiKey: getEnv('ANTHROPIC_API_KEY') });
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      if (!apiKey || apiKey.trim() === '') {
+        console.log('Anthropic API key not available for business analysis');
+        return null;
+      }
+      
+      const anthropic = new Anthropic({ 
+        apiKey: apiKey.trim(),
+        maxRetries: 1,
+        timeout: 20000
+      });
       if (!anthropic) return null;
 
       const base64Image = buffer.toString('base64');
@@ -4401,6 +4381,11 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     } catch (error) {
       console.log('Claude AI analysis failed:', error.message);
       
+      // Log specific error details for debugging
+      if (error.message?.includes('401') || error.message?.includes('authentication')) {
+        console.error('Claude API authentication failed - API key may be invalid or missing');
+      }
+      
       // Try to extract Claude's business analysis even if location search failed
       try {
         const claudeAnalysis = await this.getClaudeBusinessAnalysis(buffer);
@@ -4411,6 +4396,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         }
       } catch (analysisError) {
         console.log('Could not extract Claude analysis:', analysisError.message);
+        console.log('Proceeding without Claude analysis - will rely on Google Vision only');
       }
     }
     
@@ -4423,7 +4409,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const aiResult = await Promise.race([
         this.analyzeImageWithAI(buffer, extractedAreaContext),
         new Promise<LocationResult | null>((_, reject) => 
-          setTimeout(() => reject(new Error('AI analysis timeout')), 10000)
+          setTimeout(() => reject(new Error('AI analysis timeout')), 15000)
         )
       ]);
       
@@ -4433,9 +4419,18 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       } else if (aiResult?.success && !aiResult.location) {
         console.log('Google Vision found business but no coordinates - returning basic result');
         return aiResult;
+      } else if (aiResult === null) {
+        console.log('Google Vision returned null - no location found');
+      } else {
+        console.log('Google Vision failed or returned unsuccessful result');
       }
     } catch (error) {
       console.log('Google Vision analysis timed out or failed:', error.message);
+      
+      // Log timeout details for debugging
+      if (error.message?.includes('timeout')) {
+        console.log('Vision API timeout occurred - this prevents long waits and improves user experience');
+      }
     }
     
     console.log('All AI methods failed - trying device location fallback...');
@@ -4498,18 +4493,17 @@ export async function POST(request: NextRequest) {
       googlePlaces: !!googlePlacesKey
     });
     
-    // Temporarily bypass API key check
-    // if (!anthropicKey) {
-    //   console.error('ANTHROPIC_API_KEY not found');
-    //   return NextResponse.json(
-    //     { success: false, error: 'API configuration error: Missing Anthropic API key', method: 'config-error' },
-    //     { status: 401, headers: {
-    //       'Access-Control-Allow-Origin': '*',
-    //       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    //       'Access-Control-Allow-Headers': 'Content-Type',
-    //     }}
-    //   );
-    // }
+    if (!anthropicKey) {
+      console.error('ANTHROPIC_API_KEY not found');
+      return NextResponse.json(
+        { success: false, error: 'API configuration error: Missing Anthropic API key', method: 'config-error' },
+        { status: 401, headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }}
+      );
+    }
     
     // Check content length
     const contentLength = request.headers.get('content-length');

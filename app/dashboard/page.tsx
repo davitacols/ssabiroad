@@ -1,5 +1,5 @@
-import { Pic2NavDashboard } from "@/components/pic2nav/dashboard"
+import { ClaudeDashboard } from "@/components/pic2nav/dashboard-claude"
 
 export default function DashboardPage() {
-  return <Pic2NavDashboard />
+  return <ClaudeDashboard />
 }
