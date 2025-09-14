@@ -1099,9 +1099,29 @@ class LocationRecognizer {
   // Initialize Vision client
   private async initVisionClient(): Promise<vision.ImageAnnotatorClient | null> {
     try {
+      // Try JSON credentials from environment variable first
+      const credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+      if (credentialsJson) {
+        try {
+          const credentials = JSON.parse(credentialsJson);
+          const client = new vision.ImageAnnotatorClient({
+            credentials,
+            projectId: credentials.project_id || 'pic2nav'
+          });
+          
+          // Test the client
+          await client.getProjectId();
+          console.log('Vision client initialized with JSON credentials successfully');
+          return client;
+        } catch (jsonError) {
+          console.error('Failed to parse JSON credentials:', jsonError.message);
+        }
+      }
+      
+      // Fallback to file path method
       const credentialsPath = getEnv('GOOGLE_APPLICATION_CREDENTIALS');
       if (!credentialsPath) {
-        console.warn('Google Cloud credentials JSON file path not configured');
+        console.warn('Google Cloud credentials not configured (neither JSON nor file path)');
         return null;
       }
       
