@@ -3729,6 +3729,16 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
   private getCountryFromPhone(phoneNumber: string): string | null {
     const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
     
+    // UK phone numbers - check FIRST before US patterns
+    if (phoneNumber.match(/^(\+44|0)?20[0-9\s]{8,}$/)) return 'UK'; // London
+    if (phoneNumber.match(/^(\+44|0)?207[0-9\s]{7,}$/)) return 'UK'; // London 020 7
+    if (phoneNumber.match(/^(\+44|0)?208[0-9\s]{7,}$/)) return 'UK'; // London 020 8
+    if (phoneNumber.match(/^0208\s*\d{3}\s*\d{3}$/)) return 'UK'; // 0208 format
+    if (phoneNumber.match(/^020\s*\d{4}\s*\d{4}$/)) return 'UK'; // 020 format
+    if (phoneNumber.match(/^20\s*\d{4}\s*\d{4}$/)) return 'UK'; // 20 format (missing leading 0)
+    if (phoneNumber.match(/^(\+44|0)?7\d{9}$/)) return 'UK'; // Mobile
+    if (phoneNumber.match(/^(\+44|0)?1\d{9}$/)) return 'UK'; // Other UK
+    
     // US/Canada phone numbers (10 digits, area codes)
     if (cleanPhone.length === 10) {
       const areaCode = cleanPhone.substring(0, 3);
@@ -3750,15 +3760,6 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       }
       return 'USA';
     }
-    
-    // UK phone numbers - more flexible patterns
-    if (phoneNumber.match(/^(\+44|0)?20[0-9\s]{8,}$/)) return 'UK'; // London
-    if (phoneNumber.match(/^(\+44|0)?207[0-9\s]{7,}$/)) return 'UK'; // London 020 7
-    if (phoneNumber.match(/^(\+44|0)?208[0-9\s]{7,}$/)) return 'UK'; // London 020 8
-    if (phoneNumber.match(/^0208\s*\d{3}\s*\d{3}$/)) return 'UK'; // 0208 format
-    if (phoneNumber.match(/^020\s*\d{4}\s*\d{4}$/)) return 'UK'; // 020 format
-    if (phoneNumber.match(/^(\+44|0)?7\d{9}$/)) return 'UK'; // Mobile
-    if (phoneNumber.match(/^(\+44|0)?1\d{9}$/)) return 'UK'; // Other UK
     
     return null;
   }
