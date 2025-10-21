@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "Pic2Nav",
-    "slug": "pic2nav-mobile",
+    "name": "SSABIRoad",
+    "slug": "ssabiroad-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "https://via.placeholder.com/1080x1920/2563eb/ffffff?text=SSABIRoad",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -17,38 +17,43 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "This app uses the camera to analyze locations from photos.",
-        "NSLocationWhenInUseUsageDescription": "This app uses location to enhance photo analysis."
+        "NSCameraUsageDescription": "This app uses camera to analyze buildings and locations",
+        "NSLocationWhenInUseUsageDescription": "This app uses location to provide location-based analysis"
       }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "https://via.placeholder.com/1024x1024/2563eb/ffffff?text=SSABIRoad",
         "backgroundColor": "#ffffff"
       },
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION"
-      ]
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.davitacols.ssabiroadmobile"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "https://via.placeholder.com/32x32/2563eb/ffffff?text=S"
     },
     "plugins": [
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Pic2Nav to access your camera to analyze locations from photos."
+          "cameraPermission": "Allow SSABIRoad to access your camera to analyze buildings"
         }
       ],
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Pic2Nav to use your location to enhance photo analysis."
+          "locationAlwaysAndWhenInUsePermission": "Allow SSABIRoad to use your location to provide accurate building analysis"
         }
       ]
-    ],
-    "sdkVersion": "53.0.0"
+    ]
   }
 }

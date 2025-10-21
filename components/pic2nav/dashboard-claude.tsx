@@ -13,17 +13,16 @@ import {
   Eye,
   RefreshCw,
   ChevronRight,
-  Plus,
-  MoreHorizontal,
-  Sparkles,
+  TrendingUp,
+  Users,
+  Globe,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CameraRecognition } from "@/components/pic2nav/camera-recognition"
+import { CameraRecognitionEnhanced } from "@/components/pic2nav/camera-recognition-enhanced"
 import { RecentLocationsPanel } from "@/components/pic2nav/recent-locations"
 import { SearchPanel } from "@/components/pic2nav/search-panel"
 import { Badge } from "@/components/ui/badge"
-import { ShareButton } from "@/components/ui/share-button"
+import Link from "next/link"
 
 export function ClaudeDashboard() {
   const [activeView, setActiveView] = useState("upload")
@@ -92,286 +91,270 @@ export function ClaudeDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-16">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                <Sparkles className="h-4 w-4 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900">
+      {/* Top Navigation */}
+      <nav className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-lg">
+                <Camera className="h-4 w-4 text-white" />
               </div>
-              <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-                Dashboard
-              </h1>
+              <span className="font-bold text-xl text-gray-900 dark:text-white">Pic2Nav</span>
+            </Link>
+            <div className="hidden md:flex items-center gap-1">
+              <Button variant="ghost" size="sm" className="font-medium" asChild>
+                <Link href="/dashboard">Dashboard</Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/analytics">Analytics</Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/history">History</Link>
+              </Button>
             </div>
-            <p className="text-gray-600 dark:text-gray-400 text-base">
-              AI-powered location intelligence platform
-            </p>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => window.location.reload()}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 h-9 px-3"
-            >
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={() => window.location.reload()} className="hover:bg-gray-100 dark:hover:bg-gray-800">
               <RefreshCw className="h-4 w-4" />
             </Button>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 h-9 px-3"
-              asChild
-            >
+            <Button variant="ghost" size="sm" asChild className="hover:bg-gray-100 dark:hover:bg-gray-800">
               <a href="/settings">
                 <Settings className="h-4 w-4" />
               </a>
             </Button>
           </div>
         </div>
+      </nav>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* Header */}
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                Welcome back!
+              </h1>
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                Discover locations from your photos with AI-powered intelligence
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button size="sm" variant="outline" className="gap-2" asChild>
+                <Link href="/map">
+                  <Globe className="h-4 w-4" />
+                  <span className="hidden sm:inline">View Map</span>
+                  <span className="sm:hidden">Map</span>
+                </Link>
+              </Button>
+              <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 gap-2" onClick={() => setActiveView("upload")}>
+                <Upload className="h-4 w-4" />
+                <span className="hidden sm:inline">Upload Photo</span>
+                <span className="sm:hidden">Upload</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
           {loading ? (
-            Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
-                <div className="animate-pulse">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 mb-4"></div>
-                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2"></div>
-                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-12"></div>
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-800/50 p-6 shadow-lg">
+                <div className="animate-pulse space-y-3">
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
                 </div>
               </div>
             ))
           ) : (
             [
-              { 
-                label: "Total Detections", 
-                value: stats?.totalDetections?.toString() || "0", 
-                icon: Eye,
-                change: `+${stats?.weeklyGrowth || 0}%`
-              },
-              { 
-                label: "Locations Found", 
-                value: stats?.totalLocations?.toString() || "0", 
-                icon: MapPin,
-                change: `+${Math.floor((stats?.weeklyGrowth || 0) * 0.8)}%`
-              },
-              { 
-                label: "Success Rate", 
-                value: `${stats?.successRate || 0}%`, 
-                icon: Activity,
-                change: stats?.successRate > 80 ? "+2%" : "-1%"
-              },
-              { 
-                label: "Saved Places", 
-                value: stats?.totalBookmarks?.toString() || "0", 
-                icon: Bookmark,
-                change: "+5%"
-              },
-            ].map((stat, index) => (
-              <div key={index} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 hover:border-gray-300 dark:hover:border-gray-700 transition-colors">
+              { label: "Total Detections", value: stats?.totalDetections || 0, icon: Eye, trend: "+12%", color: "from-blue-500 to-blue-600" },
+              { label: "Locations Found", value: stats?.totalLocations || 0, icon: MapPin, trend: "+8%", color: "from-green-500 to-green-600" },
+              { label: "Success Rate", value: `${stats?.successRate || 0}%`, icon: Activity, trend: "+2%", color: "from-purple-500 to-purple-600" },
+              { label: "Saved Places", value: stats?.totalBookmarks || 0, icon: Bookmark, trend: "+5%", color: "from-orange-500 to-orange-600" },
+            ].map((stat, i) => (
+              <div key={i} className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-800/50 p-6 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105">
                 <div className="flex items-center justify-between mb-4">
-                  <stat.icon className="h-5 w-5 text-gray-400" />
-                  <span className="text-sm text-green-600 dark:text-green-400 font-medium">{stat.change}</span>
+                  <div className={`h-10 w-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
+                    <stat.icon className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="text-xs text-green-600 dark:text-green-400 font-semibold flex items-center gap-1 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full">
+                    <TrendingUp className="h-3 w-3" />
+                    {stat.trend}
+                  </span>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                    {stat.value}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {stat.label}
-                  </p>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                  {stat.value}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                  {stat.label}
                 </div>
               </div>
             ))
           )}
         </div>
 
-        {/* Navigation */}
-        <div className="flex gap-1 mb-10 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit">
-          {[
-            { id: "upload", label: "Upload Photo", icon: Upload },
-            { id: "recent", label: "Recent", icon: Clock },
-            { id: "search", label: "Search", icon: Search },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveView(item.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                activeView === item.id 
-                  ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm" 
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-gray-700/60"
-              }`}
-            >
-              <item.icon className="h-4 w-4" />
-              {item.label}
-            </button>
-          ))}
-        </div>
+        {/* Main Content Grid */}
+        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
+          {/* Left Column - Main Actions */}
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+            {/* Action Tabs */}
+            <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-800/50 shadow-lg">
+              <div className="border-b border-gray-200/50 dark:border-gray-800/50 px-4 sm:px-6 py-4 sm:py-5">
+                <div className="flex gap-1 sm:gap-2 overflow-x-auto">
+                  {[
+                    { id: "upload", label: "Upload Photo", shortLabel: "Upload", icon: Upload },
+                    { id: "recent", label: "Recent", shortLabel: "Recent", icon: Clock },
+                    { id: "search", label: "Search", shortLabel: "Search", icon: Search },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveView(item.id)}
+                      className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                        activeView === item.id
+                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg"
+                          : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+                      }`}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span className="hidden sm:inline">{item.label}</span>
+                      <span className="sm:hidden">{item.shortLabel}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="p-4 sm:p-6">
+                {activeView === "upload" && <CameraRecognitionEnhanced onLocationSelect={handleLocationSelect} />}
+                {activeView === "recent" && <RecentLocationsPanel onLocationSelect={handleLocationSelect} expanded={true} />}
+                {activeView === "search" && <SearchPanel onLocationSelect={handleLocationSelect} />}
+              </div>
+            </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-2">
-            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-8">
-              {activeView === "upload" && (
-                <CameraRecognition onLocationSelect={handleLocationSelect} />
-              )}
-              {activeView === "recent" && (
-                <RecentLocationsPanel onLocationSelect={handleLocationSelect} expanded={true} />
-              )}
-              {activeView === "search" && (
-                <SearchPanel onLocationSelect={handleLocationSelect} />
-              )}
+            {/* Quick Actions */}
+            <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-800/50 shadow-lg p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4 sm:mb-6">
+                Quick Actions
+              </h3>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                {[
+                  { icon: Camera, label: "Take Photo", shortLabel: "Camera", action: () => setActiveView("upload"), color: "from-blue-500 to-blue-600" },
+                  { icon: Upload, label: "Upload", shortLabel: "Upload", action: () => setActiveView("upload"), color: "from-green-500 to-green-600" },
+                  { icon: Search, label: "Search", shortLabel: "Search", action: () => setActiveView("search"), color: "from-purple-500 to-purple-600" },
+                  { icon: Bookmark, label: "Bookmarks", shortLabel: "Saved", action: () => {}, color: "from-orange-500 to-orange-600" },
+                ].map((action, i) => (
+                  <button
+                    key={i}
+                    onClick={action.action}
+                    className="group flex flex-col items-center justify-center gap-2 sm:gap-3 p-3 sm:p-5 rounded-xl border border-gray-200/50 dark:border-gray-800/50 hover:bg-white dark:hover:bg-gray-800 transition-all duration-200 hover:shadow-lg hover:scale-105"
+                  >
+                    <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow`}>
+                      <action.icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white text-center">
+                      <span className="hidden sm:inline">{action.label}</span>
+                      <span className="sm:hidden">{action.shortLabel}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-          
-          <div className="xl:col-span-1 space-y-6">
+
+          {/* Right Column - Sidebar */}
+          <div className="space-y-4 sm:space-y-6">
             {/* Recent Locations */}
-            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
-              <div className="p-6 pb-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                    Recent Locations
-                  </h3>
-                  <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </button>
-                </div>
+            <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-800/50 shadow-lg">
+              <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200/50 dark:border-gray-800/50">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+                  Recent Locations
+                </h3>
               </div>
-              <div className="px-6 pb-6 space-y-3">
+              <div className="p-3 sm:p-4 space-y-1">
                 {loading ? (
-                  <div className="space-y-3">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="animate-pulse">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
-                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-                      </div>
-                    ))}
-                  </div>
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="animate-pulse p-3">
+                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                    </div>
+                  ))
                 ) : recentLocations.length > 0 ? (
-                  <div className="space-y-3">
-                    {recentLocations.slice(0, 5).map((location) => (
-                      <div 
-                        key={location.id} 
-                        className="flex items-start justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
-                        onClick={() => handleLocationSelect(location)}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 dark:text-white text-sm truncate">
-                            {location.name}
-                          </p>
-                          <p className="text-gray-600 dark:text-gray-400 text-xs mt-1 truncate">
-                            {location.address}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            {location.confidence && (
-                              <Badge variant="secondary" className="text-xs">
-                                {Math.round(location.confidence * 100)}%
-                              </Badge>
-                            )}
-                            <span className="text-xs text-gray-500">{location.timeAgo}</span>
-                          </div>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0 ml-2" />
+                  recentLocations.slice(0, 5).map((location) => (
+                    <div
+                      key={location.id}
+                      onClick={() => handleLocationSelect(location)}
+                      className="flex items-start justify-between p-2 sm:p-3 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
+                          {location.name}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 truncate mt-1">
+                          {location.address}
+                        </p>
+                        {location.confidence && (
+                          <Badge variant="secondary" className="text-xs mt-2">
+                            {Math.round(location.confidence * 100)}%
+                          </Badge>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                      <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0 ml-2" />
+                    </div>
+                  ))
                 ) : (
                   <div className="text-center py-8 text-gray-500">
-                    <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No recent detections</p>
+                    <Clock className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                    <p className="text-xs">No recent detections</p>
                   </div>
                 )}
               </div>
             </div>
-            
-            {/* Saved Places */}
-            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
-              <div className="p-6 pb-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                    Saved Places
-                  </h3>
-                  <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-              <div className="px-6 pb-6 space-y-3">
-                {loading ? (
-                  <div className="space-y-3">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="animate-pulse">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
-                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-                      </div>
-                    ))}
-                  </div>
-                ) : savedLocations.length > 0 ? (
-                  <div className="space-y-3">
-                    {savedLocations.slice(0, 5).map((location) => (
-                      <div 
-                        key={location.id} 
-                        className="flex items-start justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"
-                        onClick={() => handleLocationSelect(location)}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 dark:text-white text-sm truncate">
-                            {location.name}
-                          </p>
-                          <p className="text-gray-600 dark:text-gray-400 text-xs mt-1 truncate">
-                            {location.address}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <Badge variant="outline" className="text-xs">
-                              {location.apiVersion?.toUpperCase() || 'V1'}
-                            </Badge>
-                            {location.rating && (
-                              <span className="text-xs text-amber-600">★ {location.rating}</span>
-                            )}
-                          </div>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0 ml-2" />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Bookmark className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No saved places</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Quick Actions */}
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 mt-10">
-          <div className="p-6">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-6">
-              Quick Actions
-            </h3>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { icon: Camera, label: "Take Photo", action: () => setActiveView("upload") },
-                { icon: Upload, label: "Upload Image", action: () => setActiveView("upload") },
-                { icon: Search, label: "Search Places", action: () => setActiveView("search") },
-                { icon: Plus, label: "Add Bookmark", action: () => {} },
-              ].map((action, index) => (
-                <button 
-                  key={index}
-                  className="h-24 flex flex-col gap-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
-                  onClick={action.action}
-                >
-                  <action.icon className="h-6 w-6 text-gray-600 dark:text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {action.label}
-                  </span>
-                </button>
-              ))}
+            {/* Saved Places */}
+            <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-800/50 shadow-lg">
+              <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200/50 dark:border-gray-800/50">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+                  Saved Places
+                </h3>
+              </div>
+              <div className="p-3 sm:p-4 space-y-1">
+                {loading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="animate-pulse p-3">
+                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                    </div>
+                  ))
+                ) : savedLocations.length > 0 ? (
+                  savedLocations.slice(0, 5).map((location) => (
+                    <div
+                      key={location.id}
+                      onClick={() => handleLocationSelect(location)}
+                      className="flex items-start justify-between p-2 sm:p-3 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
+                          {location.name}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 truncate mt-1">
+                          {location.address}
+                        </p>
+                        {location.rating && (
+                          <span className="text-xs text-amber-600 mt-2 inline-block">
+                            ★ {location.rating}
+                          </span>
+                        )}
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0 ml-2" />
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Bookmark className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                    <p className="text-xs">No saved places</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -1,69 +1,130 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function HomeScreen({ navigation }: any) {
+export default function HomeScreen() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Pic2Nav</Text>
-      <Text style={styles.subtitle}>AI-Powered Location Discovery</Text>
-      
-      <TouchableOpacity 
-        style={styles.button}
-        onPress={() => navigation.navigate('Camera')}
-      >
-        <Text style={styles.buttonText}>Take Photo</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={[styles.button, styles.secondaryButton]}
-        onPress={() => navigation.navigate('History')}
-      >
-        <Text style={[styles.buttonText, styles.secondaryButtonText]}>View History</Text>
-      </TouchableOpacity>
-    </View>
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>SSABIRoad</Text>
+        <Text style={styles.subtitle}>Smart Building Analysis</Text>
+      </View>
+
+      <View style={styles.quickActions}>
+        <TouchableOpacity style={styles.actionButton}>
+          <Ionicons name="camera" size={24} color="#2563eb" />
+          <Text style={styles.actionText}>Scan Building</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionButton}>
+          <Ionicons name="location" size={24} color="#2563eb" />
+          <Text style={styles.actionText}>Analyze Location</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.statsSection}>
+        <Text style={styles.sectionTitle}>Your Activity</Text>
+        <View style={styles.statsGrid}>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>12</Text>
+            <Text style={styles.statLabel}>Detections</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>8</Text>
+            <Text style={styles.statLabel}>Saved</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>15</Text>
+            <Text style={styles.statLabel}>Buildings</Text>
+          </View>
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fafc',
+  },
+  header: {
     padding: 20,
+    backgroundColor: '#2563eb',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+    color: '#fff',
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
-    marginBottom: 40,
-    textAlign: 'center',
+    color: '#e2e8f0',
   },
-  button: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-    minWidth: 200,
+  quickActions: {
+    flexDirection: 'row',
+    padding: 20,
+    gap: 15,
   },
-  secondaryButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: '#007AFF',
+  actionButton: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  buttonText: {
-    color: 'white',
-    fontSize: 18,
+  actionText: {
+    marginTop: 8,
+    fontSize: 14,
     fontWeight: '600',
-    textAlign: 'center',
+    color: '#374151',
   },
-  secondaryButtonText: {
-    color: '#007AFF',
+  statsSection: {
+    padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginBottom: 15,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 15,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2563eb',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#6b7280',
   },
 });

@@ -38,18 +38,12 @@ export default function HistoryPage() {
       setError("");
 
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          setError("No active session found. Please log in.");
-          return;
-        }
-
         const response = await fetch("/api/detections", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
+          credentials: "include",
         });
 
         if (!response.ok) {

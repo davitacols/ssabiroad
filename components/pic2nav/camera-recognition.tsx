@@ -911,6 +911,12 @@ function ShowMoreInfo({ result }: { result: any }) {
                     <p className="text-sm font-medium">{result.locationDetails.postalCode}</p>
                   </div>
                 )}
+                {result.placeId && (
+                  <div className="p-3 bg-white dark:bg-slate-700 rounded-lg col-span-2">
+                    <p className="text-xs text-slate-500 mb-1">Place ID</p>
+                    <p className="text-sm font-mono break-all overflow-hidden">{result.placeId}</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
