@@ -9,19 +9,19 @@ export default function HomePage() {
     <div className="min-h-screen bg-white dark:bg-gray-950">
       {/* Navigation */}
       <nav className="border-b border-gray-100 dark:border-gray-900 bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="h-7 w-7 rounded-lg bg-gray-900 dark:bg-white flex items-center justify-center">
               <Camera className="h-4 w-4 text-white dark:text-gray-900" />
             </div>
             <span className="font-semibold text-lg text-gray-900 dark:text-white">Pic2Nav</span>
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <ThemeToggle />
-            <Button variant="ghost" size="sm" asChild>
+            <Button variant="ghost" size="sm" className="hidden sm:flex" asChild>
               <Link href="/analytics">Analytics</Link>
             </Button>
-            <Button size="sm" className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100" asChild>
+            <Button size="sm" className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 text-xs sm:text-sm" asChild>
               <Link href="/dashboard">Get Started</Link>
             </Button>
           </div>
@@ -50,7 +50,7 @@ export default function HomePage() {
                   <Link href="/analytics">View Analytics</Link>
                 </Button>
               </div>
-              <div className="grid grid-cols-3 gap-4 sm:gap-6 mt-12 max-w-md mx-auto lg:mx-0">
+              <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mt-8 sm:mt-12 max-w-md mx-auto lg:mx-0">
                 <div className="text-center lg:text-left">
                   <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">10K+</div>
                   <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Photos analyzed</div>
@@ -221,7 +221,7 @@ export default function HomePage() {
               From travelers to researchers, Pic2Nav helps you discover locations
             </p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 sm:p-8 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow">
               <Globe className="h-8 w-8 text-gray-900 dark:text-white mb-4" />
               <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">Travelers</h3>
@@ -268,7 +268,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
             <div className="col-span-1 md:col-span-2">
               <Link href="/" className="flex items-center gap-2 mb-4">
                 <div className="h-7 w-7 rounded-lg bg-gray-900 dark:bg-white flex items-center justify-center">

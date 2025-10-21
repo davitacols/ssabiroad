@@ -371,11 +371,11 @@ export function CameraRecognitionEnhanced({ onLocationSelect }: CameraRecognitio
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6">
+    <div className="w-full max-w-6xl mx-auto space-y-4 sm:space-y-6 px-4 sm:px-0">
       {/* Camera Interface */}
       <Card className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-white/20 dark:border-slate-700/20 shadow-xl">
-        <CardContent className="p-6">
-          <div className="relative w-full bg-black rounded-2xl overflow-hidden mb-6" style={{ aspectRatio: '16/9', minHeight: '300px' }}>
+        <CardContent className="p-4 sm:p-6">
+          <div className="relative w-full bg-black rounded-xl sm:rounded-2xl overflow-hidden mb-4 sm:mb-6" style={{ aspectRatio: '16/9', minHeight: '250px' }}>
             {/* Camera View */}
             <video
               ref={videoRef}
@@ -478,7 +478,7 @@ export function CameraRecognitionEnhanced({ onLocationSelect }: CameraRecognitio
           
           {/* Quick Actions */}
           {!isProcessing && (
-            <div className="flex flex-wrap gap-3 justify-center">
+            <div className="flex flex-wrap gap-2 sm:gap-3 justify-center">
               <Button onClick={startCamera} variant="outline" size="sm">
                 <Camera className="h-4 w-4 mr-2" />
                 Camera
@@ -507,7 +507,7 @@ export function CameraRecognitionEnhanced({ onLocationSelect }: CameraRecognitio
       {/* Enhanced Results Display */}
       {result && (
         <Card className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-white/20 dark:border-slate-700/20 shadow-xl">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             {result.success ? (
               <div className="space-y-6">
                 {/* Header with main info */}
@@ -567,7 +567,7 @@ export function CameraRecognitionEnhanced({ onLocationSelect }: CameraRecognitio
 
                 {/* Tabbed Content */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-4">
+                  <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="details">Details</TabsTrigger>
                     <TabsTrigger value="nearby">Nearby</TabsTrigger>
@@ -575,7 +575,7 @@ export function CameraRecognitionEnhanced({ onLocationSelect }: CameraRecognitio
                   </TabsList>
                   
                   <TabsContent value="overview" className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                       {/* Quick Actions */}
                       {result.location && (
                         <Button asChild className="h-auto p-4 bg-gradient-to-r from-emerald-600 to-teal-600">

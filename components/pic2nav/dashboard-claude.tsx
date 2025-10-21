@@ -102,7 +102,7 @@ export function ClaudeDashboard() {
               </div>
               <span className="font-bold text-xl text-gray-900 dark:text-white">Pic2Nav</span>
             </Link>
-            <div className="hidden md:flex items-center gap-1">
+            <div className="hidden lg:flex items-center gap-1">
               <Button variant="ghost" size="sm" className="font-medium" asChild>
                 <Link href="/dashboard">Dashboard</Link>
               </Button>
@@ -157,7 +157,7 @@ export function ClaudeDashboard() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-800/50 p-6 shadow-lg">
