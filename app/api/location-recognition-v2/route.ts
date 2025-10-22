@@ -34,6 +34,13 @@ interface LocationResult {
   transit?: any[];
   demographics?: any;
   note?: string;
+  historicalData?: {
+    photoTakenDate?: string;
+    photoAge?: string;
+    timeSincePhoto?: number;
+    locationChanges?: string[];
+    historicalContext?: string;
+  };
   verification?: {
     verified: boolean;
     sources: string[];
@@ -755,6 +762,74 @@ class LocationRecognizer {
     }
   }
 
+  // Extract historical data from photo
+  extractHistoricalData(buffer: Buffer): any {
+    try {
+      const parser = exifParser.create(buffer);
+      const result = parser.parse();
+      
+      console.log('📅 Extracting historical data, DateTime:', result.tags?.DateTime);
+      
+      if (!result.tags?.DateTime) {
+        console.log('❌ No DateTime in EXIF');
+        return null;
+      }
+      
+      const photoDate = new Date(result.tags.DateTime * 1000);
+      const now = new Date();
+      const diffMs = now.getTime() - photoDate.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const diffYears = Math.floor(diffDays / 365);
+      
+      let photoAge = '';
+      let historicalContext = '';
+      const locationChanges = [];
+      
+      if (diffDays < 1) {
+        photoAge = 'Today';
+        historicalContext = 'Recent photo - location data is current';
+      } else if (diffDays < 7) {
+        photoAge = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        historicalContext = 'Recent photo - location likely unchanged';
+      } else if (diffDays < 30) {
+        photoAge = `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
+        historicalContext = 'Recent photo - location likely unchanged';
+      } else if (diffDays < 365) {
+        photoAge = `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`;
+        historicalContext = 'Photo from this year - minor changes possible';
+      } else if (diffYears < 5) {
+        photoAge = `${diffYears} year${diffYears > 1 ? 's' : ''} ago`;
+        historicalContext = 'Older photo - some businesses may have changed';
+        locationChanges.push('Business names or signage may have changed');
+      } else if (diffYears < 10) {
+        photoAge = `${diffYears} years ago`;
+        historicalContext = 'Historical photo - significant changes likely';
+        locationChanges.push('Businesses may have closed or relocated');
+        locationChanges.push('Building renovations possible');
+      } else {
+        photoAge = `${diffYears} years ago`;
+        historicalContext = 'Very old photo - location may have changed significantly';
+        locationChanges.push('Many businesses likely changed');
+        locationChanges.push('Building may have been renovated or demolished');
+        locationChanges.push('Street layout may have changed');
+      }
+      
+      const historicalData = {
+        photoTakenDate: photoDate.toISOString(),
+        photoAge,
+        timeSincePhoto: diffDays,
+        locationChanges,
+        historicalContext
+      };
+      
+      console.log('✅ Historical data extracted:', historicalData);
+      return historicalData;
+    } catch (error) {
+      console.log('❌ Historical data extraction failed:', error.message);
+      return null;
+    }
+  }
+
   // Enhanced location enrichment with comprehensive data
   async enrichLocationData(baseResult: LocationResult, buffer: Buffer, analyzeLandmarks: boolean = false): Promise<LocationResult> {
     if (!baseResult.location || !baseResult.location.latitude || !baseResult.location.longitude) {
@@ -824,6 +899,7 @@ class LocationRecognizer {
         nearbyPlaces: places || [],
         photos: photos || [],
         deviceAnalysis: this.analyzeDeviceData(buffer),
+        historicalData: this.extractHistoricalData(buffer),
         weather: weather,
         locationDetails: locationDetails,
         elevation: elevation,
@@ -842,6 +918,7 @@ class LocationRecognizer {
         nearbyPlaces: [],
         photos: [],
         deviceAnalysis: this.analyzeDeviceData(buffer),
+        historicalData: this.extractHistoricalData(buffer),
         description: 'Basic location data (enrichment failed)'
       };
     }
@@ -1180,8 +1257,8 @@ class LocationRecognizer {
       console.log('Initializing Anthropic client with key length:', apiKey.length);
       const anthropic = new Anthropic({ 
         apiKey: apiKey.trim(),
-        maxRetries: 1,
-        timeout: 20000
+        maxRetries: 0,
+        timeout: 90000
       });
       
       if (!anthropic) {
@@ -1219,6 +1296,7 @@ Return JSON with the most specific location information you can identify:
 {"businessName": "exact business name from signage", "address": "street address if visible", "area": "neighborhood/area name", "phoneNumber": "if visible", "confidence": 0.0-1.0}`;
 
       // Add timeout to Claude API call
+      console.log('Creating Claude API message request...');
       const claudePromise = anthropic.messages.create({
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: 300,
@@ -1236,15 +1314,24 @@ Return JSON with the most specific location information you can identify:
             text: prompt
           }]
         }]
+      }).then(res => {
+        console.log('Claude API response received');
+        return res;
+      }).catch(err => {
+        console.log('Claude API request error:', err.message);
+        throw err;
       });
       
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Claude timeout')), 45000)
+        setTimeout(() => reject(new Error('Claude timeout')), 90000)
       );
       
       console.log('Making Claude API request...');
       
-      const response = await Promise.race([claudePromise, timeoutPromise]);
+      const response = await Promise.race([claudePromise, timeoutPromise]).catch(err => {
+        console.log('Claude API call failed:', err.message);
+        throw err;
+      });
       
       if (!response || !response.content || !response.content[0]) {
         console.error('Invalid Claude API response structure:', response);
@@ -1447,6 +1534,15 @@ Return JSON with the most specific location information you can identify:
         
         // Multi-method approach for maximum accuracy
         
+        // PRIORITY: Use full address if available (most accurate) - ADDRESS ONLY, NO BUSINESS NAME
+        if (result.address && result.area) {
+          searchQueries.push(`${result.address}, ${result.area}`);
+        } else if (result.address) {
+          searchQueries.push(result.address);
+        } else if (result.area) {
+          searchQueries.push(`${cleanBusinessName} ${result.area}`);
+        }
+        
         // Method 1: Use phone number to determine country context
         let phoneCountry = null;
         if (result.phoneNumber && result.phoneNumber !== 'not visible') {
@@ -1545,6 +1641,45 @@ Return JSON with the most specific location information you can identify:
         // Remove duplicates and prioritize specific locations
         const uniqueQueries = [...new Set(searchQueries)];
         console.log('Claude search queries:', uniqueQueries);
+        
+        // Execute address searches FIRST before building name
+        for (const searchQuery of uniqueQueries) {
+          console.log('Trying search:', searchQuery);
+          
+          const candidates = await this.getLocationCandidates(searchQuery);
+          if (candidates && candidates.length > 0) {
+            console.log(`Found ${candidates.length} candidates for: ${searchQuery}`);
+            
+            const filteredCandidates = this.filterByGeography(candidates.slice(0, 3), cleanBusinessName, 'UK');
+            console.log(`Filtered to ${filteredCandidates.length} UK candidates`);
+            
+            if (filteredCandidates.length > 0) {
+              const candidate = filteredCandidates[0];
+              const location = {
+                latitude: candidate.geometry.location.lat,
+                longitude: candidate.geometry.location.lng
+              };
+              
+              const addressValidation = await this.validateFoundLocation(location, cleanBusinessName, result.phoneNumber);
+              if (addressValidation) {
+                console.log('✅ CLAUDE SUCCESS - RETURNING IMMEDIATELY:', addressValidation);
+                console.log('✅ Location:', location);
+                
+                return {
+                  success: true,
+                  name: cleanBusinessName,
+                  location,
+                  confidence: 0.9,
+                  method: 'claude-address-search',
+                  address: addressValidation,
+                  description: `Address match: ${cleanBusinessName}`
+                };
+              }
+            }
+          }
+        }
+        console.log('⚠️ All address searches completed without valid result');
+        return null;
         
         // Execute priority searches FIRST if we have address context
         const hasPrioritySearches = searchQueries.some(q => q.includes('96 Alexandra Park Road'));
@@ -1827,16 +1962,16 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
 
       // OPTIMIZED image analysis - prioritize essential detections with shorter timeouts
       const [landmarkResult, textResult, logoResult, labelResult] = await Promise.allSettled([
-        withTimeout(client.landmarkDetection({ image: { content: processBuffer } }), 6000),
-        withTimeout(client.textDetection({ image: { content: processBuffer } }), 6000),
-        withTimeout(client.logoDetection({ image: { content: processBuffer } }), 6000),
-        withTimeout(client.labelDetection({ image: { content: processBuffer }, maxResults: 10 }), 5000)
+        withTimeout(client.landmarkDetection({ image: { content: processBuffer } }), 30000),
+        withTimeout(client.textDetection({ image: { content: processBuffer } }), 30000),
+        withTimeout(client.logoDetection({ image: { content: processBuffer } }), 30000),
+        withTimeout(client.labelDetection({ image: { content: processBuffer }, maxResults: 10 }), 30000)
       ]);
       
       // Optional secondary analysis with even shorter timeouts
       const [documentResult, objectResult] = await Promise.allSettled([
-        withTimeout(client.documentTextDetection({ image: { content: processBuffer } }), 3000),
-        withTimeout(client.objectLocalization({ image: { content: processBuffer } }), 4000)
+        withTimeout(client.documentTextDetection({ image: { content: processBuffer } }), 30000),
+        withTimeout(client.objectLocalization({ image: { content: processBuffer } }), 30000)
       ]);
       
       // Skip face and web detection to reduce timeout issues
@@ -4389,7 +4524,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const claudeResult = await Promise.race([
         this.analyzeWithClaude({}, buffer),
         new Promise<LocationResult | null>((_, reject) => 
-          setTimeout(() => reject(new Error('Claude analysis timeout')), 35000) // Increased timeout
+          setTimeout(() => reject(new Error('Claude analysis timeout')), 90000)
         )
       ]);
       
@@ -4401,8 +4536,8 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
           console.log('❌ Rejecting generic Queensway location for Fortune Cookie franchise');
           // Continue to next method
         } else {
-          console.log('✅ CLAUDE SUCCESS - RETURNING IMMEDIATELY:', claudeResult.address);
-          return claudeResult;
+          console.log('✅ CLAUDE SUCCESS - ENRICHING AND RETURNING:', claudeResult.address);
+          return await this.enrichLocationData(claudeResult, buffer, analyzeLandmarks);
         }
       }
     } catch (error) {
@@ -4436,7 +4571,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const aiResult = await Promise.race([
         this.analyzeImageWithAI(buffer, extractedAreaContext),
         new Promise<LocationResult | null>((_, reject) => 
-          setTimeout(() => reject(new Error('AI analysis timeout')), 15000)
+          setTimeout(() => reject(new Error('AI analysis timeout')), 45000)
         )
       ]);
       

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   MapPin, Clock, Building, Users, CloudRain, Wind, 
-  Sun, Globe, Phone, Star, Calendar, Map, Share2
+  Sun, Globe, Phone, Star, Calendar, Map, Share2, History
 } from "lucide-react";
 import { Palmtree as Tree } from "lucide-react";
 
@@ -37,10 +37,11 @@ export function LocationDetails({ result, onOpenMap, onShare }: LocationDetailsP
       </div>
       
       <Tabs defaultValue="details" className="w-full">
-        <TabsList className="grid grid-cols-3 mb-2">
+        <TabsList className="grid grid-cols-4 mb-2">
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="environment">Environment</TabsTrigger>
           <TabsTrigger value="business">Business</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
         
         <TabsContent value="details" className="space-y-3">
@@ -247,6 +248,58 @@ export function LocationDetails({ result, onOpenMap, onShare }: LocationDetailsP
           ) : (
             <div className="text-center py-6 text-muted-foreground">
               <p>No business information available</p>
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="history" className="space-y-3">
+          {result.historicalData ? (
+            <div className="space-y-3">
+              <Card className="bg-muted/40">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <History className="h-5 w-5 mt-0.5 text-primary" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium mb-2">Photo Age</p>
+                      <p className="text-lg font-semibold">{result.historicalData.photoAge}</p>
+                      {result.historicalData.photoTakenDate && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Taken: {new Date(result.historicalData.photoTakenDate).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {result.historicalData.historicalContext && (
+                <Card className="bg-muted/40">
+                  <CardContent className="p-4">
+                    <p className="text-sm font-medium mb-2">Context</p>
+                    <p className="text-sm text-muted-foreground">{result.historicalData.historicalContext}</p>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {result.historicalData.locationChanges && result.historicalData.locationChanges.length > 0 && (
+                <Card className="bg-muted/40">
+                  <CardContent className="p-4">
+                    <p className="text-sm font-medium mb-2">Potential Changes</p>
+                    <ul className="space-y-1">
+                      {result.historicalData.locationChanges.map((change: string, index: number) => (
+                        <li key={index} className="text-sm text-muted-foreground flex items-start">
+                          <span className="mr-2">•</span>
+                          <span>{change}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              <p>No historical data available</p>
             </div>
           )}
         </TabsContent>

@@ -168,6 +168,7 @@ export function CameraRecognitionModern() {
 
       const data = await response.json()
       console.log('API Response:', data)
+      console.log('Historical Data:', data.historicalData)
       setResult(data)
       
       if (data.success) {
@@ -609,6 +610,30 @@ export function CameraRecognitionModern() {
                               <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/50 col-span-2">
                                 <p className="text-xs text-stone-600 dark:text-stone-400 mb-1">Region</p>
                                 <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{result.locationDetails.region}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {(result as any).historicalData && (
+                        <div className="pt-4 border-t border-stone-200 dark:border-stone-800">
+                          <p className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2">
+                            <History className="w-3 h-3" />
+                            Photo History
+                          </p>
+                          <div className="space-y-3">
+                            <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                              <p className="text-lg font-bold text-amber-900 dark:text-amber-100">{(result as any).historicalData.photoAge}</p>
+                              {(result as any).historicalData.photoTakenDate && (
+                                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                                  Taken: {new Date((result as any).historicalData.photoTakenDate).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
+                            {(result as any).historicalData.historicalContext && (
+                              <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/50">
+                                <p className="text-sm text-stone-700 dark:text-stone-300">{(result as any).historicalData.historicalContext}</p>
                               </div>
                             )}
                           </div>

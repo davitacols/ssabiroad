@@ -1060,6 +1060,42 @@ function ShowMoreInfo({ result }: { result: any }) {
             </div>
           </div>
           
+          {/* Historical Data */}
+          {result.historicalData && (
+            <div>
+              <h5 className="font-semibold text-sm mb-3">Photo History</h5>
+              <div className="space-y-3">
+                <div className="p-4 bg-white dark:bg-slate-700 rounded-lg">
+                  <p className="text-xs text-slate-500 mb-1">Photo Age</p>
+                  <p className="text-lg font-semibold">{result.historicalData.photoAge}</p>
+                  {result.historicalData.photoTakenDate && (
+                    <p className="text-xs text-slate-400 mt-1">
+                      Taken: {new Date(result.historicalData.photoTakenDate).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+                {result.historicalData.historicalContext && (
+                  <div className="p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <p className="text-sm text-amber-700 dark:text-amber-300">{result.historicalData.historicalContext}</p>
+                  </div>
+                )}
+                {result.historicalData.locationChanges && result.historicalData.locationChanges.length > 0 && (
+                  <div className="p-4 bg-white dark:bg-slate-700 rounded-lg">
+                    <p className="text-xs text-slate-500 mb-2">Potential Changes</p>
+                    <ul className="space-y-1">
+                      {result.historicalData.locationChanges.map((change, index) => (
+                        <li key={index} className="text-sm text-slate-600 dark:text-slate-300 flex items-start">
+                          <span className="mr-2">•</span>
+                          <span>{change}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
           {/* Processing Summary */}
           <div>
             <h5 className="font-semibold text-sm mb-3">Processing Summary</h5>
