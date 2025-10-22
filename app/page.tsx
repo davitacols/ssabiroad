@@ -18,16 +18,16 @@ export default function HomePage() {
 
       {/* Navigation */}
       <nav className="relative z-50 border-b border-stone-200/50 dark:border-stone-800/50 bg-white/50 dark:bg-black/50 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
-            <img src="/pic2nav.png" alt="Pic2Nav" className="h-40 w-auto object-contain drop-shadow-lg" />
+            <img src="/pic2nav.png" alt="Pic2Nav" className="h-20 sm:h-32 md:h-40 w-auto object-contain drop-shadow-lg" />
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <ThemeToggle />
             <Button variant="ghost" className="hidden md:inline-flex rounded-full" asChild>
               <Link href="/analytics">Analytics</Link>
             </Button>
-            <Button className="rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900" asChild>
+            <Button className="rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 text-sm sm:text-base px-3 sm:px-4" asChild>
               <Link href="/camera">Try Now</Link>
             </Button>
           </div>
@@ -35,21 +35,21 @@ export default function HomePage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative pt-20 pb-32 px-6">
+      <section className="relative pt-10 sm:pt-16 md:pt-20 pb-16 sm:pb-24 md:pb-32 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center space-y-8 mb-20">
+          <div className="text-center space-y-4 sm:space-y-6 md:space-y-8 mb-12 sm:mb-16 md:mb-20">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
               <Sparkles className="h-4 w-4 text-blue-600" />
               <span className="text-sm font-medium text-stone-700 dark:text-stone-300">AI-Powered Recognition</span>
             </div>
             
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight px-2">
               <span className="text-stone-900 dark:text-white">Turn photos into</span>
               <br />
               <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">locations instantly</span>
             </h1>
             
-            <p className="text-xl text-stone-600 dark:text-stone-400 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-base sm:text-lg md:text-xl text-stone-600 dark:text-stone-400 max-w-2xl mx-auto leading-relaxed px-4">
               Upload any image and discover where it was taken. Our AI extracts GPS data, identifies landmarks, and provides rich location details.
             </p>
             
@@ -70,38 +70,38 @@ export default function HomePage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl mx-auto mb-20">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 max-w-4xl mx-auto mb-12 sm:mb-16 md:mb-20 px-2">
             {[
               { value: "10K+", label: "Photos Scanned" },
               { value: "95%", label: "Accuracy" },
               { value: "<3s", label: "Speed" },
               { value: "Free", label: "Forever" }
             ].map((stat, i) => (
-              <div key={i} className="text-center p-6 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-sm">
-                <div className="text-3xl font-bold text-stone-900 dark:text-white mb-1">{stat.value}</div>
-                <div className="text-sm text-stone-600 dark:text-stone-400">{stat.label}</div>
+              <div key={i} className="text-center p-3 sm:p-4 md:p-6 rounded-2xl sm:rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-sm">
+                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-stone-900 dark:text-white mb-1">{stat.value}</div>
+                <div className="text-xs sm:text-sm text-stone-600 dark:text-stone-400">{stat.label}</div>
               </div>
             ))}
           </div>
 
           {/* Demo Preview */}
-          <div className="relative max-w-5xl mx-auto">
-            <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-[3rem] blur-2xl"></div>
-            <div className="relative rounded-[2rem] overflow-hidden border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 shadow-2xl">
-              <div className="bg-stone-100 dark:bg-stone-800 px-6 py-4 flex items-center gap-3 border-b border-stone-200 dark:border-stone-700">
-                <div className="flex gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+          <div className="relative max-w-5xl mx-auto px-2">
+            <div className="absolute -inset-2 sm:-inset-4 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-2xl sm:rounded-[3rem] blur-2xl"></div>
+            <div className="relative rounded-xl sm:rounded-[2rem] overflow-hidden border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 shadow-2xl">
+              <div className="bg-stone-100 dark:bg-stone-800 px-3 sm:px-6 py-2 sm:py-4 flex items-center gap-2 sm:gap-3 border-b border-stone-200 dark:border-stone-700">
+                <div className="flex gap-1.5 sm:gap-2">
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
                 </div>
-                <div className="text-sm text-stone-600 dark:text-stone-400">pic2nav.app</div>
+                <div className="text-xs sm:text-sm text-stone-600 dark:text-stone-400">pic2nav.app</div>
               </div>
-              <div className="aspect-[16/10] bg-gradient-to-br from-stone-50 to-stone-100 dark:from-stone-900 dark:to-stone-950 flex items-center justify-center p-12">
-                <div className="text-center space-y-4">
-                  <div className="inline-flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-xl">
-                    <Camera className="h-12 w-12 text-white" />
+              <div className="aspect-[16/10] bg-gradient-to-br from-stone-50 to-stone-100 dark:from-stone-900 dark:to-stone-950 flex items-center justify-center p-6 sm:p-12">
+                <div className="text-center space-y-3 sm:space-y-4">
+                  <div className="inline-flex h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 items-center justify-center rounded-2xl sm:rounded-3xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-xl">
+                    <Camera className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-white" />
                   </div>
-                  <p className="text-stone-600 dark:text-stone-400">Interactive Demo</p>
+                  <p className="text-sm sm:text-base text-stone-600 dark:text-stone-400">Interactive Demo</p>
                 </div>
               </div>
             </div>
@@ -110,31 +110,31 @@ export default function HomePage() {
       </section>
 
       {/* Features */}
-      <section className="relative py-32 px-6 bg-white dark:bg-stone-950">
+      <section className="relative py-16 sm:py-24 md:py-32 px-4 sm:px-6 bg-white dark:bg-stone-950">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl sm:text-5xl font-bold text-stone-900 dark:text-white mb-4">
+          <div className="text-center mb-12 sm:mb-16 md:mb-20">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-stone-900 dark:text-white mb-3 sm:mb-4 px-2">
               Simple, powerful, instant
             </h2>
-            <p className="text-xl text-stone-600 dark:text-stone-400">
+            <p className="text-base sm:text-lg md:text-xl text-stone-600 dark:text-stone-400 px-4">
               Three steps to discover any location
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
             {[
               { icon: Upload, title: "Upload", desc: "Drop any photo or take one with your camera", color: "from-blue-500 to-cyan-500" },
               { icon: AnalyzeIcon, title: "Analyze", desc: "AI processes GPS data and visual landmarks", color: "from-purple-500 to-pink-500" },
               { icon: DiscoverIcon, title: "Discover", desc: "Get location, weather, and nearby places", color: "from-orange-500 to-red-500" }
             ].map((feature, i) => (
               <div key={i} className="group relative">
-                <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl blur-xl" style={{ background: `linear-gradient(to bottom right, ${feature.color})` }}></div>
-                <div className="relative p-8 rounded-3xl bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 transition-all">
-                  <div className={`inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${feature.color} mb-6 shadow-lg`}>
-                    <feature.icon className="h-7 w-7 text-white" />
+                <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl sm:rounded-3xl blur-xl" style={{ background: `linear-gradient(to bottom right, ${feature.color})` }}></div>
+                <div className="relative p-5 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 transition-all">
+                  <div className={`inline-flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br ${feature.color} mb-4 sm:mb-6 shadow-lg`}>
+                    <feature.icon className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
                   </div>
-                  <h3 className="text-2xl font-bold text-stone-900 dark:text-white mb-3">{feature.title}</h3>
-                  <p className="text-stone-600 dark:text-stone-400 leading-relaxed">{feature.desc}</p>
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-stone-900 dark:text-white mb-2 sm:mb-3">{feature.title}</h3>
+                  <p className="text-sm sm:text-base text-stone-600 dark:text-stone-400 leading-relaxed">{feature.desc}</p>
                 </div>
               </div>
             ))}
@@ -143,21 +143,21 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section className="relative py-32 px-6">
+      <section className="relative py-16 sm:py-24 md:py-32 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto text-center">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-[3rem] blur-3xl opacity-20"></div>
-            <div className="relative p-16 rounded-[3rem] bg-gradient-to-br from-stone-900 to-stone-800 dark:from-stone-100 dark:to-stone-50">
-              <h2 className="text-4xl sm:text-5xl font-bold text-white dark:text-stone-900 mb-6">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl sm:rounded-[3rem] blur-3xl opacity-20"></div>
+            <div className="relative p-8 sm:p-12 md:p-16 rounded-2xl sm:rounded-[3rem] bg-gradient-to-br from-stone-900 to-stone-800 dark:from-stone-100 dark:to-stone-50">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white dark:text-stone-900 mb-4 sm:mb-6 px-2">
                 Ready to explore?
               </h2>
-              <p className="text-xl text-stone-300 dark:text-stone-600 mb-10 max-w-2xl mx-auto">
+              <p className="text-base sm:text-lg md:text-xl text-stone-300 dark:text-stone-600 mb-6 sm:mb-8 md:mb-10 max-w-2xl mx-auto px-4">
                 Join thousands discovering locations from their photos every day
               </p>
-              <Button size="lg" className="rounded-full h-14 px-10 text-base bg-white hover:bg-stone-100 text-stone-900 dark:bg-stone-900 dark:hover:bg-stone-800 dark:text-white shadow-xl" asChild>
+              <Button size="lg" className="rounded-full h-12 sm:h-14 px-6 sm:px-10 text-sm sm:text-base bg-white hover:bg-stone-100 text-stone-900 dark:bg-stone-900 dark:hover:bg-stone-800 dark:text-white shadow-xl" asChild>
                 <Link href="/camera">
                   Get Started Free
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                 </Link>
               </Button>
             </div>
@@ -166,19 +166,19 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="relative border-t border-stone-200 dark:border-stone-800 py-12 px-6">
+      <footer className="relative border-t border-stone-200 dark:border-stone-800 py-8 sm:py-12 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6">
             <div className="flex items-center gap-3">
-              <img src="/pic2nav.png" alt="Pic2Nav" className="h-24 w-auto object-contain drop-shadow-lg" />
+              <img src="/pic2nav.png" alt="Pic2Nav" className="h-16 sm:h-20 md:h-24 w-auto object-contain drop-shadow-lg" />
             </div>
-            <div className="flex flex-wrap justify-center gap-8 text-sm text-stone-600 dark:text-stone-400">
+            <div className="flex flex-wrap justify-center gap-4 sm:gap-6 md:gap-8 text-xs sm:text-sm text-stone-600 dark:text-stone-400">
               <Link href="/about" className="hover:text-stone-900 dark:hover:text-stone-100">About</Link>
               <Link href="/docs" className="hover:text-stone-900 dark:hover:text-stone-100">Docs</Link>
               <Link href="/blog" className="hover:text-stone-900 dark:hover:text-stone-100">Blog</Link>
               <Link href="/api-doc" className="hover:text-stone-900 dark:hover:text-stone-100">API</Link>
             </div>
-            <p className="text-sm text-stone-500">© 2024 Pic2Nav</p>
+            <p className="text-xs sm:text-sm text-stone-500">© 2024 Pic2Nav</p>
           </div>
         </div>
       </footer>

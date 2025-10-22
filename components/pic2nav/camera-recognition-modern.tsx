@@ -267,60 +267,60 @@ export function CameraRecognitionModern() {
         <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-pink-400/20 dark:bg-pink-600/10 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
       </div>
       <nav className="relative z-50 border-b border-stone-200/50 dark:border-stone-800/50 bg-white/50 dark:bg-black/50 backdrop-blur-xl sticky top-0 shadow-lg">
-        <div className="max-w-7xl mx-auto px-6 py-2">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
               <a href="/">
-                <img src="/pic2nav.png" alt="Pic2Nav" className="h-24 w-auto object-contain drop-shadow-lg cursor-pointer hover:opacity-90 transition-opacity" />
+                <img src="/pic2nav.png" alt="Pic2Nav" className="h-16 sm:h-20 md:h-24 w-auto object-contain drop-shadow-lg cursor-pointer hover:opacity-90 transition-opacity" />
               </a>
               <div className="hidden md:flex items-center gap-1">
-                <Button variant="ghost" className="rounded-full" asChild>
+                <Button variant="ghost" className="rounded-full text-sm" asChild>
                   <a href="/">Home</a>
                 </Button>
-                <Button variant="ghost" className="rounded-full" asChild>
+                <Button variant="ghost" className="rounded-full text-sm" asChild>
                   <a href="/dashboard">Dashboard</a>
                 </Button>
-                <Button variant="ghost" className="rounded-full" asChild>
+                <Button variant="ghost" className="rounded-full text-sm" asChild>
                   <a href="/analytics">Analytics</a>
                 </Button>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               {uploadHistory.length > 0 && (
-                <Button onClick={() => setShowHistory(!showHistory)} variant="ghost" size="sm" className="rounded-full">
-                  <History className="w-4 h-4 mr-2" />
+                <Button onClick={() => setShowHistory(!showHistory)} variant="ghost" size="sm" className="rounded-full px-2 sm:px-3">
+                  <History className="w-4 h-4 sm:mr-2" />
                   <span className="hidden sm:inline">History</span>
                   <span className="ml-1 px-1.5 py-0.5 text-xs bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 rounded-full">{uploadHistory.length}</span>
                 </Button>
               )}
               {result && (
-                <Button onClick={reset} variant="ghost" size="sm" className="rounded-full">
-                  <X className="w-4 h-4 mr-2" />
+                <Button onClick={reset} variant="ghost" size="sm" className="rounded-full px-2 sm:px-3">
+                  <X className="w-4 h-4 sm:mr-2" />
                   <span className="hidden sm:inline">Clear</span>
                 </Button>
               )}
-              <Button className="rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 text-white" size="sm" asChild>
-                <a href="/camera">Scan Now</a>
+              <Button className="rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 text-white text-xs sm:text-sm px-3 sm:px-4" size="sm" asChild>
+                <a href="/camera">Scan</a>
               </Button>
             </div>
           </div>
         </div>
       </nav>
 
-      <div className="relative max-w-7xl mx-auto px-6 py-8">
-        <div className="grid lg:grid-cols-5 gap-6">
+      <div className="relative max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
+        <div className="grid lg:grid-cols-5 gap-4 sm:gap-6">
           <div className="lg:col-span-3">
-            <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-800">
-                <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">Image Upload</h2>
+            <div className="bg-white dark:bg-stone-900 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl overflow-hidden">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-800">
+                <h2 className="text-xs sm:text-sm font-semibold text-stone-900 dark:text-stone-100">Image Upload</h2>
               </div>
-              <div className="p-6">
+              <div className="p-3 sm:p-4 md:p-6">
                 <div 
                   ref={dropZoneRef}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  className={`relative aspect-[4/3] bg-stone-100 dark:bg-stone-800 rounded-2xl overflow-hidden border-2 transition-colors ${
+                  className={`relative aspect-[4/3] bg-stone-100 dark:bg-stone-800 rounded-xl sm:rounded-2xl overflow-hidden border-2 transition-colors ${
                     isDragging ? 'border-stone-900 dark:border-stone-100 bg-stone-50 dark:bg-stone-900' : 'border-stone-200 dark:border-stone-700'
                   }`}
                 >
@@ -334,18 +334,18 @@ export function CameraRecognitionModern() {
                     />
                   )}
                   {previewUrl && !cameraActive && !isProcessing && (
-                    <div className="absolute top-4 right-4 flex gap-2">
-                      <Button onClick={() => setZoom(z => Math.max(0.5, z - 0.25))} size="icon" variant="secondary" className="h-8 w-8 rounded-full bg-white/90 dark:bg-stone-900/90 hover:bg-white dark:hover:bg-stone-900 shadow-lg">
-                        <ZoomOut className="w-4 h-4" />
+                    <div className="absolute top-2 sm:top-4 right-2 sm:right-4 flex gap-1 sm:gap-2">
+                      <Button onClick={() => setZoom(z => Math.max(0.5, z - 0.25))} size="icon" variant="secondary" className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/90 dark:bg-stone-900/90 hover:bg-white dark:hover:bg-stone-900 shadow-lg">
+                        <ZoomOut className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
-                      <Button onClick={() => setZoom(z => Math.min(3, z + 0.25))} size="icon" variant="secondary" className="h-8 w-8 rounded-full bg-white/90 dark:bg-stone-900/90 hover:bg-white dark:hover:bg-stone-900 shadow-lg">
-                        <ZoomIn className="w-4 h-4" />
+                      <Button onClick={() => setZoom(z => Math.min(3, z + 0.25))} size="icon" variant="secondary" className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/90 dark:bg-stone-900/90 hover:bg-white dark:hover:bg-stone-900 shadow-lg">
+                        <ZoomIn className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
-                      <Button onClick={() => setRotation(r => (r + 90) % 360)} size="icon" variant="secondary" className="h-8 w-8 rounded-full bg-white/90 dark:bg-stone-900/90 hover:bg-white dark:hover:bg-stone-900 shadow-lg">
-                        <RotateCw className="w-4 h-4" />
+                      <Button onClick={() => setRotation(r => (r + 90) % 360)} size="icon" variant="secondary" className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/90 dark:bg-stone-900/90 hover:bg-white dark:hover:bg-stone-900 shadow-lg">
+                        <RotateCw className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
-                      <Button onClick={downloadImage} size="icon" variant="secondary" className="h-8 w-8 rounded-full bg-white/90 dark:bg-stone-900/90 hover:bg-white dark:hover:bg-stone-900 shadow-lg">
-                        <Download className="w-4 h-4" />
+                      <Button onClick={downloadImage} size="icon" variant="secondary" className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/90 dark:bg-stone-900/90 hover:bg-white dark:hover:bg-stone-900 shadow-lg">
+                        <Download className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                     </div>
                   )}
@@ -383,23 +383,23 @@ export function CameraRecognitionModern() {
                   )}
                   {!cameraActive && !previewUrl && !isProcessing && (
                     <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-stone-50 to-stone-100 dark:from-stone-900 dark:to-stone-950">
-                      <div className="text-center space-y-6 p-8">
-                        <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-xl">
-                          {isDragging ? <Maximize2 className="w-8 h-8 text-white animate-pulse" /> : <Camera className="w-8 h-8 text-white" />}
+                      <div className="text-center space-y-4 sm:space-y-6 p-4 sm:p-8">
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-xl">
+                          {isDragging ? <Maximize2 className="w-6 h-6 sm:w-8 sm:h-8 text-white animate-pulse" /> : <Camera className="w-6 h-6 sm:w-8 sm:h-8 text-white" />}
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-2">{isDragging ? 'Drop image here' : 'Upload an image'}</h3>
-                          <p className="text-sm text-stone-600 dark:text-stone-400 max-w-xs mx-auto">
+                          <h3 className="text-base sm:text-lg font-semibold text-stone-900 dark:text-stone-100 mb-2">{isDragging ? 'Drop image here' : 'Upload an image'}</h3>
+                          <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 max-w-xs mx-auto px-2">
                             {isDragging ? 'Release to upload' : 'Drag & drop, paste (Ctrl+V), or select an image'}
                           </p>
                         </div>
                         {!isDragging && (
-                          <div className="flex gap-3 justify-center">
-                            <Button onClick={startCamera} className="rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 text-white">
+                          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
+                            <Button onClick={startCamera} className="rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 text-white text-sm">
                               <Camera className="w-4 h-4 mr-2" />
                               Camera
                             </Button>
-                            <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="rounded-full border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-900">
+                            <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="rounded-full border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-900 text-sm">
                               <Upload className="w-4 h-4 mr-2" />
                               Upload
                             </Button>
@@ -413,16 +413,16 @@ export function CameraRecognitionModern() {
             </div>
           </div>
 
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-2 space-y-3 sm:space-y-4">
             {showHistory && uploadHistory.length > 0 && (
-              <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl overflow-hidden">
-                <div className="px-6 py-4 border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-800 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">Recent Uploads</h2>
+              <div className="bg-white dark:bg-stone-900 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl overflow-hidden">
+                <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-800 flex items-center justify-between">
+                  <h2 className="text-xs sm:text-sm font-semibold text-stone-900 dark:text-stone-100">Recent Uploads</h2>
                   <Button onClick={() => setShowHistory(false)} variant="ghost" size="sm">
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
-                <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
+                <div className="p-3 sm:p-4 space-y-2 max-h-64 overflow-y-auto">
                   {uploadHistory.map((item, idx) => (
                     <div key={idx} className="flex items-center gap-3 p-2 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 cursor-pointer" onClick={() => { setPreviewUrl(item.url); setShowHistory(false) }}>
                       <img src={item.url} alt={item.name} className="w-12 h-12 object-cover rounded-xl" />
@@ -437,8 +437,8 @@ export function CameraRecognitionModern() {
             )}
             {result ? (
               result.success ? (
-                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="relative overflow-hidden bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-900 rounded-3xl p-5">
+                <div className="space-y-3 sm:space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="relative overflow-hidden bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-900 rounded-2xl sm:rounded-3xl p-4 sm:p-5">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-green-400/10 rounded-full blur-2xl"></div>
                     <div className="relative flex items-start gap-3">
                       <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">
@@ -451,21 +451,21 @@ export function CameraRecognitionModern() {
                     </div>
                   </div>
 
-                  <div className="relative overflow-hidden bg-white dark:bg-stone-900 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-2xl">
+                  <div className="relative overflow-hidden bg-white dark:bg-stone-900 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 shadow-2xl">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-full blur-3xl"></div>
-                    <div className="relative px-6 py-4 border-b border-stone-200 dark:border-stone-800 bg-gradient-to-r from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900">
-                      <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                    <div className="relative px-4 sm:px-6 py-3 sm:py-4 border-b border-stone-200 dark:border-stone-800 bg-gradient-to-r from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900">
+                      <h2 className="text-xs sm:text-sm font-semibold text-stone-900 dark:text-stone-100 flex items-center gap-2">
                         <MapPin className="w-4 h-4" />
                         Location Details
                       </h2>
                     </div>
-                    <div className="relative p-6 space-y-4">
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0 shadow-xl animate-pulse">
-                          <MapPin className="w-6 h-6 text-white" />
+                    <div className="relative p-4 sm:p-6 space-y-3 sm:space-y-4">
+                      <div className="flex items-start gap-3 sm:gap-4">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0 shadow-xl animate-pulse">
+                          <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-xl font-bold text-stone-900 dark:text-stone-100 mb-1">{result.name || "Location Found"}</h3>
+                          <h3 className="text-lg sm:text-xl font-bold text-stone-900 dark:text-stone-100 mb-1">{result.name || "Location Found"}</h3>
                           {result.address && <p className="text-sm text-stone-600 dark:text-stone-400">{result.address}</p>}
                           {!result.address && result.location && (
                             <p className="text-sm text-stone-600 dark:text-stone-400">
@@ -526,7 +526,7 @@ export function CameraRecognitionModern() {
                   </div>
 
                   {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
-                    <div className="relative overflow-hidden bg-white dark:bg-stone-900 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl">
+                    <div className="relative overflow-hidden bg-white dark:bg-stone-900 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl">
                       <div className="absolute top-0 left-0 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl"></div>
                       <div className="relative px-6 py-4 border-b border-stone-200 dark:border-stone-800 bg-gradient-to-r from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900">
                         <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100 flex items-center gap-2">
@@ -557,7 +557,7 @@ export function CameraRecognitionModern() {
                   )}
 
                   {(result.weather || result.elevation) && (
-                    <div className="relative overflow-hidden bg-white dark:bg-stone-900 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl">
+                    <div className="relative overflow-hidden bg-white dark:bg-stone-900 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl">
                       <div className="absolute bottom-0 right-0 w-48 h-48 bg-purple-500/5 rounded-full blur-3xl"></div>
                       <div className="relative px-6 py-4 border-b border-stone-200 dark:border-stone-800 bg-gradient-to-r from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900">
                         <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100 flex items-center gap-2">
@@ -584,7 +584,7 @@ export function CameraRecognitionModern() {
                     </div>
                   )}
 
-                  <div className="relative overflow-hidden bg-gradient-to-br from-white to-stone-50 dark:from-stone-900 dark:to-stone-950 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl">
+                  <div className="relative overflow-hidden bg-gradient-to-br from-white to-stone-50 dark:from-stone-900 dark:to-stone-950 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl">
                     <div className="px-6 py-4 border-b border-stone-200 dark:border-stone-800 bg-gradient-to-r from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900">
                       <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100 flex items-center gap-2">
                         <Zap className="w-4 h-4" />
@@ -612,7 +612,7 @@ export function CameraRecognitionModern() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-3xl p-6">
+                <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-2xl sm:rounded-3xl p-4 sm:p-6">
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-900 flex items-center justify-center flex-shrink-0">
                       <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
@@ -628,7 +628,7 @@ export function CameraRecognitionModern() {
                 </div>
               )
             ) : (
-              <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl p-8">
+              <div className="bg-white dark:bg-stone-900 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl p-6 sm:p-8">
                 <div className="text-center space-y-4">
                   <div className="w-12 h-12 mx-auto rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
                     <MapPin className="w-6 h-6 text-white" />

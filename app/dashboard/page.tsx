@@ -100,14 +100,14 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-6">
-            <div className="flex items-center justify-between">
+          <div className="py-4 sm:py-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-                <p className="text-gray-600">Monitor your location detection activity</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h1>
+                <p className="text-sm sm:text-base text-gray-600">Monitor your location detection activity</p>
               </div>
               <Link href="/camera">
-                <Button className="bg-blue-600 hover:bg-blue-700">
+                <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
                   <Camera className="mr-2 h-4 w-4" />
                   New Detection
                 </Button>
@@ -117,18 +117,18 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <Card className="border-0 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Detections</CardTitle>
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Target className="h-4 w-4 text-blue-600" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">Total Detections</CardTitle>
+              <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
+                <Target className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.totalDetections.toLocaleString()}</div>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">{stats.totalDetections.toLocaleString()}</div>
               <div className="flex items-center mt-2">
                 <ArrowUpRight className="h-3 w-3 text-green-500 mr-1" />
                 <span className="text-xs text-green-600 font-medium">+{stats.weeklyGrowth}% this week</span>
@@ -138,13 +138,13 @@ export default function DashboardPage() {
 
           <Card className="border-0 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Locations Found</CardTitle>
-              <div className="p-2 bg-green-100 rounded-lg">
-                <MapPin className="h-4 w-4 text-green-600" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">Locations Found</CardTitle>
+              <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
+                <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.totalLocations.toLocaleString()}</div>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">{stats.totalLocations.toLocaleString()}</div>
               <div className="flex items-center mt-2">
                 <Progress value={stats.successRate} className="w-16 h-2 mr-2" />
                 <span className="text-xs text-gray-600">{stats.successRate}% success rate</span>
@@ -154,38 +154,38 @@ export default function DashboardPage() {
 
           <Card className="border-0 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Bookmarks</CardTitle>
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Bookmark className="h-4 w-4 text-purple-600" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">Bookmarks</CardTitle>
+              <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg">
+                <Bookmark className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.totalBookmarks}</div>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">{stats.totalBookmarks}</div>
               <p className="text-xs text-gray-600 mt-2">Saved locations</p>
             </CardContent>
           </Card>
 
           <Card className="border-0 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Recent Activity</CardTitle>
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Activity className="h-4 w-4 text-orange-600" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600">Recent Activity</CardTitle>
+              <div className="p-1.5 sm:p-2 bg-orange-100 rounded-lg">
+                <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{stats.recentDetections}</div>
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">{stats.recentDetections}</div>
               <p className="text-xs text-gray-600 mt-2">Last 24 hours</p>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
           {/* Recent Detections */}
           <div className="lg:col-span-2">
             <Card className="border-0 shadow-sm">
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-semibold text-gray-900">Recent Detections</CardTitle>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+                  <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">Recent Detections</CardTitle>
                   <Link href="/locations">
                     <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
                       View all
@@ -197,9 +197,9 @@ export default function DashboardPage() {
               <CardContent className="p-0">
                 <div className="divide-y divide-gray-100">
                   {recentDetections.map((detection, index) => (
-                    <div key={detection.id} className="p-6 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
+                    <div key={detection.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+                        <div className="flex-1 w-full">
                           <div className="flex items-center space-x-3">
                             <div className="flex-shrink-0">
                               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -216,7 +216,7 @@ export default function DashboardPage() {
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-2 sm:space-x-3 flex-wrap">
                           <Badge 
                             variant={detection.confidence > 0.9 ? "default" : detection.confidence > 0.8 ? "secondary" : "outline"}
                             className="text-xs"
@@ -246,11 +246,11 @@ export default function DashboardPage() {
           </div>
 
           {/* Activity Chart & Quick Actions */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Weekly Activity */}
             <Card className="border-0 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
+                <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 flex items-center">
                   <BarChart3 className="h-5 w-5 mr-2" />
                   Weekly Activity
                 </CardTitle>
@@ -280,9 +280,9 @@ export default function DashboardPage() {
             {/* Quick Actions */}
             <Card className="border-0 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-lg font-semibold text-gray-900">Quick Actions</CardTitle>
+                <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">Quick Actions</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2 sm:space-y-3">
                 <Link href="/camera" className="block">
                   <Button className="w-full justify-start bg-blue-600 hover:bg-blue-700">
                     <Camera className="mr-3 h-4 w-4" />
