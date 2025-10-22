@@ -12,6 +12,17 @@ export const metadata = {
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
     { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' }
   ],
+  openGraph: {
+    title: 'Pic2Nav - AI-Powered Location Discovery',
+    description: 'Transform any photo into detailed location insights with our advanced AI. Discover places, extract GPS data, and explore nearby attractions instantly.',
+    images: ['/pic2nav.png'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Pic2Nav - AI-Powered Location Discovery',
+    description: 'Transform any photo into detailed location insights with our advanced AI. Discover places, extract GPS data, and explore nearby attractions instantly.',
+    images: ['/pic2nav.png'],
+  },
 }
 
 export default function RootLayout({
