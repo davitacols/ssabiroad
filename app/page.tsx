@@ -23,9 +23,8 @@ export default function HomePage() {
             <img src="/pic2nav.png" alt="Pic2Nav" className="h-32 sm:h-40 md:h-48 w-auto object-contain drop-shadow-lg" />
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
-            <ThemeToggle />
             <Button variant="ghost" className="hidden md:inline-flex rounded-full" asChild>
-              <Link href="/analytics">Analytics</Link>
+              <Link href="/api-access">API</Link>
             </Button>
             <Button className="rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 text-sm sm:text-base px-3 sm:px-4" asChild>
               <Link href="/camera">Try Now</Link>
@@ -173,12 +172,6 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6">
             <div className="flex items-center gap-3">
               <img src="/pic2nav.png" alt="Pic2Nav" className="h-16 sm:h-20 md:h-24 w-auto object-contain drop-shadow-lg" />
-            </div>
-            <div className="flex flex-wrap justify-center gap-4 sm:gap-6 md:gap-8 text-xs sm:text-sm text-stone-600 dark:text-stone-400">
-              <Link href="/about" className="hover:text-stone-900 dark:hover:text-stone-100">About</Link>
-              <Link href="/docs" className="hover:text-stone-900 dark:hover:text-stone-100">Docs</Link>
-              <Link href="/blog" className="hover:text-stone-900 dark:hover:text-stone-100">Blog</Link>
-              <Link href="/api-doc" className="hover:text-stone-900 dark:hover:text-stone-100">API</Link>
             </div>
             <p className="text-xs sm:text-sm text-stone-500">© 2024 Pic2Nav</p>
           </div>

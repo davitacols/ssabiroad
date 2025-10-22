@@ -547,6 +547,35 @@ export function CameraRecognitionModern() {
                         </div>
                       )}
 
+                      {(result.locationDetails?.country || result.locationDetails?.state || result.locationDetails?.region) && (
+                        <div className="pt-4 border-t border-stone-200 dark:border-stone-800">
+                          <p className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2">
+                            <Globe className="w-3 h-3" />
+                            Location Info
+                          </p>
+                          <div className="grid grid-cols-2 gap-3">
+                            {result.locationDetails?.country && (
+                              <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/50">
+                                <p className="text-xs text-stone-600 dark:text-stone-400 mb-1">Country</p>
+                                <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{result.locationDetails.country}</p>
+                              </div>
+                            )}
+                            {result.locationDetails?.state && (
+                              <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/50">
+                                <p className="text-xs text-stone-600 dark:text-stone-400 mb-1">State</p>
+                                <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{result.locationDetails.state}</p>
+                              </div>
+                            )}
+                            {result.locationDetails?.region && (
+                              <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/50 col-span-2">
+                                <p className="text-xs text-stone-600 dark:text-stone-400 mb-1">Region</p>
+                                <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{result.locationDetails.region}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                       {(result.method || result.phoneNumber || result.deviceAnalysis) && (
                         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-stone-200 dark:border-stone-800">
                           {result.method && (
