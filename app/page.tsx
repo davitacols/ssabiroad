@@ -17,10 +17,10 @@ export default function HomePage() {
       </div>
 
       {/* Navigation */}
-      <nav className="relative z-50 border-b border-stone-200/50 dark:border-stone-800/50 bg-white/50 dark:bg-black/50 backdrop-blur-xl">
+      <nav className="sticky top-0 z-50 border-b border-stone-200/50 dark:border-stone-800/50 bg-white/50 dark:bg-black/50 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
-            <img src="/pic2nav.png" alt="Pic2Nav" className="h-20 sm:h-32 md:h-40 w-auto object-contain drop-shadow-lg" />
+            <img src="/pic2nav.png" alt="Pic2Nav" className="h-32 sm:h-40 md:h-48 w-auto object-contain drop-shadow-lg" />
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
             <ThemeToggle />
@@ -35,73 +35,75 @@ export default function HomePage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative pt-10 sm:pt-16 md:pt-20 pb-16 sm:pb-24 md:pb-32 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center space-y-4 sm:space-y-6 md:space-y-8 mb-12 sm:mb-16 md:mb-20">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
-              <Sparkles className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-stone-700 dark:text-stone-300">AI-Powered Recognition</span>
-            </div>
-            
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight px-2">
-              <span className="text-stone-900 dark:text-white">Turn photos into</span>
-              <br />
-              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">locations instantly</span>
-            </h1>
-            
-            <p className="text-base sm:text-lg md:text-xl text-stone-600 dark:text-stone-400 max-w-2xl mx-auto leading-relaxed px-4">
-              Upload any image and discover where it was taken. Our AI extracts GPS data, identifies landmarks, and provides rich location details.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <Button size="lg" className="rounded-full h-14 px-8 text-base bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 shadow-lg shadow-stone-900/10" asChild>
-                <Link href="/camera">
-                  <Camera className="mr-2 h-5 w-5" />
-                  Start Scanning
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" className="rounded-full h-14 px-8 text-base border-2 border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-900" asChild>
-                <Link href="/dashboard">
-                  View Dashboard
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 max-w-4xl mx-auto mb-12 sm:mb-16 md:mb-20 px-2">
-            {[
-              { value: "10K+", label: "Photos Scanned" },
-              { value: "95%", label: "Accuracy" },
-              { value: "<3s", label: "Speed" },
-              { value: "Free", label: "Forever" }
-            ].map((stat, i) => (
-              <div key={i} className="text-center p-3 sm:p-4 md:p-6 rounded-2xl sm:rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-sm">
-                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-stone-900 dark:text-white mb-1">{stat.value}</div>
-                <div className="text-xs sm:text-sm text-stone-600 dark:text-stone-400">{stat.label}</div>
+      <section className="relative pt-8 sm:pt-12 md:pt-16 pb-12 sm:pb-16 md:pb-20 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Left Content */}
+            <div className="space-y-6 sm:space-y-8">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
+                <Sparkles className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-stone-700 dark:text-stone-300">AI-Powered Recognition</span>
               </div>
-            ))}
-          </div>
-
-          {/* Demo Preview */}
-          <div className="relative max-w-5xl mx-auto px-2">
-            <div className="absolute -inset-2 sm:-inset-4 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-2xl sm:rounded-[3rem] blur-2xl"></div>
-            <div className="relative rounded-xl sm:rounded-[2rem] overflow-hidden border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 shadow-2xl">
-              <div className="bg-stone-100 dark:bg-stone-800 px-3 sm:px-6 py-2 sm:py-4 flex items-center gap-2 sm:gap-3 border-b border-stone-200 dark:border-stone-700">
-                <div className="flex gap-1.5 sm:gap-2">
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
-                </div>
-                <div className="text-xs sm:text-sm text-stone-600 dark:text-stone-400">pic2nav.app</div>
+              
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
+                <span className="text-stone-900 dark:text-white">Turn photos into</span>
+                <br />
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">locations</span>
+                <br />
+                <span className="text-stone-900 dark:text-white">instantly</span>
+              </h1>
+              
+              <p className="text-lg sm:text-xl text-stone-600 dark:text-stone-400 leading-relaxed max-w-xl">
+                Upload any image and discover where it was taken. Our AI extracts GPS data, identifies landmarks, and provides rich location details.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                <Button size="lg" className="rounded-full h-14 px-8 text-base bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 shadow-lg shadow-stone-900/10" asChild>
+                  <Link href="/camera">
+                    <Camera className="mr-2 h-5 w-5" />
+                    Start Scanning
+                  </Link>
+                </Button>
               </div>
-              <div className="aspect-[16/10] bg-gradient-to-br from-stone-50 to-stone-100 dark:from-stone-900 dark:to-stone-950 flex items-center justify-center p-6 sm:p-12">
-                <div className="text-center space-y-3 sm:space-y-4">
-                  <div className="inline-flex h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 items-center justify-center rounded-2xl sm:rounded-3xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-xl">
-                    <Camera className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-white" />
+
+              {/* Stats */}
+              <div className="grid grid-cols-4 gap-4 pt-4">
+                {[
+                  { value: "10K+", label: "Scanned" },
+                  { value: "95%", label: "Accuracy" },
+                  { value: "<3s", label: "Speed" },
+                  { value: "Free", label: "Forever" }
+                ].map((stat, i) => (
+                  <div key={i} className="text-center">
+                    <div className="text-2xl sm:text-3xl font-bold text-stone-900 dark:text-white mb-1">{stat.value}</div>
+                    <div className="text-xs text-stone-600 dark:text-stone-400">{stat.label}</div>
                   </div>
-                  <p className="text-sm sm:text-base text-stone-600 dark:text-stone-400">Interactive Demo</p>
+                ))}
+              </div>
+            </div>
+
+            {/* Right Video */}
+            <div className="relative">
+              <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-3xl blur-2xl"></div>
+              <div className="relative rounded-2xl overflow-hidden border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 shadow-2xl">
+                <div className="bg-stone-100 dark:bg-stone-800 px-4 py-3 flex items-center gap-2 border-b border-stone-200 dark:border-stone-700">
+                  <div className="flex gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  </div>
+                  <div className="text-sm text-stone-600 dark:text-stone-400">pic2nav.app</div>
+                </div>
+                <div className="aspect-[16/10] bg-black">
+                  <video 
+                    className="w-full h-full object-cover"
+                    autoPlay 
+                    loop 
+                    muted 
+                    playsInline
+                  >
+                    <source src="/demo.mp4" type="video/mp4" />
+                  </video>
                 </div>
               </div>
             </div>

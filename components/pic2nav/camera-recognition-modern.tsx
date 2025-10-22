@@ -44,6 +44,7 @@ export function CameraRecognitionModern() {
   const [uploadHistory, setUploadHistory] = useState<Array<{url: string, name: string, timestamp: number}>>([])
   const [showHistory, setShowHistory] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [isStartingCamera, setIsStartingCamera] = useState(false)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -151,6 +152,7 @@ export function CameraRecognitionModern() {
   }, [toast])
 
   const startCamera = useCallback(async () => {
+    setIsStartingCamera(true)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
@@ -169,6 +171,8 @@ export function CameraRecognitionModern() {
         variant: "destructive",
       })
       fileInputRef.current?.click()
+    } finally {
+      setIsStartingCamera(false)
     }
   }, [toast])
 
@@ -267,11 +271,11 @@ export function CameraRecognitionModern() {
         <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-pink-400/20 dark:bg-pink-600/10 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
       </div>
       <nav className="relative z-50 border-b border-stone-200/50 dark:border-stone-800/50 bg-white/50 dark:bg-black/50 backdrop-blur-xl sticky top-0 shadow-lg">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-2">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-1">
+          <div className="flex items-center justify-between h-16 sm:h-20">
             <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
               <a href="/">
-                <img src="/pic2nav.png" alt="Pic2Nav" className="h-16 sm:h-20 md:h-24 w-auto object-contain drop-shadow-lg cursor-pointer hover:opacity-90 transition-opacity" />
+                <img src="/pic2nav.png" alt="Pic2Nav" className="h-32 sm:h-40 md:h-48 w-auto object-contain drop-shadow-lg cursor-pointer hover:opacity-90 transition-opacity" />
               </a>
               <div className="hidden md:flex items-center gap-1">
                 <Button variant="ghost" className="rounded-full text-sm" asChild>
@@ -308,6 +312,16 @@ export function CameraRecognitionModern() {
       </nav>
 
       <div className="relative max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
+        {!previewUrl && !cameraActive && !isProcessing && (
+          <div className="mb-8 text-center space-y-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-stone-900 dark:text-white">
+              Discover <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Any Location</span>
+            </h1>
+            <p className="text-lg text-stone-600 dark:text-stone-400 max-w-2xl mx-auto">
+              Upload a photo and let AI reveal its location, landmarks, and details
+            </p>
+          </div>
+        )}
         <div className="grid lg:grid-cols-5 gap-4 sm:gap-6">
           <div className="lg:col-span-3">
             <div className="bg-white dark:bg-stone-900 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl overflow-hidden">
@@ -395,9 +409,9 @@ export function CameraRecognitionModern() {
                         </div>
                         {!isDragging && (
                           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
-                            <Button onClick={startCamera} className="rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 text-white text-sm">
-                              <Camera className="w-4 h-4 mr-2" />
-                              Camera
+                            <Button onClick={startCamera} disabled={isStartingCamera} className="rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 text-white text-sm">
+                              {isStartingCamera ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Camera className="w-4 h-4 mr-2" />}
+                              {isStartingCamera ? 'Starting...' : 'Camera'}
                             </Button>
                             <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="rounded-full border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-900 text-sm">
                               <Upload className="w-4 h-4 mr-2" />
@@ -414,6 +428,39 @@ export function CameraRecognitionModern() {
           </div>
 
           <div className="lg:col-span-2 space-y-3 sm:space-y-4">
+            {!result && !isProcessing && !previewUrl && (
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-2xl sm:rounded-3xl border border-blue-200 dark:border-blue-900 shadow-xl overflow-hidden">
+                <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-200 dark:border-blue-900 bg-blue-100/50 dark:bg-blue-900/20">
+                  <h2 className="text-xs sm:text-sm font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                    <Zap className="w-4 h-4" />
+                    How to Use
+                  </h2>
+                </div>
+                <div className="p-4 sm:p-6 space-y-4">
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">1</div>
+                    <div>
+                      <h3 className="font-semibold text-stone-900 dark:text-stone-100 mb-1">Upload Image</h3>
+                      <p className="text-sm text-stone-600 dark:text-stone-400">Click camera or upload button, drag & drop, or paste (Ctrl+V)</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white font-bold text-sm">2</div>
+                    <div>
+                      <h3 className="font-semibold text-stone-900 dark:text-stone-100 mb-1">AI Analysis</h3>
+                      <p className="text-sm text-stone-600 dark:text-stone-400">Our AI extracts GPS data and identifies landmarks instantly</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-red-600 flex items-center justify-center text-white font-bold text-sm">3</div>
+                    <div>
+                      <h3 className="font-semibold text-stone-900 dark:text-stone-100 mb-1">Get Results</h3>
+                      <p className="text-sm text-stone-600 dark:text-stone-400">View location, weather, nearby places, and more details</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             {showHistory && uploadHistory.length > 0 && (
               <div className="bg-white dark:bg-stone-900 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl overflow-hidden">
                 <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-800 flex items-center justify-between">

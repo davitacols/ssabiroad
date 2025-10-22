@@ -27,10 +27,6 @@ export function AppSidebar({ onLogout }: AppSidebarProps) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarNav>
-          <SidebarNavLink href="/dashboard" active={pathname === "/dashboard"}>
-            <Home className="mr-2 h-4 w-4" />
-            Dashboard
-          </SidebarNavLink>
           <SidebarNavLink href="/search" active={pathname === "/search"}>
             <Search className="mr-2 h-4 w-4" />
             Search
