@@ -51,14 +51,8 @@ const nextConfig = {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
-    serverComponentsExternalPackages: ['@google-cloud/vision'],
   },
-  // Increase body size limit for image uploads
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
+  serverExternalPackages: ['@google-cloud/vision'],
 }
 
 mergeConfig(nextConfig, userConfig)

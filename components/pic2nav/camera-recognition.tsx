@@ -520,7 +520,7 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
             </div>
           </CardHeader>
           <CardContent>
-        <div className="relative w-full bg-black rounded-3xl overflow-hidden mb-8" style={{ aspectRatio: '16/9', minHeight: '300px' }}>
+        <div className="relative w-full bg-black rounded-2xl sm:rounded-3xl overflow-hidden mb-6 sm:mb-8" style={{ aspectRatio: '16/9', minHeight: '250px' }}>
           {/* Camera View */}
           <video
             ref={videoRef}
@@ -546,15 +546,15 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
           {/* Processing Overlay */}
           {isProcessing && (
             <div className="absolute inset-0 bg-gradient-to-br from-blue-600/90 to-purple-600/90 backdrop-blur-md flex items-center justify-center">
-              <div className="text-center text-white p-8 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl">
-                <div className="relative mb-6">
-                  <Loader2 className="h-16 w-16 animate-spin mx-auto text-white" />
-                  <div className="absolute inset-0 h-16 w-16 mx-auto rounded-full bg-gradient-to-r from-blue-400 to-purple-400 animate-ping opacity-20"></div>
+              <div className="text-center text-white p-4 sm:p-8 rounded-2xl sm:rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl max-w-sm mx-4">
+                <div className="relative mb-4 sm:mb-6">
+                  <Loader2 className="h-12 w-12 sm:h-16 sm:w-16 animate-spin mx-auto text-white" />
+                  <div className="absolute inset-0 h-12 w-12 sm:h-16 sm:w-16 mx-auto rounded-full bg-gradient-to-r from-blue-400 to-purple-400 animate-ping opacity-20"></div>
                 </div>
-                <p className="text-xl font-semibold mb-2">
+                <p className="text-lg sm:text-xl font-semibold mb-2">
                   {apiVersion === 'v2' ? 'Extracting GPS data...' : 'Analyzing image...'}
                 </p>
-                <p className="text-sm opacity-90">
+                <p className="text-xs sm:text-sm opacity-90">
                   {apiVersion === 'v2' 
                     ? 'Reading GPS coordinates and enriching with location data' 
                     : 'AI analyzing text, logos, and business information'
@@ -566,7 +566,7 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
           
           {/* Camera Controls */}
           {cameraActive && !isProcessing && (
-            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-4">
+            <div className="absolute bottom-4 sm:bottom-8 left-1/2 transform -translate-x-1/2 flex gap-2 sm:gap-4">
               <Button
                 onClick={() => {
                   console.log('❌ Stop camera clicked');
@@ -574,9 +574,9 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                 }}
                 variant="outline"
                 size="icon"
-                className="rounded-full w-14 h-14 bg-white/95 backdrop-blur-sm border-white/60 hover:bg-white shadow-xl"
+                className="rounded-full w-10 h-10 sm:w-14 sm:h-14 bg-white/95 backdrop-blur-sm border-white/60 hover:bg-white shadow-xl"
               >
-                <X className="h-6 w-6" />
+                <X className="h-4 w-4 sm:h-6 sm:w-6" />
               </Button>
               <Button
                 onClick={() => {
@@ -587,7 +587,7 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                 }}
                 variant="outline"
                 size="icon"
-                className="rounded-full w-14 h-14 bg-white/95 backdrop-blur-sm border-white/60 hover:bg-white shadow-xl"
+                className="rounded-full w-10 h-10 sm:w-14 sm:h-14 bg-white/95 backdrop-blur-sm border-white/60 hover:bg-white shadow-xl"
               >
                 <span className="text-xs font-bold">{facingMode === 'user' ? '📱' : '📷'}</span>
               </Button>
@@ -597,9 +597,9 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                   capturePhoto();
                 }}
                 size="lg"
-                className="rounded-full w-24 h-24 bg-gradient-to-r from-blue-600 to-purple-600 border-4 border-white/60 shadow-2xl hover:scale-110 transition-transform duration-200"
+                className="rounded-full w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-r from-blue-600 to-purple-600 border-2 sm:border-4 border-white/60 shadow-2xl hover:scale-110 transition-transform duration-200"
               >
-                <div className="w-12 h-12 rounded-full bg-white/95" />
+                <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white/95" />
               </Button>
             </div>
           )}
@@ -607,17 +607,17 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
           {/* Empty State */}
           {!cameraActive && !previewUrl && !isProcessing && (
             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
-              <div className="text-center p-6">
-                <Camera className="h-16 w-16 mx-auto mb-4 text-slate-400" />
-                <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300 mb-2">AI Location Recognition</h3>
-                <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">Take a photo or upload an image</p>
-                <div className="flex gap-3 justify-center">
+              <div className="text-center p-4 sm:p-6">
+                <Camera className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 text-slate-400" />
+                <h3 className="text-lg sm:text-xl font-bold text-slate-700 dark:text-slate-300 mb-2">AI Location Recognition</h3>
+                <p className="text-slate-500 dark:text-slate-400 mb-4 sm:mb-6 text-xs sm:text-sm">Take a photo or upload an image</p>
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
                   <Button 
                     onClick={() => {
                       console.log('🎥 Camera button clicked');
                       startCamera();
                     }} 
-                    className="px-6 py-2"
+                    className="px-4 sm:px-6 py-2 text-sm sm:text-base"
                   >
                     <Camera className="h-4 w-4 mr-2" />
                     Use Camera
@@ -625,7 +625,7 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                   <Button
                     onClick={() => fileInputRef.current?.click()}
                     variant="outline"
-                    className="px-6 py-2"
+                    className="px-4 sm:px-6 py-2 text-sm sm:text-base"
                   >
                     <Upload className="h-4 w-4 mr-2" />
                     Upload Image
@@ -643,13 +643,13 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
             {result.success ? (
               <div className="space-y-6">
                 {/* Main Info */}
-                <div className="p-8 bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-xl">
-                  <div className="flex items-start gap-6 mb-6">
-                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center shadow-xl">
-                      <MapPin className="h-8 w-8 text-white" />
+                <div className="p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-xl">
+                  <div className="flex items-start gap-3 sm:gap-6 mb-4 sm:mb-6">
+                    <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center shadow-xl flex-shrink-0">
+                      <MapPin className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-2xl bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent mb-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-lg sm:text-xl lg:text-2xl bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent mb-2">
                         {result.name || "Location Found"}
                       </h3>
                       <div className="flex gap-2 mb-2">
@@ -673,13 +673,13 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                   </div>
                   
                   {result.address && (
-                    <p className="text-slate-600 dark:text-slate-300 mb-4 text-lg">
+                    <p className="text-slate-600 dark:text-slate-300 mb-3 sm:mb-4 text-sm sm:text-base lg:text-lg">
                       {result.address}
                     </p>
                   )}
                   
                   {result.description && (
-                    <p className="text-slate-700 dark:text-slate-300 mb-6">
+                    <p className="text-slate-700 dark:text-slate-300 mb-4 sm:mb-6 text-sm sm:text-base">
                       {result.description}
                     </p>
                   )}
@@ -726,10 +726,10 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                 <ShowMoreInfo result={result} />
                 
                 {/* Actions */}
-                <div className="flex flex-wrap gap-4">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4">
                   <Button
-                    size="lg"
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all duration-300 px-8"
+                    size="default"
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all duration-300 px-4 sm:px-8 w-full sm:w-auto"
                     onClick={async () => {
                       try {
                         await fetch('/api/save-location', {
@@ -743,13 +743,13 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                       }
                     }}
                   >
-                    <Bookmark className="h-5 w-5 mr-3" />
+                    <Bookmark className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" />
                     Save Location
                   </Button>
                   {result.location && (
                     <Button
-                      size="lg"
-                      className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-xl hover:shadow-2xl transition-all duration-300 px-8"
+                      size="default"
+                      className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-xl hover:shadow-2xl transition-all duration-300 px-4 sm:px-8 w-full sm:w-auto"
                       asChild
                     >
                       <a
@@ -757,20 +757,20 @@ export function CameraRecognition({ onLocationSelect }: CameraRecognitionProps) 
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        <Navigation className="h-5 w-5 mr-3" />
+                        <Navigation className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" />
                         Get Directions
                       </a>
                     </Button>
                   )}
                   {result.phoneNumber && (
                     <Button
-                      size="lg"
+                      size="default"
                       variant="outline"
-                      className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border-slate-200 dark:border-slate-700 hover:bg-white/90 dark:hover:bg-slate-800/90 shadow-lg hover:shadow-xl transition-all duration-300 px-8"
+                      className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border-slate-200 dark:border-slate-700 hover:bg-white/90 dark:hover:bg-slate-800/90 shadow-lg hover:shadow-xl transition-all duration-300 px-4 sm:px-8 w-full sm:w-auto"
                       asChild
                     >
                       <a href={`tel:${result.phoneNumber}`}>
-                        <Phone className="h-5 w-5 mr-3" />
+                        <Phone className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" />
                         Call Now
                       </a>
                     </Button>

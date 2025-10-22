@@ -1,326 +1,204 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Camera, MapPin, Zap, Check, Shield, Image as ImageIcon, Globe, Sparkles, ArrowRight, Building2, Map, Github, Twitter, Mail } from "lucide-react"
+import { BrandLogo } from "@/components/ui/brand-logo"
+import { Camera, MapPin, ArrowRight, Zap, Globe2, Upload, Zap as AnalyzeIcon, MapPin as DiscoverIcon, Sparkles } from "lucide-react"
 import Link from "next/link"
-import Image from "next/image"
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950">
+    <div className="min-h-screen bg-[#fafaf9] dark:bg-[#0a0a0a]">
+      {/* Organic blob backgrounds */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl animate-blob"></div>
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-400/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-pink-400/20 dark:bg-pink-600/10 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+      </div>
+
       {/* Navigation */}
-      <nav className="border-b border-gray-100 dark:border-gray-900 bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg bg-gray-900 dark:bg-white flex items-center justify-center">
-              <Camera className="h-4 w-4 text-white dark:text-gray-900" />
-            </div>
-            <span className="font-semibold text-lg text-gray-900 dark:text-white">Pic2Nav</span>
+      <nav className="relative z-50 border-b border-stone-200/50 dark:border-stone-800/50 bg-white/50 dark:bg-black/50 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3 group">
+            <img src="/pic2nav.png" alt="Pic2Nav" className="h-40 w-auto object-contain drop-shadow-lg" />
           </Link>
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-4">
             <ThemeToggle />
-            <Button variant="ghost" size="sm" className="hidden sm:flex" asChild>
+            <Button variant="ghost" className="hidden md:inline-flex rounded-full" asChild>
               <Link href="/analytics">Analytics</Link>
             </Button>
-            <Button size="sm" className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 text-xs sm:text-sm" asChild>
-              <Link href="/dashboard">Get Started</Link>
+            <Button className="rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900" asChild>
+              <Link href="/camera">Try Now</Link>
             </Button>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="px-4 sm:px-6 py-16 sm:py-20 lg:py-24">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            <div className="text-center lg:text-left">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 text-gray-900 dark:text-white leading-tight">
-                Find places from your photos
-              </h1>
-              <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 mb-8 max-w-2xl mx-auto lg:mx-0">
-                Upload a photo and discover where it was taken using AI-powered location recognition. Extract GPS data, identify landmarks, and explore nearby places instantly.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Button size="lg" className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100" asChild>
-                  <Link href="/dashboard">
-                    Start Exploring
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" asChild>
-                  <Link href="/analytics">View Analytics</Link>
-                </Button>
-              </div>
-              <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mt-8 sm:mt-12 max-w-md mx-auto lg:mx-0">
-                <div className="text-center lg:text-left">
-                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">10K+</div>
-                  <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Photos analyzed</div>
-                </div>
-                <div className="text-center lg:text-left">
-                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">95%</div>
-                  <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Accuracy rate</div>
-                </div>
-                <div className="text-center lg:text-left">
-                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">&lt;5s</div>
-                  <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Avg response</div>
-                </div>
-              </div>
+      {/* Hero */}
+      <section className="relative pt-20 pb-32 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center space-y-8 mb-20">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
+              <Sparkles className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-stone-700 dark:text-stone-300">AI-Powered Recognition</span>
             </div>
-            <div className="relative mt-8 lg:mt-0">
-              <div className="relative w-full max-w-md mx-auto lg:max-w-lg">
-                {/* Main showcase image */}
-                <div className="relative aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-xl">
-                  <Image 
-                    src="/images/app-screenshot-1.jpg" 
-                    alt="Pic2Nav App Interface" 
-                    fill
-                    className="object-cover" 
-                  />
-                  {/* Floating elements */}
-                  <div className="absolute -top-4 -right-4 w-16 h-16 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center animate-bounce">
-                    <Camera className="h-6 w-6 text-gray-900 dark:text-white" />
-                  </div>
-                  <div className="absolute -bottom-4 -left-4 w-20 h-12 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center">
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4 text-green-500" />
-                      <span className="text-xs font-medium text-gray-900 dark:text-white">Found!</span>
-                    </div>
-                  </div>
+            
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight">
+              <span className="text-stone-900 dark:text-white">Turn photos into</span>
+              <br />
+              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">locations instantly</span>
+            </h1>
+            
+            <p className="text-xl text-stone-600 dark:text-stone-400 max-w-2xl mx-auto leading-relaxed">
+              Upload any image and discover where it was taken. Our AI extracts GPS data, identifies landmarks, and provides rich location details.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+              <Button size="lg" className="rounded-full h-14 px-8 text-base bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 shadow-lg shadow-stone-900/10" asChild>
+                <Link href="/camera">
+                  <Camera className="mr-2 h-5 w-5" />
+                  Start Scanning
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" className="rounded-full h-14 px-8 text-base border-2 border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-900" asChild>
+                <Link href="/dashboard">
+                  View Dashboard
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl mx-auto mb-20">
+            {[
+              { value: "10K+", label: "Photos Scanned" },
+              { value: "95%", label: "Accuracy" },
+              { value: "<3s", label: "Speed" },
+              { value: "Free", label: "Forever" }
+            ].map((stat, i) => (
+              <div key={i} className="text-center p-6 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-sm">
+                <div className="text-3xl font-bold text-stone-900 dark:text-white mb-1">{stat.value}</div>
+                <div className="text-sm text-stone-600 dark:text-stone-400">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Demo Preview */}
+          <div className="relative max-w-5xl mx-auto">
+            <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-[3rem] blur-2xl"></div>
+            <div className="relative rounded-[2rem] overflow-hidden border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 shadow-2xl">
+              <div className="bg-stone-100 dark:bg-stone-800 px-6 py-4 flex items-center gap-3 border-b border-stone-200 dark:border-stone-700">
+                <div className="flex gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
                 </div>
-                {/* Background decoration */}
-                <div className="absolute -z-10 top-8 left-8 w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl"></div>
+                <div className="text-sm text-stone-600 dark:text-stone-400">pic2nav.app</div>
+              </div>
+              <div className="aspect-[16/10] bg-gradient-to-br from-stone-50 to-stone-100 dark:from-stone-900 dark:to-stone-950 flex items-center justify-center p-12">
+                <div className="text-center space-y-4">
+                  <div className="inline-flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-xl">
+                    <Camera className="h-12 w-12 text-white" />
+                  </div>
+                  <p className="text-stone-600 dark:text-stone-400">Interactive Demo</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features with Images */}
-      <section className="px-4 sm:px-6 py-16 sm:py-20 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-gray-900 dark:text-white">
-              Powerful location intelligence
+      {/* Features */}
+      <section className="relative py-32 px-6 bg-white dark:bg-stone-950">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl sm:text-5xl font-bold text-stone-900 dark:text-white mb-4">
+              Simple, powerful, instant
             </h2>
-            <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              Advanced AI technology to extract location data from any photo
+            <p className="text-xl text-stone-600 dark:text-stone-400">
+              Three steps to discover any location
             </p>
           </div>
 
-          {/* Feature 1 */}
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center mb-16 sm:mb-20">
-            <div className="order-2 lg:order-1">
-              <div className="aspect-[4/3] bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-lg">
-                <Image src="/images/app-screenshot-5.jpg" alt="AI Photo Analysis" width={600} height={450} className="w-full h-full object-cover" />
-              </div>
-            </div>
-            <div className="order-1 lg:order-2">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="h-10 w-10 rounded-lg bg-gray-900 dark:bg-white flex items-center justify-center">
-                  <Sparkles className="h-5 w-5 text-white dark:text-gray-900" />
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { icon: Upload, title: "Upload", desc: "Drop any photo or take one with your camera", color: "from-blue-500 to-cyan-500" },
+              { icon: AnalyzeIcon, title: "Analyze", desc: "AI processes GPS data and visual landmarks", color: "from-purple-500 to-pink-500" },
+              { icon: DiscoverIcon, title: "Discover", desc: "Get location, weather, and nearby places", color: "from-orange-500 to-red-500" }
+            ].map((feature, i) => (
+              <div key={i} className="group relative">
+                <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl blur-xl" style={{ background: `linear-gradient(to bottom right, ${feature.color})` }}></div>
+                <div className="relative p-8 rounded-3xl bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 transition-all">
+                  <div className={`inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${feature.color} mb-6 shadow-lg`}>
+                    <feature.icon className="h-7 w-7 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-stone-900 dark:text-white mb-3">{feature.title}</h3>
+                  <p className="text-stone-600 dark:text-stone-400 leading-relaxed">{feature.desc}</p>
                 </div>
-                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">AI-Powered Photo Analysis</h3>
               </div>
-              <p className="text-gray-600 dark:text-gray-400 mb-6 text-lg">
-                Our advanced AI analyzes text, signs, landmarks, and visual features in your photos to accurately identify locations. Using computer vision and machine learning, we can recognize buildings, businesses, and points of interest.
-              </p>
-              <ul className="space-y-4">
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-gray-900 dark:text-white mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">Text and sign recognition from images</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-gray-900 dark:text-white mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">Landmark and building identification</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-gray-900 dark:text-white mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">Business and storefront detection</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Feature 2 */}
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center mb-16 sm:mb-20">
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="h-10 w-10 rounded-lg bg-gray-900 dark:bg-white flex items-center justify-center">
-                  <MapPin className="h-5 w-5 text-white dark:text-gray-900" />
-                </div>
-                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">GPS Data Extraction</h3>
-              </div>
-              <p className="text-gray-600 dark:text-gray-400 mb-6 text-lg">
-                Automatically extract GPS coordinates embedded in your photos' EXIF data. Get precise latitude and longitude information, along with nearby places, addresses, and points of interest.
-              </p>
-              <ul className="space-y-4">
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-gray-900 dark:text-white mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">Extract EXIF GPS coordinates</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-gray-900 dark:text-white mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">Reverse geocoding to addresses</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-gray-900 dark:text-white mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">Discover nearby places and attractions</span>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <div className="aspect-[4/3] bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-lg">
-                <Image src="/images/app-screenshot-6.jpg" alt="GPS Extraction" width={600} height={450} className="w-full h-full object-cover" />
-              </div>
-            </div>
-          </div>
-
-          {/* Feature 3 */}
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            <div className="order-2 lg:order-1">
-              <div className="aspect-[4/3] bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-lg">
-                <Image src="/images/app-screenshot-7.jpg" alt="Interactive Maps" width={600} height={450} className="w-full h-full object-cover" />
-              </div>
-            </div>
-            <div className="order-1 lg:order-2">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="h-10 w-10 rounded-lg bg-gray-900 dark:bg-white flex items-center justify-center">
-                  <Map className="h-5 w-5 text-white dark:text-gray-900" />
-                </div>
-                <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Interactive Maps & Details</h3>
-              </div>
-              <p className="text-gray-600 dark:text-gray-400 mb-6 text-lg">
-                View detected locations on interactive maps with detailed information including business hours, ratings, reviews, and contact details. Save your favorite places and track your location history.
-              </p>
-              <ul className="space-y-4">
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-gray-900 dark:text-white mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">Interactive map visualization</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-gray-900 dark:text-white mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">Detailed place information and reviews</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-gray-900 dark:text-white mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-600 dark:text-gray-400">Save and bookmark locations</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Use Cases */}
-      <section className="px-4 sm:px-6 py-16 sm:py-20">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-gray-900 dark:text-white">
-              Built for everyone
-            </h2>
-            <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400">
-              From travelers to researchers, Pic2Nav helps you discover locations
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 sm:p-8 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow">
-              <Globe className="h-8 w-8 text-gray-900 dark:text-white mb-4" />
-              <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">Travelers</h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Rediscover places from your travel photos and plan your next adventure with location insights.
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 sm:p-8 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow">
-              <Building2 className="h-8 w-8 text-gray-900 dark:text-white mb-4" />
-              <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">Real Estate</h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Identify property locations and gather neighborhood information from listing photos.
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 sm:p-8 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow sm:col-span-2 lg:col-span-1">
-              <ImageIcon className="h-8 w-8 text-gray-900 dark:text-white mb-4" />
-              <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">Researchers</h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Extract location metadata from image datasets for academic and research purposes.
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="px-4 sm:px-6 py-16 sm:py-20 bg-gray-50 dark:bg-gray-900">
+      <section className="relative py-32 px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-gray-900 dark:text-white">
-            Ready to discover locations?
-          </h2>
-          <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 mb-8">
-            Start exploring with Pic2Nav today. No credit card required.
-          </p>
-          <Button size="lg" className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100" asChild>
-            <Link href="/dashboard">
-              Get Started Free
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-[3rem] blur-3xl opacity-20"></div>
+            <div className="relative p-16 rounded-[3rem] bg-gradient-to-br from-stone-900 to-stone-800 dark:from-stone-100 dark:to-stone-50">
+              <h2 className="text-4xl sm:text-5xl font-bold text-white dark:text-stone-900 mb-6">
+                Ready to explore?
+              </h2>
+              <p className="text-xl text-stone-300 dark:text-stone-600 mb-10 max-w-2xl mx-auto">
+                Join thousands discovering locations from their photos every day
+              </p>
+              <Button size="lg" className="rounded-full h-14 px-10 text-base bg-white hover:bg-stone-100 text-stone-900 dark:bg-stone-900 dark:hover:bg-stone-800 dark:text-white shadow-xl" asChild>
+                <Link href="/camera">
+                  Get Started Free
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
-            <div className="col-span-1 md:col-span-2">
-              <Link href="/" className="flex items-center gap-2 mb-4">
-                <div className="h-7 w-7 rounded-lg bg-gray-900 dark:bg-white flex items-center justify-center">
-                  <Camera className="h-4 w-4 text-white dark:text-gray-900" />
-                </div>
-                <span className="font-semibold text-lg text-gray-900 dark:text-white">Pic2Nav</span>
-              </Link>
-              <p className="text-gray-600 dark:text-gray-400 mb-4 max-w-md">
-                AI-powered location discovery from photos. Extract GPS data, identify landmarks, and explore places instantly.
-              </p>
-              <div className="flex space-x-4">
-                <a href="#" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                  <Twitter className="h-5 w-5" />
-                </a>
-                <a href="#" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                  <Github className="h-5 w-5" />
-                </a>
-                <a href="#" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                  <Mail className="h-5 w-5" />
-                </a>
-              </div>
+      <footer className="relative border-t border-stone-200 dark:border-stone-800 py-12 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-3">
+              <img src="/pic2nav.png" alt="Pic2Nav" className="h-24 w-auto object-contain drop-shadow-lg" />
             </div>
-            <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Product</h3>
-              <ul className="space-y-2">
-                <li><Link href="/dashboard" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Dashboard</Link></li>
-                <li><Link href="/analytics" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Analytics</Link></li>
-                <li><Link href="/camera" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Camera</Link></li>
-                <li><Link href="/map" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Map View</Link></li>
-              </ul>
+            <div className="flex flex-wrap justify-center gap-8 text-sm text-stone-600 dark:text-stone-400">
+              <Link href="/about" className="hover:text-stone-900 dark:hover:text-stone-100">About</Link>
+              <Link href="/docs" className="hover:text-stone-900 dark:hover:text-stone-100">Docs</Link>
+              <Link href="/blog" className="hover:text-stone-900 dark:hover:text-stone-100">Blog</Link>
+              <Link href="/api-doc" className="hover:text-stone-900 dark:hover:text-stone-100">API</Link>
             </div>
-            <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Company</h3>
-              <ul className="space-y-2">
-                <li><Link href="/about" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">About</Link></li>
-                <li><Link href="/blog" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Blog</Link></li>
-                <li><Link href="/docs" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Documentation</Link></li>
-                <li><Link href="/api-doc" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">API</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-200 dark:border-gray-800 mt-8 pt-8 flex flex-col sm:flex-row justify-between items-center">
-            <p className="text-gray-600 dark:text-gray-400 text-sm">
-              © 2024 Pic2Nav. All rights reserved.
-            </p>
-            <div className="flex space-x-6 mt-4 sm:mt-0">
-              <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm">Privacy Policy</a>
-              <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm">Terms of Service</a>
-            </div>
+            <p className="text-sm text-stone-500">© 2024 Pic2Nav</p>
           </div>
         </div>
       </footer>
+
+      <style jsx global>{`
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+      `}</style>
     </div>
   )
 }

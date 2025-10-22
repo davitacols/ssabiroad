@@ -389,10 +389,7 @@ const DocsPage: React.FC = () => {
           <div className="flex items-center justify-between h-16 px-4">
             <div className="flex items-center space-x-8">
               <Link href="/" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-md flex items-center justify-center">
-                  <LucideIcons.Building className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xl font-semibold text-gray-900 dark:text-white">SabiRoad</span>
+                <img src="/pic2nav.png" alt="Pic2Nav" className="h-12 w-auto object-contain drop-shadow-lg" />
               </Link>
               
               <div className="hidden md:flex items-center space-x-1">
@@ -432,8 +429,6 @@ const DocsPage: React.FC = () => {
               </div>
               
               <div className="flex items-center space-x-3">
-                <Switch checked={isDarkMode} onCheckedChange={toggleTheme} />
-                
                 {status === "authenticated" ? (
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={session?.user?.image || ""} alt={session?.user?.name || ""} />
@@ -593,13 +588,10 @@ const DocsPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-md flex items-center justify-center">
-                  <LucideIcons.Building className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xl font-semibold">SabiRoad</span>
+                <img src="/pic2nav.png" alt="Pic2Nav" className="h-10 w-auto object-contain drop-shadow-lg" />
               </div>
               <p className="text-gray-600 dark:text-gray-400 text-sm mt-2">
-                Advanced building recognition using AI technology.
+                Advanced location recognition using AI technology.
               </p>
             </div>
             
@@ -638,7 +630,7 @@ const DocsPage: React.FC = () => {
           
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              © {new Date().getFullYear()} SabiRoad, Inc. All rights reserved.
+              © {new Date().getFullYear()} Pic2Nav. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <Link href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">

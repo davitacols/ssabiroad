@@ -800,13 +800,19 @@ class LocationRecognizer {
       ]);
       
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Enrichment timeout')), 5000); // Reduced timeout
+        setTimeout(() => reject(new Error('Enrichment timeout')), 10000); // Increased timeout
       });
       
-      const results = await Promise.race([enrichmentPromise, timeoutPromise]).catch(() => {
-        console.log('Enrichment timed out, using basic data');
+      const results = await Promise.race([enrichmentPromise, timeoutPromise]).catch((err) => {
+        console.log('Enrichment timed out or failed:', err.message);
         return Array(7).fill({ status: 'rejected', reason: 'timeout' });
       }) as PromiseSettledResult<any>[];
+      
+      console.log('Enrichment results:', results.map((r, i) => ({
+        index: i,
+        status: r.status,
+        hasValue: r.status === 'fulfilled' && r.value !== null
+      })));
       
       const [places, photos, weather, elevation, transit, demographics, landmarks] = results.map(result => 
         result.status === 'fulfilled' ? result.value : null

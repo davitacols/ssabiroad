@@ -505,10 +505,7 @@ const SabiRoadAPIPage: React.FC = () => {
           <div className="flex items-center justify-between h-16 px-4">
             <div className="flex items-center space-x-8">
               <Link href="/" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-primary to-purple-600 rounded-lg flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-primary-foreground" />
-                </div>
-                <span className="text-xl font-semibold">SabiRoad</span>
+                <img src="/pic2nav.png" alt="Pic2Nav" className="h-12 w-auto object-contain drop-shadow-lg" />
               </Link>
 
               <div className="hidden md:flex items-center space-x-1">
@@ -544,12 +541,6 @@ const SabiRoadAPIPage: React.FC = () => {
               </div>
 
               <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2">
-                  <Moon className="h-4 w-4 text-muted-foreground" />
-                  <Switch checked={isDarkMode} onCheckedChange={toggleTheme} />
-                  <Sun className="h-4 w-4 text-muted-foreground" />
-                </div>
-
                 {status === "authenticated" ? (
                   <Avatar className="h-8 w-8 border-2 border-primary/20">
                     <AvatarImage src={session?.user?.image || ""} alt={session?.user?.name || ""} />
@@ -593,10 +584,10 @@ const SabiRoadAPIPage: React.FC = () => {
                   </Badge>
                 </div>
 
-                <h1 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight">SabiRoad API Documentation</h1>
+                <h1 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight">Pic2Nav API Documentation</h1>
 
                 <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                  Integrate building recognition and information retrieval directly into your applications with our
+                  Integrate location recognition and information retrieval directly into your applications with our
                   powerful, developer-friendly API.
                 </p>
 
@@ -668,13 +659,13 @@ const SabiRoadAPIPage: React.FC = () => {
                         <Rocket className="w-5 h-5 mr-2 text-primary" />
                         Getting Started
                       </CardTitle>
-                      <CardDescription>Everything you need to start integrating with the SabiRoad API</CardDescription>
+                      <CardDescription>Everything you need to start integrating with the Pic2Nav API</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                       <div className="space-y-3">
                         <h3 className="text-lg font-semibold">Base URL</h3>
                         <div className="bg-muted rounded-lg p-3 font-mono text-sm flex items-center justify-between">
-                          <span>https://api.sabiroad.com/v2</span>
+                          <span>https://api.pic2nav.com/v2</span>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
                             <LucideIcons.Copy className="w-4 h-4" />
                           </Button>
@@ -725,7 +716,7 @@ const SabiRoadAPIPage: React.FC = () => {
                         <Lightbulb className="w-5 h-5 mr-2 text-primary" />
                         Key Concepts
                       </CardTitle>
-                      <CardDescription>Understanding the core features of the SabiRoad API</CardDescription>
+                      <CardDescription>Understanding the core features of the Pic2Nav API</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="grid md:grid-cols-2 gap-6">
@@ -734,9 +725,9 @@ const SabiRoadAPIPage: React.FC = () => {
                             <Building2 className="w-6 h-6 text-primary" />
                           </div>
                           <div>
-                            <h3 className="font-semibold mb-1">Building Recognition</h3>
+                            <h3 className="font-semibold mb-1">Location Recognition</h3>
                             <p className="text-sm text-muted-foreground">
-                              Identify buildings from images with 98.7% accuracy using our advanced AI models.
+                              Identify locations from images with 98.7% accuracy using our advanced AI models.
                             </p>
                           </div>
                         </div>
@@ -746,9 +737,9 @@ const SabiRoadAPIPage: React.FC = () => {
                             <LucideIcons.Database className="w-6 h-6 text-purple-500" />
                           </div>
                           <div>
-                            <h3 className="font-semibold mb-1">Building Information</h3>
+                            <h3 className="font-semibold mb-1">Location Information</h3>
                             <p className="text-sm text-muted-foreground">
-                              Access detailed architectural, historical, and cultural data from our comprehensive
+                              Access detailed location, weather, and environmental data from our comprehensive
                               database.
                             </p>
                           </div>
@@ -761,7 +752,7 @@ const SabiRoadAPIPage: React.FC = () => {
                           <div>
                             <h3 className="font-semibold mb-1">Geospatial Search</h3>
                             <p className="text-sm text-muted-foreground">
-                              Find buildings based on location with precise geospatial queries and filtering options.
+                              Find locations and nearby places with precise geospatial queries and filtering options.
                             </p>
                           </div>
                         </div>
@@ -771,10 +762,9 @@ const SabiRoadAPIPage: React.FC = () => {
                             <LucideIcons.Cube className="w-6 h-6 text-amber-500" />
                           </div>
                           <div>
-                            <h3 className="font-semibold mb-1">3D Modeling</h3>
+                            <h3 className="font-semibold mb-1">GPS Analysis</h3>
                             <p className="text-sm text-muted-foreground">
-                              Generate detailed 3D models from 2D images with accurate proportions and textures using
-                              our advanced algorithms.
+                              Extract GPS data from images and analyze location metadata with our advanced algorithms.
                             </p>
                           </div>
                         </div>
@@ -1361,9 +1351,9 @@ async function findNearbyBuildings(latitude, longitude, radius = 500) {
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto text-center">
               <Badge className="mb-4 px-3 py-1 bg-primary/10 text-primary">Get Started Today</Badge>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to integrate building recognition?</h2>
+              <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to integrate location recognition?</h2>
               <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-                Join thousands of developers who are already using SabiRoad API to power their applications.
+                Join thousands of developers who are already using Pic2Nav API to power their applications.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button
@@ -1388,13 +1378,10 @@ async function findNearbyBuildings(latitude, longitude, radius = 500) {
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <Link href="/" className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-r from-primary to-purple-600 rounded-lg flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-primary-foreground" />
-                </div>
-                <span className="text-xl font-semibold">SabiRoad</span>
+                <img src="/pic2nav.png" alt="Pic2Nav" className="h-10 w-auto object-contain drop-shadow-lg" />
               </Link>
               <p className="text-sm text-muted-foreground mb-4">
-                Revolutionizing how we discover and analyze buildings with AI and comprehensive data.
+                Revolutionizing how we discover and analyze locations with AI and comprehensive data.
               </p>
               <div className="flex space-x-4">
                 <Button variant="ghost" size="icon" className="h-8 w-8">

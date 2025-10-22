@@ -554,7 +554,7 @@ const MobileCameraRecognition = () => {
 
   return (
     <div className="space-y-6">
-      <div className="relative h-[55vh] bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 rounded-2xl overflow-hidden shadow-lg flex items-center justify-center">
+      <div className="relative h-[50vh] sm:h-[55vh] bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 rounded-xl sm:rounded-2xl overflow-hidden shadow-lg flex items-center justify-center">
         {/* Camera video feed */}
         <video
           ref={videoRef}
@@ -911,48 +911,48 @@ const MobileCameraRecognition = () => {
 
       {/* Recent Locations */}
       {recentLocations.length > 0 && (
-        <div className="mt-8">
-          <h3 className="text-lg font-bold mb-4 flex items-center">
-            <History className="mr-2 h-5 w-5 text-indigo-500" />
+        <div className="mt-6 sm:mt-8">
+          <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4 flex items-center">
+            <History className="mr-2 h-4 w-4 sm:h-5 sm:w-5 text-indigo-500" />
             Recent Locations
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {recentLocations.slice(0, 3).map((location, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-all shadow-sm hover:shadow"
+                className="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-all shadow-sm hover:shadow"
                 onClick={() => handleRecentLocationSelect(location)}
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
-                    <MapPin className="h-5 w-5 text-indigo-500" />
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                    <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-500" />
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-base truncate">{location.name}</h4>
+                    <h4 className="font-medium text-sm sm:text-base truncate">{location.name}</h4>
                     {location.address && (
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">{location.address}</p>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 sm:gap-2">
                     {location.confidence && (
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-xs hidden sm:inline-flex">
                         {Math.round(location.confidence * 100)}%
                       </Badge>
                     )}
-                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                    <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 text-slate-400" />
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 dark:border-slate-700">
+                <div className="flex items-center justify-between mt-2 sm:mt-3 pt-2 border-t border-slate-100 dark:border-slate-700">
                   <Badge variant="secondary" className="text-xs">
                     {location.category || location.type || "Unknown"}
                   </Badge>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">
                     {location.date || new Date().toLocaleDateString()}
                   </span>
                 </div>
@@ -1668,27 +1668,27 @@ export default function MobileDashboard() {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* App Header */}
-      <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800">
-        <div className="container flex items-center justify-between h-16 px-4">
+      <header className="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center justify-between h-14 sm:h-16 px-4">
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Navigation className="h-5 w-5 text-white" />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg">
+              <Navigation className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </div>
-            <span className="font-bold text-xl bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
+            <span className="font-bold text-lg sm:text-xl bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
               Pic2Nav
             </span>
           </div>
 
           {/* User Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleDarkMode}
-              className="rounded-full h-10 w-10 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="rounded-full h-8 w-8 sm:h-10 sm:w-10 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
-              {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              {isDarkMode ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
             </Button>
 
             <Sheet open={showUserMenu} onOpenChange={setShowUserMenu}>
@@ -1837,7 +1837,7 @@ export default function MobileDashboard() {
       </header>
 
       {/* Welcome Banner with Authentication Awareness */}
-      <div className="px-4 py-6">
+      <div className="px-4 py-4 sm:py-6">
         {isLoading ? (
           <div className="bg-slate-200 dark:bg-slate-800 animate-pulse rounded-2xl p-6 h-36" />
         ) : (
@@ -1845,12 +1845,12 @@ export default function MobileDashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-xl"
+            className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-xl"
           >
             {authError ? (
               <>
-                <h1 className="text-2xl font-bold mb-2">Welcome to Pic2Nav!</h1>
-                <p className="text-white/80 mb-4">Discover and navigate to amazing places with just a photo.</p>
+                <h1 className="text-xl sm:text-2xl font-bold mb-2">Welcome to Pic2Nav!</h1>
+                <p className="text-white/80 mb-3 sm:mb-4 text-sm sm:text-base">Discover and navigate to amazing places with just a photo.</p>
                 <div className="flex gap-2">
                   <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0" onClick={handleLogin}>
                     <LogIn className="h-4 w-4 mr-1" />
@@ -1868,8 +1868,8 @@ export default function MobileDashboard() {
               </>
             ) : (
               <>
-                <h1 className="text-2xl font-bold mb-2">Welcome back, {userData.username}!</h1>
-                <p className="text-white/80 mb-4">Ready to discover amazing places today?</p>
+                <h1 className="text-xl sm:text-2xl font-bold mb-2">Welcome back, {userData.username}!</h1>
+                <p className="text-white/80 mb-3 sm:mb-4 text-sm sm:text-base">Ready to discover amazing places today?</p>
                 <div className="flex items-center gap-2">
                   <Badge className="bg-white/20 hover:bg-white/30 text-white border-0">
                     <MapPin className="h-3 w-3 mr-1" />
@@ -1887,7 +1887,7 @@ export default function MobileDashboard() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 px-4 pb-20">
+      <main className="flex-1 px-4 pb-20 sm:pb-24">
         {activeTab === "recognition" && <MobileCameraRecognition />}
         {activeTab === "locations" && <MobileLocationsFeature />}
         {activeTab === "map" && <MobileMapFeature />}
@@ -1896,8 +1896,8 @@ export default function MobileDashboard() {
       </main>
 
       {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-50 shadow-lg">
-        <div className="grid grid-cols-5 h-16">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-50 shadow-lg">
+        <div className="grid grid-cols-5 h-16 sm:h-20">
           {[
             { id: "recognition", icon: Camera, label: "Camera" },
             { id: "locations", icon: MapPin, label: "Places" },
@@ -1908,19 +1908,19 @@ export default function MobileDashboard() {
             <motion.button
               key={item.id}
               whileTap={{ scale: 0.9 }}
-              className={`flex flex-col items-center justify-center gap-1 transition-colors ${
+              className={`flex flex-col items-center justify-center gap-0.5 sm:gap-1 transition-colors ${
                 activeTab === item.id ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-slate-400"
               }`}
               onClick={() => setActiveTab(item.id)}
             >
               <div
-                className={`p-1.5 rounded-full transition-colors ${
+                className={`p-1 sm:p-1.5 rounded-full transition-colors ${
                   activeTab === item.id ? "bg-indigo-100 dark:bg-indigo-900/30" : ""
                 }`}
               >
-                <item.icon className="h-5 w-5" />
+                <item.icon className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <span className="text-[9px] sm:text-[10px] font-medium">{item.label}</span>
             </motion.button>
           ))}
         </div>

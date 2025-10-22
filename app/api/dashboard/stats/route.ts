@@ -34,18 +34,79 @@ async function verifyToken(request: NextRequest): Promise<JwtPayload | null> {
 
 export async function GET(request: NextRequest) {
   try {
-    // Use mock data for now due to database connection issues
+    const user = await verifyToken(request);
+    
+    // Get current date ranges
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const twoWeeksAgo = new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    // Get total counts
+    const [totalLocations, totalBookmarks] = await Promise.all([
+      prisma.location.count(),
+      prisma.bookmark.count()
+    ]);
+
+    // Get recent activity (last 24 hours)
+    const recentDetections = await prisma.location.count({
+      where: {
+        createdAt: {
+          gte: today
+        }
+      }
+    });
+
+    // Calculate weekly growth
+    const [thisWeekCount, lastWeekCount] = await Promise.all([
+      prisma.location.count({
+        where: {
+          createdAt: {
+            gte: weekAgo
+          }
+        }
+      }),
+      prisma.location.count({
+        where: {
+          createdAt: {
+            gte: twoWeeksAgo,
+            lt: weekAgo
+          }
+        }
+      })
+    ]);
+
+    const weeklyGrowth = lastWeekCount > 0 
+      ? Math.round(((thisWeekCount - lastWeekCount) / lastWeekCount) * 100)
+      : thisWeekCount > 0 ? 100 : 0;
+
+    // Calculate success rate (locations with valid coordinates)
+    const validLocations = await prisma.location.count({
+      where: {
+        AND: [
+          { latitude: { not: 0 } },
+          { longitude: { not: 0 } }
+        ]
+      }
+    });
+
+    const successRate = totalLocations > 0 
+      ? Math.round((validLocations / totalLocations) * 100)
+      : 0;
+
     const stats = {
-      totalDetections: 1247,
-      totalLocations: 892,
-      totalBookmarks: 156,
-      recentDetections: 23,
-      successRate: 87,
-      weeklyGrowth: 12
+      totalDetections: totalLocations,
+      totalLocations: totalLocations,
+      totalBookmarks,
+      recentDetections,
+      successRate,
+      weeklyGrowth: Math.max(weeklyGrowth, 0)
     };
 
     return NextResponse.json(stats);
   } catch (error) {
+    console.error('Dashboard stats error:', error);
+    // Return fallback data on error
     return NextResponse.json({
       totalDetections: 0,
       totalLocations: 0,
