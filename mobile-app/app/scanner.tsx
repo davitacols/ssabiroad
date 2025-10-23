@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, ActivityIndicator, StatusBar, Linking, TextInput, Alert, Share } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { initAnalytics, logScreenView, logScan, logSaveLocation, logShareLocation, logError } from '../utils/analytics';
@@ -21,6 +21,7 @@ export default function ScannerScreen() {
   const [suggestion, setSuggestion] = useState('');
   const [savedLocations, setSavedLocations] = useState<any[]>([]);
   const [isSaved, setIsSaved] = useState(false);
+  const cameraRef = useState<any>({ current: null })[0];
 
   useEffect(() => {
     initAnalytics();
@@ -109,7 +110,11 @@ export default function ScannerScreen() {
 
   const handleTakePhoto = async () => {
     if (!permission?.granted) {
-      await requestPermission();
+      const result = await requestPermission();
+      if (!result.granted) {
+        Alert.alert('Permission Required', 'Camera permission is needed to take photos');
+        return;
+      }
     }
     setShowCamera(true);
   };
@@ -206,12 +211,38 @@ export default function ScannerScreen() {
     }
   };
 
+  const takePicture = async (camera: any) => {
+    try {
+      const photo = await camera.takePictureAsync({
+        quality: 0.8,
+        base64: false,
+        exif: true,
+      });
+      
+      setShowCamera(false);
+      setImage(photo.uri);
+      await processImage(photo.uri, photo.exif, undefined);
+    } catch (error) {
+      console.error('Take picture error:', error);
+      Alert.alert('Error', 'Failed to take photo');
+    }
+  };
+
   if (showCamera) {
     return (
-      <CameraView style={styles.camera}>
+      <CameraView style={styles.camera} ref={(ref) => ref && (cameraRef.current = ref)}>
         <View style={styles.cameraControls}>
-          <TouchableOpacity style={styles.captureButton} onPress={() => setShowCamera(false)}>
+          <TouchableOpacity 
+            style={styles.captureButton} 
+            onPress={() => cameraRef.current && takePicture(cameraRef.current)}
+          >
             <View style={styles.captureInner} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.cancelButton} 
+            onPress={() => setShowCamera(false)}
+          >
+            <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
         </View>
       </CameraView>
@@ -648,6 +679,8 @@ const styles = StyleSheet.create({
   // Camera
   camera: { flex: 1 },
   cameraControls: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 40 },
-  captureButton: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#fff', padding: 5 },
+  captureButton: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#fff', padding: 5, marginBottom: 20 },
   captureInner: { flex: 1, borderRadius: 30, backgroundColor: '#3b82f6' },
+  cancelButton: { backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 },
+  cancelText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });
