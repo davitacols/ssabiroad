@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, ActivityIndicator, StatusBar, Linking, TextInput, Alert, Share } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { initAnalytics, logScreenView, logScan, logSaveLocation, logShareLocation, logError } from '../utils/analytics';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -22,6 +23,8 @@ export default function ScannerScreen() {
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
+    initAnalytics();
+    logScreenView('scanner');
     loadSavedLocations();
   }, []);
 
@@ -77,6 +80,7 @@ export default function ScannerScreen() {
       setSavedLocations(updated);
       setIsSaved(!isSaved);
       await SecureStore.setItemAsync('savedLocations', JSON.stringify(updated));
+      if (!isSaved) logSaveLocation();
     } catch (error) {
       console.error('Save error:', error);
       Alert.alert('Error', 'Failed to save location');
@@ -97,6 +101,7 @@ export default function ScannerScreen() {
         message: shareMessage,
         title: `Location: ${result.name}`,
       });
+      logShareLocation();
     } catch (error) {
       console.error('Share error:', error);
     }
@@ -113,24 +118,30 @@ export default function ScannerScreen() {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: 'image/*',
-        copyToCacheDirectory: true, // Copy to cache for upload
+        copyToCacheDirectory: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
         
-        // Copy content:// URI to file:// URI
+        // Check file size
+        if (asset.size && asset.size > 5 * 1024 * 1024) {
+          Alert.alert('Image Too Large', 'Please select an image smaller than 5MB.');
+          return;
+        }
+        
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (asset.mimeType && !validTypes.includes(asset.mimeType)) {
+          Alert.alert('Invalid Format', 'Please select a JPEG, PNG, or WebP image.');
+          return;
+        }
+        
         const filename = asset.name || `image_${Date.now()}.jpg`;
         const destPath = `${FileSystem.cacheDirectory}${filename}`;
         
         console.log('Copying from:', asset.uri);
         console.log('Copying to:', destPath);
-        
-        // Check file size
-        if (asset.size && asset.size > 5 * 1024 * 1024) {
-          setResult({ error: 'Image too large. Please select an image smaller than 5MB.' });
-          return;
-        }
         
         await FileSystem.copyAsync({
           from: asset.uri,
@@ -141,8 +152,9 @@ export default function ScannerScreen() {
         setImage(destPath);
         await processImage(destPath, undefined, undefined);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Document picker error:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
     }
   };
 
@@ -167,9 +179,27 @@ export default function ScannerScreen() {
       const data = await analyzeLocation(uri, gpsLocation, base64);
       console.log('API Response:', data);
       setResult(data);
+      logScan(true, data.method);
     } catch (error: any) {
       console.error('Full error:', error);
-      const errorMsg = error.response?.data?.error || error.message || 'Failed to process image';
+      let errorMsg = 'Failed to process image';
+      
+      if (!error.response) {
+        errorMsg = 'No internet connection. Please check your network and try again.';
+      } else if (error.response?.status === 413) {
+        errorMsg = 'Image is too large. Please select a smaller image (under 5MB).';
+      } else if (error.response?.status === 429) {
+        errorMsg = 'Too many requests. Please wait a moment and try again.';
+      } else if (error.response?.status >= 500) {
+        errorMsg = 'Server error. Please try again later.';
+      } else if (error.response?.data?.error) {
+        errorMsg = error.response.data.error;
+      } else if (error.message?.includes('timeout')) {
+        errorMsg = 'Request timed out. Please check your connection and try again.';
+      }
+      
+      logError(errorMsg, 'image_processing');
+      logScan(false);
       setResult({ error: errorMsg });
     } finally {
       setLoading(false);
@@ -199,6 +229,9 @@ export default function ScannerScreen() {
               <Text style={styles.backText}>← Back</Text>
             </TouchableOpacity>
             <View style={styles.headerActions}>
+              <TouchableOpacity onPress={() => router.push('/settings')} style={styles.settingsButton}>
+                <Text style={styles.settingsText}>⚙</Text>
+              </TouchableOpacity>
               {savedLocations.length > 0 && (
                 <TouchableOpacity onPress={() => Alert.alert('Saved Locations', `You have ${savedLocations.length} saved locations`)} style={styles.savedBadge}>
                   <Text style={styles.savedBadgeText}>{String(savedLocations.length)}</Text>
@@ -507,6 +540,8 @@ const styles = StyleSheet.create({
   backButton: {},
   backText: { fontSize: 16, color: '#3b82f6', fontWeight: '600' },
   headerActions: { flexDirection: 'row', alignItems: 'center' },
+  settingsButton: { marginRight: 8 },
+  settingsText: { fontSize: 24, color: '#64748b' },
   savedBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#dbeafe', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, marginRight: 8 },
   savedBadgeText: { fontSize: 13, color: '#1e40af', fontWeight: '700' },
   clearButton: { backgroundColor: '#fee2e2', width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },

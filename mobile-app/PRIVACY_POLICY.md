@@ -57,7 +57,7 @@ This app is not directed to children under 13.
 
 ## Contact
 
-For privacy concerns: support@ssabiroad.com
+For privacy concerns: support@pic2nav.com
 
 ## Changes
 
