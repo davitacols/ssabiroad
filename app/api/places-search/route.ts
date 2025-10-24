@@ -10,42 +10,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Query parameter required' }, { status: 400 });
     }
 
-    let url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
+    // Use Geocoding API for location search
+    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
     
-    if (location) {
-      url += `&location=${location}&radius=50000`;
-    }
-
-    const response = await fetch(url);
+    const response = await fetch(geocodeUrl);
 
     if (!response.ok) {
-      throw new Error('Google Places API error');
+      throw new Error('Google Geocoding API error');
     }
 
     const data = await response.json();
     
     if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-      throw new Error(`Places API error: ${data.status}`);
+      throw new Error(`Geocoding API error: ${data.status}`);
     }
 
-    const places = data.results?.map((place: any) => {
+    const places = data.results?.map((result: any) => {
       let distance = null;
       if (location) {
         const [lat, lng] = location.split(',').map(Number);
-        distance = calculateDistance(lat, lng, place.geometry.location.lat, place.geometry.location.lng);
+        distance = calculateDistance(lat, lng, result.geometry.location.lat, result.geometry.location.lng);
       }
       
       return {
-        id: place.place_id,
-        name: place.name,
-        vicinity: place.vicinity || place.formatted_address,
-        address: place.formatted_address,
-        rating: place.rating,
-        priceLevel: place.price_level,
-        types: place.types,
-        openNow: place.opening_hours?.open_now,
-        placeId: place.place_id,
-        distance
+        id: result.place_id,
+        name: result.formatted_address.split(',')[0], // First part as name
+        vicinity: result.formatted_address,
+        address: result.formatted_address,
+        types: result.types,
+        placeId: result.place_id,
+        distance,
+        coordinates: result.geometry.location
       };
     }) || [];
 

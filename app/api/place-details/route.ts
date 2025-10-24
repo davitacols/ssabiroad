@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
       businessStatus: result.business_status,
       types: result.types,
       userRatingsTotal: result.user_ratings_total,
+      geometry: result.geometry,
     })
   } catch (error) {
     console.error("Place details error:", error)

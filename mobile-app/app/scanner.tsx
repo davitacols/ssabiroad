@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, ActivityIndicator, StatusBar, Linking, TextInput, Alert, Share } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, ActivityIndicator, StatusBar, Linking, Alert, SafeAreaView } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { initAnalytics, logScreenView, logScan, logSaveLocation, logShareLocation, logError } from '../utils/analytics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -16,15 +16,31 @@ export default function ScannerScreen() {
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
-  const [showSuggestion, setShowSuggestion] = useState(false);
-  const [suggestion, setSuggestion] = useState('');
   const [savedLocations, setSavedLocations] = useState<any[]>([]);
   const [isSaved, setIsSaved] = useState(false);
-  const cameraRef = useState<any>({ current: null })[0];
+  const cameraRef = useRef<any>(null);
+
+  const addActivity = async (title: string, subtitle: string, route: string) => {
+    try {
+      const stored = await AsyncStorage.getItem('recentActivities');
+      const activities = stored ? JSON.parse(stored) : [];
+      
+      const newActivity = {
+        id: Date.now().toString(),
+        title,
+        subtitle,
+        timestamp: Date.now(),
+        route
+      };
+      
+      const updated = [newActivity, ...activities.slice(0, 4)];
+      await AsyncStorage.setItem('recentActivities', JSON.stringify(updated));
+    } catch (error) {
+      console.log('Error saving activity:', error);
+    }
+  };
 
   useEffect(() => {
-    initAnalytics();
-    logScreenView('scanner');
     loadSavedLocations();
   }, []);
 
@@ -69,39 +85,20 @@ export default function ScannerScreen() {
         updated = savedLocations.filter(
           loc => !(loc.latitude === result.location.latitude && loc.longitude === result.location.longitude)
         );
-        Alert.alert('Removed', 'Location removed from your collection');
+        await addActivity('Location Removed', `Removed: ${result.name || 'Location'}`, '/scanner');
+        Alert.alert('Removed', 'Location removed from collection');
       } else {
         updated = [locationData, ...savedLocations];
-        Alert.alert('Saved!', 'Location added to your collection');
+        await addActivity('Location Saved', `Saved: ${result.name || 'Location'}`, '/scanner');
+        Alert.alert('Saved', 'Location added to collection');
       }
 
       setSavedLocations(updated);
       setIsSaved(!isSaved);
       await SecureStore.setItemAsync('savedLocations', JSON.stringify(updated));
-      if (!isSaved) logSaveLocation();
     } catch (error) {
       console.error('Save error:', error);
       Alert.alert('Error', 'Failed to save location');
-    }
-  };
-
-  const handleShare = async () => {
-    if (!result) return;
-
-    try {
-      const shareMessage = `Location: ${result.name || 'Unknown'}\\n\\n` +
-        `Address: ${result.address || 'N/A'}\\n` +
-        `Coordinates: ${result.location?.latitude.toFixed(6)}, ${result.location?.longitude.toFixed(6)}\\n` +
-        `${result.confidence ? `Confidence: ${Math.round(result.confidence * 100)}%\\n` : ''}` +
-        `\\nView on Maps: https://www.google.com/maps?q=${result.location?.latitude},${result.location?.longitude}`;
-
-      await Share.share({
-        message: shareMessage,
-        title: `Location: ${result.name}`,
-      });
-      logShareLocation();
-    } catch (error) {
-      console.error('Share error:', error);
     }
   };
 
@@ -109,7 +106,7 @@ export default function ScannerScreen() {
     if (!permission?.granted) {
       const result = await requestPermission();
       if (!result.granted) {
-        Alert.alert('Permission Required', 'Camera permission is needed to take photos');
+        Alert.alert('Permission Required', 'Camera access needed');
         return;
       }
     }
@@ -127,13 +124,7 @@ export default function ScannerScreen() {
         const asset = result.assets[0];
         
         if (asset.size && asset.size > 5 * 1024 * 1024) {
-          Alert.alert('Image Too Large', 'Please select an image smaller than 5MB.');
-          return;
-        }
-        
-        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-        if (asset.mimeType && !validTypes.includes(asset.mimeType)) {
-          Alert.alert('Invalid Format', 'Please select a JPEG, PNG, or WebP image.');
+          Alert.alert('Image Too Large', 'Please select smaller image');
           return;
         }
         
@@ -146,15 +137,16 @@ export default function ScannerScreen() {
         });
         
         setImage(destPath);
-        await processImage(destPath, undefined, undefined);
+        await addActivity('Image Selected', 'Chose image from gallery', '/scanner');
+        await processImage(destPath);
       }
     } catch (error: any) {
       console.error('Document picker error:', error);
-      Alert.alert('Error', 'Failed to select image. Please try again.');
+      Alert.alert('Error', 'Failed to select image');
     }
   };
 
-  const processImage = async (uri: string, exif?: any, base64?: string) => {
+  const processImage = async (uri: string, exif?: any) => {
     setLoading(true);
     try {
       let gpsLocation = null;
@@ -166,29 +158,25 @@ export default function ScannerScreen() {
         };
       }
       
-      const data = await analyzeLocation(uri, gpsLocation, base64);
+      const data = await analyzeLocation(uri, gpsLocation);
       setResult(data);
-      logScan(true, data.method);
+      
+      if (data && !data.error) {
+        const locationName = data.name || data.address || 'Unknown location';
+        await addActivity('Location Analyzed', `Found: ${locationName}`, '/scanner');
+      }
     } catch (error: any) {
-      console.error('Full error:', error);
-      let errorMsg = 'Failed to process image';
+      console.error('Processing error:', error);
+      let errorMsg = 'Failed to analyze image';
       
       if (!error.response) {
-        errorMsg = 'No internet connection. Please check your network and try again.';
+        errorMsg = 'No internet connection';
       } else if (error.response?.status === 413) {
-        errorMsg = 'Image is too large. Please select a smaller image (under 5MB).';
+        errorMsg = 'Image too large';
       } else if (error.response?.status === 429) {
-        errorMsg = 'Too many requests. Please wait a moment and try again.';
-      } else if (error.response?.status >= 500) {
-        errorMsg = 'Server error. Please try again later.';
-      } else if (error.response?.data?.error) {
-        errorMsg = error.response.data.error;
-      } else if (error.message?.includes('timeout')) {
-        errorMsg = 'Request timed out. Please check your connection and try again.';
+        errorMsg = 'Too many requests';
       }
       
-      logError(errorMsg, 'image_processing');
-      logScan(false);
       setResult({ error: errorMsg });
     } finally {
       setLoading(false);
@@ -196,6 +184,11 @@ export default function ScannerScreen() {
   };
 
   const takePicture = async (camera: any) => {
+    if (!camera) {
+      Alert.alert('Error', 'Camera not ready');
+      return;
+    }
+
     try {
       const photo = await camera.takePictureAsync({
         quality: 0.8,
@@ -203,97 +196,98 @@ export default function ScannerScreen() {
         exif: true,
       });
       
-      setShowCamera(false);
-      setImage(photo.uri);
-      await processImage(photo.uri, photo.exif, undefined);
+      if (photo && photo.uri) {
+        setShowCamera(false);
+        setImage(photo.uri);
+        await addActivity('Photo Captured', 'Took photo for location analysis', '/scanner');
+        await processImage(photo.uri, photo.exif);
+      } else {
+        throw new Error('No photo captured');
+      }
     } catch (error) {
       console.error('Take picture error:', error);
-      Alert.alert('Error', 'Failed to take photo');
+      Alert.alert('Error', 'Failed to capture image. Please try again.');
+      setShowCamera(false);
     }
   };
 
   if (showCamera) {
     return (
-      <CameraView style={styles.camera} ref={(ref) => ref && (cameraRef.current = ref)}>
-        <View style={styles.cameraControls}>
-          <TouchableOpacity 
-            style={styles.captureButton} 
-            onPress={() => cameraRef.current && takePicture(cameraRef.current)}
-          >
-            <View style={styles.captureInner} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.cancelButton} 
-            onPress={() => setShowCamera(false)}
-          >
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
+      <CameraView style={styles.camera} ref={cameraRef}>
+        <SafeAreaView style={styles.cameraContainer}>
+          <View style={styles.cameraHeader}>
+            <TouchableOpacity onPress={() => setShowCamera(false)} style={styles.cameraClose}>
+              <Text style={styles.cameraCloseText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.cameraControls}>
+            <TouchableOpacity 
+              style={styles.captureButton} 
+              onPress={() => {
+                if (cameraRef.current) {
+                  takePicture(cameraRef.current);
+                } else {
+                  Alert.alert('Error', 'Camera not ready');
+                }
+              }}
+            >
+              <View style={styles.captureInner} />
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
       </CameraView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fafaf9" />
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <Text style={styles.backText}>Back</Text>
-            </TouchableOpacity>
-            <View style={styles.headerActions}>
-              <TouchableOpacity onPress={() => router.push('/geofence')} style={styles.actionButton}>
-                <Text style={styles.actionText}>Geofencing</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => router.push('/settings')} style={styles.actionButton}>
-                <Text style={styles.actionText}>Settings</Text>
-              </TouchableOpacity>
-              {savedLocations.length > 0 && (
-                <TouchableOpacity onPress={() => Alert.alert('Saved Locations', `You have ${savedLocations.length} saved locations`)} style={styles.savedBadge}>
-                  <Text style={styles.savedBadgeText}>{String(savedLocations.length)}</Text>
-                </TouchableOpacity>
-              )}
-              {(image || result) && (
-                <TouchableOpacity onPress={() => { setImage(null); setResult(null); setIsSaved(false); }} style={styles.clearButton}>
-                  <Text style={styles.clearText}>Clear</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-          <Text style={styles.title}>Photo Location Scanner</Text>
-          <Text style={styles.subtitle}>Identify locations from photos using AI and GPS data</Text>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Scanner</Text>
+        {(image || result) && (
+          <TouchableOpacity onPress={() => { setImage(null); setResult(null); setIsSaved(false); }} style={styles.clearButton}>
+            <Text style={styles.clearText}>Clear</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.introSection}>
+          <Text style={styles.introTitle}>Photo Location Scanner</Text>
+          <Text style={styles.introSubtitle}>Identify locations from photos using AI and GPS data</Text>
         </View>
 
         <View style={styles.actionSection}>
-          <TouchableOpacity style={styles.primaryButton} onPress={handleTakePhoto}>
-            <Text style={styles.primaryButtonText}>Take Photo</Text>
+          <TouchableOpacity style={styles.primaryAction} onPress={handleTakePhoto}>
+            <Text style={styles.primaryActionText}>Take Photo</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton} onPress={handlePickImage}>
-            <Text style={styles.secondaryButtonText}>Choose from Gallery</Text>
+          
+          <TouchableOpacity style={styles.secondaryAction} onPress={handlePickImage}>
+            <Text style={styles.secondaryActionText}>Choose from Gallery</Text>
           </TouchableOpacity>
         </View>
 
         {image && (
           <View style={styles.imageSection}>
             <Text style={styles.sectionTitle}>Selected Image</Text>
-            <View style={styles.imageContainer}>
-              <Image source={{ uri: image }} style={styles.image} />
-            </View>
+            <Image source={{ uri: image }} style={styles.selectedImage} />
           </View>
         )}
 
         {loading && (
           <View style={styles.loadingSection}>
-            <ActivityIndicator size="large" color="#3b82f6" />
+            <ActivityIndicator size="large" color="#000000" />
             <Text style={styles.loadingText}>Analyzing location...</Text>
-            <Text style={styles.loadingSubtext}>This may take a few moments</Text>
           </View>
         )}
 
         {result && (
-          <ScrollView style={styles.resultSection}>
+          <View style={styles.resultSection}>
             {result.error ? (
               <View style={styles.errorCard}>
                 <Text style={styles.errorTitle}>Analysis Failed</Text>
@@ -301,13 +295,11 @@ export default function ScannerScreen() {
               </View>
             ) : (
               <>
-                <View style={styles.mainCard}>
-                  <View style={styles.cardHeader}>
+                <View style={styles.locationCard}>
+                  <View style={styles.locationHeader}>
                     <Text style={styles.locationName}>{result.name || 'Location Found'}</Text>
                     {result.confidence && (
-                      <View style={styles.confidenceBadge}>
-                        <Text style={styles.confidenceText}>{Math.round(result.confidence * 100)}% Match</Text>
-                      </View>
+                      <Text style={styles.confidence}>{Math.round(result.confidence * 100)}% match</Text>
                     )}
                   </View>
                   
@@ -315,411 +307,133 @@ export default function ScannerScreen() {
                     <Text style={styles.locationAddress}>{result.address}</Text>
                   )}
 
-                  <View style={styles.actionRow}>
+                  <View style={styles.locationActions}>
                     <TouchableOpacity 
-                      style={[styles.actionBtn, isSaved && styles.actionBtnSaved]} 
+                      style={[styles.actionButton, isSaved && styles.actionButtonSaved]} 
                       onPress={handleSave}
                     >
-                      <Text style={[styles.actionBtnText, isSaved && styles.actionBtnTextSaved]}>
-                        {isSaved ? 'Saved' : 'Save Location'}
+                      <Text style={[styles.actionButtonText, isSaved && styles.actionButtonTextSaved]}>
+                        {isSaved ? 'Saved' : 'Save'}
                       </Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionBtn} onPress={handleShare}>
-                      <Text style={styles.actionBtnText}>Share</Text>
-                    </TouchableOpacity>
+                    
                     {result.location && (
                       <TouchableOpacity 
-                        style={styles.actionBtn}
+                        style={styles.actionButton}
                         onPress={() => {
                           const url = `https://www.google.com/maps/dir/?api=1&destination=${result.location.latitude},${result.location.longitude}`;
                           Linking.openURL(url);
                         }}
                       >
-                        <Text style={styles.actionBtnText}>Navigate</Text>
+                        <Text style={styles.actionButtonText}>Navigate</Text>
                       </TouchableOpacity>
                     )}
                   </View>
                 </View>
 
-                <View style={styles.detailsGrid}>
-                  {result.location && (
-                    <View style={styles.detailCard}>
+                {result.location && (
+                  <View style={styles.detailsCard}>
+                    <Text style={styles.detailsTitle}>Details</Text>
+                    <View style={styles.detailRow}>
                       <Text style={styles.detailLabel}>Coordinates</Text>
-                      <Text style={styles.detailValue}>{result.location.latitude.toFixed(6)}, {result.location.longitude.toFixed(6)}</Text>
+                      <Text style={styles.detailValue}>
+                        {result.location.latitude.toFixed(6)}, {result.location.longitude.toFixed(6)}
+                      </Text>
                     </View>
-                  )}
-                  {result.elevation?.elevation != null && (
-                    <View style={styles.detailCard}>
-                      <Text style={styles.detailLabel}>Elevation</Text>
-                      <Text style={styles.detailValue}>{result.elevation.elevation}m</Text>
-                    </View>
-                  )}
-                  {result.weather?.temperature != null && (
-                    <View style={styles.detailCard}>
-                      <Text style={styles.detailLabel}>Temperature</Text>
-                      <Text style={styles.detailValue}>{result.weather.temperature}°C</Text>
-                    </View>
-                  )}
-                  {result.locationDetails?.country && (
-                    <View style={styles.detailCard}>
-                      <Text style={styles.detailLabel}>Country</Text>
-                      <Text style={styles.detailValue}>{result.locationDetails.country}</Text>
-                    </View>
-                  )}
-                </View>
+                    {result.elevation?.elevation != null && (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Elevation</Text>
+                        <Text style={styles.detailValue}>{result.elevation.elevation}m</Text>
+                      </View>
+                    )}
+                    {result.weather?.temperature != null && (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Temperature</Text>
+                        <Text style={styles.detailValue}>{result.weather.temperature}°C</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
 
                 {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
-                  <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                      <Text style={styles.sectionTitle}>Nearby Places</Text>
-                      <View style={styles.countBadge}>
-                        <Text style={styles.countText}>{result.nearbyPlaces.length}</Text>
-                      </View>
-                    </View>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalList}>
-                      {result.nearbyPlaces.slice(0, 8).map((place: any, idx: number) => (
-                        <View key={idx} style={styles.placeCard}>
-                          <Text style={styles.placeName} numberOfLines={2}>{place.name || 'Place'}</Text>
-                          <Text style={styles.placeType}>{place.type || 'Location'}</Text>
-                          <View style={styles.placeFooter}>
-                            {place.distance && (
-                              <Text style={styles.placeDistance}>{place.distance}m</Text>
-                            )}
-                            {place.rating != null && place.rating > 0 && (
-                              <Text style={styles.placeRating}>{place.rating.toFixed(1)}</Text>
-                            )}
-                          </View>
+                  <View style={styles.nearbySection}>
+                    <Text style={styles.nearbyTitle}>Nearby Places</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.nearbyScroll}>
+                      {result.nearbyPlaces.slice(0, 5).map((place: any, idx: number) => (
+                        <View key={idx} style={styles.nearbyCard}>
+                          <Text style={styles.nearbyName} numberOfLines={2}>{place.name || 'Place'}</Text>
+                          <Text style={styles.nearbyType}>{place.type || 'Location'}</Text>
+                          {place.distance && (
+                            <Text style={styles.nearbyDistance}>{place.distance}m away</Text>
+                          )}
                         </View>
                       ))}
                     </ScrollView>
                   </View>
                 )}
-
-                {savedLocations.length > 0 && (
-                  <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                      <Text style={styles.sectionTitle}>Your Saved Locations</Text>
-                      <View style={styles.countBadge}>
-                        <Text style={styles.countText}>{savedLocations.length}</Text>
-                      </View>
-                    </View>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalList}>
-                      {savedLocations.slice(0, 5).map((loc: any, idx: number) => (
-                        <TouchableOpacity 
-                          key={idx} 
-                          style={styles.savedCard}
-                          onPress={() => {
-                            if (loc.latitude && loc.longitude) {
-                              const url = `https://www.google.com/maps?q=${loc.latitude},${loc.longitude}`;
-                              Linking.openURL(url);
-                            }
-                          }}
-                        >
-                          <Text style={styles.savedName} numberOfLines={2}>{loc.name || 'Saved Location'}</Text>
-                          <Text style={styles.savedDate}>{new Date(loc.savedAt).toLocaleDateString()}</Text>
-                          <Text style={styles.savedCoords}>{loc.latitude?.toFixed(2)}, {loc.longitude?.toFixed(2)}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-
-                <View style={styles.feedbackSection}>
-                  <TouchableOpacity 
-                    style={styles.feedbackButton}
-                    onPress={() => setShowSuggestion(!showSuggestion)}
-                  >
-                    <Text style={styles.feedbackText}>Wrong location? Help us improve</Text>
-                  </TouchableOpacity>
-
-                  {showSuggestion && (
-                    <View style={styles.suggestionBox}>
-                      <TextInput
-                        style={styles.suggestionInput}
-                        placeholder="Enter correct location name..."
-                        placeholderTextColor="#94a3b8"
-                        value={suggestion}
-                        onChangeText={setSuggestion}
-                        multiline
-                      />
-                      <TouchableOpacity 
-                        style={styles.submitButton}
-                        onPress={() => {
-                          if (suggestion.trim()) {
-                            Alert.alert('Thank You!', 'Your feedback helps improve accuracy.');
-                            setSuggestion('');
-                            setShowSuggestion(false);
-                          }
-                        }}
-                      >
-                        <Text style={styles.submitButtonText}>Submit Feedback</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
               </>
             )}
-          </ScrollView>
+          </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  scrollView: { flex: 1 },
-  scrollContent: { paddingBottom: 40 },
-  header: { 
-    backgroundColor: '#ffffff', 
-    paddingTop: 60, 
-    paddingHorizontal: 24, 
-    paddingBottom: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0'
-  },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  backButton: {},
-  backText: { fontSize: 16, color: '#3b82f6', fontWeight: '600' },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  actionButton: { 
-    backgroundColor: '#f1f5f9', 
-    paddingHorizontal: 12, 
-    paddingVertical: 6, 
-    borderRadius: 8 
-  },
-  actionText: { fontSize: 12, color: '#475569', fontWeight: '600' },
-  savedBadge: { 
-    backgroundColor: '#dbeafe', 
-    paddingHorizontal: 10, 
-    paddingVertical: 6, 
-    borderRadius: 12 
-  },
-  savedBadgeText: { fontSize: 12, color: '#1e40af', fontWeight: '700' },
-  clearButton: { 
-    backgroundColor: '#fee2e2', 
-    paddingHorizontal: 10, 
-    paddingVertical: 6, 
-    borderRadius: 8 
-  },
-  clearText: { fontSize: 12, color: '#dc2626', fontWeight: '600' },
-  title: { fontSize: 28, fontWeight: '800', color: '#0f172a', marginBottom: 4 },
-  subtitle: { fontSize: 15, color: '#64748b', fontWeight: '500' },
-  
-  actionSection: { 
-    backgroundColor: '#ffffff', 
-    padding: 24, 
-    gap: 12 
-  },
-  primaryButton: { 
-    backgroundColor: '#3b82f6', 
-    padding: 18, 
-    borderRadius: 12, 
-    alignItems: 'center',
-    shadowColor: '#3b82f6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4
-  },
-  primaryButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
-  secondaryButton: { 
-    backgroundColor: '#f8fafc', 
-    borderWidth: 2,
-    borderColor: '#e2e8f0',
-    padding: 18, 
-    borderRadius: 12, 
-    alignItems: 'center' 
-  },
-  secondaryButtonText: { color: '#0f172a', fontSize: 16, fontWeight: '700' },
-  
-  imageSection: { 
-    backgroundColor: '#ffffff', 
-    margin: 24, 
-    borderRadius: 20, 
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4
-  },
-  imageContainer: { marginTop: 12 },
-  image: { width: '100%', height: 300, borderRadius: 12 },
-  
-  loadingSection: { 
-    backgroundColor: '#ffffff', 
-    margin: 24, 
-    borderRadius: 20, 
-    padding: 40, 
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4
-  },
-  loadingText: { marginTop: 16, fontSize: 16, color: '#0f172a', fontWeight: '600' },
-  loadingSubtext: { marginTop: 4, fontSize: 14, color: '#64748b' },
-  
-  resultSection: { flex: 1 },
-  
-  errorCard: { 
-    backgroundColor: '#ffffff', 
-    margin: 24, 
-    borderRadius: 20, 
-    padding: 24,
-    borderWidth: 2,
-    borderColor: '#fecaca'
-  },
-  errorTitle: { fontSize: 20, fontWeight: '700', color: '#dc2626', marginBottom: 8 },
-  errorText: { fontSize: 15, color: '#64748b', lineHeight: 22 },
-  
-  mainCard: { 
-    backgroundColor: '#ffffff', 
-    margin: 24, 
-    borderRadius: 20, 
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4
-  },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  locationName: { fontSize: 22, fontWeight: '800', color: '#0f172a', flex: 1, marginRight: 12 },
-  confidenceBadge: { backgroundColor: '#dcfce7', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  confidenceText: { fontSize: 12, fontWeight: '700', color: '#166534' },
-  locationAddress: { fontSize: 15, color: '#64748b', marginBottom: 20, lineHeight: 22 },
-  
-  actionRow: { flexDirection: 'row', gap: 8 },
-  actionBtn: { 
-    flex: 1, 
-    backgroundColor: '#f8fafc', 
-    padding: 12, 
-    borderRadius: 10, 
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e2e8f0'
-  },
-  actionBtnSaved: { backgroundColor: '#fee2e2', borderColor: '#fecaca' },
-  actionBtnText: { fontSize: 13, fontWeight: '600', color: '#475569' },
-  actionBtnTextSaved: { color: '#dc2626' },
-  
-  detailsGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 8 },
-  detailCard: { 
-    width: '48%', 
-    backgroundColor: '#ffffff', 
-    borderRadius: 12, 
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2
-  },
-  detailLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '600', marginBottom: 4 },
-  detailValue: { fontSize: 15, fontWeight: '700', color: '#0f172a' },
-  
-  section: { marginTop: 16, paddingHorizontal: 24 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a', flex: 1 },
-  countBadge: { backgroundColor: '#3b82f6', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 },
-  countText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
-  
-  horizontalList: { marginLeft: -24 },
-  
-  placeCard: { 
-    width: 160, 
-    backgroundColor: '#ffffff', 
-    borderRadius: 12, 
-    padding: 16, 
-    marginLeft: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3
-  },
-  placeName: { fontSize: 15, fontWeight: '700', color: '#0f172a', marginBottom: 6, height: 40 },
-  placeType: { fontSize: 12, color: '#64748b', marginBottom: 8 },
-  placeFooter: { flexDirection: 'row', justifyContent: 'space-between' },
-  placeDistance: { fontSize: 11, color: '#3b82f6', fontWeight: '600' },
-  placeRating: { fontSize: 11, color: '#f59e0b', fontWeight: '600' },
-  
-  savedCard: { 
-    width: 160, 
-    backgroundColor: '#ffffff', 
-    borderRadius: 12, 
-    padding: 16, 
-    marginLeft: 24,
-    borderWidth: 2,
-    borderColor: '#dbeafe'
-  },
-  savedName: { fontSize: 14, fontWeight: '700', color: '#0f172a', marginBottom: 8, height: 36 },
-  savedDate: { fontSize: 11, color: '#64748b', marginBottom: 8 },
-  savedCoords: { fontSize: 10, color: '#3b82f6', fontWeight: '600' },
-  
-  feedbackSection: { margin: 24 },
-  feedbackButton: { 
-    backgroundColor: '#ffffff', 
-    borderRadius: 12, 
-    padding: 16, 
-    borderWidth: 2, 
-    borderColor: '#e2e8f0', 
-    borderStyle: 'dashed',
-    alignItems: 'center'
-  },
-  feedbackText: { fontSize: 14, fontWeight: '600', color: '#64748b' },
-  suggestionBox: { 
-    marginTop: 12, 
-    padding: 16, 
-    backgroundColor: '#fffbeb', 
-    borderRadius: 12, 
-    borderWidth: 1, 
-    borderColor: '#fbbf24' 
-  },
-  suggestionInput: { 
-    backgroundColor: '#ffffff', 
-    padding: 14, 
-    borderRadius: 8, 
-    borderWidth: 1, 
-    borderColor: '#fbbf24', 
-    fontSize: 14, 
-    color: '#0f172a', 
-    minHeight: 70, 
-    textAlignVertical: 'top', 
-    marginBottom: 12 
-  },
-  submitButton: { 
-    backgroundColor: '#3b82f6', 
-    padding: 14, 
-    borderRadius: 8, 
-    alignItems: 'center' 
-  },
-  submitButtonText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
-  
+  container: { flex: 1, backgroundColor: '#ffffff' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  backButton: { marginRight: 16 },
+  backText: { fontSize: 16, color: '#000000', fontWeight: '500' },
+  headerTitle: { fontSize: 24, fontWeight: '600', color: '#000000', flex: 1 },
+  clearButton: { },
+  clearText: { fontSize: 16, color: '#6b7280', fontWeight: '500' },
+  content: { flex: 1 },
+  introSection: { padding: 24, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  introTitle: { fontSize: 28, fontWeight: '700', color: '#000000', marginBottom: 8 },
+  introSubtitle: { fontSize: 16, color: '#6b7280', lineHeight: 24 },
+  actionSection: { padding: 24, gap: 12 },
+  primaryAction: { backgroundColor: '#000000', borderRadius: 12, padding: 16, alignItems: 'center' },
+  primaryActionText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
+  secondaryAction: { backgroundColor: '#f3f4f6', borderRadius: 12, padding: 16, alignItems: 'center' },
+  secondaryActionText: { color: '#000000', fontSize: 16, fontWeight: '600' },
+  imageSection: { padding: 24 },
+  sectionTitle: { fontSize: 18, fontWeight: '600', color: '#000000', marginBottom: 16 },
+  selectedImage: { width: '100%', height: 240, borderRadius: 12 },
+  loadingSection: { alignItems: 'center', padding: 40 },
+  loadingText: { marginTop: 16, fontSize: 16, color: '#000000', fontWeight: '500' },
+  resultSection: { padding: 24 },
+  errorCard: { backgroundColor: '#fef2f2', borderRadius: 12, padding: 20, borderWidth: 1, borderColor: '#fecaca' },
+  errorTitle: { fontSize: 18, fontWeight: '600', color: '#dc2626', marginBottom: 8 },
+  errorText: { fontSize: 16, color: '#6b7280' },
+  locationCard: { backgroundColor: '#ffffff', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6' },
+  locationHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+  locationName: { fontSize: 20, fontWeight: '600', color: '#000000', flex: 1, marginRight: 12 },
+  confidence: { fontSize: 14, color: '#6b7280', fontWeight: '500' },
+  locationAddress: { fontSize: 16, color: '#6b7280', marginBottom: 20, lineHeight: 24 },
+  locationActions: { flexDirection: 'row', gap: 12 },
+  actionButton: { flex: 1, backgroundColor: '#f3f4f6', padding: 12, borderRadius: 8, alignItems: 'center' },
+  actionButtonSaved: { backgroundColor: '#000000' },
+  actionButtonText: { fontSize: 14, fontWeight: '600', color: '#000000' },
+  actionButtonTextSaved: { color: '#ffffff' },
+  detailsCard: { backgroundColor: '#ffffff', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6' },
+  detailsTitle: { fontSize: 18, fontWeight: '600', color: '#000000', marginBottom: 16 },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 },
+  detailLabel: { fontSize: 16, color: '#6b7280' },
+  detailValue: { fontSize: 16, fontWeight: '500', color: '#000000' },
+  nearbySection: { },
+  nearbyTitle: { fontSize: 18, fontWeight: '600', color: '#000000', marginBottom: 16 },
+  nearbyScroll: { },
+  nearbyCard: { width: 140, backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginRight: 12, borderWidth: 1, borderColor: '#f3f4f6' },
+  nearbyName: { fontSize: 14, fontWeight: '600', color: '#000000', marginBottom: 4, height: 36 },
+  nearbyType: { fontSize: 12, color: '#6b7280', marginBottom: 8 },
+  nearbyDistance: { fontSize: 12, color: '#000000', fontWeight: '500' },
   camera: { flex: 1 },
-  cameraControls: { 
-    flex: 1, 
-    justifyContent: 'flex-end', 
-    alignItems: 'center', 
-    paddingBottom: 40 
-  },
-  captureButton: { 
-    width: 70, 
-    height: 70, 
-    borderRadius: 35, 
-    backgroundColor: '#ffffff', 
-    padding: 5, 
-    marginBottom: 20 
-  },
-  captureInner: { flex: 1, borderRadius: 30, backgroundColor: '#3b82f6' },
-  cancelButton: { 
-    backgroundColor: 'rgba(0,0,0,0.5)', 
-    paddingHorizontal: 24, 
-    paddingVertical: 12, 
-    borderRadius: 20 
-  },
-  cancelText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
+  cameraContainer: { flex: 1 },
+  cameraHeader: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20 },
+  cameraClose: { alignSelf: 'flex-start' },
+  cameraCloseText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
+  cameraControls: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 60 },
+  captureButton: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#ffffff', padding: 6 },
+  captureInner: { flex: 1, borderRadius: 34, backgroundColor: '#000000' },
 });
