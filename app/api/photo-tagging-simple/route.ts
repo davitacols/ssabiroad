@@ -18,7 +18,9 @@ export async function POST(request: NextRequest) {
 
     // Use Google Application Default Credentials
     const auth = new GoogleAuth({
-      scopes: ['https://www.googleapis.com/auth/cloud-platform']
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+      credentials: process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON ? 
+        JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) : undefined
     });
     const authClient = await auth.getClient();
     const accessToken = await authClient.getAccessToken();
