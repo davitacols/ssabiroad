@@ -21,9 +21,6 @@ export const PhotoTaggingService = {
       const response = await fetch(API_URL, {
         method: 'POST',
         body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
       });
 
       if (!response.ok) {
