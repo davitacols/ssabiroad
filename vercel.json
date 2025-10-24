@@ -1,7 +1,8 @@
 {
   "functions": {
     "app/api/location-recognition-v2/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "maxRequestBodySize": "10mb"
     }
   }
 }

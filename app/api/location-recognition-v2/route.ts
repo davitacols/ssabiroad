@@ -92,15 +92,29 @@ class LocationRecognizer {
           allKeys: Object.keys(exifData)
         });
         
-        if (exifData.GPS && Object.keys(exifData.GPS).length > 0) {
+        if (exifData.GPS) {
           console.log('GPS data found in piexifjs:', Object.keys(exifData.GPS));
-          console.log('Full GPS data:', exifData.GPS);
           
-          const gpsLat = exifData.GPS[piexif.GPSIFD.GPSLatitude];
-          const gpsLatRef = exifData.GPS[piexif.GPSIFD.GPSLatitudeRef];
-          const gpsLng = exifData.GPS[piexif.GPSIFD.GPSLongitude];
-          const gpsLngRef = exifData.GPS[piexif.GPSIFD.GPSLongitudeRef];
+          // Dump ALL GPS entries for debugging
+          console.log('All GPS IFD entries:');
+          for (let i = 0; i < 32; i++) {
+            if (exifData.GPS[i] !== undefined) {
+              console.log(`  GPS[${i}]:`, exifData.GPS[i]);
+            }
+          }
           
+          // Try all possible GPS tag IDs
+          const gpsLat = exifData.GPS[piexif.GPSIFD.GPSLatitude] || exifData.GPS[2];
+          const gpsLatRef = exifData.GPS[piexif.GPSIFD.GPSLatitudeRef] || exifData.GPS[1];
+          const gpsLng = exifData.GPS[piexif.GPSIFD.GPSLongitude] || exifData.GPS[4];
+          const gpsLngRef = exifData.GPS[piexif.GPSIFD.GPSLongitudeRef] || exifData.GPS[3];
+          
+          console.log('GPS tag constants:', {
+            GPSLatitude: piexif.GPSIFD.GPSLatitude,
+            GPSLatitudeRef: piexif.GPSIFD.GPSLatitudeRef,
+            GPSLongitude: piexif.GPSIFD.GPSLongitude,
+            GPSLongitudeRef: piexif.GPSIFD.GPSLongitudeRef
+          });
           console.log('Raw GPS data:', { gpsLat, gpsLatRef, gpsLng, gpsLngRef });
           
           if (gpsLat && gpsLng) {
@@ -123,6 +137,7 @@ class LocationRecognizer {
         }
       } catch (piexifError) {
         console.log('Piexifjs failed:', piexifError.message);
+        console.log('Piexifjs error stack:', piexifError.stack);
       }
       
       // Method 2: Standard EXIF parser

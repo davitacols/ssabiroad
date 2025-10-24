@@ -147,9 +147,9 @@ export function CameraRecognitionModern() {
     setUploadProgress(0)
 
     try {
-      const compressedFile = await compressImage(file)
+      // Send original file to preserve GPS data - compression strips EXIF
       const formData = new FormData()
-      formData.append("image", compressedFile)
+      formData.append("image", file)
       formData.append("analyzeLandmarks", "true")
 
       const progressInterval = setInterval(() => {
@@ -250,13 +250,24 @@ export function CameraRecognitionModern() {
 
   const handleFileSelect = useCallback((file: File) => {
     if (!file) return
+    
+    // Check file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image under 10MB",
+        variant: "destructive"
+      })
+      return
+    }
+    
     const url = URL.createObjectURL(file)
     setPreviewUrl(url)
     setZoom(1)
     setRotation(0)
     setUploadHistory(prev => [{ url, name: file.name, timestamp: Date.now() }, ...prev.slice(0, 4)])
     processImage(file)
-  }, [processImage])
+  }, [processImage, toast])
 
   const reset = useCallback(() => {
     setResult(null)
@@ -315,7 +326,7 @@ export function CameraRecognitionModern() {
           <div className="flex items-center justify-between h-16 sm:h-20">
             <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
               <a href="/">
-                <img src="/pic2nav.png" alt="Pic2Nav" className="h-32 sm:h-40 md:h-48 w-auto object-contain drop-shadow-lg cursor-pointer hover:opacity-90 transition-opacity" />
+                <img src="/pic2nav.png" alt="Pic2Nav" className="h-12 sm:h-14 md:h-16 w-auto object-contain drop-shadow-lg cursor-pointer hover:opacity-90 transition-opacity" />
               </a>
               <div className="hidden md:flex items-center gap-1">
                 <Button variant="ghost" className="rounded-full text-sm" asChild>
@@ -404,22 +415,25 @@ export function CameraRecognitionModern() {
                     </div>
                   )}
                   {isProcessing && (
-                    <div className="absolute inset-0 bg-white/95 dark:bg-stone-900/95 backdrop-blur-sm flex items-center justify-center">
-                      <div className="text-center space-y-4 p-8 w-full max-w-xs">
-                        <Loader2 className="w-12 h-12 text-stone-900 dark:text-stone-100 animate-spin mx-auto" />
-                        <div>
-                          <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">Processing image</p>
-                          <p className="text-xs text-stone-600 dark:text-stone-400 mt-1">Analyzing location data...</p>
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/98 via-blue-50/95 to-purple-50/95 dark:from-stone-900/98 dark:via-blue-950/95 dark:to-purple-950/95 backdrop-blur-md flex items-center justify-center">
+                      <div className="text-center space-y-6 p-8 w-full max-w-sm">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full blur-2xl opacity-20 animate-pulse"></div>
+                          <Loader2 className="relative w-16 h-16 text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text animate-spin mx-auto" style={{WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}} />
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-lg font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Analyzing Image</p>
+                          <p className="text-sm text-stone-600 dark:text-stone-400">Extracting location data...</p>
                         </div>
                         {uploadProgress > 0 && (
-                          <div className="w-full">
-                            <div className="h-2 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden">
+                          <div className="w-full space-y-2">
+                            <div className="h-1.5 bg-stone-200/50 dark:bg-stone-700/50 rounded-full overflow-hidden backdrop-blur-sm">
                               <div 
-                                className="h-full bg-stone-900 dark:bg-stone-100 transition-all duration-300 rounded-full" 
+                                className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transition-all duration-500 ease-out rounded-full shadow-lg" 
                                 style={{ width: `${uploadProgress}%` }}
                               />
                             </div>
-                            <p className="text-xs text-stone-500 dark:text-stone-400 mt-2">{uploadProgress}%</p>
+                            <p className="text-xs font-medium text-stone-500 dark:text-stone-400">{uploadProgress}%</p>
                           </div>
                         )}
                       </div>
