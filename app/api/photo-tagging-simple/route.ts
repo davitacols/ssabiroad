@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleAuth } from 'google-auth-library';
 
 export const runtime = 'nodejs';
 
@@ -16,24 +15,19 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const base64 = Buffer.from(bytes).toString('base64');
 
-    // Use Google Application Default Credentials
-    const auth = new GoogleAuth({
-      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-      credentials: process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON ? 
-        JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) : undefined
-    });
-    const authClient = await auth.getClient();
-    const accessToken = await authClient.getAccessToken();
+    // Use API key from Maps API (same project)
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    
+    if (!apiKey) {
+      return NextResponse.json({ error: 'Google API key not configured' }, { status: 500 });
+    }
 
     // Analyze with Google Vision API
     const visionResponse = await fetch(
-      'https://vision.googleapis.com/v1/images:annotate',
+      `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`,
       {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken.token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           requests: [{
             image: { content: base64 },
