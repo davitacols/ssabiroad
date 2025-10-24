@@ -83,3 +83,22 @@ model LocationCorrection {
 
   @@map("location_corrections")
 }
+
+model Geofence {
+  id            String    @id @default(cuid())
+  name          String
+  latitude      Float
+  longitude     Float
+  radius        Float
+  userId        String
+  notifyOnEnter Boolean   @default(true)
+  notifyOnExit  Boolean   @default(true)
+  active        Boolean   @default(true)
+  lastStatus    String?
+  lastTriggered DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([active])
+}
