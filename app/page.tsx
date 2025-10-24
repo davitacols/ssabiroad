@@ -20,7 +20,7 @@ export default function HomePage() {
       <nav className="sticky top-0 z-50 border-b border-stone-200/50 dark:border-stone-800/50 bg-white/50 dark:bg-black/50 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
-            <img src="/pic2nav.png" alt="Pic2Nav" className="h-32 sm:h-40 md:h-48 w-auto object-contain drop-shadow-lg" />
+            <img src="/pic2nav.png" alt="Pic2Nav" className="h-12 sm:h-14 md:h-16 w-auto object-contain drop-shadow-lg" />
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
             <Button variant="ghost" className="hidden md:inline-flex rounded-full" asChild>
@@ -171,7 +171,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6">
             <div className="flex items-center gap-3">
-              <img src="/pic2nav.png" alt="Pic2Nav" className="h-16 sm:h-20 md:h-24 w-auto object-contain drop-shadow-lg" />
+              <img src="/pic2nav.png" alt="Pic2Nav" className="h-10 sm:h-12 md:h-14 w-auto object-contain drop-shadow-lg" />
             </div>
             <p className="text-xs sm:text-sm text-stone-500">© 2024 Pic2Nav</p>
           </div>
