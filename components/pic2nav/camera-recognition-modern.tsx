@@ -326,7 +326,7 @@ export function CameraRecognitionModern() {
           <div className="flex items-center justify-between h-16 sm:h-20">
             <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
               <a href="/">
-                <img src="/pic2nav.png" alt="Pic2Nav" className="h-12 sm:h-14 md:h-16 w-auto object-contain drop-shadow-lg cursor-pointer hover:opacity-90 transition-opacity" />
+                <img src="/pic2nav.png" alt="Pic2Nav" className="h-8 sm:h-10 md:h-12 w-auto object-contain drop-shadow-lg cursor-pointer hover:opacity-90 transition-opacity" />
               </a>
               <div className="hidden md:flex items-center gap-1">
                 <Button variant="ghost" className="rounded-full text-sm" asChild>
