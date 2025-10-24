@@ -339,7 +339,7 @@ export default function ScannerScreen() {
                       style={[styles.actionButton, isSaved && styles.actionButtonSaved]} 
                       onPress={handleSave}
                     >
-                      <Text style={[styles.actionButtonText, isSaved && styles.actionButtonTextSaved]}>
+                      <Text style={[styles.actionButtonText, isSaved && styles.actionButtonTextSaved]} numberOfLines={1}>
                         {isSaved ? 'Saved' : 'Save'}
                       </Text>
                     </TouchableOpacity>
@@ -352,7 +352,7 @@ export default function ScannerScreen() {
                           Linking.openURL(url);
                         }}
                       >
-                        <Text style={styles.actionButtonText}>Navigate</Text>
+                        <Text style={styles.actionButtonText} numberOfLines={1}>Get Directions</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -438,10 +438,10 @@ const styles = StyleSheet.create({
   locationName: { fontSize: 20, fontWeight: '600', color: '#000000', flex: 1, marginRight: 12 },
   confidence: { fontSize: 14, color: '#6b7280', fontWeight: '500' },
   locationAddress: { fontSize: 16, color: '#6b7280', marginBottom: 20, lineHeight: 24 },
-  locationActions: { flexDirection: 'row', gap: 12 },
-  actionButton: { flex: 1, backgroundColor: '#f3f4f6', padding: 12, borderRadius: 8, alignItems: 'center' },
+  locationActions: { flexDirection: 'row', gap: 8 },
+  actionButton: { flex: 1, backgroundColor: '#f3f4f6', paddingVertical: 12, paddingHorizontal: 8, borderRadius: 8, alignItems: 'center' },
   actionButtonSaved: { backgroundColor: '#000000' },
-  actionButtonText: { fontSize: 14, fontWeight: '600', color: '#000000' },
+  actionButtonText: { fontSize: 13, fontWeight: '600', color: '#000000' },
   actionButtonTextSaved: { color: '#ffffff' },
   detailsCard: { backgroundColor: '#ffffff', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6' },
   detailsTitle: { fontSize: 18, fontWeight: '600', color: '#000000', marginBottom: 16 },

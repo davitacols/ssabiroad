@@ -17,6 +17,8 @@ export default function NearbyPoi() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<any[]>([]);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
 
@@ -91,12 +93,32 @@ export default function NearbyPoi() {
     }
   };
 
+  const fetchAutocomplete = async (query: string) => {
+    if (!query.trim() || query.length < 2) {
+      setAutocompleteSuggestions([]);
+      setShowAutocomplete(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://pic2nav.com/api/places-autocomplete?input=${encodeURIComponent(query)}&location=${location?.latitude},${location?.longitude}`
+      );
+      const data = await response.json();
+      setAutocompleteSuggestions(data.predictions || []);
+      setShowAutocomplete(true);
+    } catch (error) {
+      console.log('Autocomplete error:', error);
+    }
+  };
+
   const searchPlaces = async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
       return;
     }
 
+    setShowAutocomplete(false);
     setIsSearching(true);
     try {
       const response = await fetch(
@@ -122,6 +144,8 @@ export default function NearbyPoi() {
   const clearSearch = () => {
     setSearchQuery('');
     setSearchResults([]);
+    setAutocompleteSuggestions([]);
+    setShowAutocomplete(false);
   };
 
   const handlePlacePress = async (place: any) => {
@@ -171,7 +195,10 @@ export default function NearbyPoi() {
                 style={styles.searchInput}
                 placeholder="Search addresses, places..."
                 value={searchQuery}
-                onChangeText={setSearchQuery}
+                onChangeText={(text) => {
+                  setSearchQuery(text);
+                  fetchAutocomplete(text);
+                }}
                 onSubmitEditing={handleSearch}
                 returnKeyType="search"
                 placeholderTextColor="#9ca3af"
@@ -184,6 +211,24 @@ export default function NearbyPoi() {
             ) : null}
           </View>
         </View>
+
+        {showAutocomplete && autocompleteSuggestions.length > 0 && (
+          <View style={styles.autocompleteSection}>
+            {autocompleteSuggestions.slice(0, 5).map((suggestion, index) => (
+              <TouchableOpacity
+                key={suggestion.place_id || index}
+                style={styles.autocompleteItem}
+                onPress={() => {
+                  setSearchQuery(suggestion.description);
+                  setShowAutocomplete(false);
+                  searchPlaces(suggestion.description);
+                }}
+              >
+                <Text style={styles.autocompleteText}>{suggestion.description}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {searchResults.length > 0 && (
           <View style={styles.resultsSection}>
@@ -276,7 +321,7 @@ export default function NearbyPoi() {
               <ActivityIndicator size="large" color="#000000" />
             </View>
           ) : (
-            <ScrollView style={styles.modalContent}>
+            <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
               {placeDetails?.address && (
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Address</Text>
@@ -291,15 +336,42 @@ export default function NearbyPoi() {
                 </TouchableOpacity>
               )}
 
+              {placeDetails?.openingHours !== undefined && (
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Status</Text>
+                  <Text style={[styles.detailValue, { color: placeDetails.openingHours ? '#10b981' : '#ef4444', fontWeight: '600' }]}>
+                    {placeDetails.openingHours ? 'Open Now' : 'Closed'}
+                  </Text>
+                </View>
+              )}
+
               <View style={styles.actionSection}>
-                <TouchableOpacity style={styles.primaryButton}>
-                  <Text style={styles.primaryButtonText}>Get directions</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.secondaryButton}>
-                  <Text style={styles.secondaryButtonText}>Book ride</Text>
+                <TouchableOpacity 
+                  style={styles.primaryButton}
+                  onPress={() => {
+                    if (placeDetails?.location || selectedPlace?.location) {
+                      const loc = placeDetails?.location || selectedPlace?.location;
+                      const url = `https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lng}`;
+                      Linking.openURL(url);
+                    } else if (placeDetails?.address || selectedPlace?.vicinity) {
+                      const address = encodeURIComponent(placeDetails?.address || selectedPlace?.vicinity);
+                      const url = `https://www.google.com/maps/dir/?api=1&destination=${address}`;
+                      Linking.openURL(url);
+                    }
+                  }}
+                >
+                  <Text style={styles.primaryButtonText}>Directions</Text>
                 </TouchableOpacity>
               </View>
+
+              {placeDetails?.weekdayText && placeDetails.weekdayText.length > 0 && (
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Opening Hours</Text>
+                  {placeDetails.weekdayText.map((hours: string, index: number) => (
+                    <Text key={index} style={[styles.detailValue, { marginBottom: 4 }]}>{hours}</Text>
+                  ))}
+                </View>
+              )}
             </ScrollView>
           )}
         </SafeAreaView>
@@ -324,6 +396,9 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 16, color: '#000000' },
   clearButton: { paddingHorizontal: 16, paddingVertical: 12 },
   clearText: { fontSize: 16, color: '#6b7280', fontWeight: '500' },
+  autocompleteSection: { paddingHorizontal: 24, paddingBottom: 12 },
+  autocompleteItem: { backgroundColor: '#ffffff', padding: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  autocompleteText: { fontSize: 14, color: '#000000' },
   resultsSection: { padding: 24 },
   sectionTitle: { fontSize: 18, fontWeight: '600', color: '#000000', marginBottom: 16 },
   categoriesSection: { padding: 24, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
@@ -348,13 +423,13 @@ const styles = StyleSheet.create({
   modalClose: { },
   modalCloseText: { fontSize: 16, color: '#000000', fontWeight: '500' },
   modalLoading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  modalContent: { flex: 1, padding: 24 },
+  modalContent: { padding: 24, paddingBottom: 40 },
   detailSection: { marginBottom: 24 },
   detailLabel: { fontSize: 14, fontWeight: '600', color: '#6b7280', marginBottom: 4, textTransform: 'uppercase' },
   detailValue: { fontSize: 16, color: '#000000', lineHeight: 24 },
   linkText: { color: '#000000', textDecorationLine: 'underline' },
-  actionSection: { marginTop: 32, gap: 12 },
-  primaryButton: { backgroundColor: '#000000', borderRadius: 12, padding: 16, alignItems: 'center' },
+  actionSection: { marginTop: 16, gap: 12 },
+  primaryButton: { backgroundColor: '#000000', borderRadius: 12, padding: 14, alignItems: 'center' },
   primaryButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
   secondaryButton: { backgroundColor: '#f3f4f6', borderRadius: 12, padding: 16, alignItems: 'center' },
   secondaryButtonText: { color: '#000000', fontSize: 16, fontWeight: '600' },

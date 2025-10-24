@@ -55,6 +55,10 @@ export async function GET(request: NextRequest) {
       types: result.types,
       userRatingsTotal: result.user_ratings_total,
       geometry: result.geometry,
+      location: result.geometry?.location ? {
+        lat: result.geometry.location.lat,
+        lng: result.geometry.location.lng
+      } : null,
     })
   } catch (error) {
     console.error("Place details error:", error)
