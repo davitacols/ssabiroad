@@ -44,6 +44,11 @@ export default function HomeScreen() {
           <Text style={styles.buttonIcon}>📷</Text>
           <Text style={styles.buttonText}>Start Scanning</Text>
         </TouchableOpacity>
+        
+        <TouchableOpacity style={[styles.button, { backgroundColor: '#10b981', marginTop: 16 }]} onPress={() => router.push('/photo-tagging')}>
+          <Text style={styles.buttonIcon}>🏷️</Text>
+          <Text style={styles.buttonText}>Smart Tagging</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
