@@ -6,6 +6,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
+import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { analyzeLocation } from '../services/api';
 
@@ -18,7 +19,24 @@ export default function ScannerScreen() {
   const [showCamera, setShowCamera] = useState(false);
   const [savedLocations, setSavedLocations] = useState<any[]>([]);
   const [isSaved, setIsSaved] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<any>(null);
   const cameraRef = useRef<any>(null);
+
+  useEffect(() => {
+    getCurrentLocation();
+  }, []);
+
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const location = await Location.getCurrentPositionAsync({});
+        setCurrentLocation(location.coords);
+      }
+    } catch (error) {
+      console.log('Location error:', error);
+    }
+  };
 
   const addActivity = async (title: string, subtitle: string, route: string) => {
     try {
@@ -150,11 +168,20 @@ export default function ScannerScreen() {
     setLoading(true);
     try {
       let gpsLocation = null;
+      
+      // First try to get GPS from EXIF data
       if (exif?.GPSLatitude && exif?.GPSLongitude && 
           exif.GPSLatitude !== 0 && exif.GPSLongitude !== 0) {
         gpsLocation = {
           latitude: exif.GPSLatitude,
           longitude: exif.GPSLongitude,
+        };
+      }
+      // If no EXIF GPS, use current device location
+      else if (currentLocation) {
+        gpsLocation = {
+          latitude: currentLocation.latitude,
+          longitude: currentLocation.longitude,
         };
       }
       
