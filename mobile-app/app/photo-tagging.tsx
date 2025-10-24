@@ -50,9 +50,8 @@ export default function PhotoTagging() {
       );
 
       if (result.success) {
-        const photoData = await PhotoTaggingService.getPhotoTags(result.photo.id);
-        setTags(photoData.photo.tags || []);
-        Alert.alert('✨ Analysis Complete', `Discovered ${result.tags} intelligent tags!`);
+        setTags(result.tags || []);
+        Alert.alert('✨ Analysis Complete', `Discovered ${result.tags.length} intelligent tags!`);
       }
     } catch (error) {
       Alert.alert('❌ Error', 'Failed to analyze photo');
@@ -63,11 +62,11 @@ export default function PhotoTagging() {
 
   const getTagInfo = (tagType: string) => {
     switch (tagType) {
-      case 'label': return { color: '#3B82F6', icon: '🏗️', name: 'Features' };
-      case 'landmark': return { color: '#EF4444', icon: '🏛️', name: 'Landmarks' };
-      case 'text': return { color: '#10B981', icon: '📝', name: 'Text' };
-      case 'object': return { color: '#F59E0B', icon: '🔍', name: 'Objects' };
-      default: return { color: '#6B7280', icon: '🏷️', name: 'Other' };
+      case 'label': return { color: '#1c1917', icon: '🏗️', name: 'Features' };
+      case 'landmark': return { color: '#374151', icon: '🏛️', name: 'Landmarks' };
+      case 'text': return { color: '#4B5563', icon: '📝', name: 'Text' };
+      case 'object': return { color: '#6B7280', icon: '🔍', name: 'Objects' };
+      default: return { color: '#9CA3AF', icon: '🏷️', name: 'Other' };
     }
   };
 
@@ -177,13 +176,13 @@ const styles = StyleSheet.create({
   content: { flex: 1, padding: 20 },
   actionContainer: { flexDirection: 'row', gap: 16, marginBottom: 24 },
   actionButton: { flex: 1, padding: 20, borderRadius: 16, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
-  cameraButton: { backgroundColor: '#3B82F6' },
-  galleryButton: { backgroundColor: '#6366F1' },
+  cameraButton: { backgroundColor: '#1c1917' },
+  galleryButton: { backgroundColor: '#374151' },
 
   actionText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   imageContainer: { marginBottom: 24 },
   selectedImage: { width: '100%', height: 280, borderRadius: 16, marginBottom: 16 },
-  analyzeButton: { backgroundColor: '#10B981', padding: 18, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
+  analyzeButton: { backgroundColor: '#1c1917', padding: 18, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
   analyzeButtonDisabled: { backgroundColor: '#9CA3AF' },
 
   analyzeText: { color: '#fff', fontSize: 16, fontWeight: '600' },

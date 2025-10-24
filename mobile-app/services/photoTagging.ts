@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = 'https://pic2nav.com/api/photo-tagging';
+const API_URL = 'https://pic2nav.com/api/photo-tagging-simple';
 
 export const PhotoTaggingService = {
   async processPhoto(photoUri: string, latitude?: number, longitude?: number) {
