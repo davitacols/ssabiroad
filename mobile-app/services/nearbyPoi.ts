@@ -28,6 +28,7 @@ export const NearbyPoiService = {
       { key: 'shopping_mall', label: 'Shopping', icon: '🛍️' },
       { key: 'tourist_attraction', label: 'Attractions', icon: '🎯' },
       { key: 'lodging', label: 'Hotels', icon: '🏨' },
+      { key: 'church', label: 'Churches', icon: '⛪' },
     ];
   },
 };
