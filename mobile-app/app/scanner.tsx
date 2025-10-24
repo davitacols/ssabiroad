@@ -322,61 +322,79 @@ export default function ScannerScreen() {
               </View>
             ) : (
               <>
+                <View style={styles.successBanner}>
+                  <Text style={styles.successText}>✓ Location identified</Text>
+                  <Text style={styles.successSubtext}>Analysis completed successfully</Text>
+                </View>
+
                 <View style={styles.locationCard}>
+                  <Text style={styles.cardTitle}>Location Details</Text>
+                  
                   <View style={styles.locationHeader}>
                     <Text style={styles.locationName}>{result.name || 'Location Found'}</Text>
-                    {result.confidence && (
-                      <Text style={styles.confidence}>{Math.round(result.confidence * 100)}% match</Text>
-                    )}
                   </View>
                   
                   {result.address && (
                     <Text style={styles.locationAddress}>{result.address}</Text>
                   )}
 
-                  <View style={styles.locationActions}>
-                    <TouchableOpacity 
-                      style={[styles.actionButton, isSaved && styles.actionButtonSaved]} 
-                      onPress={handleSave}
-                    >
-                      <Text style={[styles.actionButtonText, isSaved && styles.actionButtonTextSaved]} numberOfLines={1}>
-                        {isSaved ? 'Saved' : 'Save'}
-                      </Text>
-                    </TouchableOpacity>
-                    
-                    {result.location && (
-                      <TouchableOpacity 
-                        style={styles.actionButton}
-                        onPress={() => {
-                          const url = `https://www.google.com/maps/dir/?api=1&destination=${result.location.latitude},${result.location.longitude}`;
-                          Linking.openURL(url);
-                        }}
-                      >
-                        <Text style={styles.actionButtonText} numberOfLines={1}>Get Directions</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
+                  {result.confidence && (
+                    <View style={styles.confidenceSection}>
+                      <View style={styles.confidenceHeader}>
+                        <Text style={styles.confidenceLabel}>Confidence Score</Text>
+                        <Text style={styles.confidenceValue}>{Math.round(result.confidence * 100)}%</Text>
+                      </View>
+                      <View style={styles.confidenceBar}>
+                        <View style={[styles.confidenceFill, { width: `${result.confidence * 100}%` }]} />
+                      </View>
+                    </View>
+                  )}
                 </View>
 
                 {result.location && (
                   <View style={styles.detailsCard}>
-                    <Text style={styles.detailsTitle}>Details</Text>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Coordinates</Text>
-                      <Text style={styles.detailValue}>
+                    <Text style={styles.cardTitle}>GPS Coordinates</Text>
+                    <View style={styles.coordinatesBox}>
+                      <Text style={styles.coordinatesText}>
                         {result.location.latitude.toFixed(6)}, {result.location.longitude.toFixed(6)}
                       </Text>
                     </View>
-                    {result.elevation?.elevation != null && (
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Elevation</Text>
-                        <Text style={styles.detailValue}>{result.elevation.elevation}m</Text>
+                  </View>
+                )}
+
+                {(result.locationDetails?.country || result.locationDetails?.state) && (
+                  <View style={styles.detailsCard}>
+                    <Text style={styles.cardTitle}>Location Info</Text>
+                    {result.locationDetails.country && (
+                      <View style={styles.infoBox}>
+                        <Text style={styles.infoLabel}>Country</Text>
+                        <Text style={styles.infoValue}>{result.locationDetails.country}</Text>
                       </View>
                     )}
-                    {result.weather?.temperature != null && (
+                    {result.locationDetails.state && (
+                      <View style={styles.infoBox}>
+                        <Text style={styles.infoLabel}>State</Text>
+                        <Text style={styles.infoValue}>{result.locationDetails.state}</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {(result.method || result.deviceAnalysis?.camera?.model) && (
+                  <View style={styles.detailsCard}>
+                    <Text style={styles.cardTitle}>Technical Details</Text>
+                    {result.method && (
                       <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Temperature</Text>
-                        <Text style={styles.detailValue}>{result.weather.temperature}°C</Text>
+                        <Text style={styles.detailLabel}>Method</Text>
+                        <Text style={styles.detailValue}>{result.method.replace(/-/g, ' ')}</Text>
+                      </View>
+                    )}
+                    {result.deviceAnalysis?.camera?.model && (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Device</Text>
+                        <Text style={styles.detailValue}>
+                          {result.deviceAnalysis.camera.make} {result.deviceAnalysis.camera.model}
+                        </Text>
                       </View>
                     )}
                   </View>
@@ -384,7 +402,12 @@ export default function ScannerScreen() {
 
                 {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
                   <View style={styles.nearbySection}>
-                    <Text style={styles.nearbyTitle}>Nearby Places</Text>
+                    <View style={styles.nearbyHeader}>
+                      <Text style={styles.cardTitle}>Nearby Places</Text>
+                      <View style={styles.nearbyBadge}>
+                        <Text style={styles.nearbyBadgeText}>{result.nearbyPlaces.length}</Text>
+                      </View>
+                    </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.nearbyScroll}>
                       {result.nearbyPlaces.slice(0, 5).map((place: any, idx: number) => (
                         <View key={idx} style={styles.nearbyCard}>
@@ -398,6 +421,51 @@ export default function ScannerScreen() {
                     </ScrollView>
                   </View>
                 )}
+
+                {(result.weather || result.elevation) && (
+                  <View style={styles.environmentCard}>
+                    <Text style={styles.cardTitle}>Environment</Text>
+                    <View style={styles.environmentGrid}>
+                      {result.weather && (
+                        <View style={styles.environmentBox}>
+                          <Text style={styles.environmentLabel}>Weather</Text>
+                          <Text style={styles.environmentValue}>{result.weather.temperature}°C</Text>
+                          <Text style={styles.environmentSubtext}>Wind {result.weather.windSpeed} km/h</Text>
+                        </View>
+                      )}
+                      {result.elevation && (
+                        <View style={styles.environmentBox}>
+                          <Text style={styles.environmentLabel}>Elevation</Text>
+                          <Text style={styles.environmentValue}>{result.elevation.elevation}m</Text>
+                          <Text style={styles.environmentSubtext}>Above sea level</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                )}
+
+                <View style={styles.actionsCard}>
+                  <Text style={styles.cardTitle}>Quick Actions</Text>
+                  <TouchableOpacity 
+                    style={styles.primaryActionButton}
+                    onPress={() => {
+                      if (result.location) {
+                        const url = `https://www.google.com/maps/dir/?api=1&destination=${result.location.latitude},${result.location.longitude}`;
+                        Linking.openURL(url);
+                      }
+                    }}
+                  >
+                    <Text style={styles.primaryActionButtonText}>Open in Maps</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.secondaryActionButton, isSaved && styles.secondaryActionButtonSaved]}
+                    onPress={handleSave}
+                  >
+                    <Text style={[styles.secondaryActionButtonText, isSaved && styles.secondaryActionButtonTextSaved]}>
+                      {isSaved ? '✓ Saved to Collection' : 'Save to Collection'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </>
             )}
           </View>
@@ -433,28 +501,51 @@ const styles = StyleSheet.create({
   errorCard: { backgroundColor: '#fef2f2', borderRadius: 12, padding: 20, borderWidth: 1, borderColor: '#fecaca' },
   errorTitle: { fontSize: 18, fontWeight: '600', color: '#dc2626', marginBottom: 8 },
   errorText: { fontSize: 16, color: '#6b7280' },
+  successBanner: { backgroundColor: '#dcfce7', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#86efac' },
+  successText: { fontSize: 16, fontWeight: '600', color: '#166534', marginBottom: 4 },
+  successSubtext: { fontSize: 14, color: '#15803d' },
   locationCard: { backgroundColor: '#ffffff', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6' },
-  locationHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  locationName: { fontSize: 20, fontWeight: '600', color: '#000000', flex: 1, marginRight: 12 },
-  confidence: { fontSize: 14, color: '#6b7280', fontWeight: '500' },
-  locationAddress: { fontSize: 16, color: '#6b7280', marginBottom: 20, lineHeight: 24 },
-  locationActions: { flexDirection: 'row', gap: 8 },
-  actionButton: { flex: 1, backgroundColor: '#f3f4f6', paddingVertical: 12, paddingHorizontal: 8, borderRadius: 8, alignItems: 'center' },
-  actionButtonSaved: { backgroundColor: '#000000' },
-  actionButtonText: { fontSize: 13, fontWeight: '600', color: '#000000' },
-  actionButtonTextSaved: { color: '#ffffff' },
+  cardTitle: { fontSize: 16, fontWeight: '600', color: '#000000', marginBottom: 16 },
+  locationHeader: { marginBottom: 12 },
+  locationName: { fontSize: 20, fontWeight: '700', color: '#000000' },
+  locationAddress: { fontSize: 15, color: '#6b7280', marginBottom: 16, lineHeight: 22 },
+  confidenceSection: { backgroundColor: '#f9fafb', borderRadius: 8, padding: 12, marginTop: 8 },
+  confidenceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  confidenceLabel: { fontSize: 13, fontWeight: '500', color: '#6b7280' },
+  confidenceValue: { fontSize: 16, fontWeight: '700', color: '#000000' },
+  confidenceBar: { height: 6, backgroundColor: '#e5e7eb', borderRadius: 3, overflow: 'hidden' },
+  confidenceFill: { height: '100%', backgroundColor: '#000000', borderRadius: 3 },
   detailsCard: { backgroundColor: '#ffffff', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6' },
-  detailsTitle: { fontSize: 18, fontWeight: '600', color: '#000000', marginBottom: 16 },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 },
-  detailLabel: { fontSize: 16, color: '#6b7280' },
-  detailValue: { fontSize: 16, fontWeight: '500', color: '#000000' },
-  nearbySection: { },
-  nearbyTitle: { fontSize: 18, fontWeight: '600', color: '#000000', marginBottom: 16 },
+  coordinatesBox: { backgroundColor: '#f9fafb', borderRadius: 8, padding: 16, borderWidth: 1, borderColor: '#e5e7eb' },
+  coordinatesText: { fontSize: 15, fontWeight: '600', color: '#000000', fontFamily: 'monospace' },
+  infoBox: { backgroundColor: '#f9fafb', borderRadius: 8, padding: 12, marginBottom: 8 },
+  infoLabel: { fontSize: 12, color: '#6b7280', marginBottom: 4 },
+  infoValue: { fontSize: 15, fontWeight: '600', color: '#000000' },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  detailLabel: { fontSize: 14, color: '#6b7280' },
+  detailValue: { fontSize: 14, fontWeight: '500', color: '#000000', flex: 1, textAlign: 'right' },
+  nearbySection: { marginBottom: 16 },
+  nearbyHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  nearbyBadge: { backgroundColor: '#000000', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
+  nearbyBadgeText: { color: '#ffffff', fontSize: 12, fontWeight: '600' },
   nearbyScroll: { },
   nearbyCard: { width: 140, backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginRight: 12, borderWidth: 1, borderColor: '#f3f4f6' },
   nearbyName: { fontSize: 14, fontWeight: '600', color: '#000000', marginBottom: 4, height: 36 },
-  nearbyType: { fontSize: 12, color: '#6b7280', marginBottom: 8 },
+  nearbyType: { fontSize: 12, color: '#6b7280', marginBottom: 8, textTransform: 'capitalize' },
   nearbyDistance: { fontSize: 12, color: '#000000', fontWeight: '500' },
+  environmentCard: { backgroundColor: '#ffffff', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6' },
+  environmentGrid: { flexDirection: 'row', gap: 12 },
+  environmentBox: { flex: 1, backgroundColor: '#f0f9ff', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#bfdbfe' },
+  environmentLabel: { fontSize: 12, fontWeight: '600', color: '#1e40af', marginBottom: 8 },
+  environmentValue: { fontSize: 20, fontWeight: '700', color: '#1e3a8a', marginBottom: 4 },
+  environmentSubtext: { fontSize: 11, color: '#3b82f6' },
+  actionsCard: { backgroundColor: '#ffffff', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6' },
+  primaryActionButton: { backgroundColor: '#000000', borderRadius: 12, padding: 16, alignItems: 'center', marginBottom: 12 },
+  primaryActionButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
+  secondaryActionButton: { backgroundColor: '#f3f4f6', borderRadius: 12, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#e5e7eb' },
+  secondaryActionButtonSaved: { backgroundColor: '#000000', borderColor: '#000000' },
+  secondaryActionButtonText: { color: '#000000', fontSize: 16, fontWeight: '600' },
+  secondaryActionButtonTextSaved: { color: '#ffffff' },
   camera: { flex: 1 },
   cameraContainer: { flex: 1 },
   cameraHeader: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20 },

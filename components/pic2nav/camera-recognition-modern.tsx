@@ -362,7 +362,7 @@ export function CameraRecognitionModern() {
         </div>
       </nav>
 
-      <div className="relative max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
+      <div className="relative w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 overflow-x-hidden">
         {!previewUrl && !cameraActive && !isProcessing && (
           <div className="mb-8 text-center space-y-4">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-stone-900 dark:text-white">
@@ -373,8 +373,8 @@ export function CameraRecognitionModern() {
             </p>
           </div>
         )}
-        <div className="grid lg:grid-cols-5 gap-4 sm:gap-6">
-          <div className="lg:col-span-3">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 w-full">
+          <div className="w-full lg:col-span-3">
             <div className="bg-white dark:bg-stone-900 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl overflow-hidden">
               <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-800">
                 <h2 className="text-xs sm:text-sm font-semibold text-stone-900 dark:text-stone-100">Image Upload</h2>
@@ -481,7 +481,7 @@ export function CameraRecognitionModern() {
             </div>
           </div>
 
-          <div className="lg:col-span-2 space-y-3 sm:space-y-4">
+          <div className="w-full lg:col-span-2 space-y-3 sm:space-y-4">
             {!result && !isProcessing && !previewUrl && (
               <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-2xl sm:rounded-3xl border border-blue-200 dark:border-blue-900 shadow-xl overflow-hidden">
                 <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-200 dark:border-blue-900 bg-blue-100/50 dark:bg-blue-900/20">
