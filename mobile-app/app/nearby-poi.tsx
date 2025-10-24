@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, StatusBar, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, StatusBar, Alert, Modal, Linking, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { NearbyPoiService } from '../services/nearbyPoi';
@@ -10,6 +10,12 @@ export default function NearbyPoi() {
   const [selectedType, setSelectedType] = useState('restaurant');
   const [places, setPlaces] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState<any>(null);
+  const [placeDetails, setPlaceDetails] = useState<any>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   const placeTypes = NearbyPoiService.getPlaceTypes();
 
@@ -63,33 +69,60 @@ export default function NearbyPoi() {
     return '$'.repeat(level);
   };
 
-  const handlePlacePress = (place: any) => {
-    Alert.alert(
-      place.name,
-      `Getting contact details...`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Get Details', onPress: () => getPlaceDetails(place.placeId, place.name) }
-      ]
-    );
-  };
-
-  const getPlaceDetails = async (placeId: string, placeName: string) => {
+  const handlePlacePress = async (place: any) => {
+    setSelectedPlace(place);
+    setDetailsLoading(true);
     try {
-      const response = await fetch(`https://pic2nav.com/api/place-details?placeId=${placeId}`);
+      const response = await fetch(`https://pic2nav.com/api/place-details?placeId=${place.placeId}`);
       const details = await response.json();
-      
-      let message = `Address: ${details.address || 'Not available'}\n`;
-      if (details.phoneNumber) message += `Phone: ${details.phoneNumber}\n`;
-      if (details.website) message += `Website: ${details.website}\n`;
-      if (details.weekdayText) {
-        message += `\nHours:\n${details.weekdayText.join('\n')}`;
-      }
-      
-      Alert.alert(placeName, message);
+      setPlaceDetails(details);
     } catch (error) {
       Alert.alert('Error', 'Failed to get contact details');
+    } finally {
+      setDetailsLoading(false);
     }
+  };
+
+  const closeModal = () => {
+    setSelectedPlace(null);
+    setPlaceDetails(null);
+  };
+
+  const handleCall = (phoneNumber: string) => {
+    Linking.openURL(`tel:${phoneNumber}`);
+  };
+
+  const handleWebsite = (website: string) => {
+    Linking.openURL(website);
+  };
+
+  const searchPlaces = async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `https://pic2nav.com/api/places-search?query=${encodeURIComponent(query)}&location=${location?.latitude},${location?.longitude}`
+      );
+      const data = await response.json();
+      setSearchResults(data.places || []);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to search places');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearch = () => {
+    searchPlaces(searchQuery);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setSearchResults([]);
   };
 
   return (
@@ -105,27 +138,82 @@ export default function NearbyPoi() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Place Type Selector */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeSelector}>
-          {placeTypes.map((type) => (
-            <TouchableOpacity
-              key={type.key}
-              onPress={() => handleTypeChange(type.key)}
-              style={[
-                styles.typeButton,
-                selectedType === type.key && styles.typeButtonActive
-              ]}
-            >
-              <Text style={styles.typeIcon}>{type.icon}</Text>
-              <Text style={[
-                styles.typeText,
-                selectedType === type.key && styles.typeTextActive
-              ]}>
-                {type.label}
-              </Text>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by name, address, postcode..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
+          />
+          {searchQuery ? (
+            <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
+              <Text style={styles.clearButtonText}>Clear</Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+          ) : (
+            <TouchableOpacity onPress={handleSearch} style={styles.searchButton}>
+              <Text style={styles.searchButtonText}>Search</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Search Results */}
+        {searchResults.length > 0 && (
+          <View style={styles.searchResultsContainer}>
+            <Text style={styles.resultsTitle}>Search Results ({searchResults.length})</Text>
+            {searchResults.map((place, index) => (
+              <TouchableOpacity key={place.id || index} style={styles.placeCard} onPress={() => handlePlacePress(place)}>
+                <View style={styles.placeHeader}>
+                  <Text style={styles.placeName}>{place.name}</Text>
+                  {place.distance && (
+                    <Text style={styles.placeDistance}>
+                      {place.distance.toFixed(1)} km
+                    </Text>
+                  )}
+                </View>
+                <Text style={styles.placeAddress}>{place.vicinity || place.address}</Text>
+                {place.rating && (
+                  <Text style={styles.placeRating}>
+                    {getRatingStars(place.rating)}
+                  </Text>
+                )}
+                <Text style={styles.tapHint}>Tap for contact details</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {isSearching && (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Searching...</Text>
+          </View>
+        )}
+
+        {/* Place Type Selector */}
+        {searchResults.length === 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeSelector}>
+            {placeTypes.map((type) => (
+              <TouchableOpacity
+                key={type.key}
+                onPress={() => handleTypeChange(type.key)}
+                style={[
+                  styles.typeButton,
+                  selectedType === type.key && styles.typeButtonActive
+                ]}
+              >
+                <Text style={styles.typeIcon}>{type.icon}</Text>
+                <Text style={[
+                  styles.typeText,
+                  selectedType === type.key && styles.typeTextActive
+                ]}>
+                  {type.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
 
         {/* Loading State */}
         {loading && (
@@ -135,7 +223,7 @@ export default function NearbyPoi() {
         )}
 
         {/* Places List */}
-        {!loading && places.length > 0 && (
+        {!loading && places.length > 0 && searchResults.length === 0 && (
           <View style={styles.placesContainer}>
             <Text style={styles.resultsTitle}>
               Found {places.length} places nearby
@@ -182,15 +270,74 @@ export default function NearbyPoi() {
         )}
 
         {/* Empty State */}
-        {!loading && places.length === 0 && location && (
+        {!loading && places.length === 0 && location && searchResults.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>No places found</Text>
             <Text style={styles.emptyText}>
-              Try selecting a different category or check your location
+              Try selecting a different category or search for specific places
             </Text>
           </View>
         )}
       </ScrollView>
+
+      {/* Contact Details Modal */}
+      <Modal visible={!!selectedPlace} animationType="slide" presentationStyle="pageSheet">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{selectedPlace?.name}</Text>
+            <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+
+          {detailsLoading ? (
+            <View style={styles.modalLoading}>
+              <Text style={styles.loadingText}>Loading details...</Text>
+            </View>
+          ) : placeDetails ? (
+            <ScrollView style={styles.modalContent}>
+              {placeDetails.address && (
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Address</Text>
+                  <Text style={styles.detailValue}>{placeDetails.address}</Text>
+                </View>
+              )}
+
+              {placeDetails.phoneNumber && (
+                <TouchableOpacity style={styles.detailItem} onPress={() => handleCall(placeDetails.phoneNumber)}>
+                  <Text style={styles.detailLabel}>Phone</Text>
+                  <Text style={[styles.detailValue, styles.linkText]}>{placeDetails.phoneNumber}</Text>
+                </TouchableOpacity>
+              )}
+
+              {placeDetails.website && (
+                <TouchableOpacity style={styles.detailItem} onPress={() => handleWebsite(placeDetails.website)}>
+                  <Text style={styles.detailLabel}>Website</Text>
+                  <Text style={[styles.detailValue, styles.linkText]}>{placeDetails.website}</Text>
+                </TouchableOpacity>
+              )}
+
+              {placeDetails.weekdayText && (
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Hours</Text>
+                  {placeDetails.weekdayText.map((hours: string, index: number) => (
+                    <Text key={index} style={styles.hoursText}>{hours}</Text>
+                  ))}
+                </View>
+              )}
+
+              {placeDetails.rating && (
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Rating</Text>
+                  <Text style={styles.detailValue}>
+                    {getRatingStars(placeDetails.rating)} ({placeDetails.userRatingsTotal} reviews)
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          ) : null}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -223,6 +370,25 @@ const styles = StyleSheet.create({
   priceLevel: { fontSize: 14, color: '#10b981', fontWeight: '600' },
   openStatus: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase' },
   tapHint: { fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', marginTop: 8 },
+  modalContainer: { flex: 1, backgroundColor: '#fff' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 60, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: '#111827', flex: 1 },
+  closeButton: { padding: 8 },
+  closeButtonText: { fontSize: 16, color: '#374151', fontWeight: '600' },
+  modalLoading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  modalContent: { flex: 1, padding: 20 },
+  detailItem: { marginBottom: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  detailLabel: { fontSize: 14, fontWeight: '600', color: '#6b7280', marginBottom: 4, textTransform: 'uppercase' },
+  detailValue: { fontSize: 16, color: '#111827', lineHeight: 24 },
+  linkText: { color: '#3b82f6', textDecorationLine: 'underline' },
+  hoursText: { fontSize: 14, color: '#374151', marginBottom: 2 },
+  searchContainer: { flexDirection: 'row', marginBottom: 20, gap: 8 },
+  searchInput: { flex: 1, backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: '#e5e7eb', fontSize: 16 },
+  searchButton: { backgroundColor: '#1c1917', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, justifyContent: 'center' },
+  searchButtonText: { color: '#fff', fontWeight: '600' },
+  clearButton: { backgroundColor: '#6b7280', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, justifyContent: 'center' },
+  clearButtonText: { color: '#fff', fontWeight: '600' },
+  searchResultsContainer: { marginBottom: 24 },
   emptyState: { alignItems: 'center', paddingVertical: 60 },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 8 },
   emptyText: { fontSize: 16, color: '#6b7280', textAlign: 'center', paddingHorizontal: 20 },
