@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { GoogleAuth } from 'google-auth-library';
 
 export const runtime = 'nodejs';
 
@@ -15,12 +16,22 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const base64 = Buffer.from(bytes).toString('base64');
 
+    // Use Google Application Default Credentials
+    const auth = new GoogleAuth({
+      scopes: ['https://www.googleapis.com/auth/cloud-platform']
+    });
+    const authClient = await auth.getClient();
+    const accessToken = await authClient.getAccessToken();
+
     // Analyze with Google Vision API
     const visionResponse = await fetch(
-      `https://vision.googleapis.com/v1/images:annotate?key=${process.env.GOOGLE_VISION_API_KEY}`,
+      'https://vision.googleapis.com/v1/images:annotate',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken.token}`
+        },
         body: JSON.stringify({
           requests: [{
             image: { content: base64 },
