@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     const response = await fetch(
-      `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=photos,rating,website,formatted_phone_number,opening_hours,reviews,price_level,business_status,types,user_ratings_total&key=${apiKey}`
+      `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_address,photos,rating,website,formatted_phone_number,opening_hours,reviews,price_level,business_status,types,user_ratings_total&key=${apiKey}`
     )
 
     if (!response.ok) {
@@ -41,11 +41,14 @@ export async function GET(request: NextRequest) {
     })) || []
 
     return NextResponse.json({
+      name: result.name,
+      address: result.formatted_address,
       photos,
       rating: result.rating,
       website: result.website,
       phoneNumber: result.formatted_phone_number,
       openingHours: result.opening_hours?.open_now,
+      weekdayText: result.opening_hours?.weekday_text,
       reviews,
       priceLevel: result.price_level,
       businessStatus: result.business_status,

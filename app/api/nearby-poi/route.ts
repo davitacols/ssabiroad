@@ -39,7 +39,8 @@ export async function GET(request: NextRequest) {
         parseFloat(longitude),
         place.geometry.location.lat,
         place.geometry.location.lng
-      )
+      ),
+      placeId: place.place_id
     }));
 
     return NextResponse.json({

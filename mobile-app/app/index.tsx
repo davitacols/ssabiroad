@@ -41,12 +41,10 @@ export default function HomeScreen() {
         </View>
 
         <TouchableOpacity style={styles.button} onPress={() => router.push('/scanner')}>
-          <Text style={styles.buttonIcon}>📷</Text>
           <Text style={styles.buttonText}>Start Scanning</Text>
         </TouchableOpacity>
         
         <TouchableOpacity style={[styles.button, { backgroundColor: '#374151', marginTop: 16 }]} onPress={() => router.push('/nearby-poi')}>
-          <Text style={styles.buttonIcon}>🗺️</Text>
           <Text style={styles.buttonText}>Nearby Places</Text>
         </TouchableOpacity>
         

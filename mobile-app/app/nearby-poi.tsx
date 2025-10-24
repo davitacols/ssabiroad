@@ -63,6 +63,35 @@ export default function NearbyPoi() {
     return '$'.repeat(level);
   };
 
+  const handlePlacePress = (place: any) => {
+    Alert.alert(
+      place.name,
+      `Getting contact details...`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Get Details', onPress: () => getPlaceDetails(place.placeId, place.name) }
+      ]
+    );
+  };
+
+  const getPlaceDetails = async (placeId: string, placeName: string) => {
+    try {
+      const response = await fetch(`https://pic2nav.com/api/place-details?placeId=${placeId}`);
+      const details = await response.json();
+      
+      let message = `Address: ${details.address || 'Not available'}\n`;
+      if (details.phoneNumber) message += `Phone: ${details.phoneNumber}\n`;
+      if (details.website) message += `Website: ${details.website}\n`;
+      if (details.weekdayText) {
+        message += `\nHours:\n${details.weekdayText.join('\n')}`;
+      }
+      
+      Alert.alert(placeName, message);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to get contact details');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fafaf9" />
@@ -113,7 +142,7 @@ export default function NearbyPoi() {
             </Text>
             
             {places.map((place, index) => (
-              <View key={place.id} style={styles.placeCard}>
+              <TouchableOpacity key={place.id} style={styles.placeCard} onPress={() => handlePlacePress(place)}>
                 <View style={styles.placeHeader}>
                   <Text style={styles.placeName}>{place.name}</Text>
                   <Text style={styles.placeDistance}>
@@ -145,7 +174,9 @@ export default function NearbyPoi() {
                     </Text>
                   )}
                 </View>
-              </View>
+                
+                <Text style={styles.tapHint}>Tap for contact details</Text>
+              </TouchableOpacity>
             ))}
           </View>
         )}
@@ -191,6 +222,7 @@ const styles = StyleSheet.create({
   placeRating: { fontSize: 14, color: '#f59e0b' },
   priceLevel: { fontSize: 14, color: '#10b981', fontWeight: '600' },
   openStatus: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase' },
+  tapHint: { fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', marginTop: 8 },
   emptyState: { alignItems: 'center', paddingVertical: 60 },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 8 },
   emptyText: { fontSize: 16, color: '#6b7280', textAlign: 'center', paddingHorizontal: 20 },
