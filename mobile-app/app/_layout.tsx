@@ -5,7 +5,7 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="scanner" />
-      <Stack.Screen name="photo-tagging" />
+      <Stack.Screen name="nearby-poi" />
     </Stack>
   );
 }

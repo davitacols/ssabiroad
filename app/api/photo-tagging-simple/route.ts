@@ -15,8 +15,8 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const base64 = Buffer.from(bytes).toString('base64');
 
-    // Use API key from Maps API (same project)
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    // Try Vision API key first, fallback to Maps API key
+    const apiKey = process.env.GOOGLE_VISION_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
     
     if (!apiKey) {
       return NextResponse.json({ error: 'Google API key not configured' }, { status: 500 });
@@ -42,8 +42,30 @@ export async function POST(request: NextRequest) {
       }
     );
 
+    if (!visionResponse.ok) {
+      const errorText = await visionResponse.text();
+      console.error('Vision API error:', errorText);
+      return NextResponse.json({ 
+        error: `Vision API error: ${visionResponse.status} - ${errorText}` 
+      }, { status: 500 });
+    }
+
     const visionData = await visionResponse.json();
-    const annotations = visionData.responses[0];
+    
+    if (visionData.error) {
+      console.error('Vision API response error:', visionData.error);
+      return NextResponse.json({ 
+        error: `Vision API error: ${visionData.error.message}` 
+      }, { status: 500 });
+    }
+
+    const annotations = visionData.responses?.[0];
+
+    if (!annotations) {
+      return NextResponse.json({ 
+        error: 'No annotations received from Vision API' 
+      }, { status: 500 });
+    }
 
     const tags = [];
 
