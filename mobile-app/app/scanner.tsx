@@ -167,25 +167,8 @@ export default function ScannerScreen() {
   const processImage = async (uri: string, exif?: any) => {
     setLoading(true);
     try {
-      let gpsLocation = null;
-      
-      // First try to get GPS from EXIF data
-      if (exif?.GPSLatitude && exif?.GPSLongitude && 
-          exif.GPSLatitude !== 0 && exif.GPSLongitude !== 0) {
-        gpsLocation = {
-          latitude: exif.GPSLatitude,
-          longitude: exif.GPSLongitude,
-        };
-      }
-      // If no EXIF GPS, use current device location
-      else if (currentLocation) {
-        gpsLocation = {
-          latitude: currentLocation.latitude,
-          longitude: currentLocation.longitude,
-        };
-      }
-      
-      const data = await analyzeLocation(uri, gpsLocation);
+      // Don't send device location - let API extract GPS from image EXIF first
+      const data = await analyzeLocation(uri, null);
       setResult(data);
       
       if (data && !data.error) {

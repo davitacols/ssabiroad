@@ -322,39 +322,39 @@ export function CameraRecognitionModern() {
         <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-pink-400/20 dark:bg-pink-600/10 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
       </div>
       <nav className="relative z-50 border-b border-stone-200/50 dark:border-stone-800/50 bg-white/50 dark:bg-black/50 backdrop-blur-xl sticky top-0 shadow-lg">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-1">
-          <div className="flex items-center justify-between h-16 sm:h-20">
-            <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
+          <div className="flex items-center justify-between h-12 sm:h-14 md:h-16">
+            <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
               <a href="/">
-                <img src="/pic2nav.png" alt="Pic2Nav" className="h-8 sm:h-10 md:h-12 w-auto object-contain drop-shadow-lg cursor-pointer hover:opacity-90 transition-opacity" />
+                <img src="/pic2nav.png" alt="Pic2Nav" className="h-6 sm:h-8 md:h-10 w-auto object-contain drop-shadow-lg cursor-pointer hover:opacity-90 transition-opacity" />
               </a>
               <div className="hidden md:flex items-center gap-1">
-                <Button variant="ghost" className="rounded-full text-sm" asChild>
+                <Button variant="ghost" className="rounded-full text-sm h-8" asChild>
                   <a href="/">Home</a>
                 </Button>
-                <Button variant="ghost" className="rounded-full text-sm" asChild>
+                <Button variant="ghost" className="rounded-full text-sm h-8" asChild>
                   <a href="/dashboard">Dashboard</a>
                 </Button>
-                <Button variant="ghost" className="rounded-full text-sm" asChild>
+                <Button variant="ghost" className="rounded-full text-sm h-8" asChild>
                   <a href="/analytics">Analytics</a>
                 </Button>
               </div>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">
               {uploadHistory.length > 0 && (
-                <Button onClick={() => setShowHistory(!showHistory)} variant="ghost" size="sm" className="rounded-full px-2 sm:px-3">
-                  <History className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">History</span>
+                <Button onClick={() => setShowHistory(!showHistory)} variant="ghost" size="sm" className="rounded-full px-2 sm:px-3 h-8">
+                  <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
+                  <span className="hidden sm:inline text-xs">History</span>
                   <span className="ml-1 px-1.5 py-0.5 text-xs bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 rounded-full">{uploadHistory.length}</span>
                 </Button>
               )}
               {result && (
-                <Button onClick={reset} variant="ghost" size="sm" className="rounded-full px-2 sm:px-3">
-                  <X className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Clear</span>
+                <Button onClick={reset} variant="ghost" size="sm" className="rounded-full px-2 sm:px-3 h-8">
+                  <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
+                  <span className="hidden sm:inline text-xs">Clear</span>
                 </Button>
               )}
-              <Button className="rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 text-white text-xs sm:text-sm px-3 sm:px-4" size="sm" asChild>
+              <Button className="rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 text-white text-xs px-3 sm:px-4 h-8" size="sm" asChild>
                 <a href="/camera">Scan</a>
               </Button>
             </div>
