@@ -5,19 +5,8 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#1c1917',
-        tabBarInactiveTintColor: '#a8a29e',
-        tabBarStyle: { 
-          backgroundColor: '#fafaf9',
-          borderTopWidth: 1,
-          borderTopColor: '#e7e5e4',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
-        headerStyle: { backgroundColor: '#fafaf9' },
-        headerTintColor: '#1c1917',
-        headerShadowVisible: false,
+        tabBarStyle: { display: 'none' },
+        headerShown: false,
       }}
     >
       <Tabs.Screen
@@ -33,6 +22,13 @@ export default function TabLayout() {
         options={{
           title: 'Tools',
           tabBarIcon: ({ color, focused }) => <Text style={{ fontSize: focused ? 26 : 24 }}>🛠️</Text>,
+        }}
+      />
+      <Tabs.Screen
+        name="geofence"
+        options={{
+          title: 'Geofence',
+          tabBarIcon: ({ color, focused }) => <Text style={{ fontSize: focused ? 26 : 24 }}>🔔</Text>,
         }}
       />
       <Tabs.Screen

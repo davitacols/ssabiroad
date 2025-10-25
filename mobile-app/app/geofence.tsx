@@ -89,11 +89,20 @@ export default function GeofenceScreen() {
         await GeofenceService.stopMonitoring();
         setMonitoring(false);
       } else {
+        const { status } = await Location.requestBackgroundPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(
+            'Permission Required',
+            'Background location access is needed for geofencing to work when the app is closed.'
+          );
+          return;
+        }
         await GeofenceService.startMonitoring();
         setMonitoring(true);
       }
     } catch (error: any) {
-      Alert.alert('Monitoring Error', error.message);
+      console.error('Create geofence error:', error);
+      Alert.alert('Monitoring Error', 'Failed to start monitoring. Please check location permissions.');
     }
   };
 

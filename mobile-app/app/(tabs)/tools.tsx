@@ -17,6 +17,12 @@ export default function ToolsScreen() {
       icon: '📍',
       route: '/tools/gps-tagger',
     },
+    {
+      title: 'Geofencing',
+      subtitle: 'Location-based alerts',
+      icon: '🔔',
+      route: '/geofence',
+    },
   ];
 
   return (

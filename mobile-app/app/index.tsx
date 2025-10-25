@@ -49,14 +49,29 @@ export default function HomeScreen() {
     router.push('/ar-view');
   };
 
+  const handleCollectionsPress = () => {
+    addActivity('Collections', 'Organized saved locations', '/collections');
+    router.push('/collections');
+  };
+
+  const handleBatchPress = () => {
+    addActivity('Batch Process', 'Processed multiple photos', '/batch-process');
+    router.push('/batch-process');
+  };
+
+
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       
+      <View style={styles.stickyHeader}>
+        <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+      </View>
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
           <Text style={styles.greeting}>{getGreeting()}</Text>
           <Text style={styles.subtitle}>Where would you like to explore?</Text>
         </View>
@@ -90,6 +105,22 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
         </View>
+
+        {/* New Features */}
+        <View style={styles.featuresSection}>
+          <Text style={styles.sectionTitle}>NEW FEATURES</Text>
+          <View style={styles.featuresGrid}>
+            <TouchableOpacity style={styles.featureCard} onPress={handleBatchPress}>
+              <Text style={styles.featureTitle}>Batch Process</Text>
+              <Text style={styles.featureDesc}>Multiple photos</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.featureCard} onPress={handleCollectionsPress}>
+              <Text style={styles.featureTitle}>Collections</Text>
+              <Text style={styles.featureDesc}>Organize & tag</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
       
       <MenuBar />
@@ -102,19 +133,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
   },
+  stickyHeader: {
+    backgroundColor: '#ffffff',
+    paddingTop: 60,
+    paddingBottom: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  logo: {
+    width: '90%',
+    height: 50,
+  },
   scrollView: {
     flex: 1,
   },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 60,
+    paddingTop: 24,
     paddingBottom: 32,
     alignItems: 'center',
-  },
-  logo: {
-    width: 320,
-    height: 70,
-    marginBottom: 24,
   },
   greeting: {
     fontSize: 32,
@@ -221,6 +260,47 @@ const styles = StyleSheet.create({
   },
   arSubtitle: {
     fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  featuresSection: {
+    paddingHorizontal: 24,
+    marginBottom: 100,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6b7280',
+    marginBottom: 16,
+    letterSpacing: 1,
+  },
+  featuresGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  featureCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  featureTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  featureDesc: {
+    fontSize: 11,
     color: '#6b7280',
     textAlign: 'center',
   },

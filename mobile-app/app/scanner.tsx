@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, ActivityIndicator, StatusBar, Linking, Alert, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, ActivityIndicator, StatusBar, Linking, Alert, SafeAreaView, Share, Modal, TextInput } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -20,6 +21,10 @@ export default function ScannerScreen() {
   const [savedLocations, setSavedLocations] = useState<any[]>([]);
   const [isSaved, setIsSaved] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<any>(null);
+  const [collections, setCollections] = useState<any[]>([]);
+  const [showCollectionModal, setShowCollectionModal] = useState(false);
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [notes, setNotes] = useState('');
   const cameraRef = useRef<any>(null);
 
   useEffect(() => {
@@ -60,6 +65,7 @@ export default function ScannerScreen() {
 
   useEffect(() => {
     loadSavedLocations();
+    loadCollections();
   }, []);
 
   useEffect(() => {
@@ -76,6 +82,48 @@ export default function ScannerScreen() {
       console.error('Load error:', error);
     }
   };
+
+  const loadCollections = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('collections');
+      if (stored) setCollections(JSON.parse(stored));
+    } catch (error) {
+      console.error('Load collections error:', error);
+    }
+  };
+
+  const addToCollection = async (collectionId: string) => {
+    if (!result?.location) return;
+
+    try {
+      const locationData = {
+        name: result.name,
+        address: result.address,
+        latitude: result.location.latitude,
+        longitude: result.location.longitude,
+        savedAt: new Date().toISOString(),
+        image: image,
+        notes: notes || undefined,
+      };
+
+      const updated = collections.map(col => {
+        if (col.id === collectionId) {
+          return { ...col, locations: [...(col.locations || []), locationData] };
+        }
+        return col;
+      });
+
+      setCollections(updated);
+      await AsyncStorage.setItem('collections', JSON.stringify(updated));
+      setShowCollectionModal(false);
+      Alert.alert('Added', 'Location added to collection');
+    } catch (error) {
+      console.error('Add to collection error:', error);
+      Alert.alert('Error', 'Failed to add to collection');
+    }
+  };
+
+
 
   const checkIfSaved = () => {
     const saved = savedLocations.some(
@@ -96,6 +144,7 @@ export default function ScannerScreen() {
         savedAt: new Date().toISOString(),
         image: image,
         confidence: result.confidence,
+        notes: notes || undefined,
       };
 
       let updated;
@@ -256,43 +305,54 @@ export default function ScannerScreen() {
       
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>Back</Text>
+          <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Scanner</Text>
         {(image || result) && (
           <TouchableOpacity onPress={() => { setImage(null); setResult(null); setIsSaved(false); }} style={styles.clearButton}>
-            <Text style={styles.clearText}>Clear</Text>
+            <Ionicons name="close-circle" size={24} color="#6b7280" />
           </TouchableOpacity>
         )}
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.introSection}>
-          <Text style={styles.introTitle}>Photo Location Scanner</Text>
-          <Text style={styles.introSubtitle}>Identify locations from photos using AI and GPS data</Text>
-        </View>
+        {!image && !result && (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIcon}>
+              <Ionicons name="camera-outline" size={48} color="#9ca3af" />
+            </View>
+            <Text style={styles.emptyTitle}>Scan a location</Text>
+            <Text style={styles.emptySubtitle}>Take a photo or choose from gallery to identify any location</Text>
+          </View>
+        )}
 
         <View style={styles.actionSection}>
           <TouchableOpacity style={styles.primaryAction} onPress={handleTakePhoto}>
+            <Ionicons name="camera" size={20} color="#fff" style={styles.actionIconLeft} />
             <Text style={styles.primaryActionText}>Take Photo</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.secondaryAction} onPress={handlePickImage}>
+            <Ionicons name="images" size={20} color="#000" style={styles.actionIconLeft} />
             <Text style={styles.secondaryActionText}>Choose from Gallery</Text>
           </TouchableOpacity>
         </View>
 
         {image && (
           <View style={styles.imageSection}>
-            <Text style={styles.sectionTitle}>Selected Image</Text>
             <Image source={{ uri: image }} style={styles.selectedImage} />
+            {!loading && !result && (
+              <View style={styles.imageOverlay}>
+                <ActivityIndicator size="large" color="#fff" />
+              </View>
+            )}
           </View>
         )}
 
         {loading && (
-          <View style={styles.loadingSection}>
-            <ActivityIndicator size="large" color="#000000" />
-            <Text style={styles.loadingText}>Analyzing location...</Text>
+          <View style={styles.loadingCard}>
+            <ActivityIndicator size="small" color="#000" />
+            <Text style={styles.loadingText}>Analyzing...</Text>
           </View>
         )}
 
@@ -305,21 +365,16 @@ export default function ScannerScreen() {
               </View>
             ) : (
               <>
-                <View style={styles.successBanner}>
-                  <Text style={styles.successText}>✓ Location identified</Text>
-                  <Text style={styles.successSubtext}>Analysis completed successfully</Text>
-                </View>
-
                 <View style={styles.locationCard}>
-                  <Text style={styles.cardTitle}>Location Details</Text>
-                  
                   <View style={styles.locationHeader}>
-                    <Text style={styles.locationName}>{result.name || 'Location Found'}</Text>
+                    <Ionicons name="location" size={24} color="#000" />
+                    <View style={styles.locationInfo}>
+                      <Text style={styles.locationName}>{result.name || 'Location Found'}</Text>
+                      {result.address && (
+                        <Text style={styles.locationAddress}>{result.address}</Text>
+                      )}
+                    </View>
                   </View>
-                  
-                  {result.address && (
-                    <Text style={styles.locationAddress}>{result.address}</Text>
-                  )}
 
                   {result.confidence && (
                     <View style={styles.confidenceSection}>
@@ -429,24 +484,76 @@ export default function ScannerScreen() {
 
                 <View style={styles.actionsCard}>
                   <Text style={styles.cardTitle}>Quick Actions</Text>
+                  <View style={styles.actionsGrid}>
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => {
+                        if (result.location) {
+                          const url = `https://www.google.com/maps/dir/?api=1&destination=${result.location.latitude},${result.location.longitude}`;
+                          Linking.openURL(url);
+                        }
+                      }}
+                    >
+                      <Text style={styles.actionText}>Navigate</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={handleSave}
+                    >
+                      <Text style={styles.actionText}>{isSaved ? 'Saved' : 'Save'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={async () => {
+                        if (result.location) {
+                          try {
+                            await Share.share({
+                              message: `${result.name || 'Location'}\n${result.address || ''}\nhttps://maps.google.com/?q=${result.location.latitude},${result.location.longitude}`
+                            });
+                          } catch (error) {
+                            console.log('Share error:', error);
+                          }
+                        }
+                      }}
+                    >
+                      <Text style={styles.actionText}>Share</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => {
+                        if (result.location) {
+                          const url = `https://www.google.com/maps/@${result.location.latitude},${result.location.longitude},18z`;
+                          Linking.openURL(url);
+                        }
+                      }}
+                    >
+                      <Text style={styles.actionText}>Satellite</Text>
+                    </TouchableOpacity>
+                  </View>
                   <TouchableOpacity 
-                    style={styles.primaryActionButton}
+                    style={styles.notesButton}
+                    onPress={() => setShowNotesModal(true)}
+                  >
+                    <Ionicons name="document-text-outline" size={20} color="#fff" />
+                    <Text style={styles.notesButtonText}>Add Notes</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.addCollectionButton}
+                    onPress={() => setShowCollectionModal(true)}
+                  >
+                    <Ionicons name="folder-outline" size={20} color="#fff" />
+                    <Text style={styles.addCollectionText}>Add to Collection</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.streetViewButton}
                     onPress={() => {
                       if (result.location) {
-                        const url = `https://www.google.com/maps/dir/?api=1&destination=${result.location.latitude},${result.location.longitude}`;
+                        const url = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${result.location.latitude},${result.location.longitude}`;
                         Linking.openURL(url);
                       }
                     }}
                   >
-                    <Text style={styles.primaryActionButtonText}>Open in Maps</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.secondaryActionButton, isSaved && styles.secondaryActionButtonSaved]}
-                    onPress={handleSave}
-                  >
-                    <Text style={[styles.secondaryActionButtonText, isSaved && styles.secondaryActionButtonTextSaved]}>
-                      {isSaved ? '✓ Saved to Collection' : 'Save to Collection'}
-                    </Text>
+                    <Text style={styles.streetViewText}>View Street View</Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -454,51 +561,124 @@ export default function ScannerScreen() {
           </View>
         )}
       </ScrollView>
+
+      <Modal visible={showCollectionModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add to Collection</Text>
+              <TouchableOpacity onPress={() => setShowCollectionModal(false)}>
+                <Ionicons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+
+            {collections.length === 0 ? (
+              <View style={styles.modalEmpty}>
+                <Text style={styles.modalEmptyText}>No collections yet</Text>
+                <Text style={styles.modalEmptySubtext}>Create a collection first</Text>
+              </View>
+            ) : (
+              <ScrollView style={styles.collectionList}>
+                {collections.map((collection) => (
+                  <TouchableOpacity
+                    key={collection.id}
+                    style={styles.collectionItem}
+                    onPress={() => addToCollection(collection.id)}
+                  >
+                    <Ionicons name="folder" size={24} color="#6b7280" />
+                    <View style={styles.collectionItemContent}>
+                      <Text style={styles.collectionItemName}>{collection.name}</Text>
+                      <Text style={styles.collectionItemCount}>{collection.locations?.length || 0} locations</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showNotesModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add Notes</Text>
+              <TouchableOpacity onPress={() => setShowNotesModal(false)}>
+                <Ionicons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.notesInputGroup}>
+              <Text style={styles.notesLabel}>Text Notes</Text>
+              <TextInput
+                style={styles.notesInput}
+                placeholder="Add notes about this location..."
+                value={notes}
+                onChangeText={setNotes}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <TouchableOpacity 
+              style={styles.saveNotesButton}
+              onPress={() => {
+                setShowNotesModal(false);
+                if (notes.trim()) {
+                  Alert.alert('Saved', 'Notes will be saved with location');
+                }
+              }}
+            >
+              <Text style={styles.saveNotesButtonText}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  backButton: { marginRight: 16 },
-  backText: { fontSize: 16, color: '#000000', fontWeight: '500' },
-  headerTitle: { fontSize: 24, fontWeight: '600', color: '#000000', flex: 1 },
-  clearButton: { },
-  clearText: { fontSize: 16, color: '#6b7280', fontWeight: '500' },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16, backgroundColor: '#fff' },
+  backButton: { marginRight: 16, padding: 4 },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: '#000', flex: 1 },
+  clearButton: { padding: 4 },
   content: { flex: 1 },
-  introSection: { padding: 24, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  introTitle: { fontSize: 28, fontWeight: '700', color: '#000000', marginBottom: 8 },
-  introSubtitle: { fontSize: 16, color: '#6b7280', lineHeight: 24 },
-  actionSection: { padding: 24, gap: 12 },
-  primaryAction: { backgroundColor: '#000000', borderRadius: 12, padding: 16, alignItems: 'center' },
-  primaryActionText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
-  secondaryAction: { backgroundColor: '#f3f4f6', borderRadius: 12, padding: 16, alignItems: 'center' },
-  secondaryActionText: { color: '#000000', fontSize: 16, fontWeight: '600' },
-  imageSection: { padding: 24 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', color: '#000000', marginBottom: 16 },
-  selectedImage: { width: '100%', height: 240, borderRadius: 12 },
-  loadingSection: { alignItems: 'center', padding: 40 },
-  loadingText: { marginTop: 16, fontSize: 16, color: '#000000', fontWeight: '500' },
-  resultSection: { padding: 24 },
-  errorCard: { backgroundColor: '#fef2f2', borderRadius: 12, padding: 20, borderWidth: 1, borderColor: '#fecaca' },
+  emptyState: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 40 },
+  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+  emptyTitle: { fontSize: 22, fontWeight: '700', color: '#000', marginBottom: 8 },
+  emptySubtitle: { fontSize: 15, color: '#6b7280', textAlign: 'center', lineHeight: 22 },
+  actionSection: { padding: 20, gap: 12 },
+  primaryAction: { backgroundColor: '#000', borderRadius: 12, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
+  primaryActionText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  secondaryAction: { backgroundColor: '#fff', borderRadius: 12, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#e5e7eb' },
+  secondaryActionText: { color: '#000', fontSize: 16, fontWeight: '600' },
+  actionIconLeft: { marginRight: 8 },
+  imageSection: { margin: 20, borderRadius: 16, overflow: 'hidden', position: 'relative' },
+  selectedImage: { width: '100%', height: 280, backgroundColor: '#f3f4f6' },
+  imageOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' },
+  loadingCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', margin: 20, padding: 16, borderRadius: 12, gap: 12 },
+  loadingText: { fontSize: 15, color: '#000', fontWeight: '600' },
+  resultSection: { padding: 20 },
+  errorCard: { backgroundColor: '#fff', borderRadius: 16, padding: 24, borderWidth: 1, borderColor: '#fecaca' },
   errorTitle: { fontSize: 18, fontWeight: '600', color: '#dc2626', marginBottom: 8 },
   errorText: { fontSize: 16, color: '#6b7280' },
-  successBanner: { backgroundColor: '#dcfce7', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#86efac' },
-  successText: { fontSize: 16, fontWeight: '600', color: '#166534', marginBottom: 4 },
-  successSubtext: { fontSize: 14, color: '#15803d' },
-  locationCard: { backgroundColor: '#ffffff', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6' },
-  cardTitle: { fontSize: 16, fontWeight: '600', color: '#000000', marginBottom: 16 },
-  locationHeader: { marginBottom: 12 },
-  locationName: { fontSize: 20, fontWeight: '700', color: '#000000' },
-  locationAddress: { fontSize: 15, color: '#6b7280', marginBottom: 16, lineHeight: 22 },
-  confidenceSection: { backgroundColor: '#f9fafb', borderRadius: 8, padding: 12, marginTop: 8 },
+  locationCard: { backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  locationHeader: { flexDirection: 'row', gap: 16, marginBottom: 20 },
+  locationInfo: { flex: 1 },
+  locationName: { fontSize: 20, fontWeight: '700', color: '#000', marginBottom: 6 },
+  locationAddress: { fontSize: 15, color: '#6b7280', lineHeight: 22 },
+  confidenceSection: { backgroundColor: '#f9fafb', borderRadius: 12, padding: 16, marginTop: 16 },
   confidenceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   confidenceLabel: { fontSize: 13, fontWeight: '500', color: '#6b7280' },
   confidenceValue: { fontSize: 16, fontWeight: '700', color: '#000000' },
   confidenceBar: { height: 6, backgroundColor: '#e5e7eb', borderRadius: 3, overflow: 'hidden' },
   confidenceFill: { height: '100%', backgroundColor: '#000000', borderRadius: 3 },
-  detailsCard: { backgroundColor: '#ffffff', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6' },
+  detailsCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16 },
+  cardTitle: { fontSize: 14, fontWeight: '700', color: '#6b7280', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
   coordinatesBox: { backgroundColor: '#f9fafb', borderRadius: 8, padding: 16, borderWidth: 1, borderColor: '#e5e7eb' },
   coordinatesText: { fontSize: 15, fontWeight: '600', color: '#000000', fontFamily: 'monospace' },
   infoBox: { backgroundColor: '#f9fafb', borderRadius: 8, padding: 12, marginBottom: 8 },
@@ -507,28 +687,48 @@ const styles = StyleSheet.create({
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   detailLabel: { fontSize: 14, color: '#6b7280' },
   detailValue: { fontSize: 14, fontWeight: '500', color: '#000000', flex: 1, textAlign: 'right' },
-  nearbySection: { marginBottom: 16 },
+  nearbySection: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16 },
   nearbyHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   nearbyBadge: { backgroundColor: '#000000', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
   nearbyBadgeText: { color: '#ffffff', fontSize: 12, fontWeight: '600' },
   nearbyScroll: { },
-  nearbyCard: { width: 140, backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginRight: 12, borderWidth: 1, borderColor: '#f3f4f6' },
+  nearbyCard: { width: 140, backgroundColor: '#f9fafb', borderRadius: 12, padding: 16, marginRight: 12 },
   nearbyName: { fontSize: 14, fontWeight: '600', color: '#000000', marginBottom: 4, height: 36 },
   nearbyType: { fontSize: 12, color: '#6b7280', marginBottom: 8, textTransform: 'capitalize' },
   nearbyDistance: { fontSize: 12, color: '#000000', fontWeight: '500' },
-  environmentCard: { backgroundColor: '#ffffff', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6' },
+  environmentCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16 },
   environmentGrid: { flexDirection: 'row', gap: 12 },
   environmentBox: { flex: 1, backgroundColor: '#f0f9ff', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#bfdbfe' },
   environmentLabel: { fontSize: 12, fontWeight: '600', color: '#1e40af', marginBottom: 8 },
   environmentValue: { fontSize: 20, fontWeight: '700', color: '#1e3a8a', marginBottom: 4 },
   environmentSubtext: { fontSize: 11, color: '#3b82f6' },
-  actionsCard: { backgroundColor: '#ffffff', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6' },
-  primaryActionButton: { backgroundColor: '#000000', borderRadius: 12, padding: 16, alignItems: 'center', marginBottom: 12 },
-  primaryActionButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
-  secondaryActionButton: { backgroundColor: '#f3f4f6', borderRadius: 12, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#e5e7eb' },
-  secondaryActionButtonSaved: { backgroundColor: '#000000', borderColor: '#000000' },
-  secondaryActionButtonText: { color: '#000000', fontSize: 16, fontWeight: '600' },
-  secondaryActionButtonTextSaved: { color: '#ffffff' },
+  actionsCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 80 },
+  actionsGrid: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  actionButton: { flex: 1, backgroundColor: '#f9fafb', borderRadius: 10, padding: 14, alignItems: 'center' },
+  actionText: { fontSize: 13, fontWeight: '600', color: '#000000' },
+  notesButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#8b5cf6', borderRadius: 12, padding: 16, gap: 8, marginTop: 4 },
+  notesButtonText: { color: '#ffffff', fontSize: 15, fontWeight: '600' },
+  addCollectionButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#6b7280', borderRadius: 12, padding: 16, gap: 8, marginTop: 8 },
+  addCollectionText: { color: '#ffffff', fontSize: 15, fontWeight: '600' },
+  streetViewButton: { backgroundColor: '#000', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 8 },
+  streetViewText: { color: '#ffffff', fontSize: 15, fontWeight: '600' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modal: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '70%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: '#000' },
+  modalEmpty: { paddingVertical: 40, alignItems: 'center' },
+  modalEmptyText: { fontSize: 16, fontWeight: '600', color: '#6b7280', marginBottom: 4 },
+  modalEmptySubtext: { fontSize: 14, color: '#9ca3af' },
+  collectionList: { maxHeight: 400 },
+  collectionItem: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#f9fafb', borderRadius: 12, marginBottom: 8, gap: 12 },
+  collectionItemContent: { flex: 1 },
+  collectionItemName: { fontSize: 15, fontWeight: '600', color: '#000', marginBottom: 2 },
+  collectionItemCount: { fontSize: 13, color: '#6b7280' },
+  notesInputGroup: { marginBottom: 20 },
+  notesLabel: { fontSize: 13, fontWeight: '600', color: '#6b7280', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  notesInput: { backgroundColor: '#f9fafb', borderRadius: 12, padding: 16, fontSize: 15, color: '#000', borderWidth: 1, borderColor: '#e5e7eb', minHeight: 120 },
+  saveNotesButton: { backgroundColor: '#000', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 8 },
+  saveNotesButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   camera: { flex: 1 },
   cameraContainer: { flex: 1 },
   cameraHeader: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20 },

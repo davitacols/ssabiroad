@@ -75,19 +75,6 @@ export const GeofenceService = {
       }
 
       const data = await response.json();
-      
-      if (data.success) {
-        // Start monitoring
-        await Location.startGeofencingAsync(GEOFENCE_TASK, [{
-          identifier: data.geofence.id,
-          latitude,
-          longitude,
-          radius,
-          notifyOnEnter: true,
-          notifyOnExit: true,
-        }]);
-      }
-
       return data;
     } catch (error) {
       console.error('Create geofence error:', error);
@@ -136,16 +123,16 @@ export const GeofenceService = {
   },
 
   async startMonitoring() {
-    const hasPermissions = await this.requestPermissions();
-    if (!hasPermissions) {
-      throw new Error('Permissions not granted');
+    const { status: bgStatus } = await Location.getBackgroundPermissionsAsync();
+    if (bgStatus !== 'granted') {
+      throw new Error('Background location permission required');
     }
 
     // Start location updates
     await Location.startLocationUpdatesAsync(GEOFENCE_TASK, {
       accuracy: Location.Accuracy.Balanced,
-      timeInterval: 60000, // Check every minute
-      distanceInterval: 100, // Or every 100 meters
+      timeInterval: 60000,
+      distanceInterval: 100,
     });
   },
 

@@ -1,21 +1,26 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function MenuBar() {
   const router = useRouter();
   const pathname = usePathname();
 
   const menuItems = [
-    { label: 'Home', route: '/', key: 'home' },
-    { label: 'Scanner', route: '/scanner', key: 'scanner' },
-    { label: 'AR View', route: '/ar-view', key: 'ar' },
-    { label: 'Nearby', route: '/nearby-poi', key: 'nearby' },
-    { label: 'Activity', route: '/activity', key: 'activity' },
+    { icon: 'home-outline', activeIcon: 'home', label: 'Home', route: '/', key: 'home' },
+    { icon: 'camera-outline', activeIcon: 'camera', label: 'Scanner', route: '/scanner', key: 'scanner' },
+    { icon: 'location-outline', activeIcon: 'location', label: 'Geofence', route: '/geofence', key: 'geofence' },
+    { icon: 'compass-outline', activeIcon: 'compass', label: 'Nearby', route: '/nearby-poi', key: 'nearby' },
+    { icon: 'time-outline', activeIcon: 'time', label: 'Activity', route: '/activity', key: 'activity' },
   ];
 
   const isActive = (route: string) => {
     if (route === '/') return pathname === '/';
     return pathname.startsWith(route);
+  };
+
+  const handlePress = (route: string) => {
+    router.push(route as any);
   };
 
   return (
@@ -24,9 +29,13 @@ export default function MenuBar() {
         <TouchableOpacity
           key={item.key}
           style={styles.menuItem}
-          onPress={() => router.push(item.route as any)}
+          onPress={() => handlePress(item.route)}
         >
-          <View style={[styles.indicator, isActive(item.route) && styles.activeIndicator]} />
+          <Ionicons 
+            name={isActive(item.route) ? item.activeIcon : item.icon} 
+            size={24} 
+            color={isActive(item.route) ? '#000000' : '#9ca3af'}
+          />
           <Text style={[styles.label, isActive(item.route) && styles.activeLabel]}>
             {item.label}
           </Text>
@@ -40,12 +49,12 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: '#ffffff',
-    paddingBottom: 24,
-    paddingTop: 16,
+    paddingBottom: 20,
+    paddingTop: 8,
     elevation: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1,
     shadowRadius: 12,
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
@@ -53,25 +62,16 @@ const styles = StyleSheet.create({
   menuItem: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 8,
   },
-  indicator: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'transparent',
-    marginBottom: 8,
-  },
-  activeIndicator: {
-    backgroundColor: '#000000',
-  },
+
   label: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '500',
     color: '#6b7280',
   },
   activeLabel: {
     color: '#000000',
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });
