@@ -54,6 +54,11 @@ export default function HomeScreen() {
     router.push('/collections');
   };
 
+  const handleAISearchPress = () => {
+    addActivity('AI Search', 'Searched for places', '/ai-search');
+    router.push('/ai-search');
+  };
+
   const handleBatchPress = () => {
     addActivity('Batch Process', 'Processed multiple photos', '/batch-process');
     router.push('/batch-process');
@@ -102,6 +107,13 @@ export default function HomeScreen() {
             <View style={styles.arCardContent}>
               <Text style={styles.arTitle}>AR Location View</Text>
               <Text style={styles.arSubtitle}>See real-time info overlays through your camera</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.aiSearchCard} onPress={handleAISearchPress}>
+            <View style={styles.aiSearchContent}>
+              <Text style={styles.aiSearchTitle}>🤖 AI Search</Text>
+              <Text style={styles.aiSearchSubtitle}>Ask anything: "volleyball courts in Lagos"</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -260,6 +272,31 @@ const styles = StyleSheet.create({
   },
   arSubtitle: {
     fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  aiSearchCard: {
+    height: 100,
+    borderRadius: 16,
+    backgroundColor: '#f5f3ff',
+    borderWidth: 2,
+    borderColor: '#8b5cf6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  aiSearchContent: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  aiSearchTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  aiSearchSubtitle: {
+    fontSize: 13,
     color: '#6b7280',
     textAlign: 'center',
   },

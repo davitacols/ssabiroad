@@ -9,6 +9,7 @@ export default function RootLayout() {
       <Stack.Screen name="collections" />
       <Stack.Screen name="batch-process" />
       <Stack.Screen name="collection-detail" />
+      <Stack.Screen name="ai-search" />
       <Stack.Screen name="activity" />
       <Stack.Screen name="geofence" />
       <Stack.Screen name="ar-view" />

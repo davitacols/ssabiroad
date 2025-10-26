@@ -1,0 +1,12 @@
+node_modules
+.expo
+.expo-shared
+dist
+.git
+.vscode
+*.log
+.DS_Store
+__tests__
+coverage
+.github
+docs
