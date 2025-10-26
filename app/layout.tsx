@@ -1,8 +1,8 @@
 import './globals.css'
-import { Inter } from 'next/font/google'
+import { League_Spartan } from 'next/font/google'
 import { Providers } from './providers'
 
-const inter = Inter({ subsets: ['latin'] })
+const leagueSpartan = League_Spartan({ subsets: ['latin'] })
 
 export const metadata = {
   title: 'Pic2Nav - AI-Powered Location Discovery',
@@ -35,7 +35,7 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
       </head>
-      <body className={`${inter.className} overflow-x-hidden`} suppressHydrationWarning={true}>
+      <body className={`${leagueSpartan.className} overflow-x-hidden`} suppressHydrationWarning={true}>
         <Providers>{children}</Providers>
       </body>
     </html>

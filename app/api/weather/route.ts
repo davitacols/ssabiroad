@@ -1,64 +1,53 @@
-// /app/api/weather/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
-const OPEN_WEATHER_API_KEY = process.env.OPEN_WEATHER_API_KEY || ''; // You'll need to obtain an API key from OpenWeatherMap
-
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const lat = searchParams.get('lat');
-  const lng = searchParams.get('lng');
-  
-  if (!lat || !lng) {
-    return NextResponse.json({ error: 'lat and lng parameters are required' }, { status: 400 });
-  }
-  
   try {
-    if (!OPEN_WEATHER_API_KEY) {
-      return NextResponse.json({
-        note: 'Weather data requires an API key',
-        data: {
-          message: 'For weather data, integrate with a service like OpenWeatherMap, WeatherAPI, or similar'
-        }
-      });
+    const { searchParams } = new URL(request.url);
+    const lat = searchParams.get('lat');
+    const lon = searchParams.get('lon');
+
+    if (!lat || !lon) {
+      return NextResponse.json({ error: 'Latitude and longitude required' }, { status: 400 });
     }
+
+    const apiKey = process.env.OPENWEATHER_API_KEY;
     
-    const response = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&units=metric&appid=${OPEN_WEATHER_API_KEY}`
-    );
-    
-    if (!response.ok) {
-      throw new Error(`Weather API error: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    
+    // Get current weather
+    const currentUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
+    const currentRes = await fetch(currentUrl);
+    const current = await currentRes.json();
+
+    // Get 5-day forecast
+    const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
+    const forecastRes = await fetch(forecastUrl);
+    const forecastData = await forecastRes.json();
+
+    // Process forecast to get daily data
+    const daily = forecastData.list
+      .filter((_: any, index: number) => index % 8 === 0)
+      .slice(0, 5)
+      .map((item: any) => ({
+        date: new Date(item.dt * 1000).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+        temp: Math.round(item.main.temp),
+        tempMin: Math.round(item.main.temp_min),
+        tempMax: Math.round(item.main.temp_max),
+        description: item.weather[0].description,
+        icon: item.weather[0].icon,
+      }));
+
     return NextResponse.json({
-      current_weather: {
-        temperature: data.main.temp,
-        feels_like: data.main.feels_like,
-        humidity: data.main.humidity,
-        pressure: data.main.pressure,
-        weather_condition: data.weather[0].main,
-        description: data.weather[0].description,
-        wind_speed: data.wind.speed,
-        wind_direction: data.wind.deg,
-        cloudiness: data.clouds.all,
-        visibility: data.visibility
+      current: {
+        temp: Math.round(current.main.temp),
+        feelsLike: Math.round(current.main.feels_like),
+        humidity: current.main.humidity,
+        windSpeed: Math.round(current.wind.speed * 3.6),
+        description: current.weather[0].description,
+        icon: current.weather[0].icon,
       },
-      location: {
-        name: data.name,
-        country: data.sys.country,
-        sunrise: new Date(data.sys.sunrise * 1000).toISOString(),
-        sunset: new Date(data.sys.sunset * 1000).toISOString()
-      },
-      raw_data: data
+      forecast: daily,
     });
-    
   } catch (error) {
-    console.error('Error fetching weather data:', error);
-    return NextResponse.json({ 
-      error: 'Failed to fetch weather data',
-      message: 'Weather data may not be available for this location or API key is invalid'
-    }, { status: 200 });
+    console.error('Weather API error:', error);
+    return NextResponse.json({ error: 'Failed to fetch weather' }, { status: 500 });
   }
 }

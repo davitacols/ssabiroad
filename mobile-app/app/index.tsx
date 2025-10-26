@@ -78,41 +78,46 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.greeting}>{getGreeting()}</Text>
-          <Text style={styles.subtitle}>Where would you like to explore?</Text>
         </View>
 
         {/* Main Actions */}
         <View style={styles.mainActions}>
-          <TouchableOpacity style={styles.primaryCard} onPress={handleScannerPress}>
-            <Image source={require('../assets/location.jpg')} style={styles.cardImage} />
-            <View style={styles.cardOverlay}>
-              <View style={styles.cardContent}>
-                <Text style={styles.primaryTitle}>Scan Location</Text>
-                <Text style={styles.primarySubtitle}>Identify places from photos using AI</Text>
-              </View>
+          <TouchableOpacity style={styles.cardWrapper} onPress={handleScannerPress}>
+            <View style={styles.primaryCard}>
+              <Image source={require('../assets/location.jpg')} style={styles.cardImage} />
+            </View>
+            <View style={styles.cardTextContainer}>
+              <Text style={styles.primaryTitle}>Scan Location</Text>
+              <Text style={styles.primarySubtitle}>Identify places from photos using AI</Text>
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.secondaryCard} onPress={handleNearbyPress}>
-            <Image source={require('../assets/search.jpg')} style={styles.cardImage} />
-            <View style={styles.cardOverlay}>
-              <View style={styles.cardContent}>
-                <Text style={styles.secondaryTitle}>Nearby Places</Text>
-                <Text style={styles.secondarySubtitle}>Discover locations around you</Text>
-              </View>
+          <TouchableOpacity style={styles.cardWrapper} onPress={handleNearbyPress}>
+            <View style={styles.secondaryCard}>
+              <Image source={require('../assets/search.jpg')} style={styles.cardImage} />
+            </View>
+            <View style={styles.cardTextContainer}>
+              <Text style={styles.secondaryTitle}>Nearby Places</Text>
+              <Text style={styles.secondarySubtitle}>Discover locations around you</Text>
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.arCard} onPress={handleARPress}>
-            <View style={styles.arCardContent}>
+          <TouchableOpacity style={styles.cardWrapper} onPress={handleARPress}>
+            <View style={styles.arCard}>
+              <Image source={require('../assets/ar-view.jpg')} style={styles.cardImage} />
+            </View>
+            <View style={styles.cardTextContainer}>
               <Text style={styles.arTitle}>AR Location View</Text>
               <Text style={styles.arSubtitle}>See real-time info overlays through your camera</Text>
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.aiSearchCard} onPress={handleAISearchPress}>
-            <View style={styles.aiSearchContent}>
-              <Text style={styles.aiSearchTitle}>🤖 AI Search</Text>
+          <TouchableOpacity style={styles.cardWrapper} onPress={handleAISearchPress}>
+            <View style={styles.aiSearchCard}>
+              <Image source={require('../assets/ai-search.jpg')} style={styles.cardImage} />
+            </View>
+            <View style={styles.cardTextContainer}>
+              <Text style={styles.aiSearchTitle}>AI Search</Text>
               <Text style={styles.aiSearchSubtitle}>Ask anything: "volleyball courts in Lagos"</Text>
             </View>
           </TouchableOpacity>
@@ -164,152 +169,120 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: 32,
-    alignItems: 'center',
+    paddingBottom: 20,
   },
   greeting: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '700',
     color: '#000000',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
   },
   mainActions: {
     paddingHorizontal: 24,
-    marginBottom: 40,
-    gap: 16,
+    marginBottom: 20,
+    gap: 20,
+  },
+  cardWrapper: {
+    marginBottom: 4,
   },
   primaryCard: {
     height: 160,
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
-    position: 'relative',
-    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
   secondaryCard: {
     height: 140,
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
-    position: 'relative',
-    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
   cardImage: {
     width: '100%',
     height: '100%',
-    position: 'absolute',
   },
-  cardOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'flex-end',
-  },
-  cardContent: {
-    padding: 24,
+  cardTextContainer: {
+    paddingTop: 12,
   },
   primaryTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 6,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    color: '#000000',
+    marginBottom: 4,
   },
   primarySubtitle: {
-    fontSize: 16,
-    color: '#ffffff',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    fontSize: 14,
+    color: '#6b7280',
   },
   secondaryTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000000',
     marginBottom: 4,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
   },
   secondarySubtitle: {
-    fontSize: 14,
-    color: '#ffffff',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    fontSize: 13,
+    color: '#6b7280',
   },
   arCard: {
-    height: 100,
+    height: 120,
     borderRadius: 16,
-    backgroundColor: '#f8f9fa',
-    borderWidth: 2,
-    borderColor: '#000000',
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  arCardContent: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
   arTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#000000',
     marginBottom: 4,
   },
   arSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6b7280',
-    textAlign: 'center',
   },
   aiSearchCard: {
-    height: 100,
+    height: 120,
     borderRadius: 16,
-    backgroundColor: '#f5f3ff',
-    borderWidth: 2,
-    borderColor: '#8b5cf6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  aiSearchContent: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
   aiSearchTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#000000',
     marginBottom: 4,
   },
   aiSearchSubtitle: {
     fontSize: 13,
     color: '#6b7280',
-    textAlign: 'center',
   },
   featuresSection: {
     paddingHorizontal: 24,
+    marginTop: 8,
     marginBottom: 100,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#6b7280',
-    marginBottom: 16,
-    letterSpacing: 1,
+    color: '#9ca3af',
+    marginBottom: 12,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   featuresGrid: {
     flexDirection: 'row',
@@ -317,28 +290,23 @@ const styles = StyleSheet.create({
   },
   featureCard: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#f3f4f6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   featureTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 6,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 4,
     textAlign: 'center',
   },
   featureDesc: {
     fontSize: 11,
-    color: '#6b7280',
+    color: '#9ca3af',
     textAlign: 'center',
   },
 });
