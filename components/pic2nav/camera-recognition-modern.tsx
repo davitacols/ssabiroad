@@ -147,10 +147,14 @@ export function CameraRecognitionModern() {
     setUploadProgress(0)
 
     try {
-      // Send original file to preserve GPS data - compression strips EXIF
       const formData = new FormData()
       formData.append("image", file)
       formData.append("analyzeLandmarks", "true")
+      
+      if ((file as any).location) {
+        formData.append("clientGPSLatitude", (file as any).location.latitude.toString())
+        formData.append("clientGPSLongitude", (file as any).location.longitude.toString())
+      }
 
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => Math.min(prev + 10, 90))
@@ -191,6 +195,72 @@ export function CameraRecognitionModern() {
     }
   }, [toast])
 
+  const stopCamera = useCallback(() => {
+    if (videoRef.current?.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream
+      stream.getTracks().forEach(track => track.stop())
+      videoRef.current.srcObject = null
+      setCameraActive(false)
+    }
+  }, [])
+
+  const handleFileSelect = useCallback((file: File & { location?: { latitude: number; longitude: number } }) => {
+    if (!file) return
+    
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image under 10MB",
+        variant: "destructive"
+      })
+      return
+    }
+    
+    const url = URL.createObjectURL(file)
+    setPreviewUrl(url)
+    setZoom(1)
+    setRotation(0)
+    setUploadHistory(prev => [{ url, name: file.name, timestamp: Date.now() }, ...prev.slice(0, 4)])
+    processImage(file)
+  }, [processImage, toast])
+
+  const capturePhoto = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) return
+
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    
+    const context = canvas.getContext("2d")
+    if (!context) return
+
+    context.drawImage(video, 0, 0)
+    
+    canvas.toBlob(async (blob) => {
+      if (!blob) return
+      
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 5000 })
+        })
+        
+        const file = new File([blob], `capture-${Date.now()}.jpg`, { type: "image/jpeg" }) as any
+        file.location = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        }
+        handleFileSelect(file)
+      } catch {
+        toast({ title: "Location unavailable", description: "Photo captured without GPS", variant: "destructive" })
+        const file = new File([blob], `capture-${Date.now()}.jpg`, { type: "image/jpeg" })
+        handleFileSelect(file)
+      }
+      stopCamera()
+    }, "image/jpeg", 0.95)
+  }, [toast, stopCamera, handleFileSelect])
+
   const startCamera = useCallback(async () => {
     setIsStartingCamera(true)
     try {
@@ -215,59 +285,6 @@ export function CameraRecognitionModern() {
       setIsStartingCamera(false)
     }
   }, [toast])
-
-  const capturePhoto = useCallback(async () => {
-    if (!videoRef.current || !canvasRef.current) return
-
-    const video = videoRef.current
-    const canvas = canvasRef.current
-    
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    
-    const context = canvas.getContext("2d")
-    if (context) {
-      context.drawImage(video, 0, 0)
-      
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const file = new File([blob], `capture-${Date.now()}.jpg`, { type: "image/jpeg" })
-          handleFileSelect(file)
-          stopCamera()
-        }
-      }, "image/jpeg", 0.95)
-    }
-  }, [])
-
-  const stopCamera = useCallback(() => {
-    if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream
-      stream.getTracks().forEach(track => track.stop())
-      videoRef.current.srcObject = null
-      setCameraActive(false)
-    }
-  }, [])
-
-  const handleFileSelect = useCallback((file: File) => {
-    if (!file) return
-    
-    // Check file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please select an image under 10MB",
-        variant: "destructive"
-      })
-      return
-    }
-    
-    const url = URL.createObjectURL(file)
-    setPreviewUrl(url)
-    setZoom(1)
-    setRotation(0)
-    setUploadHistory(prev => [{ url, name: file.name, timestamp: Date.now() }, ...prev.slice(0, 4)])
-    processImage(file)
-  }, [processImage, toast])
 
   const reset = useCallback(() => {
     setResult(null)

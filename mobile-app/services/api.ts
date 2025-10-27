@@ -27,6 +27,7 @@ export const analyzeLocation = async (imageUri: string, location: { latitude: nu
     if (location) {
       parameters.clientGPSLatitude = location.latitude.toString();
       parameters.clientGPSLongitude = location.longitude.toString();
+      console.log('📍 Sending GPS:', location.latitude, location.longitude);
     }
     
     // Always use FileSystem.uploadAsync - it's reliable
@@ -50,12 +51,14 @@ export const analyzeLocation = async (imageUri: string, location: { latitude: nu
     console.log('Response headers:', response.headers);
     
     const data = JSON.parse(response.body);
+    console.log('📦 Full API Response:', JSON.stringify(data, null, 2));
     console.log('✅ Method used:', data.method);
     console.log('✅ Success:', data.success);
+    console.log('✅ Error:', data.error);
     console.log('✅ Address:', data.address);
     
-    if (response.status !== 200) {
-      throw new Error(data.error || 'API request failed');
+    if (response.status !== 200 || !data.success) {
+      console.log('⚠️ API returned error or unsuccessful response');
     }
     
     return data;

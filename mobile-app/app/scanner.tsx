@@ -285,18 +285,25 @@ export default function ScannerScreen() {
     try {
       // Don't send device location - let API extract GPS from image EXIF first
       const data = await analyzeLocation(uri, null);
+      
+      // Check if API returned an error or no location data
+      if (!data.success || data.error) {
+        setResult({ 
+          error: data.error || 'No GPS data found in image. Please use a photo with location data or take a new photo with location services enabled.' 
+        });
+        return;
+      }
+      
       setResult(data);
       
-      if (data && !data.error) {
+      if (data && data.location) {
         const locationName = data.name || data.address || 'Unknown location';
         await addActivity('Location Analyzed', `Found: ${locationName}`, '/scanner');
         
         // Fetch weather and place details if location found
-        if (data.location) {
-          fetchWeather(data.location.latitude, data.location.longitude);
-          if (data.name) {
-            fetchPlaceDetails(data.location.latitude, data.location.longitude, data.name);
-          }
+        fetchWeather(data.location.latitude, data.location.longitude);
+        if (data.name) {
+          fetchPlaceDetails(data.location.latitude, data.location.longitude, data.name);
         }
       }
     } catch (error: any) {
@@ -324,6 +331,16 @@ export default function ScannerScreen() {
     }
 
     try {
+      let location = currentLocation;
+      if (!location) {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({});
+          location = loc.coords;
+          setCurrentLocation(location);
+        }
+      }
+
       const photo = await camera.takePictureAsync({
         quality: 0.8,
         base64: false,
@@ -333,8 +350,13 @@ export default function ScannerScreen() {
       if (photo && photo.uri) {
         setShowCamera(false);
         setImage(photo.uri);
-        await addActivity('Photo Captured', 'Took photo for location analysis', '/scanner');
-        await processImage(photo.uri, photo.exif);
+        await addActivity('Photo Captured', 'Took photo with location', '/scanner');
+        
+        if (location) {
+          await processImageWithLocation(photo.uri, location);
+        } else {
+          await processImage(photo.uri, photo.exif);
+        }
       } else {
         throw new Error('No photo captured');
       }
@@ -342,6 +364,37 @@ export default function ScannerScreen() {
       console.error('Take picture error:', error);
       Alert.alert('Error', 'Failed to capture image. Please try again.');
       setShowCamera(false);
+    }
+  };
+
+  const processImageWithLocation = async (uri: string, location: { latitude: number; longitude: number }) => {
+    setLoading(true);
+    try {
+      const data = await analyzeLocation(uri, location);
+      
+      if (!data.success || data.error) {
+        setResult({ 
+          error: data.error || 'Failed to analyze location' 
+        });
+        return;
+      }
+      
+      setResult(data);
+      
+      if (data && data.location) {
+        const locationName = data.name || data.address || 'Unknown location';
+        await addActivity('Location Analyzed', `Found: ${locationName}`, '/scanner');
+        
+        fetchWeather(data.location.latitude, data.location.longitude);
+        if (data.name) {
+          fetchPlaceDetails(data.location.latitude, data.location.longitude, data.name);
+        }
+      }
+    } catch (error: any) {
+      console.error('Processing error:', error);
+      setResult({ error: 'Failed to analyze image' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -435,8 +488,15 @@ export default function ScannerScreen() {
           <View style={styles.resultSection}>
             {result.error ? (
               <View style={styles.errorCard}>
-                <Text style={styles.errorTitle}>Analysis Failed</Text>
+                <Ionicons name="alert-circle" size={48} color="#ef4444" style={styles.errorIcon} />
+                <Text style={styles.errorTitle}>No Location Data</Text>
                 <Text style={styles.errorText}>{result.error}</Text>
+                <View style={styles.errorTips}>
+                  <Text style={styles.errorTipsTitle}>Tips:</Text>
+                  <Text style={styles.errorTip}>• Enable location services on your device</Text>
+                  <Text style={styles.errorTip}>• Take a new photo with GPS enabled</Text>
+                  <Text style={styles.errorTip}>• Use a photo that was taken with location data</Text>
+                </View>
               </View>
             ) : (
               <>
@@ -920,9 +980,13 @@ const styles = StyleSheet.create({
   loadingCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', margin: 20, padding: 16, borderRadius: 12, gap: 12 },
   loadingText: { fontSize: 15, color: '#000', fontWeight: '600', fontFamily: 'LeagueSpartan_600SemiBold' },
   resultSection: { padding: 20 },
-  errorCard: { backgroundColor: '#fff', borderRadius: 16, padding: 24, borderWidth: 1, borderColor: '#fecaca' },
-  errorTitle: { fontSize: 18, fontWeight: '600', color: '#dc2626', marginBottom: 8, fontFamily: 'LeagueSpartan_600SemiBold' },
-  errorText: { fontSize: 16, color: '#6b7280', fontFamily: 'LeagueSpartan_400Regular' },
+  errorCard: { backgroundColor: '#fff', borderRadius: 16, padding: 24, borderWidth: 1, borderColor: '#fecaca', alignItems: 'center' },
+  errorIcon: { marginBottom: 16 },
+  errorTitle: { fontSize: 20, fontWeight: '700', color: '#dc2626', marginBottom: 12, fontFamily: 'LeagueSpartan_700Bold', textAlign: 'center' },
+  errorText: { fontSize: 15, color: '#6b7280', fontFamily: 'LeagueSpartan_400Regular', textAlign: 'center', marginBottom: 20, lineHeight: 22 },
+  errorTips: { backgroundColor: '#fef2f2', borderRadius: 12, padding: 16, width: '100%' },
+  errorTipsTitle: { fontSize: 14, fontWeight: '700', color: '#dc2626', marginBottom: 12, fontFamily: 'LeagueSpartan_700Bold' },
+  errorTip: { fontSize: 13, color: '#6b7280', marginBottom: 6, fontFamily: 'LeagueSpartan_400Regular', lineHeight: 20 },
   locationCard: { backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
   locationHeader: { flexDirection: 'row', gap: 16, marginBottom: 20 },
   locationInfo: { flex: 1 },
