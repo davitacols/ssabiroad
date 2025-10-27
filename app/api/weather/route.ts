@@ -22,18 +22,22 @@ export async function GET(request: NextRequest) {
     const forecastRes = await fetch(forecastUrl);
     const forecastData = await forecastRes.json();
 
-    // Process forecast to get daily data
-    const daily = forecastData.list
-      .filter((_: any, index: number) => index % 8 === 0)
-      .slice(0, 5)
-      .map((item: any) => ({
-        date: new Date(item.dt * 1000).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-        temp: Math.round(item.main.temp),
-        tempMin: Math.round(item.main.temp_min),
-        tempMax: Math.round(item.main.temp_max),
-        description: item.weather[0].description,
-        icon: item.weather[0].icon,
-      }));
+    // Process forecast to get daily data (one per day at noon)
+    const dailyMap = new Map();
+    forecastData.list.forEach((item: any) => {
+      const date = new Date(item.dt * 1000).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      if (!dailyMap.has(date)) {
+        dailyMap.set(date, {
+          date,
+          temp: Math.round(item.main.temp),
+          tempMin: Math.round(item.main.temp_min),
+          tempMax: Math.round(item.main.temp_max),
+          description: item.weather[0].description,
+          icon: item.weather[0].icon,
+        });
+      }
+    });
+    const daily = Array.from(dailyMap.values()).slice(0, 5);
 
     return NextResponse.json({
       current: {
@@ -44,7 +48,10 @@ export async function GET(request: NextRequest) {
         description: current.weather[0].description,
         icon: current.weather[0].icon,
       },
-      forecast: daily,
+      forecast: daily.map((day, idx) => ({
+        ...day,
+        date: idx === 0 ? 'Today' : day.date,
+      })),
     });
   } catch (error) {
     console.error('Weather API error:', error);

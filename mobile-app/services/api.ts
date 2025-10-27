@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system';
 
-const API_URL = 'https://pic2nav.com/api';
+const API_URL = 'https://ssabiroad.vercel.app/api';
 
 export const analyzeLocation = async (imageUri: string, location: { latitude: number; longitude: number } | null, base64?: string) => {
   console.log('🚀 Starting API request');

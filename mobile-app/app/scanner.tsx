@@ -84,7 +84,7 @@ export default function ScannerScreen() {
 
   const loadSavedLocations = async () => {
     try {
-      const saved = await SecureStore.getItemAsync('savedLocations');
+      const saved = await AsyncStorage.getItem('savedLocations');
       if (saved) setSavedLocations(JSON.parse(saved));
     } catch (error) {
       console.error('Load error:', error);
@@ -229,7 +229,7 @@ export default function ScannerScreen() {
 
       setSavedLocations(updated);
       setIsSaved(!isSaved);
-      await SecureStore.setItemAsync('savedLocations', JSON.stringify(updated));
+      await AsyncStorage.setItem('savedLocations', JSON.stringify(updated));
     } catch (error) {
       console.error('Save error:', error);
       Alert.alert('Error', 'Failed to save location');
@@ -762,15 +762,12 @@ export default function ScannerScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity 
                       style={styles.actionButton}
-                      onPress={async () => {
+                      onPress={() => {
                         if (result.location) {
-                          try {
-                            await Share.share({
-                              message: `${result.name || 'Location'}\n${result.address || ''}\nhttps://maps.google.com/?q=${result.location.latitude},${result.location.longitude}`
-                            });
-                          } catch (error) {
-                            console.log('Share error:', error);
-                          }
+                          router.push({
+                            pathname: '/share-location',
+                            params: { location: JSON.stringify({ ...result, image }) }
+                          });
                         }
                       }}
                     >

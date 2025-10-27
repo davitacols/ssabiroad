@@ -34,6 +34,8 @@ export default function RootLayout() {
       <Stack.Screen name="activity" />
       <Stack.Screen name="geofence" />
       <Stack.Screen name="ar-view" />
+      <Stack.Screen name="ar-building-explorer" />
+      <Stack.Screen name="journey" />
       <Stack.Screen name="(tabs)" />
     </Stack>
   );

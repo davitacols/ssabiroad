@@ -1,6 +1,6 @@
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, SafeAreaView, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Image, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MenuBar from '../components/MenuBar';
 
@@ -49,6 +49,11 @@ export default function HomeScreen() {
     router.push('/ar-view');
   };
 
+  const handleARBuildingPress = () => {
+    addActivity('AR Building Explorer', 'Analyzed buildings with AR', '/ar-building-explorer');
+    router.push('/ar-building-explorer');
+  };
+
   const handleCollectionsPress = () => {
     addActivity('Collections', 'Organized saved locations', '/collections');
     router.push('/collections');
@@ -64,249 +69,280 @@ export default function HomeScreen() {
     router.push('/batch-process');
   };
 
+  const handleJourneyPress = () => {
+    addActivity('Journey Timeline', 'Viewed location journey', '/journey');
+    router.push('/journey');
+  };
+
+  const handleDiscoverPress = () => {
+    addActivity('Discover', 'Explored new locations', '/discover');
+    router.push('/discover');
+  };
+
 
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
       
-      <View style={styles.stickyHeader}>
-        <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+      {/* Black Header */}
+      <View style={styles.header}>
+        <Text style={styles.greeting}>{getGreeting()}</Text>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.greeting}>{getGreeting()}</Text>
-        </View>
-
-        {/* Main Actions */}
-        <View style={styles.mainActions}>
-          <TouchableOpacity style={styles.cardWrapper} onPress={handleScannerPress}>
-            <View style={styles.primaryCard}>
-              <Image source={require('../assets/location.jpg')} style={styles.cardImage} />
-            </View>
-            <View style={styles.cardTextContainer}>
-              <Text style={styles.primaryTitle}>Scan Location</Text>
-              <Text style={styles.primarySubtitle}>Identify places from photos using AI</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.cardWrapper} onPress={handleNearbyPress}>
-            <View style={styles.secondaryCard}>
-              <Image source={require('../assets/search.jpg')} style={styles.cardImage} />
-            </View>
-            <View style={styles.cardTextContainer}>
-              <Text style={styles.secondaryTitle}>Nearby Places</Text>
-              <Text style={styles.secondarySubtitle}>Discover locations around you</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.cardWrapper} onPress={handleARPress}>
-            <View style={styles.arCard}>
-              <Image source={require('../assets/ar-view.jpg')} style={styles.cardImage} />
-            </View>
-            <View style={styles.cardTextContainer}>
-              <Text style={styles.arTitle}>AR Location View</Text>
-              <Text style={styles.arSubtitle}>See real-time info overlays through your camera</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.cardWrapper} onPress={handleAISearchPress}>
-            <View style={styles.aiSearchCard}>
-              <Image source={require('../assets/ai-search.jpg')} style={styles.cardImage} />
-            </View>
-            <View style={styles.cardTextContainer}>
-              <Text style={styles.aiSearchTitle}>AI Search</Text>
-              <Text style={styles.aiSearchSubtitle}>Ask anything: "volleyball courts in Lagos"</Text>
+        {/* Hero Section */}
+        <View style={styles.hero}>
+          <TouchableOpacity style={styles.heroCard} onPress={handleScannerPress}>
+            <Image source={require('../assets/location.jpg')} style={styles.heroImage} />
+            <View style={styles.heroOverlay}>
+              <Ionicons name="camera" size={32} color="#ffffff" />
+              <Text style={styles.heroTitle}>Scan Location</Text>
+              <Text style={styles.heroSubtitle}>Identify places from photos</Text>
             </View>
           </TouchableOpacity>
         </View>
 
-        {/* New Features */}
-        <View style={styles.featuresSection}>
-          <Text style={styles.sectionTitle}>NEW FEATURES</Text>
-          <View style={styles.featuresGrid}>
-            <TouchableOpacity style={styles.featureCard} onPress={handleBatchPress}>
-              <Text style={styles.featureTitle}>Batch Process</Text>
-              <Text style={styles.featureDesc}>Multiple photos</Text>
-            </TouchableOpacity>
+        {/* Quick Actions */}
+        <View style={styles.quickActions}>
+          <TouchableOpacity style={styles.actionCard} onPress={handleAISearchPress}>
+            <View style={styles.actionIcon}>
+              <Ionicons name="sparkles" size={24} color="#000000" />
+            </View>
+            <View style={styles.actionText}>
+              <Text style={styles.actionTitle}>AI Search</Text>
+              <Text style={styles.actionSubtitle}>Ask anything</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+          </TouchableOpacity>
 
-            <TouchableOpacity style={styles.featureCard} onPress={handleCollectionsPress}>
-              <Text style={styles.featureTitle}>Collections</Text>
-              <Text style={styles.featureDesc}>Organize & tag</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.actionCard} onPress={handleNearbyPress}>
+            <View style={styles.actionIcon}>
+              <Ionicons name="location" size={24} color="#000000" />
+            </View>
+            <View style={styles.actionText}>
+              <Text style={styles.actionTitle}>Nearby Places</Text>
+              <Text style={styles.actionSubtitle}>Discover around you</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionCard} onPress={handleARBuildingPress}>
+            <View style={styles.actionIcon}>
+              <Ionicons name="cube" size={24} color="#000000" />
+            </View>
+            <View style={styles.actionText}>
+              <Text style={styles.actionTitle}>AR Building Explorer</Text>
+              <Text style={styles.actionSubtitle}>Analyze buildings in AR</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionCard} onPress={handleDiscoverPress}>
+            <View style={styles.actionIcon}>
+              <Ionicons name="compass" size={24} color="#000000" />
+            </View>
+            <View style={styles.actionText}>
+              <Text style={styles.actionTitle}>Discover</Text>
+              <Text style={styles.actionSubtitle}>Find new places</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Tools Section */}
+        <View style={styles.toolsSection}>
+          <Text style={styles.sectionTitle}>TOOLS</Text>
+          
+          <TouchableOpacity style={styles.toolCard} onPress={handleBatchPress}>
+            <View style={styles.toolIcon}>
+              <Ionicons name="images" size={24} color="#000000" />
+            </View>
+            <View style={styles.toolText}>
+              <Text style={styles.toolTitle}>Batch Process</Text>
+              <Text style={styles.toolDesc}>Process multiple photos at once</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.toolCard} onPress={handleCollectionsPress}>
+            <View style={styles.toolIcon}>
+              <Ionicons name="folder" size={24} color="#000000" />
+            </View>
+            <View style={styles.toolText}>
+              <Text style={styles.toolTitle}>Collections</Text>
+              <Text style={styles.toolDesc}>Organize and tag locations</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.toolCard} onPress={handleJourneyPress}>
+            <View style={styles.toolIcon}>
+              <Ionicons name="map" size={24} color="#000000" />
+            </View>
+            <View style={styles.toolText}>
+              <Text style={styles.toolTitle}>Journey</Text>
+              <Text style={styles.toolDesc}>View your location timeline</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+          </TouchableOpacity>
         </View>
       </ScrollView>
       
       <MenuBar />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f9fafb',
   },
-  stickyHeader: {
-    backgroundColor: '#ffffff',
+  header: {
+    backgroundColor: '#000000',
     paddingTop: 60,
-    paddingBottom: 12,
+    paddingBottom: 24,
     paddingHorizontal: 24,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
   },
-  logo: {
-    width: '90%',
-    height: 50,
+  greeting: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#ffffff',
+    fontFamily: 'LeagueSpartan_700Bold',
   },
   scrollView: {
     flex: 1,
   },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 20,
+  hero: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
   },
-  greeting: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#000000',
-  },
-  mainActions: {
-    paddingHorizontal: 24,
-    marginBottom: 20,
-    gap: 20,
-  },
-  cardWrapper: {
-    marginBottom: 4,
-  },
-  primaryCard: {
-    height: 160,
+  heroCard: {
+    height: 200,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    position: 'relative',
   },
-  secondaryCard: {
-    height: 140,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  cardImage: {
+  heroImage: {
     width: '100%',
     height: '100%',
   },
-  cardTextContainer: {
-    paddingTop: 12,
+  heroOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
-  primaryTitle: {
-    fontSize: 20,
+  heroTitle: {
+    fontSize: 28,
     fontWeight: '700',
-    color: '#000000',
-    marginBottom: 4,
+    color: '#ffffff',
+    marginTop: 12,
+    fontFamily: 'LeagueSpartan_700Bold',
   },
-  primarySubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
+  heroSubtitle: {
+    fontSize: 15,
+    color: '#ffffff',
+    marginTop: 4,
+    opacity: 0.9,
+    fontFamily: 'LeagueSpartan_400Regular',
   },
-  secondaryTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 4,
+  quickActions: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
   },
-  secondarySubtitle: {
-    fontSize: 13,
-    color: '#6b7280',
-  },
-  arCard: {
-    height: 120,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  arTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  arSubtitle: {
-    fontSize: 13,
-    color: '#6b7280',
-  },
-  aiSearchCard: {
-    height: 120,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  aiSearchTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  aiSearchSubtitle: {
-    fontSize: 13,
-    color: '#6b7280',
-  },
-  featuresSection: {
-    paddingHorizontal: 24,
-    marginTop: 8,
-    marginBottom: 100,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#9ca3af',
-    marginBottom: 12,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  featuresGrid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  featureCard: {
-    flex: 1,
+  actionCard: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#f3f4f6',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  featureTitle: {
-    fontSize: 13,
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  actionText: {
+    flex: 1,
+  },
+  actionTitle: {
+    fontSize: 16,
     fontWeight: '700',
     color: '#000000',
-    marginBottom: 4,
-    textAlign: 'center',
+    marginBottom: 2,
+    fontFamily: 'LeagueSpartan_700Bold',
   },
-  featureDesc: {
-    fontSize: 11,
-    color: '#9ca3af',
-    textAlign: 'center',
+  actionSubtitle: {
+    fontSize: 13,
+    color: '#6b7280',
+    fontFamily: 'LeagueSpartan_400Regular',
+  },
+  toolsSection: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 100,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6b7280',
+    marginBottom: 16,
+    letterSpacing: 1.5,
+    fontFamily: 'LeagueSpartan_700Bold',
+  },
+  toolCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  toolIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  toolText: {
+    flex: 1,
+  },
+  toolTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 2,
+    fontFamily: 'LeagueSpartan_700Bold',
+  },
+  toolDesc: {
+    fontSize: 13,
+    color: '#6b7280',
+    fontFamily: 'LeagueSpartan_400Regular',
   },
 });

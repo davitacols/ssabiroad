@@ -1,162 +1,223 @@
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Alert, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
-import MenuBar from '../components/MenuBar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-interface ARPlace {
-  id: string;
-  name: string;
-  type: string;
-  distance: number;
-  x: number;
-  y: number;
-  rating?: number;
-  openNow?: boolean;
-}
+const { width, height } = Dimensions.get('window');
 
 export default function ARViewScreen() {
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const [location, setLocation] = useState<any>(null);
-  const [places, setPlaces] = useState<ARPlace[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [heading, setHeading] = useState(0);
+  const [savedLocations, setSavedLocations] = useState<any[]>([]);
+  const [nearbyLocations, setNearbyLocations] = useState<any[]>([]);
 
   useEffect(() => {
-    initializeAR();
+    initAR();
   }, []);
 
-  const initializeAR = async () => {
+  const initAR = async () => {
+    const { status: camStatus } = await requestPermission();
+    if (camStatus !== 'granted') {
+      Alert.alert('Permission Required', 'Camera access needed for AR view');
+      return;
+    }
+
+    const { status: locStatus } = await Location.requestForegroundPermissionsAsync();
+    if (locStatus !== 'granted') {
+      Alert.alert('Permission Required', 'Location access needed for AR view');
+      return;
+    }
+
+    loadSavedLocations();
+    startLocationTracking();
+  };
+
+  const loadSavedLocations = async () => {
     try {
-      // Request location permission
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        alert('Location permission required for AR');
-        setLoading(false);
-        return;
+      const saved = await AsyncStorage.getItem('savedLocations');
+      if (saved) {
+        setSavedLocations(JSON.parse(saved));
       }
-
-      // Get current location
-      const currentLocation = await Location.getCurrentPositionAsync({});
-      setLocation(currentLocation.coords);
-
-      // Load nearby places
-      await loadNearbyPlaces(currentLocation.coords);
-      setLoading(false);
     } catch (error) {
-      console.error('AR initialization error:', error);
-      setLoading(false);
+      console.error('Load error:', error);
     }
   };
 
-  const loadNearbyPlaces = async (coords: any) => {
-    try {
-      const response = await fetch(
-        `https://pic2nav.com/api/nearby-poi?lat=${coords.latitude}&lng=${coords.longitude}&type=restaurant`
-      );
-      const data = await response.json();
-      
-      if (data.places && data.places.length > 0) {
-        const arPlaces = data.places.slice(0, 5).map((place: any, index: number) => {
-          // Distribute places across screen
-          const screenWidth = 350; // Approximate screen width
-          const x = (index * (screenWidth / 5)) + 50;
-          const y = 200 + (Math.random() * 200); // Random Y position
-          
-          return {
-            id: place.place_id || `place_${index}`,
-            name: place.name,
-            type: place.types?.[0]?.replace('_', ' ') || 'place',
-            distance: place.distance || 0.5,
-            x,
-            y,
-            rating: place.rating,
-            openNow: place.opening_hours?.open_now,
-          };
-        });
-        setPlaces(arPlaces);
+  const startLocationTracking = async () => {
+    const loc = await Location.getCurrentPositionAsync({});
+    setLocation(loc.coords);
+    findNearbyLocations(loc.coords);
+
+    Location.watchHeadingAsync((headingData) => {
+      setHeading(headingData.trueHeading);
+    });
+
+    Location.watchPositionAsync(
+      { accuracy: Location.Accuracy.High, distanceInterval: 10 },
+      (newLoc) => {
+        setLocation(newLoc.coords);
+        findNearbyLocations(newLoc.coords);
       }
-    } catch (error) {
-      console.error('Error loading places:', error);
-    }
+    );
   };
 
-  if (!permission) {
-    return <View />;
-  }
+  const findNearbyLocations = (currentLoc: any) => {
+    const nearby = savedLocations
+      .map(loc => ({
+        ...loc,
+        distance: calculateDistance(
+          currentLoc.latitude,
+          currentLoc.longitude,
+          loc.latitude,
+          loc.longitude
+        ),
+        bearing: calculateBearing(
+          currentLoc.latitude,
+          currentLoc.longitude,
+          loc.latitude,
+          loc.longitude
+        ),
+      }))
+      .filter(loc => loc.distance < 5)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 10);
 
-  if (!permission.granted) {
+    setNearbyLocations(nearby);
+  };
+
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  const calculateBearing = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
+    const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+              Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
+    const bearing = Math.atan2(y, x) * 180 / Math.PI;
+    return (bearing + 360) % 360;
+  };
+
+  const getARPosition = (bearing: number) => {
+    const relativeBearing = (bearing - heading + 360) % 360;
+    const screenPosition = (relativeBearing / 90) * (width / 2);
+    const isVisible = relativeBearing > 270 || relativeBearing < 90;
+    return { left: screenPosition, isVisible };
+  };
+
+  if (!permission?.granted) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" />
         <View style={styles.permissionContainer}>
-          <Text style={styles.permissionText}>Camera access needed for AR</Text>
+          <Ionicons name="camera-outline" size={64} color="#6b7280" />
+          <Text style={styles.permissionText}>Camera permission required</Text>
           <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
             <Text style={styles.permissionButtonText}>Grant Permission</Text>
           </TouchableOpacity>
         </View>
-        <MenuBar />
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       <CameraView style={styles.camera}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backText}>← Back</Text>
+            <Ionicons name="arrow-back" size={24} color="#ffffff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>AR View</Text>
+          <View style={styles.placeholder} />
         </View>
 
-        {loading && (
-          <View style={styles.loadingOverlay}>
-            <Text style={styles.loadingText}>Loading AR data...</Text>
-          </View>
-        )}
+        {/* Compass */}
+        <View style={styles.compass}>
+          <Ionicons name="compass" size={20} color="#ffffff" />
+          <Text style={styles.compassText}>{Math.round(heading)}°</Text>
+        </View>
 
-        {/* Real Location Overlays */}
-        {places.map((place) => (
-          <TouchableOpacity
-            key={place.id}
-            style={[styles.placeOverlay, { left: place.x, top: place.y }]}
-            onPress={() => console.log('Tapped:', place.name)}
-          >
-            <View style={styles.placeContent}>
-              <Text style={styles.placeName} numberOfLines={1}>{place.name}</Text>
-              <Text style={styles.placeType}>{place.type}</Text>
-              <View style={styles.placeInfo}>
-                <Text style={styles.placeDistance}>{place.distance.toFixed(1)}km</Text>
-                {place.rating && (
-                  <Text style={styles.placeRating}>★ {place.rating.toFixed(1)}</Text>
-                )}
+        {/* AR Overlays */}
+        <View style={styles.arContainer}>
+          {nearbyLocations.map((loc, index) => {
+            const position = getARPosition(loc.bearing);
+            if (!position.isVisible) return null;
+
+            return (
+              <View
+                key={index}
+                style={[
+                  styles.arMarker,
+                  {
+                    left: position.left,
+                    top: height * 0.4 - (loc.distance * 20),
+                  },
+                ]}
+              >
+                <View style={styles.markerIcon}>
+                  <Ionicons name="location" size={24} color="#ffffff" />
+                </View>
+                <View style={styles.markerInfo}>
+                  <Text style={styles.markerName} numberOfLines={1}>
+                    {loc.name || 'Location'}
+                  </Text>
+                  <Text style={styles.markerDistance}>
+                    {loc.distance < 1 
+                      ? `${Math.round(loc.distance * 1000)}m` 
+                      : `${loc.distance.toFixed(1)}km`}
+                  </Text>
+                </View>
               </View>
-              {place.openNow !== undefined && (
-                <Text style={[styles.placeStatus, { color: place.openNow ? '#10b981' : '#ef4444' }]}>
-                  {place.openNow ? 'Open' : 'Closed'}
-                </Text>
-              )}
-            </View>
-          </TouchableOpacity>
-        ))}
+            );
+          })}
+        </View>
+
+        {/* Info Panel */}
+        <View style={styles.infoPanel}>
+          <View style={styles.infoHeader}>
+            <Ionicons name="location" size={20} color="#6366f1" />
+            <Text style={styles.infoTitle}>Nearby Locations</Text>
+          </View>
+          <Text style={styles.infoText}>
+            {nearbyLocations.length > 0 
+              ? `${nearbyLocations.length} location${nearbyLocations.length > 1 ? 's' : ''} within 5km`
+              : 'No saved locations nearby'}
+          </Text>
+          {nearbyLocations.length === 0 && (
+            <Text style={styles.infoHint}>
+              Save locations to see them in AR view
+            </Text>
+          )}
+        </View>
 
         {/* Instructions */}
         <View style={styles.instructions}>
-          <Text style={styles.instructionText}>
-            {places.length > 0 
-              ? `Showing ${places.length} nearby places in AR view`
-              : 'Point camera around to discover nearby places'
-            }
-          </Text>
+          <View style={styles.instructionItem}>
+            <Ionicons name="phone-portrait" size={16} color="#ffffff" />
+            <Text style={styles.instructionText}>Move your phone around</Text>
+          </View>
+          <View style={styles.instructionItem}>
+            <Ionicons name="eye" size={16} color="#ffffff" />
+            <Text style={styles.instructionText}>Look for location markers</Text>
+          </View>
         </View>
       </CameraView>
-      
-      <MenuBar />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -165,134 +226,168 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  permissionContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-    backgroundColor: '#ffffff',
-  },
-  permissionText: {
-    fontSize: 18,
-    color: '#000000',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  permissionButton: {
-    backgroundColor: '#000000',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  permissionButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
   camera: {
     flex: 1,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    justifyContent: 'space-between',
     paddingTop: 60,
-    paddingBottom: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   backButton: {
-    marginRight: 16,
-  },
-  backText: {
-    fontSize: 16,
-    color: '#ffffff',
-    fontWeight: '500',
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#ffffff',
-    flex: 1,
+    fontFamily: 'LeagueSpartan_700Bold',
   },
-  loadingOverlay: {
+  placeholder: {
+    width: 40,
+  },
+  compass: {
     position: 'absolute',
-    top: '50%',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '500',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  placeOverlay: {
-    position: 'absolute',
-    alignItems: 'center',
-  },
-  placeContent: {
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    top: 120,
+    right: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    minWidth: 100,
-    maxWidth: 140,
-  },
-  placeName: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 2,
-    textAlign: 'center',
-  },
-  placeType: {
-    color: '#d1d5db',
-    fontSize: 10,
-    textTransform: 'capitalize',
-    marginBottom: 4,
-  },
-  placeInfo: {
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 2,
+    gap: 8,
   },
-  placeDistance: {
+  compassText: {
+    fontSize: 16,
+    fontWeight: '700',
     color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '500',
+    fontFamily: 'LeagueSpartan_700Bold',
   },
-  placeRating: {
-    color: '#fbbf24',
-    fontSize: 11,
-    fontWeight: '600',
+  arContainer: {
+    flex: 1,
+    position: 'relative',
   },
-  placeStatus: {
-    fontSize: 9,
-    fontWeight: '600',
-    textTransform: 'uppercase',
+  arMarker: {
+    position: 'absolute',
+    alignItems: 'center',
+  },
+  markerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#6366f1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  markerInfo: {
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 8,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  markerName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 2,
+    fontFamily: 'LeagueSpartan_700Bold',
+  },
+  markerDistance: {
+    fontSize: 11,
+    color: '#9ca3af',
+    fontFamily: 'LeagueSpartan_400Regular',
+  },
+  infoPanel: {
+    position: 'absolute',
+    bottom: 120,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 16,
+    padding: 20,
+  },
+  infoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000000',
+    marginLeft: 8,
+    fontFamily: 'LeagueSpartan_700Bold',
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontFamily: 'LeagueSpartan_400Regular',
+  },
+  infoHint: {
+    fontSize: 12,
+    color: '#9ca3af',
+    marginTop: 4,
+    fontFamily: 'LeagueSpartan_400Regular',
   },
   instructions: {
     position: 'absolute',
-    bottom: 120,
-    left: 24,
-    right: 24,
+    bottom: 40,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 12,
+    padding: 16,
+    gap: 8,
+  },
+  instructionItem: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   instructionText: {
+    fontSize: 13,
     color: '#ffffff',
-    fontSize: 12,
+    fontFamily: 'LeagueSpartan_400Regular',
+  },
+  permissionContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  permissionText: {
+    fontSize: 16,
+    color: '#6b7280',
+    marginTop: 16,
+    marginBottom: 24,
     textAlign: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    fontFamily: 'LeagueSpartan_400Regular',
+  },
+  permissionButton: {
+    backgroundColor: '#6366f1',
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  permissionButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#ffffff',
+    fontFamily: 'LeagueSpartan_700Bold',
   },
 });

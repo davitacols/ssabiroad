@@ -30,6 +30,11 @@
       },
       "package": "com.ssabiroad.pic2nav",
       "versionCode": 1,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho"
+        }
+      },
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -52,6 +57,11 @@
         "android.permission.READ_MEDIA_AUDIO"
       ],
       "usesCleartextTraffic": false
+    },
+    "ios": {
+      "config": {
+        "googleMapsApiKey": "AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho"
+      }
     },
     "web": {},
     "plugins": [
@@ -79,6 +89,35 @@
       "expo-secure-store"
     ],
     "scheme": "pic2nav",
+    "intentFilters": [
+      {
+        "action": "VIEW",
+        "autoVerify": true,
+        "data": [
+          {
+            "scheme": "https",
+            "host": "pic2nav.com",
+            "pathPrefix": "/collection"
+          },
+          {
+            "scheme": "https",
+            "host": "pic2nav.com",
+            "pathPrefix": "/location"
+          },
+          {
+            "scheme": "https",
+            "host": "www.pic2nav.com",
+            "pathPrefix": "/collection"
+          },
+          {
+            "scheme": "https",
+            "host": "www.pic2nav.com",
+            "pathPrefix": "/location"
+          }
+        ],
+        "category": ["BROWSABLE", "DEFAULT"]
+      }
+    ],
     "extra": {
       "router": {
         "origin": false
