@@ -235,7 +235,7 @@ export default function NearbyPoi() {
             <Text style={styles.sectionTitle}>Search Results</Text>
             {searchResults.map((place, index) => (
               <TouchableOpacity key={place.id || index} style={styles.placeCard} onPress={() => handlePlacePress(place)}>
-                <View style={styles.placeInfo}>
+                <View style={styles.placeContent}>
                   <Text style={styles.placeName}>{place.name}</Text>
                   <Text style={styles.placeAddress}>{place.vicinity || place.address}</Text>
                   {place.distance && (
@@ -284,18 +284,22 @@ export default function NearbyPoi() {
                 <Text style={styles.sectionTitle}>{places.length} places nearby</Text>
                 {places.map((place, index) => (
                   <TouchableOpacity key={place.id} style={styles.placeCard} onPress={() => handlePlacePress(place)}>
-                    <View style={styles.placeInfo}>
-                      <Text style={styles.placeName}>{place.name}</Text>
+                    <View style={styles.placeContent}>
+                      <View style={styles.placeTop}>
+                        <Text style={styles.placeName}>{place.name}</Text>
+                        {place.openNow !== undefined && (
+                          <View style={[styles.statusBadge, { backgroundColor: place.openNow ? '#dcfce7' : '#fef2f2' }]}>
+                            <Text style={[styles.statusText, { color: place.openNow ? '#16a34a' : '#dc2626' }]}>
+                              {place.openNow ? 'Open' : 'Closed'}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={styles.placeAddress}>{place.vicinity}</Text>
                       <View style={styles.placeMetrics}>
                         <Text style={styles.placeDistance}>{place.distance.toFixed(1)} km</Text>
                         {place.rating && (
                           <Text style={styles.placeRating}>★ {place.rating}</Text>
-                        )}
-                        {place.openNow !== undefined && (
-                          <Text style={[styles.placeStatus, { color: place.openNow ? '#000000' : '#9ca3af' }]}>
-                            {place.openNow ? 'Open' : 'Closed'}
-                          </Text>
                         )}
                       </View>
                     </View>
@@ -322,32 +326,20 @@ export default function NearbyPoi() {
             </View>
           ) : (
             <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-              {placeDetails?.address && (
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Address</Text>
-                  <Text style={styles.detailValue}>{placeDetails.address}</Text>
-                </View>
-              )}
+              <View style={styles.placeHero}>
+                <Text style={styles.heroTitle}>{selectedPlace?.name}</Text>
+                <Text style={styles.heroSubtitle}>{placeDetails?.address || selectedPlace?.vicinity}</Text>
+                {selectedPlace?.rating && (
+                  <View style={styles.ratingContainer}>
+                    <Text style={styles.ratingText}>★ {selectedPlace.rating}</Text>
+                    <Text style={styles.ratingLabel}>Rating</Text>
+                  </View>
+                )}
+              </View>
 
-              {placeDetails?.phoneNumber && (
-                <TouchableOpacity style={styles.detailSection} onPress={() => Linking.openURL(`tel:${placeDetails.phoneNumber}`)}>
-                  <Text style={styles.detailLabel}>Phone</Text>
-                  <Text style={[styles.detailValue, styles.linkText]}>{placeDetails.phoneNumber}</Text>
-                </TouchableOpacity>
-              )}
-
-              {placeDetails?.openingHours !== undefined && (
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Status</Text>
-                  <Text style={[styles.detailValue, { color: placeDetails.openingHours ? '#10b981' : '#ef4444', fontWeight: '600' }]}>
-                    {placeDetails.openingHours ? 'Open Now' : 'Closed'}
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.actionSection}>
+              <View style={styles.quickActions}>
                 <TouchableOpacity 
-                  style={styles.primaryButton}
+                  style={styles.actionButton}
                   onPress={() => {
                     if (placeDetails?.location || selectedPlace?.location) {
                       const loc = placeDetails?.location || selectedPlace?.location;
@@ -360,15 +352,32 @@ export default function NearbyPoi() {
                     }
                   }}
                 >
-                  <Text style={styles.primaryButtonText}>Directions</Text>
+                  <Text style={styles.actionButtonText}>Get Directions</Text>
                 </TouchableOpacity>
+                {placeDetails?.phoneNumber && (
+                  <TouchableOpacity 
+                    style={[styles.actionButton, styles.secondaryAction]}
+                    onPress={() => Linking.openURL(`tel:${placeDetails.phoneNumber}`)}
+                  >
+                    <Text style={[styles.actionButtonText, styles.secondaryActionText]}>Call</Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
+              {placeDetails?.openingHours !== undefined && (
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoTitle}>Current Status</Text>
+                  <Text style={[styles.statusIndicator, { color: placeDetails.openingHours ? '#16a34a' : '#dc2626' }]}>
+                    {placeDetails.openingHours ? '● Open Now' : '● Closed'}
+                  </Text>
+                </View>
+              )}
+
               {placeDetails?.weekdayText && placeDetails.weekdayText.length > 0 && (
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Opening Hours</Text>
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoTitle}>Opening Hours</Text>
                   {placeDetails.weekdayText.map((hours: string, index: number) => (
-                    <Text key={index} style={[styles.detailValue, { marginBottom: 4 }]}>{hours}</Text>
+                    <Text key={index} style={styles.hoursText}>{hours}</Text>
                   ))}
                 </View>
               )}
@@ -401,22 +410,39 @@ const styles = StyleSheet.create({
   autocompleteText: { fontSize: 14, color: '#000000' },
   resultsSection: { padding: 24 },
   sectionTitle: { fontSize: 18, fontWeight: '600', color: '#000000', marginBottom: 16 },
-  categoriesSection: { padding: 24, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  categoriesSection: { padding: 24, backgroundColor: '#fafafa' },
   categoriesScroll: { marginTop: 16 },
-  categoryChip: { backgroundColor: '#f3f4f6', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 12 },
-  categoryChipActive: { backgroundColor: '#000000' },
-  categoryText: { fontSize: 14, color: '#374151', fontWeight: '500' },
+  categoryChip: { backgroundColor: '#ffffff', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, marginRight: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  categoryChipActive: { backgroundColor: '#000000', shadowOpacity: 0.15 },
+  categoryText: { fontSize: 15, color: '#374151', fontWeight: '600' },
   categoryTextActive: { color: '#ffffff' },
   loadingSection: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 24 },
   placesSection: { padding: 24 },
-  placeCard: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#f3f4f6' },
-  placeInfo: { },
-  placeName: { fontSize: 16, fontWeight: '600', color: '#000000', marginBottom: 4 },
-  placeAddress: { fontSize: 14, color: '#6b7280', marginBottom: 8 },
-  placeMetrics: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  placeDistance: { fontSize: 14, color: '#374151', fontWeight: '500' },
-  placeRating: { fontSize: 14, color: '#000000', fontWeight: '500' },
-  placeStatus: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase' },
+  placeCard: { backgroundColor: '#ffffff', borderRadius: 16, padding: 20, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3 },
+  placeContent: { },
+  placeTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
+  placeName: { fontSize: 18, fontWeight: '700', color: '#000000', marginBottom: 6, letterSpacing: -0.3, flex: 1 },
+  placeAddress: { fontSize: 15, color: '#6b7280', marginBottom: 12, lineHeight: 20 },
+  placeMetrics: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  placeDistance: { fontSize: 15, color: '#000000', fontWeight: '600' },
+  placeRating: { fontSize: 15, color: '#000000', fontWeight: '600' },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  statusText: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  placeHero: { padding: 24, backgroundColor: '#f8fafc', borderRadius: 16, marginBottom: 24 },
+  heroTitle: { fontSize: 24, fontWeight: '700', color: '#0f172a', marginBottom: 8 },
+  heroSubtitle: { fontSize: 16, color: '#64748b', marginBottom: 16, lineHeight: 24 },
+  ratingContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  ratingText: { fontSize: 18, fontWeight: '600', color: '#f59e0b' },
+  ratingLabel: { fontSize: 14, color: '#64748b' },
+  quickActions: { flexDirection: 'row', gap: 12, marginBottom: 24 },
+  actionButton: { flex: 1, backgroundColor: '#000000', borderRadius: 12, padding: 16, alignItems: 'center' },
+  secondaryAction: { backgroundColor: '#f1f5f9' },
+  actionButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
+  secondaryActionText: { color: '#000000' },
+  infoCard: { backgroundColor: '#ffffff', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#e2e8f0' },
+  infoTitle: { fontSize: 16, fontWeight: '600', color: '#0f172a', marginBottom: 12 },
+  statusIndicator: { fontSize: 16, fontWeight: '600' },
+  hoursText: { fontSize: 14, color: '#64748b', marginBottom: 4, lineHeight: 20 },
   modalContainer: { flex: 1, backgroundColor: '#ffffff' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   modalTitle: { fontSize: 20, fontWeight: '600', color: '#000000', flex: 1 },

@@ -86,7 +86,13 @@
           "isAccessMediaLocationEnabled": true
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "react-native-maps",
+        {
+          "googleMapsApiKey": "AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho"
+        }
+      ]
     ],
     "scheme": "pic2nav",
     "intentFilters": [

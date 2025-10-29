@@ -1,45 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/db";
 
 export async function GET(request: NextRequest) {
   try {
-    // Format data for chart - last 7 days
-    const activityData = [];
+    const promises = [];
+    
     for (let i = 6; i >= 0; i--) {
       const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
       const dayStart = new Date(date.setHours(0, 0, 0, 0));
       const dayEnd = new Date(date.setHours(23, 59, 59, 999));
       
-      const dayCount = await prisma.location.count({
-        where: {
-          createdAt: {
-            gte: dayStart,
-            lte: dayEnd
+      promises.push(
+        prisma.location.count({
+          where: {
+            createdAt: {
+              gte: dayStart,
+              lte: dayEnd
+            }
           }
-        }
-      });
-
-      activityData.push({
-        day: dayName,
-        detections: dayCount
-      });
+        }).then(count => ({
+          day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+          date: dayStart.toISOString().split('T')[0],
+          detections: count
+        }))
+      );
     }
 
+    const activityData = await Promise.all(promises);
     return NextResponse.json(activityData);
   } catch (error) {
     console.error("Error fetching activity data:", error);
-    // Return fallback data on error
-    return NextResponse.json([
-      { day: 'Mon', detections: 0 },
-      { day: 'Tue', detections: 0 },
-      { day: 'Wed', detections: 0 },
-      { day: 'Thu', detections: 0 },
-      { day: 'Fri', detections: 0 },
-      { day: 'Sat', detections: 0 },
-      { day: 'Sun', detections: 0 }
-    ]);
+    const fallback = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+      fallback.push({
+        day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+        date: date.toISOString().split('T')[0],
+        detections: 0
+      });
+    }
+    return NextResponse.json(fallback, { status: 500 });
   }
 }

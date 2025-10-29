@@ -44,15 +44,7 @@ export default function HomeScreen() {
     router.push('/nearby-poi');
   };
 
-  const handleARPress = () => {
-    addActivity('AR View', 'Explored locations with augmented reality', '/ar-view');
-    router.push('/ar-view');
-  };
 
-  const handleARBuildingPress = () => {
-    addActivity('AR Building Explorer', 'Analyzed buildings with AR', '/ar-building-explorer');
-    router.push('/ar-building-explorer');
-  };
 
   const handleCollectionsPress = () => {
     addActivity('Collections', 'Organized saved locations', '/collections');
@@ -78,6 +70,13 @@ export default function HomeScreen() {
     addActivity('Discover', 'Explored new locations', '/discover');
     router.push('/discover');
   };
+
+  const handleComparePress = () => {
+    addActivity('Compare Locations', 'Compared saved locations', '/compare-locations');
+    router.push('/compare-locations');
+  };
+
+
 
 
 
@@ -127,24 +126,13 @@ export default function HomeScreen() {
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard} onPress={handleARBuildingPress}>
+          <TouchableOpacity style={styles.actionCard} onPress={handleComparePress}>
             <View style={styles.actionIcon}>
-              <Ionicons name="cube" size={24} color="#000000" />
+              <Ionicons name="git-compare" size={24} color="#000000" />
             </View>
             <View style={styles.actionText}>
-              <Text style={styles.actionTitle}>AR Building Explorer</Text>
-              <Text style={styles.actionSubtitle}>Analyze buildings in AR</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionCard} onPress={handleDiscoverPress}>
-            <View style={styles.actionIcon}>
-              <Ionicons name="compass" size={24} color="#000000" />
-            </View>
-            <View style={styles.actionText}>
-              <Text style={styles.actionTitle}>Discover</Text>
-              <Text style={styles.actionSubtitle}>Find new places</Text>
+              <Text style={styles.actionTitle}>Compare Locations</Text>
+              <Text style={styles.actionSubtitle}>Side-by-side comparison</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
           </TouchableOpacity>
@@ -176,16 +164,7 @@ export default function HomeScreen() {
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.toolCard} onPress={handleJourneyPress}>
-            <View style={styles.toolIcon}>
-              <Ionicons name="map" size={24} color="#000000" />
-            </View>
-            <View style={styles.toolText}>
-              <Text style={styles.toolTitle}>Journey</Text>
-              <Text style={styles.toolDesc}>View your location timeline</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
+
         </View>
       </ScrollView>
       

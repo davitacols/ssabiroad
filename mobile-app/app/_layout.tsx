@@ -24,6 +24,7 @@ export default function RootLayout() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" />
       <Stack.Screen name="index" />
       <Stack.Screen name="scanner" />
       <Stack.Screen name="nearby-poi" />
@@ -33,10 +34,19 @@ export default function RootLayout() {
       <Stack.Screen name="ai-search" />
       <Stack.Screen name="activity" />
       <Stack.Screen name="geofence" />
+      <Stack.Screen name="journey" />
+      <Stack.Screen name="compare-locations" />
+      <Stack.Screen name="discover" />
       <Stack.Screen name="ar-view" />
       <Stack.Screen name="ar-building-explorer" />
-      <Stack.Screen name="journey" />
-      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="photo-tagging" />
+      <Stack.Screen name="location-card" />
+      <Stack.Screen name="share-location" />
+      <Stack.Screen name="share-journey" />
+      <Stack.Screen name="invite-collaborators" />
+      <Stack.Screen name="settings" />
+      <Stack.Screen name="tools/exif-editor" />
+      <Stack.Screen name="tools/gps-tagger" />
     </Stack>
   );
 }
