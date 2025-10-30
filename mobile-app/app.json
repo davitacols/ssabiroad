@@ -6,6 +6,10 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
+    "description": "Smart location recognition from photos. Analyze buildings, landmarks, and locations using AI-powered image analysis with GPS data extraction.",
+    "privacy": "public",
+    "primaryColor": "#000000",
+    "githubUrl": "https://github.com/ssabiroad/pic2nav",
     "splash": {
       "image": "./assets/icon.png",
       "resizeMode": "contain",
@@ -30,6 +34,7 @@
       },
       "package": "com.ssabiroad.pic2nav",
       "versionCode": 1,
+      "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ssabiroad.pic2nav",
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho"
@@ -86,13 +91,7 @@
           "isAccessMediaLocationEnabled": true
         }
       ],
-      "expo-secure-store",
-      [
-        "react-native-maps",
-        {
-          "googleMapsApiKey": "AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho"
-        }
-      ]
+      "expo-secure-store"
     ],
     "scheme": "pic2nav",
     "intentFilters": [

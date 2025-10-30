@@ -54,10 +54,17 @@ export function AnalyticsOverview() {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
+        console.log('Fetching analytics from /api/analytics/overview')
         const response = await fetch('/api/analytics/overview')
+        console.log('Analytics response status:', response.status)
+        
         if (response.ok) {
           const analyticsData = await response.json()
+          console.log('Analytics data received:', analyticsData)
           setData(analyticsData)
+        } else {
+          const errorText = await response.text()
+          console.error('Analytics fetch failed:', response.status, errorText)
         }
       } catch (error) {
         console.error('Failed to fetch analytics:', error)

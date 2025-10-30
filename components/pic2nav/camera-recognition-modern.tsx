@@ -180,6 +180,17 @@ export function CameraRecognitionModern() {
           title: "Location identified",
           description: data.name || "Location found",
         })
+        
+        // Save to database
+        try {
+          await fetch('/api/save-location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          })
+        } catch (e) {
+          console.error('Failed to save location:', e)
+        }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Recognition failed"

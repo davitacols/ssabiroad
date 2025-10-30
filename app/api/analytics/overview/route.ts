@@ -51,14 +51,8 @@ export async function GET(request: NextRequest) {
       prisma.geofence.count({ where: { active: true } })
     ]);
 
-    let totalPhotos = 0;
-    let processedPhotos = 0;
-    try {
-      totalPhotos = await prisma.photo.count();
-      processedPhotos = await prisma.photo.count({ where: { processed: true } });
-    } catch (e) {
-      console.log('Photo model not available');
-    }
+    const totalPhotos = 0;
+    const processedPhotos = 0;
 
     const dailyGrowth = yesterdayLocations > 0
       ? ((todayLocations - yesterdayLocations) / yesterdayLocations) * 100
@@ -81,40 +75,36 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    let topUsers = [];
-    try {
-      const userActivity = await prisma.location.groupBy({
-        by: ['userId'],
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
-        take: 10,
-        where: {
-          userId: { not: null }
-        }
-      });
+    const userActivity = await prisma.location.groupBy({
+      by: ['userId'],
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+      take: 10,
+      where: {
+        userId: { not: null }
+      }
+    });
 
-      const userDetails = await prisma.user.findMany({
-        where: {
-          id: { in: userActivity.map(u => u.userId) }
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true
-        }
-      });
+    const userIds = userActivity.map(u => u.userId).filter(Boolean) as string[];
+    const userDetails = userIds.length > 0 ? await prisma.user.findMany({
+      where: {
+        id: { in: userIds }
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true
+      }
+    }) : [];
 
-      topUsers = userActivity.map(activity => {
-        const user = userDetails.find(u => u.id === activity.userId);
-        return {
-          userId: activity.userId,
-          userName: user?.name || user?.email || 'Unknown',
-          locationCount: activity._count.id
-        };
-      });
-    } catch (e) {
-      console.log('User activity grouping failed:', e.message);
-    }
+    const topUsers = userActivity.map(activity => {
+      const user = userDetails.find(u => u.id === activity.userId);
+      return {
+        userId: activity.userId || 'unknown',
+        userName: user?.name || user?.email || 'Unknown User',
+        locationCount: activity._count.id
+      };
+    });
 
     const analytics = {
       overview: {
