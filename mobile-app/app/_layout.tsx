@@ -2,8 +2,19 @@ import { Stack } from 'expo-router';
 import { useFonts, LeagueSpartan_400Regular, LeagueSpartan_600SemiBold, LeagueSpartan_700Bold } from '@expo-google-fonts/league-spartan';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { ErrorBoundary } from 'react-error-boundary';
 
 SplashScreen.preventAutoHideAsync();
+
+function ErrorFallback({ error }: { error: Error }) {
+  return (
+    <View style={styles.errorContainer}>
+      <Text style={styles.errorTitle}>Something went wrong</Text>
+      <Text style={styles.errorText}>{error.message}</Text>
+    </View>
+  );
+}
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -23,7 +34,8 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="index" />
       <Stack.Screen name="scanner" />
@@ -47,6 +59,13 @@ export default function RootLayout() {
       <Stack.Screen name="settings" />
       <Stack.Screen name="tools/exif-editor" />
       <Stack.Screen name="tools/gps-tagger" />
-    </Stack>
+      </Stack>
+    </ErrorBoundary>
   );
 }
+
+const styles = StyleSheet.create({
+  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#fff' },
+  errorTitle: { fontSize: 20, fontWeight: '700', color: '#000', marginBottom: 8 },
+  errorText: { fontSize: 14, color: '#666', textAlign: 'center' },
+});

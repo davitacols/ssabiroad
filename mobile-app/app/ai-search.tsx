@@ -18,7 +18,7 @@ export default function AISearchScreen() {
     setResults([]);
 
     try {
-      const response = await fetch('https://ssabiroad.vercel.app/api/ai-search', {
+      const response = await fetch('https://pic2nav.com/api/ai-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: query.trim() }),
