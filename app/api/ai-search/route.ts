@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     // Use Claude to extract location and place type
     console.log('Calling Claude API...');
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20240620',
+      model: 'claude-3-5-sonnet-latest',
       max_tokens: 200,
       messages: [{
         role: 'user',
