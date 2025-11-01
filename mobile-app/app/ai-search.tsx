@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, SafeAreaView, StatusBar, ActivityIndicator, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { getApiUrl, API_CONFIG } from '../config/api';
 
 export default function AISearchScreen() {
   const router = useRouter();
@@ -18,7 +19,7 @@ export default function AISearchScreen() {
     setResults([]);
 
     try {
-      const response = await fetch('https://pic2nav.com/api/ai-search', {
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.AI_SEARCH), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: query.trim() }),

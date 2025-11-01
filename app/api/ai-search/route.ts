@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     // Use Claude to extract location and place type
     console.log('Calling Claude API...');
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-3-5-sonnet-20240620',
       max_tokens: 200,
       messages: [{
         role: 'user',
@@ -37,8 +37,19 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Claude response:', content.text);
-    const parsed = JSON.parse(content.text);
-    const { placeType, location } = parsed;
+    
+    let placeType, location;
+    try {
+      const parsed = JSON.parse(content.text);
+      placeType = parsed.placeType;
+      location = parsed.location;
+    } catch (e) {
+      // Fallback: extract from text using regex
+      const placeMatch = content.text.match(/"placeType"\s*:\s*"([^"]+)"/i);
+      const locMatch = content.text.match(/"location"\s*:\s*"([^"]+)"/i);
+      placeType = placeMatch?.[1] || query.split(' in ')[0];
+      location = locMatch?.[1] || query.split(' in ')[1] || 'Lagos, Nigeria';
+    }
     console.log('Extracted:', { placeType, location });
 
     // Get coordinates for the location
