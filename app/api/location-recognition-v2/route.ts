@@ -4665,10 +4665,6 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       if (aiResult?.success && aiResult.location && aiResult.location.latitude && aiResult.location.longitude) {
         console.log('Google Vision found location:', aiResult.location);
         const enrichedResult = await this.enrichLocationData(aiResult, buffer, analyzeLandmarks);
-        const recognitionId = await this.saveRecognition(enrichedResult, buffer, userId);
-        if (recognitionId) {
-          enrichedResult.recognitionId = recognitionId;
-        }
         return enrichedResult;
       } else if (aiResult?.success && !aiResult.location) {
         console.log('Google Vision found business but no coordinates - returning basic result');
