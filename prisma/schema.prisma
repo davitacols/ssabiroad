@@ -35,26 +35,26 @@ model Location {
 }
 
 model Bookmark {
-  id        String   @id @default(cuid())
-  title     String
-  url       String
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(cuid())
+  title     String?
+  url       String?
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
 }
 
 model Job {
   id          String   @id @default(cuid())
-  title       String
-  company     String
-  location    String
+  title       String?
+  company     String?
+  location    String?
   description String?
   salary      String?
   type        String?
   remote      Boolean  @default(false)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -100,6 +100,73 @@ model Geofence {
 
   @@index([userId])
   @@index([active])
+}
+
+model LocationRecognition {
+  id              String   @id @default(cuid())
+  businessName    String?
+  detectedAddress String?
+  latitude        Float
+  longitude       Float
+  confidence      Float
+  method          String
+  imageHash       String?
+  userId          String?
+  createdAt       DateTime @default(now())
+  feedback        LocationFeedback?
+
+  @@index([imageHash])
+  @@index([method])
+  @@map("location_recognitions")
+}
+
+model LocationFeedback {
+  id             String              @id @default(cuid())
+  recognitionId  String              @unique
+  recognition    LocationRecognition @relation(fields: [recognitionId], references: [id], onDelete: Cascade)
+  wasCorrect     Boolean
+  correctAddress String?
+  correctLat     Float?
+  correctLng     Float?
+  userId         String?
+  createdAt      DateTime            @default(now())
+
+  @@index([wasCorrect])
+  @@map("location_feedback")
+}
+
+model KnownLocation {
+  id               String   @id @default(cuid())
+  businessName     String
+  address          String
+  latitude         Float
+  longitude        Float
+  phoneNumber      String?
+  visualFeatures   Json?
+  franchiseId      String?
+  verificationCount Int     @default(1)
+  lastVerified     DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([businessName, latitude, longitude])
+  @@index([businessName])
+  @@index([franchiseId])
+  @@map("known_locations")
+}
+
+model RegionOptimization {
+  id          String   @id @default(cuid())
+  region      String
+  countryCode String
+  priority    Int      @default(0)
+  searchHints Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([region, countryCode])
+  @@index([countryCode])
+  @@map("region_optimizations")
 }
 
 // Photo and PhotoTag models commented out - tables don't exist in database yet

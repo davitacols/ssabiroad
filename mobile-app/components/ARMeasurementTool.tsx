@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'LeagueSpartan_600SemiBold',
     color: '#ffffff',
   },
   hint: {

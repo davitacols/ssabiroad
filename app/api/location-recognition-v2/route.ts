@@ -8,6 +8,12 @@ import Anthropic from '@anthropic-ai/sdk';
 import { LocationValidator } from './ml-validator';
 import { LocationMLModel } from './ml-model';
 import { LocationVerifier } from './location-verifier';
+import { FranchiseDetector } from './franchise-detector';
+import { GeofenceOptimizer } from './geofence-optimizer';
+import { ErrorRecovery } from './error-recovery';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 
 interface Location {
@@ -34,6 +40,7 @@ interface LocationResult {
   transit?: any[];
   demographics?: any;
   note?: string;
+  recognitionId?: string;
   historicalData?: {
     photoTakenDate?: string;
     photoAge?: string;
@@ -71,6 +78,33 @@ class LocationRecognizer {
   
   constructor() {
     this.mlModel = new LocationMLModel();
+  }
+  
+  private async saveRecognition(result: LocationResult, buffer: Buffer, userId?: string): Promise<string | null> {
+    try {
+      if (!result.success || !result.location) return null;
+      
+      const crypto = require('crypto');
+      const imageHash = crypto.createHash('md5').update(buffer).digest('hex');
+      
+      const recognition = await prisma.locationRecognition.create({
+        data: {
+          businessName: result.name,
+          detectedAddress: result.address,
+          latitude: result.location.latitude,
+          longitude: result.location.longitude,
+          confidence: result.confidence,
+          method: result.method,
+          imageHash,
+          userId
+        }
+      });
+      
+      return recognition.id;
+    } catch (error) {
+      console.error('Failed to save recognition:', error);
+      return null;
+    }
   }
 
   // Enhanced EXIF GPS extraction with multiple methods
@@ -4452,9 +4486,15 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
   }
 
   // V2 pipeline - EXIF GPS data with AI vision fallback
-  async recognize(buffer: Buffer, providedLocation?: Location, analyzeLandmarks: boolean = false, regionHint?: string, searchPriority?: string): Promise<LocationResult> {
+  async recognize(buffer: Buffer, providedLocation?: Location, analyzeLandmarks: boolean = false, regionHint?: string, searchPriority?: string, userId?: string): Promise<LocationResult> {
     console.log('V2: Enhanced location recognition starting...');
     console.log('Buffer info - Size:', buffer.length, 'bytes');
+    
+    // Get region optimization hints
+    const regionOptimization = regionHint ? await GeofenceOptimizer.getRegionHint(
+      providedLocation?.latitude,
+      providedLocation?.longitude
+    ) : null;
     
     // Check for existing corrections first if we have coordinates
     if (providedLocation) {
@@ -4523,7 +4563,12 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     const gpsResult = this.extractGPS(buffer);
     if (gpsResult?.success && gpsResult.location) {
       console.log('✅ SERVER EXIF GPS FOUND - RETURNING:', gpsResult.location);
-      return await this.enrichLocationData(gpsResult, buffer, analyzeLandmarks);
+      const enrichedResult = await this.enrichLocationData(gpsResult, buffer, analyzeLandmarks);
+      const recognitionId = await this.saveRecognition(enrichedResult, buffer, userId);
+      if (recognitionId) {
+        enrichedResult.recognitionId = recognitionId;
+      }
+      return enrichedResult;
     }
     
     console.log('❌ No valid server EXIF GPS data found - proceeding to AI analysis');
@@ -4552,7 +4597,27 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
           // Continue to next method
         } else {
           console.log('✅ CLAUDE SUCCESS - ENRICHING AND RETURNING:', claudeResult.address);
-          return await this.enrichLocationData(claudeResult, buffer, analyzeLandmarks);
+          const enrichedResult = await this.enrichLocationData(claudeResult, buffer, analyzeLandmarks);
+          
+          // Check for franchise and enhance
+          if (claudeResult.name) {
+            const franchiseInfo = await FranchiseDetector.detectFranchise(
+              claudeResult.name,
+              { text: claudeResult.description },
+              undefined,
+              claudeResult.address
+            );
+            if (franchiseInfo.isFranchise) {
+              enrichedResult.franchiseId = franchiseInfo.franchiseId;
+              enrichedResult.franchiseConfidence = franchiseInfo.confidence;
+            }
+          }
+          
+          const recognitionId = await this.saveRecognition(enrichedResult, buffer, userId);
+          if (recognitionId) {
+            enrichedResult.recognitionId = recognitionId;
+          }
+          return enrichedResult;
         }
       }
     } catch (error) {
@@ -4592,7 +4657,12 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       
       if (aiResult?.success && aiResult.location && aiResult.location.latitude && aiResult.location.longitude) {
         console.log('Google Vision found location:', aiResult.location);
-        return await this.enrichLocationData(aiResult, buffer, analyzeLandmarks);
+        const enrichedResult = await this.enrichLocationData(aiResult, buffer, analyzeLandmarks);
+        const recognitionId = await this.saveRecognition(enrichedResult, buffer, userId);
+        if (recognitionId) {
+          enrichedResult.recognitionId = recognitionId;
+        }
+        return enrichedResult;
       } else if (aiResult?.success && !aiResult.location) {
         console.log('Google Vision found business but no coordinates - returning basic result');
         return aiResult;
@@ -4643,13 +4713,19 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     }
     
     // 5. Complete failure - no location data available
-    return {
+    const failureResult = {
       success: false,
       confidence: 0,
       method: 'no-location-data',
       error: 'Unable to determine location. Image has no GPS data, AI analysis found no recognizable landmarks/businesses, and no device location provided.',
       location: null
     };
+    
+    // Add recovery suggestions
+    const recoveryStrategies = ErrorRecovery.analyzeFailure(failureResult);
+    failureResult.error = ErrorRecovery.generateUserMessage(recoveryStrategies);
+    
+    return failureResult;
   }
 }
 
@@ -4765,6 +4841,7 @@ async function handleRequest(request: NextRequest) {
   const analyzeLandmarks = formData.get('analyzeLandmarks') === 'true';
   const hasImageGPS = formData.get('hasImageGPS') === 'true';
   const exifSource = formData.get('exifSource') as string;
+  const userId = formData.get('userId') as string | undefined;
   
   console.log('Raw form data:', {
     latitude: lat,
@@ -4817,7 +4894,7 @@ async function handleRequest(request: NextRequest) {
   console.log('Search priority:', searchPriority);
   
   const recognizer = new LocationRecognizer();
-  const result = await recognizer.recognize(buffer, providedLocation, analyzeLandmarks, regionHint, searchPriority);
+  const result = await recognizer.recognize(buffer, providedLocation, analyzeLandmarks, regionHint, searchPriority, userId);
   
   // Final validation - reject fake coordinates
   if (result.success && result.location) {

@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   button: { backgroundColor: '#3b82f6', padding: 16, margin: 20, borderRadius: 12, alignItems: 'center' },
   locationButton: { backgroundColor: '#8b5cf6', padding: 16, marginHorizontal: 20, marginBottom: 20, borderRadius: 12, alignItems: 'center' },
   applyButton: { backgroundColor: '#10b981', padding: 16, marginHorizontal: 20, marginBottom: 20, borderRadius: 12, alignItems: 'center' },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: '#fff', fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
   info: { padding: 20, backgroundColor: '#111', margin: 20, borderRadius: 12 },
   infoTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginBottom: 12 },
   infoText: { fontSize: 14, color: '#ccc', marginBottom: 8 },

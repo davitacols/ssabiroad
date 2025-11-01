@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
   },
   captureButton: {
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
   modeText: {
     fontSize: 13,
     color: '#9ca3af',
-    fontWeight: '600',
+    fontFamily: 'LeagueSpartan_600SemiBold',
   },
   modeTextActive: {
     color: '#ffffff',
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
   },
   compassText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
   },
   arContainer: {
@@ -645,7 +645,7 @@ const styles = StyleSheet.create({
   },
   markerName: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     marginBottom: 4,
   },
@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
   markerDistance: {
     fontSize: 12,
     color: '#6366f1',
-    fontWeight: '600',
+    fontFamily: 'LeagueSpartan_600SemiBold',
   },
   markerLine: {
     width: 2,
@@ -712,7 +712,7 @@ const styles = StyleSheet.create({
   },
   infoPanelTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#000000',
     marginLeft: 8,
     flex: 1,
@@ -739,7 +739,7 @@ const styles = StyleSheet.create({
   controlText: {
     fontSize: 12,
     color: '#ffffff',
-    fontWeight: '600',
+    fontFamily: 'LeagueSpartan_600SemiBold',
   },
   permissionContainer: {
     flex: 1,
@@ -762,7 +762,7 @@ const styles = StyleSheet.create({
   },
   permissionButtonText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
   },
   modalOverlay: {
@@ -788,7 +788,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#000000',
   },
   modalScroll: {
@@ -805,12 +805,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6b7280',
     marginBottom: 6,
-    fontWeight: '600',
+    fontFamily: 'LeagueSpartan_600SemiBold',
   },
   detailValue: {
     fontSize: 15,
     color: '#000000',
-    fontWeight: '500',
+    fontFamily: 'LeagueSpartan_600SemiBold',
   },
   materialTags: {
     flexDirection: 'row',
@@ -826,7 +826,7 @@ const styles = StyleSheet.create({
   materialText: {
     fontSize: 13,
     color: '#6366f1',
-    fontWeight: '600',
+    fontFamily: 'LeagueSpartan_600SemiBold',
   },
   actionButton: {
     flexDirection: 'row',
@@ -845,7 +845,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
   },
   actionButtonTextSecondary: {
@@ -871,7 +871,7 @@ const styles = StyleSheet.create({
   },
   analyzingText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
   },
   buildingsPanel: {
@@ -888,7 +888,7 @@ const styles = StyleSheet.create({
   },
   buildingsPanelText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'LeagueSpartan_600SemiBold',
     color: '#000000',
   },
 });

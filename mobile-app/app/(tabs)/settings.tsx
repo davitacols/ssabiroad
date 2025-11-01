@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
   section: { padding: 16 },
   item: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#111', padding: 16, borderRadius: 12, marginBottom: 12 },
   itemContent: { flex: 1 },
-  itemTitle: { fontSize: 16, fontWeight: '600', color: '#fff' },
+  itemTitle: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
   itemSubtitle: { fontSize: 12, color: '#888', marginTop: 4 },
   version: { textAlign: 'center', color: '#666', padding: 20 },
 });

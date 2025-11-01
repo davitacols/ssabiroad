@@ -67,11 +67,11 @@ const styles = StyleSheet.create({
 
   label: {
     fontSize: 11,
-    fontWeight: '500',
+    fontFamily: 'LeagueSpartan_600SemiBold',
     color: '#6b7280',
   },
   activeLabel: {
     color: '#000000',
-    fontWeight: '600',
+    fontFamily: 'LeagueSpartan_600SemiBold',
   },
 });

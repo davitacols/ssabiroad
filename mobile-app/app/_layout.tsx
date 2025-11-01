@@ -66,6 +66,6 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#fff' },
-  errorTitle: { fontSize: 20, fontWeight: '700', color: '#000', marginBottom: 8 },
-  errorText: { fontSize: 14, color: '#666', textAlign: 'center' },
+  errorTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', color: '#000', marginBottom: 8 },
+  errorText: { fontSize: 14, fontFamily: 'LeagueSpartan_400Regular', color: '#666', textAlign: 'center' },
 });

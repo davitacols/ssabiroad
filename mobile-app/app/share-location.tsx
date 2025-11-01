@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     fontFamily: 'LeagueSpartan_700Bold',
   },
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
   locationName: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#000000',
     marginBottom: 4,
     fontFamily: 'LeagueSpartan_700Bold',
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#6b7280',
     marginBottom: 12,
     letterSpacing: 1.5,
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
   },
   shareTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#000000',
     marginBottom: 2,
     fontFamily: 'LeagueSpartan_700Bold',
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
   },
   platformName: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'LeagueSpartan_600SemiBold',
     color: '#000000',
     textAlign: 'center',
   },

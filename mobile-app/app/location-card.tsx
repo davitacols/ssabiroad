@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     fontFamily: 'LeagueSpartan_700Bold',
   },
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 32,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     textAlign: 'center',
     marginBottom: 12,
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     marginLeft: 8,
   },
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   },
   cardBrand: {
     fontSize: 24,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     marginBottom: 4,
     fontFamily: 'LeagueSpartan_700Bold',
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     fontFamily: 'LeagueSpartan_700Bold',
   },

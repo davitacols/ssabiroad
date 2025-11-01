@@ -116,11 +116,11 @@ const styles = StyleSheet.create({
   backText: {
     fontSize: 16,
     color: '#000000',
-    fontWeight: '500',
+    fontFamily: 'LeagueSpartan_600SemiBold',
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '600',
+    fontFamily: 'LeagueSpartan_600SemiBold',
     color: '#000000',
     flex: 1,
   },
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   clearText: {
     fontSize: 16,
     color: '#ef4444',
-    fontWeight: '500',
+    fontFamily: 'LeagueSpartan_600SemiBold',
   },
   content: {
     flex: 1,
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   activityContent: {},
   activityTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'LeagueSpartan_600SemiBold',
     color: '#000000',
     marginBottom: 2,
   },
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   activityTime: {
     fontSize: 12,
     color: '#9ca3af',
-    fontWeight: '500',
+    fontFamily: 'LeagueSpartan_600SemiBold',
   },
   emptyState: {
     alignItems: 'center',
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: 'LeagueSpartan_600SemiBold',
     color: '#374151',
     marginBottom: 8,
   },

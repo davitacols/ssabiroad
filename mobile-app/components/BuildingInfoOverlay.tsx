@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   },
   buildingName: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     marginBottom: 8,
   },
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   },
   distanceText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: 'LeagueSpartan_600SemiBold',
     color: '#6366f1',
   },
   pointer: {

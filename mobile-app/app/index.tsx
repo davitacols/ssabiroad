@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 32,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     fontFamily: 'LeagueSpartan_700Bold',
   },
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     marginTop: 12,
     fontFamily: 'LeagueSpartan_700Bold',
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
   },
   actionTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#000000',
     marginBottom: 2,
     fontFamily: 'LeagueSpartan_700Bold',
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#6b7280',
     marginBottom: 16,
     letterSpacing: 1.5,
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   },
   toolTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#000000',
     marginBottom: 2,
     fontFamily: 'LeagueSpartan_700Bold',

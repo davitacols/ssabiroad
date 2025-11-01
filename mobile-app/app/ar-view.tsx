@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     fontFamily: 'LeagueSpartan_700Bold',
   },
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   },
   compassText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     fontFamily: 'LeagueSpartan_700Bold',
   },
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
   },
   markerName: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     marginBottom: 2,
     fontFamily: 'LeagueSpartan_700Bold',
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#000000',
     marginLeft: 8,
     fontFamily: 'LeagueSpartan_700Bold',
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
   },
   permissionButtonText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     fontFamily: 'LeagueSpartan_700Bold',
   },

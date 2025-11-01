@@ -82,9 +82,9 @@ const styles = StyleSheet.create({
   title: { fontSize: 32, fontWeight: 'bold', color: '#fff' },
   subtitle: { fontSize: 16, color: '#888', marginTop: 8 },
   button: { backgroundColor: '#3b82f6', padding: 16, margin: 20, borderRadius: 12, alignItems: 'center' },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: '#fff', fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
   form: { padding: 20 },
-  label: { fontSize: 14, color: '#fff', marginBottom: 8, fontWeight: '600' },
+  label: { fontSize: 14, color: '#fff', marginBottom: 8, fontFamily: 'LeagueSpartan_600SemiBold' },
   input: { backgroundColor: '#111', color: '#fff', padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 16 },
   saveButton: { backgroundColor: '#10b981', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 20 },
 });

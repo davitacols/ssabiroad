@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     fontFamily: 'LeagueSpartan_700Bold',
   },
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'LeagueSpartan_600SemiBold',
     color: '#000000',
     fontFamily: 'LeagueSpartan_600SemiBold',
   },
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'LeagueSpartan_600SemiBold',
     color: '#6b7280',
     fontFamily: 'LeagueSpartan_600SemiBold',
   },
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#000000',
     marginTop: 16,
     marginBottom: 8,
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
   },
   likeLabelText: {
     fontSize: 32,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#10b981',
     fontFamily: 'LeagueSpartan_700Bold',
   },
@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
   },
   nopeLabelText: {
     fontSize: 32,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ef4444',
     fontFamily: 'LeagueSpartan_700Bold',
   },
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
   },
   cardName: {
     fontSize: 24,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     flex: 1,
     marginRight: 12,
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
   },
   cardRatingText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     fontFamily: 'LeagueSpartan_700Bold',
   },

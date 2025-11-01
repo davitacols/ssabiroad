@@ -294,9 +294,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e2e8f0'
   },
   backButton: { marginBottom: 16 },
-  backText: { fontSize: 16, color: '#3b82f6', fontWeight: '600' },
+  backText: { fontSize: 16, color: '#3b82f6', fontFamily: 'LeagueSpartan_600SemiBold' },
   title: { fontSize: 28, fontWeight: '800', color: '#0f172a', marginBottom: 4 },
-  subtitle: { fontSize: 15, color: '#64748b', fontWeight: '500' },
+  subtitle: { fontSize: 15, color: '#64748b', fontFamily: 'LeagueSpartan_600SemiBold' },
   content: { flex: 1, padding: 24 },
   section: { 
     backgroundColor: '#ffffff', 
@@ -309,10 +309,10 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4
   },
-  sectionTitle: { fontSize: 20, fontWeight: '700', color: '#0f172a', marginBottom: 4 },
+  sectionTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', color: '#0f172a', marginBottom: 4 },
   sectionDesc: { fontSize: 14, color: '#64748b', marginBottom: 20, lineHeight: 20 },
   inputGroup: { marginBottom: 20 },
-  label: { fontSize: 15, fontWeight: '600', color: '#374151', marginBottom: 8 },
+  label: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#374151', marginBottom: 8 },
   input: { 
     backgroundColor: '#f8fafc', 
     borderWidth: 2,
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#dbeafe',
     borderColor: '#3b82f6'
   },
-  radiusText: { fontSize: 14, fontWeight: '600', color: '#64748b' },
+  radiusText: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', color: '#64748b' },
   radiusTextSelected: { color: '#3b82f6' },
   settingsGroup: { marginBottom: 20 },
   settingRow: {
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12
   },
-  settingLabel: { fontSize: 15, fontWeight: '500', color: '#374151' },
+  settingLabel: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#374151' },
   locationInfo: {
     backgroundColor: '#f8fafc',
     padding: 16,
@@ -353,8 +353,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e2e8f0'
   },
-  locationLabel: { fontSize: 13, fontWeight: '600', color: '#64748b', marginBottom: 4 },
-  coordinates: { fontSize: 15, fontWeight: '600', color: '#0f172a', fontFamily: 'monospace' },
+  locationLabel: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold', color: '#64748b', marginBottom: 4 },
+  coordinates: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#0f172a', fontFamily: 'monospace' },
   accuracy: { fontSize: 12, color: '#64748b', marginTop: 4 },
   createButton: {
     backgroundColor: '#3b82f6',
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#94a3b8',
     shadowOpacity: 0
   },
-  createButtonText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
+  createButtonText: { color: '#ffffff', fontSize: 16, fontFamily: 'LeagueSpartan_700Bold' },
   monitoringHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8
   },
-  geofenceName: { fontSize: 16, fontWeight: '600', color: '#0f172a', flex: 1 },
+  geofenceName: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold', color: '#0f172a', flex: 1 },
   statusIndicator: {
     paddingHorizontal: 12,
     paddingVertical: 4,
@@ -400,20 +400,20 @@ const styles = StyleSheet.create({
   },
   statusInside: { backgroundColor: '#dcfce7' },
   statusOutside: { backgroundColor: '#fef3c7' },
-  statusText: { fontSize: 12, fontWeight: '700', color: '#0f172a' },
+  statusText: { fontSize: 12, fontFamily: 'LeagueSpartan_700Bold', color: '#0f172a' },
   geofenceDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center'
   },
-  distanceText: { fontSize: 14, color: '#64748b', fontWeight: '500' },
+  distanceText: { fontSize: 14, color: '#64748b', fontFamily: 'LeagueSpartan_600SemiBold' },
   deleteButton: {
     backgroundColor: '#fee2e2',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8
   },
-  deleteButtonText: { fontSize: 12, fontWeight: '600', color: '#dc2626' },
+  deleteButtonText: { fontSize: 12, fontFamily: 'LeagueSpartan_600SemiBold', color: '#dc2626' },
   emptyState: {
     backgroundColor: '#ffffff',
     borderRadius: 20,
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     borderStyle: 'dashed'
   },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#64748b', marginBottom: 8 },
+  emptyTitle: { fontSize: 18, fontFamily: 'LeagueSpartan_600SemiBold', color: '#64748b', marginBottom: 8 },
   emptyDesc: {
     fontSize: 14,
     color: '#94a3b8',

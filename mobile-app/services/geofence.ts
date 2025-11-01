@@ -4,7 +4,7 @@ import * as TaskManager from 'expo-task-manager';
 import * as SecureStore from 'expo-secure-store';
 
 const GEOFENCE_TASK = 'background-geofence-task';
-const API_URL = 'https://pic2nav.com/api/geofence';
+const API_URL = 'https://ssabiroad.vercel.app/api/geofence';
 
 // Configure notifications
 Notifications.setNotificationHandler({
