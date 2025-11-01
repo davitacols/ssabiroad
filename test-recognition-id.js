@@ -23,7 +23,7 @@ async function testRecognitionId() {
     console.log('📤 Sending request to API...');
     
     // Send request
-    const response = await fetch('http://localhost:3000/api/location-recognition-v2', {
+    const response = await fetch('http://localhost:3001/api/location-recognition-v2', {
       method: 'POST',
       body: formData,
       headers: formData.getHeaders()

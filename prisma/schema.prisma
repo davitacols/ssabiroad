@@ -7,84 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  bio       String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  bookmarks Bookmark[]
-  locations Location[]
-  jobs      Job[]
-}
-
-model Location {
-  id          String   @id @default(cuid())
-  name        String
-  address     String
-  latitude    Float
-  longitude   Float
-  description String?
-  walkScore   Int?
-  bikeScore   Int?
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
 model Bookmark {
-  id        String    @id @default(cuid())
+  id        String    @id
+  createdAt DateTime  @default(now())
   title     String?
+  updatedAt DateTime?
   url       String?
   userId    String?
-  user      User?     @relation(fields: [userId], references: [id])
-  createdAt DateTime  @default(now())
-  updatedAt DateTime? @updatedAt
-}
-
-model Job {
-  id          String   @id @default(cuid())
-  title       String?
-  company     String?
-  location    String?
-  description String?
-  salary      String?
-  type        String?
-  remote      Boolean  @default(false)
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model LocationCache {
-  id        String   @id @default(cuid())
-  query     String   @unique
-  data      Json
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("location_cache")
-}
-
-model LocationCorrection {
-  id                 String   @id @default(cuid())
-  originalAddress    String
-  correctAddress     String
-  latitude           Float
-  longitude          Float
-  originalMethod     String?
-  originalConfidence Float?
-  imageFeatures      String?
-  createdAt          DateTime @default(now())
-
-  @@map("location_corrections")
+  User      User?     @relation(fields: [userId], references: [id])
 }
 
 model Geofence {
-  id            String    @id @default(cuid())
+  id            String    @id
   name          String
   latitude      Float
   longitude     Float
@@ -96,109 +30,133 @@ model Geofence {
   lastStatus    String?
   lastTriggered DateTime?
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  updatedAt     DateTime
 
-  @@index([userId])
   @@index([active])
+  @@index([userId])
 }
 
-model LocationRecognition {
-  id              String   @id @default(cuid())
-  businessName    String?
-  detectedAddress String?
-  latitude        Float
-  longitude       Float
-  confidence      Float
-  method          String
-  imageHash       String?
-  userId          String?
-  createdAt       DateTime @default(now())
-  feedback        LocationFeedback?
-
-  @@index([imageHash])
-  @@index([method])
-  @@map("location_recognitions")
+model Job {
+  id          String   @id
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  userId      String?
+  company     String?
+  description String?
+  location    String?
+  remote      Boolean  @default(false)
+  salary      String?
+  title       String?
+  type        String?
+  User        User?    @relation(fields: [userId], references: [id])
 }
 
-model LocationFeedback {
-  id             String              @id @default(cuid())
-  recognitionId  String              @unique
-  recognition    LocationRecognition @relation(fields: [recognitionId], references: [id], onDelete: Cascade)
-  wasCorrect     Boolean
-  correctAddress String?
-  correctLat     Float?
-  correctLng     Float?
-  userId         String?
-  createdAt      DateTime            @default(now())
-
-  @@index([wasCorrect])
-  @@map("location_feedback")
+model Location {
+  id          String   @id
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  latitude    Float
+  longitude   Float
+  name        String
+  address     String
+  userId      String?
+  description String?
+  bikeScore   Int?
+  walkScore   Int?
+  User        User?    @relation(fields: [userId], references: [id])
 }
 
-model KnownLocation {
-  id               String   @id @default(cuid())
-  businessName     String
-  address          String
-  latitude         Float
-  longitude        Float
-  phoneNumber      String?
-  visualFeatures   Json?
-  franchiseId      String?
-  verificationCount Int     @default(1)
-  lastVerified     DateTime @default(now())
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+model User {
+  id        String     @id
+  email     String     @unique
+  name      String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime
+  bio       String?
+  Bookmark  Bookmark[]
+  Job       Job[]
+  Location  Location[]
+}
+
+model known_locations {
+  id                String   @id
+  businessName      String
+  address           String
+  latitude          Float
+  longitude         Float
+  phoneNumber       String?
+  visualFeatures    Json?
+  franchiseId       String?
+  verificationCount Int      @default(1)
+  lastVerified      DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime
 
   @@unique([businessName, latitude, longitude])
   @@index([businessName])
   @@index([franchiseId])
-  @@map("known_locations")
 }
 
-model RegionOptimization {
-  id          String   @id @default(cuid())
+model location_cache {
+  id        String   @id
+  query     String   @unique
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
+model location_corrections {
+  id                 String   @id
+  latitude           Float
+  longitude          Float
+  correctAddress     String
+  createdAt          DateTime @default(now())
+  imageFeatures      String?
+  originalAddress    String
+  originalConfidence Float?
+  originalMethod     String?
+}
+
+model location_feedback {
+  id                    String                @id
+  recognitionId         String                @unique
+  wasCorrect            Boolean
+  correctAddress        String?
+  correctLat            Float?
+  correctLng            Float?
+  userId                String?
+  createdAt             DateTime              @default(now())
+  location_recognitions location_recognitions @relation(fields: [recognitionId], references: [id], onDelete: Cascade)
+
+  @@index([wasCorrect])
+}
+
+model location_recognitions {
+  id                String             @id
+  businessName      String?
+  detectedAddress   String?
+  latitude          Float
+  longitude         Float
+  confidence        Float
+  method            String
+  imageHash         String?
+  userId            String?
+  createdAt         DateTime           @default(now())
+  location_feedback location_feedback?
+
+  @@index([imageHash])
+  @@index([method])
+}
+
+model region_optimizations {
+  id          String   @id
   region      String
   countryCode String
   priority    Int      @default(0)
   searchHints Json?
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime
 
   @@unique([region, countryCode])
   @@index([countryCode])
-  @@map("region_optimizations")
 }
-
-// Photo and PhotoTag models commented out - tables don't exist in database yet
-// Uncomment and run prisma db push when ready to add these features
-
-// model Photo {
-//   id        String     @id @default(cuid())
-//   userId    String
-//   filename  String
-//   url       String?
-//   latitude  Float?
-//   longitude Float?
-//   timestamp DateTime?
-//   processed Boolean    @default(false)
-//   createdAt DateTime   @default(now())
-//   updatedAt DateTime   @updatedAt
-//   tags      PhotoTag[]
-//
-//   @@index([userId])
-//   @@index([processed])
-// }
-//
-// model PhotoTag {
-//   id          String   @id @default(cuid())
-//   photoId     String
-//   photo       Photo    @relation(fields: [photoId], references: [id], onDelete: Cascade)
-//   tagType     String
-//   tagValue    String
-//   confidence  Float?
-//   coordinates Json?
-//   createdAt   DateTime @default(now())
-//
-//   @@index([photoId])
-//   @@index([tagType])
-// }

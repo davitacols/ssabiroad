@@ -2011,16 +2011,16 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
 
       // OPTIMIZED image analysis - prioritize essential detections with shorter timeouts
       const [landmarkResult, textResult, logoResult, labelResult] = await Promise.allSettled([
-        withTimeout(client.landmarkDetection({ image: { content: processBuffer } }), 30000),
-        withTimeout(client.textDetection({ image: { content: processBuffer } }), 30000),
-        withTimeout(client.logoDetection({ image: { content: processBuffer } }), 30000),
-        withTimeout(client.labelDetection({ image: { content: processBuffer }, maxResults: 10 }), 30000)
+        withTimeout(client.landmarkDetection({ image: { content: processBuffer } }), 45000),
+        withTimeout(client.textDetection({ image: { content: processBuffer } }), 45000),
+        withTimeout(client.logoDetection({ image: { content: processBuffer } }), 45000),
+        withTimeout(client.labelDetection({ image: { content: processBuffer }, maxResults: 10 }), 45000)
       ]);
       
       // Optional secondary analysis with even shorter timeouts
       const [documentResult, objectResult] = await Promise.allSettled([
-        withTimeout(client.documentTextDetection({ image: { content: processBuffer } }), 30000),
-        withTimeout(client.objectLocalization({ image: { content: processBuffer } }), 30000)
+        withTimeout(client.documentTextDetection({ image: { content: processBuffer } }), 45000),
+        withTimeout(client.objectLocalization({ image: { content: processBuffer } }), 45000)
       ]);
       
       // Skip face and web detection to reduce timeout issues
@@ -4572,8 +4572,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     }
     
     console.log('❌ No valid server EXIF GPS data found - proceeding to AI analysis');
-    
-    console.log('No EXIF GPS data found - trying Claude AI first...');
+    console.log('No EXIF GPS data found - trying Claude AI and Google Vision...');
     
     // 2. Try Claude AI comprehensive analysis first (highest accuracy for storefronts)
     console.log('Trying Claude AI comprehensive analysis...');
@@ -4584,7 +4583,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const claudeResult = await Promise.race([
         this.analyzeWithClaude({}, buffer),
         new Promise<LocationResult | null>((_, reject) => 
-          setTimeout(() => reject(new Error('Claude analysis timeout')), 90000)
+          setTimeout(() => reject(new Error('Claude analysis timeout')), 120000)
         )
       ]);
       
@@ -4651,7 +4650,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const aiResult = await Promise.race([
         this.analyzeImageWithAI(buffer, extractedAreaContext),
         new Promise<LocationResult | null>((_, reject) => 
-          setTimeout(() => reject(new Error('AI analysis timeout')), 45000)
+          setTimeout(() => reject(new Error('AI analysis timeout')), 60000)
         )
       ]);
       

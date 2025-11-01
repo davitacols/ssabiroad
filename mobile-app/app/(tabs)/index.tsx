@@ -36,9 +36,17 @@ export default function ScannerScreen() {
   const processImage = async (uri: string, exif?: any) => {
     setLoading(true);
     try {
-      // Only get device location as fallback, don't send it initially
+      // Get device location
+      let location = null;
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({});
+        location = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+        console.log('Device location:', location);
+      }
+      
       console.log('Processing image:', uri);
-      const data = await analyzeLocation(uri, null);
+      const data = await analyzeLocation(uri, location);
       console.log('API Response:', data);
       setResult(data);
     } catch (error: any) {
