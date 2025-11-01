@@ -1347,7 +1347,7 @@ Return JSON with the most specific location information you can identify:
       // Add timeout to Claude API call
       console.log('Creating Claude API message request...');
       const claudePromise = anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20240620',
+        model: 'claude-3-haiku-20240307',
         max_tokens: 300,
         messages: [{
           role: 'user',
@@ -3768,7 +3768,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
 {"businessName": "exact business name from signage", "area": "location context if visible"}`;
 
       const response = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20240620',
+        model: 'claude-3-haiku-20240307',
         max_tokens: 200,
         messages: [{
           role: 'user',
