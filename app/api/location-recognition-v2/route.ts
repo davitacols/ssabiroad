@@ -1793,8 +1793,8 @@ Return JSON with the most specific location information you can identify:
           console.log('⚠️ Priority searches completed but no Alexandra Park Road found');
         }
         
-        // Force UK context for NW9 postcodes
-        let countryContext = 'UK'; // Default to UK for NW9
+        // Detect country context from available data
+        let countryContext = null; // No default - detect from context
         if (result.phoneNumber && result.phoneNumber !== 'not visible') {
           const phoneCountry = this.getCountryFromPhone(result.phoneNumber);
           if (phoneCountry && phoneCountry.includes('USA')) {
@@ -2386,7 +2386,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
             
             // Determine country context from multiple sources
             let countryHint = null;
-            if (geographicClue === 'UK' || enhancedText.includes('UK') || deepSceneContext.objects.includes('Street light')) {
+            if (geographicClue === 'UK' || enhancedText.includes('UK')) {
               countryHint = 'UK';
             }
             
@@ -2411,6 +2411,13 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
               console.log('UK context detected from comprehensive visual analysis!');
             }
             
+            // Detect Nigeria context
+            if (enhancedText.toLowerCase().includes('nigeria') || enhancedText.toLowerCase().includes('lagos') ||
+                deepSceneContext.webEntities.some(entity => entity.description?.toLowerCase().includes('nigeria') || entity.description?.toLowerCase().includes('lagos'))) {
+              countryHint = 'Nigeria';
+              console.log('Nigeria context detected from visual analysis!');
+            }
+            
             // Check for specific landmark context that overrides default UK bias
             if (deepSceneContext.webEntities.some(entity => 
                 entity.description?.toLowerCase().includes('lekki') || 
@@ -2420,7 +2427,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
               console.log('Nigeria context detected from landmark analysis!');
             }
             
-            // If no specific context but business name suggests UK (common UK restaurant names)
+            // Infer country from business name patterns
             if (!countryHint && businessNameValue) {
               const ukBusinessPatterns = /\b(VINUM|ENOTECA|GASTROPUB|PUB|CHIPPY|TAKEAWAY)\b/i;
               if (ukBusinessPatterns.test(businessNameValue)) {
@@ -2428,6 +2435,9 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
                 console.log('UK context inferred from business name pattern');
               }
             }
+            
+            // Don't default to UK - allow global search
+            console.log('Final country hint:', countryHint || 'GLOBAL');
             
             // Don't use geographic clue 'China' for Chinese restaurants - they're global
             let adjustedGeographicClue = geographicClue;
@@ -2442,8 +2452,8 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
               console.log('Landmark detected - removing geographic bias for global search');
             }
             
-            // Force UK search if Claude detected UK context
-            console.log('Country hint after processing:', countryHint);
+            // Search with country context if detected
+            console.log('Country hint after processing:', countryHint || 'GLOBAL');
             if (countryHint === 'UK') {
               console.log('🇬🇧 FORCING UK-SPECIFIC SEARCH for:', businessNameValue);
               const ukSearchQueries = [
