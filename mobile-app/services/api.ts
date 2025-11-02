@@ -79,3 +79,48 @@ export const saveLocation = async (data: any) => {
   const response = await axios.post(`${API_URL}/save-location`, data);
   return response.data;
 };
+
+export const batchProcess = async (imageUris: string[], userId?: string) => {
+  const formData = new FormData();
+  for (const uri of imageUris) {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    formData.append('images', blob);
+  }
+  if (userId) formData.append('userId', userId);
+  
+  const response = await fetch(`${API_URL}/batch-process`, {
+    method: 'POST',
+    body: formData
+  });
+  return response.json();
+};
+
+export const triangulateLocation = async (imageUris: string[]) => {
+  const formData = new FormData();
+  for (const uri of imageUris) {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    formData.append('images', blob);
+  }
+  
+  const response = await fetch(`${API_URL}/triangulate`, {
+    method: 'POST',
+    body: formData
+  });
+  return response.json();
+};
+
+export const getHistoricalLocations = async (lat: number, lng: number, radius: number = 1) => {
+  const response = await fetch(`${API_URL}/historical-locations?lat=${lat}&lng=${lng}&radius=${radius}`);
+  return response.json();
+};
+
+export const shareToSocial = async (platform: string, locationData: any) => {
+  const response = await fetch(`${API_URL}/social-share`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ platform, locationData })
+  });
+  return response.json();
+};

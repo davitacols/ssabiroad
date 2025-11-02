@@ -7,7 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
-import { analyzeLocation } from '../services/api';
+import { analyzeLocation, batchProcess, shareToSocial } from '../services/api';
 
 export default function BatchProcessScreen() {
   const router = useRouter();
@@ -42,8 +42,37 @@ export default function BatchProcessScreen() {
     
     setProcessing(true);
     setCurrentIndex(0);
+    
+    try {
+      const imageUris = photos.map(p => p.uri);
+      const batchResult = await batchProcess(imageUris);
+      
+      const newResults = batchResult.results.map((r: any) => ({
+        photo: photos[r.index].uri,
+        data: r.success ? { name: r.name, location: r.location, address: r.address } : null,
+        success: r.success,
+        error: r.error,
+        timestamp: new Date().toISOString()
+      }));
+      
+      setResults(newResults);
+      setProcessing(false);
+      
+      const successCount = newResults.filter(r => r.success).length;
+      Alert.alert(
+        'Processing Complete', 
+        `${successCount}/${photos.length} photos processed successfully`,
+        [
+          { text: 'OK' },
+          { text: 'Export Results', onPress: exportResults }
+        ]
+      );
+      return;
+    } catch (error) {
+      console.log('Batch API failed, falling back to sequential processing');
+    }
+    
     const newResults = [];
-
     for (let i = 0; i < photos.length; i++) {
       const photo = photos[i];
       setCurrentIndex(i + 1);

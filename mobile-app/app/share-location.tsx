@@ -1,8 +1,9 @@
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView, Share, Alert, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView, Share, Alert, TextInput, Linking } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
+import { shareToSocial } from '../services/api';
 
 export default function ShareLocationScreen() {
   const router = useRouter();
@@ -24,16 +25,34 @@ export default function ShareLocationScreen() {
   };
 
   const handleShareVia = async (platform: string) => {
-    const link = generateShareLink();
-    const text = message || `Check out this location: ${locationData?.name || 'Amazing place'}`;
+    if (platform === 'general') {
+      const link = generateShareLink();
+      const text = message || `Check out this location: ${locationData?.name || 'Amazing place'}`;
+      
+      try {
+        await Share.share({
+          message: `${text}\n\n${link}`,
+          title: 'Share Location',
+        });
+      } catch (error) {
+        console.log('Error sharing:', error);
+      }
+      return;
+    }
     
     try {
-      await Share.share({
-        message: `${text}\n\n${link}`,
-        title: 'Share Location',
+      const result = await shareToSocial(platform, {
+        name: locationData?.name,
+        location: { latitude: locationData?.latitude || locationData?.lat, longitude: locationData?.longitude || locationData?.lng },
+        address: locationData?.address
       });
+      
+      if (result.shareUrl) {
+        await Linking.openURL(result.shareUrl);
+      }
     } catch (error) {
-      console.log('Error sharing:', error);
+      console.log('Error sharing to social:', error);
+      Alert.alert('Error', 'Failed to share to ' + platform);
     }
   };
 
