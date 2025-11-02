@@ -10,19 +10,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Query parameter required' }, { status: 400 });
     }
 
-    // Use Geocoding API for location search
-    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
+    // Use Places Text Search API for business/place search
+    let searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
     
-    const response = await fetch(geocodeUrl);
+    // Add location bias if provided
+    if (location) {
+      searchUrl += `&location=${location}&radius=5000`;
+    }
+    
+    const response = await fetch(searchUrl);
 
     if (!response.ok) {
-      throw new Error('Google Geocoding API error');
+      throw new Error('Google Places API error');
     }
 
     const data = await response.json();
     
     if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-      throw new Error(`Geocoding API error: ${data.status}`);
+      console.error('Places API error:', data.status, data.error_message);
+      return NextResponse.json({ places: [], message: "I couldn't find any places. Try a different search." });
     }
 
     const places = data.results?.map((result: any) => {
@@ -34,23 +40,27 @@ export async function GET(request: NextRequest) {
       
       return {
         id: result.place_id,
-        name: result.formatted_address.split(',')[0], // First part as name
-        vicinity: result.formatted_address,
-        address: result.formatted_address,
+        name: result.name,
+        vicinity: result.formatted_address || result.vicinity,
+        address: result.formatted_address || result.vicinity,
         types: result.types,
         placeId: result.place_id,
         distance,
-        coordinates: result.geometry.location
+        rating: result.rating,
+        openNow: result.opening_hours?.open_now,
+        location: result.geometry.location
       };
     }) || [];
 
-    return NextResponse.json({ places: places.sort((a: any, b: any) => {
-      if (a.distance && b.distance) return a.distance - b.distance;
-      return 0;
-    }) });
+    return NextResponse.json({ 
+      places: places.sort((a: any, b: any) => {
+        if (a.distance && b.distance) return a.distance - b.distance;
+        return 0;
+      })
+    });
   } catch (error) {
     console.error('Places search error:', error);
-    return NextResponse.json({ error: 'Search failed' }, { status: 500 });
+    return NextResponse.json({ error: 'Search failed', places: [] }, { status: 500 });
   }
 }
 

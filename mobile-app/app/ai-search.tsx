@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, SafeAr
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Location from 'expo-location';
 import { getApiUrl, API_CONFIG } from '../config/api';
 
 interface Message {
@@ -18,6 +19,7 @@ export default function AISearchScreen() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [userLocation, setUserLocation] = useState<any>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -27,7 +29,20 @@ export default function AISearchScreen() {
       duration: 800,
       useNativeDriver: true,
     }).start();
+    getUserLocation();
   }, []);
+
+  const getUserLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const location = await Location.getCurrentPositionAsync({});
+        setUserLocation(location.coords);
+      }
+    } catch (error) {
+      console.log('Location error:', error);
+    }
+  };
 
   useEffect(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -54,7 +69,8 @@ export default function AISearchScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           query: currentQuery,
-          conversationHistory: messages.slice(-6).map(m => ({ type: m.type, text: m.text }))
+          conversationHistory: messages.slice(-6).map(m => ({ type: m.type, text: m.text })),
+          userLocation: userLocation ? { latitude: userLocation.latitude, longitude: userLocation.longitude } : null
         }),
       });
 

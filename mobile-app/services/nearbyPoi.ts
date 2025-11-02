@@ -21,14 +21,15 @@ export const NearbyPoiService = {
   getPlaceTypes() {
     return [
       { key: 'restaurant', label: 'Restaurants', icon: '🍽️' },
+      { key: 'gym', label: 'Gyms', icon: '💪' },
       { key: 'gas_station', label: 'Gas Stations', icon: '⛽' },
       { key: 'hospital', label: 'Hospitals', icon: '🏥' },
       { key: 'bank', label: 'Banks', icon: '🏦' },
       { key: 'pharmacy', label: 'Pharmacies', icon: '💊' },
       { key: 'shopping_mall', label: 'Shopping', icon: '🛍️' },
+      { key: 'cafe', label: 'Cafes', icon: '☕' },
       { key: 'tourist_attraction', label: 'Attractions', icon: '🎯' },
       { key: 'lodging', label: 'Hotels', icon: '🏨' },
-      { key: 'church', label: 'Churches', icon: '⛪' },
     ];
   },
 };

@@ -7,7 +7,7 @@ const anthropic = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
-    const { query, conversationHistory } = await request.json();
+    const { query, conversationHistory, userLocation } = await request.json();
 
     if (!query) {
       return NextResponse.json({ success: false, error: 'Query required' }, { status: 400 });
@@ -25,8 +25,13 @@ export async function POST(request: NextRequest) {
       max_tokens: 1024,
       system: `You are a helpful location assistant. Help users find places and answer questions about locations. 
       
-When a user asks about finding places, respond with JSON:
-{"needsPlaceSearch": true, "placeType": "restaurant", "location": "Lagos", "response": "Let me find restaurants in Lagos for you!"}
+When a user asks about finding places (restaurants, gyms, cafes, etc.), respond with JSON:
+{"needsPlaceSearch": true, "placeType": "gym", "useUserLocation": true, "response": "Let me find gyms near you!"}
+
+If they specify a location like "gyms in Lagos", use:
+{"needsPlaceSearch": true, "placeType": "gym", "location": "Lagos", "response": "Let me find gyms in Lagos for you!"}
+
+For phrases like "near me", "in my area", "nearby", "around here", set "useUserLocation": true.
 
 When answering questions about places already shown, respond with JSON:
 {"needsPlaceSearch": false, "response": "your helpful answer"}
@@ -47,16 +52,26 @@ Be friendly and conversational.`,
       parsedResponse = { needsPlaceSearch: false, response: content.text };
     }
 
-    if (parsedResponse.needsPlaceSearch && parsedResponse.placeType && parsedResponse.location) {
-      const { placeType, location } = parsedResponse;
+    if (parsedResponse.needsPlaceSearch && parsedResponse.placeType) {
+      const { placeType, location, useUserLocation } = parsedResponse;
+      let coords;
 
-      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
-      const geocodeRes = await fetch(geocodeUrl);
-      const geocodeData = await geocodeRes.json();
+      // Use user's current location if requested
+      if (useUserLocation && userLocation) {
+        coords = { lat: userLocation.latitude, lng: userLocation.longitude };
+      } else if (location) {
+        // Geocode the specified location
+        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+        const geocodeRes = await fetch(geocodeUrl);
+        const geocodeData = await geocodeRes.json();
+        
+        if (geocodeData.results?.[0]) {
+          coords = geocodeData.results[0].geometry.location;
+        }
+      }
 
-      if (geocodeData.results?.[0]) {
-        const coords = geocodeData.results[0].geometry.location;
-        const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${coords.lat},${coords.lng}&radius=5000&keyword=${encodeURIComponent(placeType)}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
+      if (coords) {
+        const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${coords.lat},${coords.lng}&radius=5000&type=${encodeURIComponent(placeType)}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
         const placesRes = await fetch(placesUrl);
         const placesData = await placesRes.json();
 
@@ -80,7 +95,7 @@ Be friendly and conversational.`,
 
       return NextResponse.json({
         success: true,
-        response: "I couldn't find any places. Try a different location?",
+        response: "I couldn't find any places. Try a different search.",
         places: [],
         needsPlaceSearch: false
       });
