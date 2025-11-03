@@ -49,7 +49,7 @@ export default function BatchProcessScreen() {
       
       const newResults = batchResult.results.map((r: any) => ({
         photo: photos[r.index].uri,
-        data: r.success ? { name: r.name, location: r.location, address: r.address } : null,
+        data: r.success ? { name: r.name, location: r.location, address: r.address, labels: r.labels } : null,
         success: r.success,
         error: r.error,
         timestamp: new Date().toISOString()
@@ -215,6 +215,8 @@ export default function BatchProcessScreen() {
     Alert.alert('Save Location', 'Location saved to your collection', [{ text: 'OK' }]);
     setShowActions(false);
   };
+
+
 
   return (
     <SafeAreaView style={styles.container}>

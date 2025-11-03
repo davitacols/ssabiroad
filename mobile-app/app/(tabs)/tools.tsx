@@ -6,6 +6,18 @@ export default function ToolsScreen() {
 
   const tools = [
     {
+      title: 'AI Organize',
+      subtitle: 'Smart photo categorization',
+      icon: '🤖',
+      route: '/ai-organize',
+    },
+    {
+      title: 'Smart Albums',
+      subtitle: 'Auto-organized collections',
+      icon: '📚',
+      route: '/smart-albums',
+    },
+    {
       title: 'EXIF Editor',
       subtitle: 'Bulk edit photo metadata',
       icon: '✏️',

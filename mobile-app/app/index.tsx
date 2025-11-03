@@ -51,6 +51,8 @@ export default function HomeScreen() {
     router.push('/collections');
   };
 
+
+
   const handleAISearchPress = () => {
     addActivity('AI Search', 'Searched for places', '/ai-search');
     router.push('/ai-search');
@@ -163,7 +165,6 @@ export default function HomeScreen() {
             </View>
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
           </TouchableOpacity>
-
 
         </View>
       </ScrollView>

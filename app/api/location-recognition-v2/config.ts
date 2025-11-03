@@ -3,7 +3,7 @@
 export const AI_CONFIG = {
   // Vision API settings (optimized for speed and accuracy)
   vision: {
-    timeout: 5000, // 5 seconds for comprehensive analysis
+    timeout: 45000, // 45 seconds for comprehensive analysis
     maxResults: {
       labels: 10,
       landmarks: 5,
@@ -29,12 +29,12 @@ export const AI_CONFIG = {
   claude: {
     model: 'claude-3-haiku-20240307',
     maxTokens: 200,
-    timeout: 8000 // 8 seconds
+    timeout: 90000 // 90 seconds
   },
   
   // Places API settings (optimized)
   places: {
-    timeout: 3000, // 3 seconds
+    timeout: 8000, // 8 seconds
     fields: 'name,formatted_address,geometry,place_id'
   },
   
