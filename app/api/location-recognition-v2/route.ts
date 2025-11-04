@@ -4530,7 +4530,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     
     try {
       // Add overall timeout for the entire recognition process
-      const recognitionPromise = this.performRecognition(buffer, providedLocation, analyzeLandmarks, regionHint, searchPriority);
+      const recognitionPromise = this.performRecognition(buffer, providedLocation, analyzeLandmarks, regionHint, searchPriority, userId);
       const timeoutPromise = new Promise<LocationResult>((_, reject) => {
         setTimeout(() => reject(new Error('Recognition timeout')), 90000); // 90 second timeout
       });
@@ -4560,7 +4560,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     }
   }
   
-  private async performRecognition(buffer: Buffer, providedLocation?: Location, analyzeLandmarks: boolean = false, regionHint?: string, searchPriority?: string): Promise<LocationResult> {
+  private async performRecognition(buffer: Buffer, providedLocation?: Location, analyzeLandmarks: boolean = false, regionHint?: string, searchPriority?: string, userId?: string): Promise<LocationResult> {
     // Force UK priority for mobile requests
     if (regionHint === 'UK') {
       console.log('Mobile request with UK priority detected - forcing UK searches');
