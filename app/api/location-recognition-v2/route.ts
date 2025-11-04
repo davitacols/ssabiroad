@@ -82,13 +82,25 @@ class LocationRecognizer {
   
   private async saveRecognition(result: LocationResult, buffer: Buffer, userId?: string): Promise<string | null> {
     try {
-      if (!result.success || !result.location) return null;
+      if (!result.success || !result.location) {
+        console.log('Skipping save - result not successful or no location');
+        return null;
+      }
       
       const crypto = require('crypto');
       const imageHash = crypto.createHash('md5').update(buffer).digest('hex');
       
-      const recognition = await prisma.locationRecognition.create({
+      console.log('Attempting to save recognition to database:', {
+        businessName: result.name,
+        latitude: result.location.latitude,
+        longitude: result.location.longitude,
+        method: result.method,
+        userId
+      });
+      
+      const recognition = await prisma.location_recognitions.create({
         data: {
+          id: crypto.randomUUID(),
           businessName: result.name,
           detectedAddress: result.address,
           latitude: result.location.latitude,
@@ -100,9 +112,11 @@ class LocationRecognizer {
         }
       });
       
+      console.log('✅ Recognition saved successfully with ID:', recognition.id);
       return recognition.id;
     } catch (error) {
-      console.error('Failed to save recognition:', error);
+      console.error('❌ Failed to save recognition to database:', error);
+      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
       return null;
     }
   }
