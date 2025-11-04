@@ -5,59 +5,32 @@ export async function GET(request: NextRequest) {
   try {
     const limit = parseInt(request.nextUrl.searchParams.get('limit') || '10');
     
-    const recentLocations = await prisma.location.findMany({
+    const recentRecognitions = await prisma.location_recognitions.findMany({
       take: limit,
       orderBy: {
         createdAt: 'desc'
       },
       select: {
         id: true,
-        name: true,
-        address: true,
+        businessName: true,
+        detectedAddress: true,
         createdAt: true,
         latitude: true,
         longitude: true,
-        walkScore: true,
-        bikeScore: true,
-        user: {
-          select: {
-            name: true,
-            email: true
-          }
-        }
+        confidence: true,
+        method: true,
+        userId: true
       }
     });
 
-    const detections = recentLocations.map(location => {
-      const hasValidCoords = 
-        location.latitude !== 0 && 
-        location.longitude !== 0 &&
-        location.latitude >= -90 && 
-        location.latitude <= 90 &&
-        location.longitude >= -180 && 
-        location.longitude <= 180;
-      
-      const hasAddress = location.address && location.address.length > 0;
-      const hasScores = location.walkScore || location.bikeScore;
-      
-      let confidence = 0.5;
-      if (hasValidCoords) confidence += 0.3;
-      if (hasAddress) confidence += 0.15;
-      if (hasScores) confidence += 0.05;
-      
-      return {
-        id: location.id,
-        name: location.name || 'Unknown Location',
-        address: location.address || 'Address not available',
-        confidence: Math.min(confidence, 0.99),
-        timeAgo: getTimeAgo(location.createdAt),
-        coordinates: hasValidCoords ? {
-          latitude: location.latitude,
-          longitude: location.longitude
-        } : null,
-        userName: location.user?.name || 'Anonymous'
-      };
-    });
+    const detections = recentRecognitions.map(recognition => ({
+      id: recognition.id,
+      name: recognition.businessName || 'Unknown Location',
+      address: recognition.detectedAddress || 'Address not available',
+      confidence: recognition.confidence,
+      timeAgo: getTimeAgo(recognition.createdAt),
+      method: recognition.method
+    }));
 
     return NextResponse.json(detections);
   } catch (error) {

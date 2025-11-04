@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const results = await Promise.all(
       trends.map(async ({ date, dayStart, dayEnd }) => {
         const [locations, users, bookmarks] = await Promise.all([
-          prisma.location.count({
+          prisma.location_recognitions.count({
             where: { createdAt: { gte: dayStart, lte: dayEnd } }
           }),
           prisma.user.count({
@@ -32,22 +32,12 @@ export async function GET(request: NextRequest) {
           })
         ]);
 
-        let photos = 0;
-        try {
-          photos = await prisma.photo.count({
-            where: { createdAt: { gte: dayStart, lte: dayEnd } }
-          });
-        } catch (e) {
-          // Photo model not available
-        }
-
         return {
           date: date.toISOString().split('T')[0],
           locations,
           users,
           bookmarks,
-          photos,
-          total: locations + users + bookmarks + photos
+          total: locations + users + bookmarks
         };
       })
     );

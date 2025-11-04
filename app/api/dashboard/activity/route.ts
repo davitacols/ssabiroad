@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       const dayEnd = new Date(date.setHours(23, 59, 59, 999));
       
       promises.push(
-        prisma.location.count({
+        prisma.location_recognitions.count({
           where: {
             createdAt: {
               gte: dayStart,

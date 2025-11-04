@@ -24,15 +24,15 @@ export async function GET(request: NextRequest) {
       geofences,
       activeGeofences
     ] = await Promise.all([
-      prisma.location.count(),
+      prisma.location_recognitions.count(),
       prisma.user.count(),
       prisma.bookmark.count(),
-      prisma.location.count({ where: { createdAt: { gte: today } } }),
-      prisma.location.count({ where: { createdAt: { gte: yesterday, lt: today } } }),
-      prisma.location.count({ where: { createdAt: { gte: weekAgo } } }),
-      prisma.location.count({ where: { createdAt: { gte: monthAgo } } }),
-      prisma.location.count({ where: { createdAt: { gte: yearAgo } } }),
-      prisma.location.count({
+      prisma.location_recognitions.count({ where: { createdAt: { gte: today } } }),
+      prisma.location_recognitions.count({ where: { createdAt: { gte: yesterday, lt: today } } }),
+      prisma.location_recognitions.count({ where: { createdAt: { gte: weekAgo } } }),
+      prisma.location_recognitions.count({ where: { createdAt: { gte: monthAgo } } }),
+      prisma.location_recognitions.count({ where: { createdAt: { gte: yearAgo } } }),
+      prisma.location_recognitions.count({
         where: {
           AND: [
             { latitude: { not: 0 } },
@@ -42,9 +42,9 @@ export async function GET(request: NextRequest) {
           ]
         }
       }),
-      prisma.location.count({
+      prisma.location_recognitions.count({
         where: {
-          address: { not: '' }
+          detectedAddress: { not: null }
         }
       }),
       prisma.geofence.count(),
@@ -65,17 +65,17 @@ export async function GET(request: NextRequest) {
     const addressCompleteness = totalLocations > 0 ? (locationsWithAddress / totalLocations) * 100 : 0;
     const photoProcessingRate = totalPhotos > 0 ? (processedPhotos / totalPhotos) * 100 : 0;
 
-    const topLocations = await prisma.location.groupBy({
-      by: ['name'],
+    const topLocations = await prisma.location_recognitions.groupBy({
+      by: ['businessName'],
       _count: { id: true },
       orderBy: { _count: { id: 'desc' } },
       take: 10,
       where: {
-        name: { not: '' }
+        businessName: { not: null }
       }
     });
 
-    const userActivity = await prisma.location.groupBy({
+    const userActivity = await prisma.location_recognitions.groupBy({
       by: ['userId'],
       _count: { id: true },
       orderBy: { _count: { id: 'desc' } },
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
         photoProcessingRate: Math.round(photoProcessingRate * 100) / 100
       },
       topLocations: topLocations.map(loc => ({
-        name: loc.name,
+        name: loc.businessName || 'Unknown',
         count: loc._count.id
       })),
       topUsers
