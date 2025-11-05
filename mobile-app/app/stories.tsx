@@ -58,26 +58,8 @@ export default function StoriesScreen() {
           isOwn: true,
         }));
 
-      // Load public stories from server
-      const userId = await SecureStore.getItemAsync('deviceUserId');
-      const response = await fetch(`https://ssabiroad.vercel.app/api/stories?userId=${userId}`);
-      const data = await response.json();
-      
-      const publicStories = data.success ? data.stories.map((s: any) => ({
-        id: s.id,
-        location: s.location,
-        address: s.address,
-        image: s.image,
-        timestamp: new Date(s.createdAt).getTime(),
-        viewed: false,
-        isOwn: false,
-        userId: s.userId,
-      })) : [];
-
-      // Combine and sort
-      const allStories = [...recentLocal, ...publicStories]
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(0, 20);
+      // Only show own stories (privacy-first approach)
+      const allStories = recentLocal.slice(0, 20);
       
       setStories(allStories);
     } catch (error) {
@@ -139,7 +121,7 @@ export default function StoriesScreen() {
             </View>
             <Text style={styles.storyLocation} numberOfLines={1}>{story.location}</Text>
             <Text style={styles.storyTime}>{getTimeAgo(story.timestamp)}</Text>
-            {!story.isOwn && <View style={styles.publicBadge}><Ionicons name="globe" size={10} color="#10b981" /></View>}
+
           </TouchableOpacity>
         ))}
         {stories.length === 0 && (
@@ -163,7 +145,7 @@ export default function StoriesScreen() {
                 <Text style={styles.gridTime}>{getTimeAgo(story.timestamp)}</Text>
               </View>
               {!story.viewed && <View style={styles.unviewedDot} />}
-              {!story.isOwn && <View style={styles.publicTag}><Text style={styles.publicTagText}>Public</Text></View>}
+
             </TouchableOpacity>
           ))}
         </ScrollView>

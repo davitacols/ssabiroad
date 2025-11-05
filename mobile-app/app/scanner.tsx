@@ -69,19 +69,7 @@ export default function ScannerScreen() {
       const updated = [newEntry, ...parsed].slice(0, 50);
       await AsyncStorage.setItem('locationHistory', JSON.stringify(updated));
       
-      // Upload to server for social stories
-      const userId = await SecureStore.getItemAsync('deviceUserId') || `device_${Date.now()}`;
-      await fetch('https://ssabiroad.vercel.app/api/stories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          location: data.name || 'Unknown Location',
-          address: data.address || '',
-          image: imageUri,
-          isPublic: true,
-        }),
-      }).catch(err => console.log('Upload story error:', err));
+      // Stories are private by default - users must manually share
     } catch (error) {
       console.error('Save history error:', error);
     }
@@ -324,9 +312,10 @@ export default function ScannerScreen() {
       
       // Check if API returned an error or no location data
       if (!data.success || data.error) {
-        setResult({ 
-          error: data.error || 'No GPS data found in image. Please use a photo with location data or take a new photo with location services enabled.' 
-        });
+        const errorMsg = typeof data.error === 'string' ? data.error : 
+                        data.error?.message || 
+                        'No GPS data found in image. Please use a photo with location data or take a new photo with location services enabled.';
+        setResult({ error: errorMsg });
         return;
       }
       
@@ -355,6 +344,8 @@ export default function ScannerScreen() {
         errorMsg = 'Image too large';
       } else if (error.response?.status === 429) {
         errorMsg = 'Too many requests';
+      } else if (error.message) {
+        errorMsg = typeof error.message === 'string' ? error.message : 'Failed to analyze image';
       }
       
       setResult({ error: errorMsg });
@@ -381,7 +372,7 @@ export default function ScannerScreen() {
       }
 
       const photo = await camera.takePictureAsync({
-        quality: 0.8,
+        quality: 0.5,
         base64: false,
         exif: true,
       });

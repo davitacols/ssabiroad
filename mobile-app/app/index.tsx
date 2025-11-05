@@ -171,6 +171,17 @@ export default function HomeScreen() {
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
           </TouchableOpacity>
 
+          <TouchableOpacity style={styles.toolCard} onPress={() => router.push('/memory-game')}>
+            <View style={styles.toolIcon}>
+              <Ionicons name="game-controller" size={24} color="#000000" />
+            </View>
+            <View style={styles.toolText}>
+              <Text style={styles.toolTitle}>Memory Game</Text>
+              <Text style={styles.toolDesc}>Test your location knowledge</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+          </TouchableOpacity>
+
         </View>
       </ScrollView>
       

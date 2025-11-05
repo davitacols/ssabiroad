@@ -5,6 +5,7 @@ export const API_CONFIG = {
     AI_CHAT: '/api/ai-chat',
     LOCATION_RECOGNITION: '/api/location-recognition-v2',
     GOOGLE_PLACES: '/api/google-places',
+    NEARBY_LANDMARKS: '/api/landmarks/nearby',
   },
 };
 
