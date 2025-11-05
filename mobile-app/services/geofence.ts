@@ -2,9 +2,19 @@ import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 import * as SecureStore from 'expo-secure-store';
+import * as Application from 'expo-application';
 
 const LOCATION_TASK = 'background-location-task';
 const API_URL = 'https://ssabiroad.vercel.app/api/geofence';
+
+const getUserId = async () => {
+  let userId = await SecureStore.getItemAsync('deviceUserId');
+  if (!userId) {
+    userId = Application.androidId || `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    await SecureStore.setItemAsync('deviceUserId', userId);
+  }
+  return userId;
+};
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -24,9 +34,8 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
 
   if (data.locations) {
     const location = data.locations[0];
-    // Check geofences when location updates
     try {
-      const userId = await SecureStore.getItemAsync('userId') || 'anonymous';
+      const userId = await getUserId();
       const response = await fetch(
         `${API_URL}?latitude=${location.coords.latitude}&longitude=${location.coords.longitude}&userId=${userId}`
       );
@@ -36,8 +45,10 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
         for (const alert of result.alerts) {
           await Notifications.scheduleNotificationAsync({
             content: {
-              title: alert.type === 'enter' ? '📍 Entered Location' : '🚶 Left Location',
+              title: alert.type === 'enter' ? '🎯 Arrived' : '👋 Departed',
               body: alert.message,
+              sound: true,
+              badge: 1,
             },
             trigger: null,
           });
@@ -60,7 +71,7 @@ export const GeofenceService = {
 
   async createGeofence(name: string, latitude: number, longitude: number, radius: number) {
     try {
-      const userId = await SecureStore.getItemAsync('userId') || 'anonymous';
+      const userId = await getUserId();
       
       const response = await fetch(API_URL, {
         method: 'POST',
@@ -92,7 +103,7 @@ export const GeofenceService = {
 
   async checkLocation(latitude: number, longitude: number) {
     try {
-      const userId = await SecureStore.getItemAsync('userId') || 'anonymous';
+      const userId = await getUserId();
       
       const response = await fetch(
         `${API_URL}?latitude=${latitude}&longitude=${longitude}&userId=${userId}`
@@ -100,13 +111,14 @@ export const GeofenceService = {
 
       const data = await response.json();
       
-      // Show notifications for alerts
       if (data.alerts && data.alerts.length > 0) {
         for (const alert of data.alerts) {
           await Notifications.scheduleNotificationAsync({
             content: {
-              title: alert.type === 'enter' ? '📍 Entered Location' : '🚶 Left Location',
+              title: alert.type === 'enter' ? '🎯 Arrived' : '👋 Departed',
               body: alert.message,
+              sound: true,
+              badge: 1,
             },
             trigger: null,
           });

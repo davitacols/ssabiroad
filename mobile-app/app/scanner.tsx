@@ -51,6 +51,42 @@ export default function ScannerScreen() {
     }
   };
 
+  const saveToHistory = async (data: any, imageUri: string) => {
+    try {
+      const history = await AsyncStorage.getItem('locationHistory');
+      const parsed = history ? JSON.parse(history) : [];
+      
+      const newEntry = {
+        id: Date.now().toString(),
+        name: data.name || 'Unknown Location',
+        address: data.address || '',
+        image: imageUri,
+        timestamp: Date.now(),
+        viewed: false,
+        location: data.location,
+      };
+      
+      const updated = [newEntry, ...parsed].slice(0, 50);
+      await AsyncStorage.setItem('locationHistory', JSON.stringify(updated));
+      
+      // Upload to server for social stories
+      const userId = await SecureStore.getItemAsync('deviceUserId') || `device_${Date.now()}`;
+      await fetch('https://ssabiroad.vercel.app/api/stories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          location: data.name || 'Unknown Location',
+          address: data.address || '',
+          image: imageUri,
+          isPublic: true,
+        }),
+      }).catch(err => console.log('Upload story error:', err));
+    } catch (error) {
+      console.error('Save history error:', error);
+    }
+  };
+
   const addActivity = async (title: string, subtitle: string, route: string) => {
     try {
       const stored = await AsyncStorage.getItem('recentActivities');
@@ -300,6 +336,9 @@ export default function ScannerScreen() {
         const locationName = data.name || data.address || 'Unknown location';
         await addActivity('Location Analyzed', `Found: ${locationName}`, '/scanner');
         
+        // Save to location history for stories
+        await saveToHistory(data, uri);
+        
         // Fetch weather and place details if location found
         fetchWeather(data.location.latitude, data.location.longitude);
         if (data.name) {
@@ -384,6 +423,9 @@ export default function ScannerScreen() {
       if (data && data.location) {
         const locationName = data.name || data.address || 'Unknown location';
         await addActivity('Location Analyzed', `Found: ${locationName}`, '/scanner');
+        
+        // Save to location history for stories
+        await saveToHistory(data, uri);
         
         fetchWeather(data.location.latitude, data.location.longitude);
         if (data.name) {

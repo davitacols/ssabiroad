@@ -88,7 +88,12 @@ export default function HomeScreen() {
       
       {/* Black Header */}
       <View style={styles.header}>
-        <Text style={styles.greeting}>{getGreeting()}</Text>
+        <View style={styles.headerContent}>
+          <Text style={styles.greeting}>{getGreeting()}</Text>
+          <TouchableOpacity style={styles.storiesBtn} onPress={() => router.push('/stories')}>
+            <Ionicons name="time-outline" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -184,6 +189,19 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 24,
     paddingHorizontal: 24,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  storiesBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   greeting: {
     fontSize: 32,

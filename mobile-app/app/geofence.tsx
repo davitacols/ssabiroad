@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Switch } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Switch, Animated, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { GeofenceService } from '../services/geofence';
 
@@ -10,76 +11,67 @@ export default function GeofenceScreen() {
   const [currentLocation, setCurrentLocation] = useState<any>(null);
   const [geofences, setGeofences] = useState<any[]>([]);
   const [monitoring, setMonitoring] = useState(false);
-  const [notifyOnEnter, setNotifyOnEnter] = useState(true);
-  const [notifyOnExit, setNotifyOnExit] = useState(true);
   const [selectedRadius, setSelectedRadius] = useState('500');
-
-  const radiusOptions = ['100', '250', '500', '1000', '2000'];
+  const [showCreate, setShowCreate] = useState(false);
+  const slideAnim = useState(new Animated.Value(500))[0];
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const scaleAnims = useRef<Animated.Value[]>([]).current;
 
   useEffect(() => {
     getCurrentLocation();
     loadGeofences();
+    checkMonitoring();
+    Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
   }, []);
+
+  useEffect(() => {
+    geofences.forEach((_, i) => {
+      if (!scaleAnims[i]) scaleAnims[i] = new Animated.Value(0);
+      Animated.spring(scaleAnims[i], { toValue: 1, tension: 50, friction: 7, useNativeDriver: true, delay: i * 100 }).start();
+    });
+  }, [geofences]);
 
   const getCurrentLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Location access is needed for geofencing functionality');
-        return;
-      }
-
+      if (status !== 'granted') return;
       const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       setCurrentLocation(location.coords);
     } catch (error) {
-      console.error('Location error:', error);
-      Alert.alert('Location Error', 'Unable to get current location');
+      console.error(error);
     }
   };
 
+  const checkMonitoring = async () => {
+    const isActive = await GeofenceService.isMonitoring();
+    setMonitoring(isActive);
+  };
+
   const createGeofence = async () => {
-    if (!name.trim()) {
-      Alert.alert('Validation Error', 'Please enter a location name');
+    if (!name.trim() || !currentLocation) {
+      Alert.alert('Error', 'Enter a name');
       return;
     }
-
-    if (!currentLocation) {
-      Alert.alert('Location Error', 'Current location not available');
-      return;
-    }
-
     try {
-      const result = await GeofenceService.createGeofence(
-        name.trim(),
-        currentLocation.latitude,
-        currentLocation.longitude,
-        parseFloat(selectedRadius)
-      );
-
+      const result = await GeofenceService.createGeofence(name.trim(), currentLocation.latitude, currentLocation.longitude, parseFloat(selectedRadius));
       if (result.success) {
-        Alert.alert('Success', `Geofence "${name}" created successfully`);
         setName('');
-        loadGeofences();
+        toggleCreate();
+        setTimeout(() => loadGeofences(), 300);
+        Alert.alert('✓ Success', 'Geofence created');
       }
     } catch (error: any) {
-      Alert.alert('Creation Failed', error.message || 'Unable to create geofence');
+      Alert.alert('Error', error.message);
     }
   };
 
   const loadGeofences = async () => {
     if (!currentLocation) return;
-
     try {
-      const result = await GeofenceService.checkLocation(
-        currentLocation.latitude,
-        currentLocation.longitude
-      );
-
-      if (result.success) {
-        setGeofences(result.geofences || []);
-      }
+      const result = await GeofenceService.checkLocation(currentLocation.latitude, currentLocation.longitude);
+      if (result.success) setGeofences(result.geofences || []);
     } catch (error) {
-      console.error('Load error:', error);
+      console.error(error);
     }
   };
 
@@ -89,345 +81,155 @@ export default function GeofenceScreen() {
         await GeofenceService.stopMonitoring();
         setMonitoring(false);
       } else {
-        const { status } = await Location.requestBackgroundPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert(
-            'Permission Required',
-            'Background location access is needed for geofencing to work when the app is closed.'
-          );
+        const hasPermission = await GeofenceService.requestPermissions();
+        if (!hasPermission) {
+          Alert.alert('Permission Required', 'Enable background location');
           return;
         }
         await GeofenceService.startMonitoring();
         setMonitoring(true);
       }
     } catch (error: any) {
-      console.error('Create geofence error:', error);
-      Alert.alert('Monitoring Error', 'Failed to start monitoring. Please check location permissions.');
+      Alert.alert('Error', error.message);
     }
   };
 
   const deleteGeofence = async (id: string, name: string) => {
-    Alert.alert(
-      'Delete Geofence',
-      `Are you sure you want to delete "${name}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await GeofenceService.deleteGeofence(id);
-              loadGeofences();
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete geofence');
-            }
-          }
-        }
-      ]
-    );
+    Alert.alert('Delete', `Remove "${name}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => { await GeofenceService.deleteGeofence(id); loadGeofences(); } }
+    ]);
+  };
+
+  const toggleCreate = () => {
+    const toValue = showCreate ? 500 : 0;
+    setShowCreate(!showCreate);
+    Animated.spring(slideAnim, { toValue, useNativeDriver: true, tension: 50, friction: 8 }).start();
   };
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>Back</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.title}>Location Geofencing</Text>
-        <Text style={styles.subtitle}>Advanced proximity monitoring and alerts</Text>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Geofences</Text>
+          <Text style={styles.headerSub}>{geofences.length} active</Text>
+        </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Create New Geofence</Text>
-          <Text style={styles.sectionDesc}>Set up location-based alerts for important places</Text>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Location Name</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g., Home, Office, School"
-              value={name}
-              onChangeText={setName}
-              placeholderTextColor="#94a3b8"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Detection Radius</Text>
-            <View style={styles.radiusSelector}>
-              {radiusOptions.map((option) => (
-                <TouchableOpacity
-                  key={option}
-                  style={[
-                    styles.radiusOption,
-                    selectedRadius === option && styles.radiusOptionSelected
-                  ]}
-                  onPress={() => setSelectedRadius(option)}
-                >
-                  <Text style={[
-                    styles.radiusText,
-                    selectedRadius === option && styles.radiusTextSelected
-                  ]}>
-                    {option}m
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.settingsGroup}>
-            <View style={styles.settingRow}>
-              <Text style={styles.settingLabel}>Notify on Entry</Text>
-              <Switch
-                value={notifyOnEnter}
-                onValueChange={setNotifyOnEnter}
-                trackColor={{ false: '#e2e8f0', true: '#3b82f6' }}
-                thumbColor={notifyOnEnter ? '#ffffff' : '#f1f5f9'}
-              />
-            </View>
-            <View style={styles.settingRow}>
-              <Text style={styles.settingLabel}>Notify on Exit</Text>
-              <Switch
-                value={notifyOnExit}
-                onValueChange={setNotifyOnExit}
-                trackColor={{ false: '#e2e8f0', true: '#3b82f6' }}
-                thumbColor={notifyOnExit ? '#ffffff' : '#f1f5f9'}
-              />
-            </View>
-          </View>
-
-          {currentLocation && (
-            <View style={styles.locationInfo}>
-              <Text style={styles.locationLabel}>Current Position</Text>
-              <Text style={styles.coordinates}>
-                {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}
-              </Text>
-              <Text style={styles.accuracy}>
-                Accuracy: ±{currentLocation.accuracy?.toFixed(0) || 'Unknown'}m
-              </Text>
-            </View>
-          )}
-
-          <TouchableOpacity 
-            style={[styles.createButton, !name.trim() && styles.createButtonDisabled]} 
-            onPress={createGeofence}
-            disabled={!name.trim()}
-          >
-            <Text style={styles.createButtonText}>Create Geofence</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.monitoringHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>Background Monitoring</Text>
-              <Text style={styles.sectionDesc}>
-                {monitoring ? 'Active - Checking location in background' : 'Inactive - Enable to receive alerts'}
-              </Text>
-            </View>
-            <Switch
-              value={monitoring}
-              onValueChange={toggleMonitoring}
-              trackColor={{ false: '#e2e8f0', true: '#10b981' }}
-              thumbColor={monitoring ? '#ffffff' : '#f1f5f9'}
-              style={styles.monitoringSwitch}
-            />
+      <View style={styles.statusCard}>
+        <View style={styles.statusLeft}>
+          <View style={[styles.dot, monitoring && styles.dotActive]} />
+          <View>
+            <Text style={styles.statusTitle}>Monitoring</Text>
+            <Text style={styles.statusText}>{monitoring ? 'Active' : 'Off'}</Text>
           </View>
         </View>
+        <Switch value={monitoring} onValueChange={toggleMonitoring} trackColor={{ false: '#e5e7eb', true: '#10b981' }} thumbColor="#fff" />
+      </View>
 
-        {geofences.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Active Geofences</Text>
-            <Text style={styles.sectionDesc}>{geofences.length} location{geofences.length !== 1 ? 's' : ''} being monitored</Text>
-            
-            <View style={styles.geofenceList}>
-              {geofences.map((fence, idx) => (
-                <View key={idx} style={styles.geofenceCard}>
-                  <View style={styles.geofenceHeader}>
-                    <Text style={styles.geofenceName}>{fence.name}</Text>
-                    <View style={[
-                      styles.statusIndicator,
-                      fence.status === 'inside' ? styles.statusInside : styles.statusOutside
-                    ]}>
-                      <Text style={styles.statusText}>{fence.status}</Text>
-                    </View>
-                  </View>
-                  
-                  <View style={styles.geofenceDetails}>
-                    <Text style={styles.distanceText}>Distance: {fence.distance}km</Text>
-                    <TouchableOpacity 
-                      style={styles.deleteButton}
-                      onPress={() => deleteGeofence(fence.id, fence.name)}
-                    >
-                      <Text style={styles.deleteButtonText}>Remove</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
+      <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+        {geofences.map((f, i) => {
+          if (!scaleAnims[i]) scaleAnims[i] = new Animated.Value(0);
+          return (
+            <Animated.View key={i} style={[styles.card, { opacity: fadeAnim, transform: [{ scale: scaleAnims[i] }] }]}>
+              <Animated.View style={[styles.icon, f.status === 'inside' && styles.iconActive]}>
+                <Ionicons name="location" size={22} color={f.status === 'inside' ? '#10b981' : '#6b7280'} />
+              </Animated.View>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardName}>{f.name}</Text>
+                <Text style={styles.cardDist}>{f.distance}km away</Text>
+              </View>
+              <View style={[styles.badge, f.status === 'inside' ? styles.badgeIn : styles.badgeOut]}>
+                <Text style={styles.badgeText}>{f.status === 'inside' ? 'IN' : 'OUT'}</Text>
+              </View>
+              <TouchableOpacity onPress={() => deleteGeofence(f.id, f.name)} style={styles.del}>
+                <Ionicons name="trash-outline" size={18} color="#ef4444" />
+              </TouchableOpacity>
+            </Animated.View>
+          );
+        })}
         {geofences.length === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>No Geofences Created</Text>
-            <Text style={styles.emptyDesc}>
-              Create your first geofence to start receiving location-based notifications
-            </Text>
-          </View>
+          <Animated.View style={[styles.empty, { opacity: fadeAnim }]}>
+            <Ionicons name="location-outline" size={64} color="#d1d5db" />
+            <Text style={styles.emptyTitle}>No geofences</Text>
+            <Text style={styles.emptyText}>Tap + to create one</Text>
+          </Animated.View>
         )}
       </ScrollView>
+
+      {showCreate && (
+        <Animated.View style={[styles.panel, { transform: [{ translateY: slideAnim }] }]}>
+          <View style={styles.handle} />
+          <Text style={styles.panelTitle}>New Geofence</Text>
+          <TextInput style={styles.input} placeholder="Location name" value={name} onChangeText={setName} placeholderTextColor="#9ca3af" />
+          <Text style={styles.label}>Radius</Text>
+          <View style={styles.radiusRow}>
+            {['100', '500', '1000'].map(r => (
+              <TouchableOpacity key={r} style={[styles.radiusBtn, selectedRadius === r && styles.radiusBtnActive]} onPress={() => setSelectedRadius(r)}>
+                <Text style={[styles.radiusText, selectedRadius === r && styles.radiusTextActive]}>{r}m</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TouchableOpacity style={styles.createBtn} onPress={createGeofence}>
+            <Text style={styles.createText}>Create</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
+      <Animated.View style={[styles.fab, { transform: [{ rotate: showCreate ? '45deg' : '0deg' }] }]}>
+        <TouchableOpacity style={styles.fabBtn} onPress={toggleCreate}>
+          <Ionicons name="add" size={28} color="#fff" />
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { 
-    backgroundColor: '#ffffff', 
-    paddingTop: 60, 
-    paddingHorizontal: 24, 
-    paddingBottom: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0'
-  },
-  backButton: { marginBottom: 16 },
-  backText: { fontSize: 16, color: '#3b82f6', fontFamily: 'LeagueSpartan_600SemiBold' },
-  title: { fontSize: 28, fontWeight: '800', color: '#0f172a', marginBottom: 4 },
-  subtitle: { fontSize: 15, color: '#64748b', fontFamily: 'LeagueSpartan_600SemiBold' },
-  content: { flex: 1, padding: 24 },
-  section: { 
-    backgroundColor: '#ffffff', 
-    borderRadius: 20, 
-    padding: 24, 
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4
-  },
-  sectionTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', color: '#0f172a', marginBottom: 4 },
-  sectionDesc: { fontSize: 14, color: '#64748b', marginBottom: 20, lineHeight: 20 },
-  inputGroup: { marginBottom: 20 },
-  label: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#374151', marginBottom: 8 },
-  input: { 
-    backgroundColor: '#f8fafc', 
-    borderWidth: 2,
-    borderColor: '#e2e8f0',
-    padding: 16, 
-    borderRadius: 12, 
-    fontSize: 16,
-    color: '#0f172a'
-  },
-  radiusSelector: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  radiusOption: {
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'transparent'
-  },
-  radiusOptionSelected: {
-    backgroundColor: '#dbeafe',
-    borderColor: '#3b82f6'
-  },
-  radiusText: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', color: '#64748b' },
-  radiusTextSelected: { color: '#3b82f6' },
-  settingsGroup: { marginBottom: 20 },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12
-  },
-  settingLabel: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#374151' },
-  locationInfo: {
-    backgroundColor: '#f8fafc',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#e2e8f0'
-  },
-  locationLabel: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold', color: '#64748b', marginBottom: 4 },
-  coordinates: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#0f172a', fontFamily: 'monospace' },
-  accuracy: { fontSize: 12, color: '#64748b', marginTop: 4 },
-  createButton: {
-    backgroundColor: '#3b82f6',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#3b82f6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4
-  },
-  createButtonDisabled: {
-    backgroundColor: '#94a3b8',
-    shadowOpacity: 0
-  },
-  createButtonText: { color: '#ffffff', fontSize: 16, fontFamily: 'LeagueSpartan_700Bold' },
-  monitoringHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start'
-  },
-  monitoringSwitch: { transform: [{ scaleX: 1.2 }, { scaleY: 1.2 }] },
-  geofenceList: { gap: 12 },
-  geofenceCard: {
-    backgroundColor: '#f8fafc',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0'
-  },
-  geofenceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8
-  },
-  geofenceName: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold', color: '#0f172a', flex: 1 },
-  statusIndicator: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12
-  },
-  statusInside: { backgroundColor: '#dcfce7' },
-  statusOutside: { backgroundColor: '#fef3c7' },
-  statusText: { fontSize: 12, fontFamily: 'LeagueSpartan_700Bold', color: '#0f172a' },
-  geofenceDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  distanceText: { fontSize: 14, color: '#64748b', fontFamily: 'LeagueSpartan_600SemiBold' },
-  deleteButton: {
-    backgroundColor: '#fee2e2',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8
-  },
-  deleteButtonText: { fontSize: 12, fontFamily: 'LeagueSpartan_600SemiBold', color: '#dc2626' },
-  emptyState: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 40,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#e2e8f0',
-    borderStyle: 'dashed'
-  },
-  emptyTitle: { fontSize: 18, fontFamily: 'LeagueSpartan_600SemiBold', color: '#64748b', marginBottom: 8 },
-  emptyDesc: {
-    fontSize: 14,
-    color: '#94a3b8',
-    textAlign: 'center',
-    lineHeight: 20
-  }
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  header: { backgroundColor: '#000', paddingTop: 50, paddingBottom: 20, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 16 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+  headerContent: { flex: 1 },
+  headerTitle: { fontSize: 28, fontWeight: '700', color: '#fff' },
+  headerSub: { fontSize: 14, color: '#9ca3af', marginTop: 2 },
+  statusCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', marginHorizontal: 16, marginTop: 16, padding: 16, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  statusLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#e5e7eb' },
+  dotActive: { backgroundColor: '#10b981' },
+  statusTitle: { fontSize: 16, fontWeight: '600', color: '#111827' },
+  statusText: { fontSize: 13, color: '#6b7280', marginTop: 2 },
+  list: { flex: 1, paddingHorizontal: 16, paddingTop: 16 },
+  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 16, borderRadius: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  icon: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  iconActive: { backgroundColor: '#d1fae5' },
+  cardContent: { flex: 1 },
+  cardName: { fontSize: 16, fontWeight: '600', color: '#111827' },
+  cardDist: { fontSize: 13, color: '#6b7280', marginTop: 2 },
+  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginRight: 8 },
+  badgeIn: { backgroundColor: '#d1fae5' },
+  badgeOut: { backgroundColor: '#fef3c7' },
+  badgeText: { fontSize: 11, fontWeight: '700', color: '#111827' },
+  del: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#fef2f2', alignItems: 'center', justifyContent: 'center' },
+  empty: { alignItems: 'center', paddingVertical: 64 },
+  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#6b7280', marginTop: 16 },
+  emptyText: { fontSize: 14, color: '#9ca3af', marginTop: 8 },
+  panel: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 8 },
+  handle: { width: 40, height: 4, backgroundColor: '#e5e7eb', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
+  panelTitle: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 20 },
+  input: { backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', padding: 16, borderRadius: 12, fontSize: 16, color: '#111827', marginBottom: 20 },
+  label: { fontSize: 14, fontWeight: '600', color: '#6b7280', marginBottom: 12 },
+  radiusRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
+  radiusBtn: { flex: 1, backgroundColor: '#f9fafb', padding: 12, borderRadius: 12, alignItems: 'center', borderWidth: 2, borderColor: '#e5e7eb' },
+  radiusBtnActive: { backgroundColor: '#000', borderColor: '#000' },
+  radiusText: { fontSize: 13, fontWeight: '600', color: '#6b7280' },
+  radiusTextActive: { color: '#fff' },
+  createBtn: { backgroundColor: '#000', padding: 16, borderRadius: 12, alignItems: 'center' },
+  createText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  fab: { position: 'absolute', bottom: 32, right: 20, width: 60, height: 60, borderRadius: 30, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 8 },
+  fabBtn: { width: '100%', height: '100%', borderRadius: 30, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' },
 });
