@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
 
     const geofence = await prisma.geofence.create({
       data: {
+        id: `gf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         name: name || 'Unnamed Location',
         latitude: parseFloat(latitude),
         longitude: parseFloat(longitude),

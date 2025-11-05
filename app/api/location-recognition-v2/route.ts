@@ -1320,8 +1320,8 @@ class LocationRecognizer {
       console.log('Initializing Anthropic client with key length:', apiKey.length);
       const anthropic = new Anthropic({ 
         apiKey: apiKey.trim(),
-        maxRetries: 0,
-        timeout: 90000
+        maxRetries: 1,
+        timeout: 180000
       });
       
       if (!anthropic) {
@@ -1386,7 +1386,7 @@ Return JSON with the most specific location information you can identify:
       });
       
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Claude timeout')), 90000)
+        setTimeout(() => reject(new Error('Claude timeout')), 180000)
       );
       
       console.log('Making Claude API request...');
@@ -4567,7 +4567,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       // Add overall timeout for the entire recognition process
       const recognitionPromise = this.performRecognition(buffer, providedLocation, analyzeLandmarks, regionHint, searchPriority, userId);
       const timeoutPromise = new Promise<LocationResult>((_, reject) => {
-        setTimeout(() => reject(new Error('Recognition timeout')), 90000); // 90 second timeout
+        setTimeout(() => reject(new Error('Recognition timeout')), 240000); // 4 minute timeout
       });
       
       return await Promise.race([recognitionPromise, timeoutPromise]);
@@ -4628,7 +4628,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const claudeResult = await Promise.race([
         this.analyzeWithClaude({}, buffer),
         new Promise<LocationResult | null>((_, reject) => 
-          setTimeout(() => reject(new Error('Claude analysis timeout')), 120000)
+          setTimeout(() => reject(new Error('Claude analysis timeout')), 180000)
         )
       ]);
       
@@ -4703,7 +4703,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const aiResult = await Promise.race([
         this.analyzeImageWithAI(buffer, extractedAreaContext),
         new Promise<LocationResult | null>((_, reject) => 
-          setTimeout(() => reject(new Error('AI analysis timeout')), 60000)
+          setTimeout(() => reject(new Error('AI analysis timeout')), 120000)
         )
       ]);
       
@@ -4779,7 +4779,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
 }
 
 export const runtime = 'nodejs';
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -4823,7 +4823,7 @@ export async function POST(request: NextRequest) {
     // Add timeout to the entire request
     const requestPromise = handleRequest(request);
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout')), 120000); // 120 second timeout
+      setTimeout(() => reject(new Error('Request timeout')), 280000); // 280 second timeout
     });
     
     const result = await Promise.race([requestPromise, timeoutPromise]);

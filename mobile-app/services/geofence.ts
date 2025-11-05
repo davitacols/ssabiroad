@@ -3,7 +3,7 @@ import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 import * as SecureStore from 'expo-secure-store';
 
-const GEOFENCE_TASK = 'background-geofence-task';
+const LOCATION_TASK = 'background-location-task';
 const API_URL = 'https://ssabiroad.vercel.app/api/geofence';
 
 // Configure notifications
@@ -15,29 +15,37 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Background task for geofence monitoring
-TaskManager.defineTask(GEOFENCE_TASK, async ({ data, error }: any) => {
+// Background task for location monitoring
+TaskManager.defineTask(LOCATION_TASK, async ({ data, error }: any) => {
   if (error) {
-    console.error('Geofence task error:', error);
+    console.error('Location task error:', error);
     return;
   }
 
-  if (data.eventType === Location.GeofencingEventType.Enter) {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Location Alert',
-        body: `You entered ${data.region.identifier}`,
-      },
-      trigger: null,
-    });
-  } else if (data.eventType === Location.GeofencingEventType.Exit) {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Location Alert',
-        body: `You left ${data.region.identifier}`,
-      },
-      trigger: null,
-    });
+  if (data.locations) {
+    const location = data.locations[0];
+    // Check geofences when location updates
+    try {
+      const userId = await SecureStore.getItemAsync('userId') || 'anonymous';
+      const response = await fetch(
+        `${API_URL}?latitude=${location.coords.latitude}&longitude=${location.coords.longitude}&userId=${userId}`
+      );
+      const result = await response.json();
+      
+      if (result.alerts && result.alerts.length > 0) {
+        for (const alert of result.alerts) {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: alert.type === 'enter' ? '📍 Entered Location' : '🚶 Left Location',
+              body: alert.message,
+            },
+            trigger: null,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Background location check error:', err);
+    }
   }
 });
 
@@ -115,7 +123,6 @@ export const GeofenceService = {
   async deleteGeofence(id: string) {
     try {
       await fetch(`${API_URL}?id=${id}`, { method: 'DELETE' });
-      await Location.stopGeofencingAsync(GEOFENCE_TASK);
     } catch (error) {
       console.error('Delete geofence error:', error);
       throw error;
@@ -128,15 +135,30 @@ export const GeofenceService = {
       throw new Error('Background location permission required');
     }
 
-    // Start location updates
-    await Location.startLocationUpdatesAsync(GEOFENCE_TASK, {
+    const isRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK);
+    if (isRegistered) {
+      await Location.stopLocationUpdatesAsync(LOCATION_TASK);
+    }
+
+    await Location.startLocationUpdatesAsync(LOCATION_TASK, {
       accuracy: Location.Accuracy.Balanced,
       timeInterval: 60000,
       distanceInterval: 100,
+      foregroundService: {
+        notificationTitle: 'Location Monitoring',
+        notificationBody: 'Tracking your location for geofence alerts',
+      },
     });
   },
 
   async stopMonitoring() {
-    await Location.stopLocationUpdatesAsync(GEOFENCE_TASK);
+    const isRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK);
+    if (isRegistered) {
+      await Location.stopLocationUpdatesAsync(LOCATION_TASK);
+    }
+  },
+
+  async isMonitoring() {
+    return await TaskManager.isTaskRegisteredAsync(LOCATION_TASK);
   },
 };
