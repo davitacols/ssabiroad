@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
         notifyOnEnter: notifyOnEnter !== false,
         notifyOnExit: notifyOnExit !== false,
         active: true,
+        updatedAt: new Date(),
       },
     });
 
