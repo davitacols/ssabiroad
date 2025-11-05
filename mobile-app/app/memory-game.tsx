@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, StatusBar, Animated, Dimensions, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, StatusBar, Animated, Dimensions, ScrollView, ActivityIndicator, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
@@ -44,6 +44,7 @@ export default function LandmarkGameScreen() {
   const [nearbyLandmarks, setNearbyLandmarks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [locationName, setLocationName] = useState('');
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
   const fadeAnim = useState(new Animated.Value(0))[0];
 
   useEffect(() => {
@@ -89,6 +90,7 @@ export default function LandmarkGameScreen() {
 
       const location = await Location.getCurrentPositionAsync({});
       const { latitude, longitude } = location.coords;
+      setUserLocation({ lat: latitude, lng: longitude });
 
       const reverseGeo = await Location.reverseGeocodeAsync({ latitude, longitude });
       if (reverseGeo[0]) {
@@ -110,6 +112,7 @@ export default function LandmarkGameScreen() {
         const landmarks = data.landmarks.map((place: any) => ({
           name: place.name,
           country: reverseGeo[0]?.country || 'Local',
+          vicinity: place.vicinity,
           image: place.photoReference
             ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${place.photoReference}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho`
             : 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800',
@@ -127,19 +130,26 @@ export default function LandmarkGameScreen() {
   };
 
   const startGame = () => {
+    if (nearbyLandmarks.length === 0 && LANDMARKS.length === 0) return;
     setScore(0);
     setQuestionNum(0);
     setUsedLandmarks([]);
     setGameStarted(true);
-    nextQuestion();
+    setTimeout(() => nextQuestion(), 100);
   };
 
   const nextQuestion = () => {
     fadeAnim.setValue(0);
     setShowFact(false);
     
-    const landmarksToUse = nearbyLandmarks.length > 0 ? nearbyLandmarks : LANDMARKS;
+    const landmarksToUse = nearbyLandmarks.length >= 10 ? nearbyLandmarks : LANDMARKS;
     const availableLandmarks = landmarksToUse.filter(l => !usedLandmarks.includes(l.name));
+    
+    if (availableLandmarks.length === 0) {
+      endGame(score);
+      return;
+    }
+    
     const randomLandmark = availableLandmarks[Math.floor(Math.random() * availableLandmarks.length)];
     
     const wrongOptions = landmarksToUse
@@ -164,25 +174,34 @@ export default function LandmarkGameScreen() {
     setSelectedAnswer(answer);
     
     const correct = answer === currentQuestion.name;
+    const newScore = correct ? score + 10 : score;
     
     if (correct) {
-      setScore(score + 10);
+      setScore(newScore);
       setShowFact(true);
     }
     
     setTimeout(() => {
-      if (questionNum < 19) {
+      if (questionNum < 9) {
         setQuestionNum(questionNum + 1);
         nextQuestion();
       } else {
-        endGame();
+        endGame(newScore);
       }
-    }, 1500);
+    }, correct ? 2500 : 1500);
   };
 
-  const endGame = () => {
+  const endGame = (finalScore: number) => {
     setGameStarted(false);
-    saveHighScore(score);
+    setScore(finalScore);
+    setQuestionNum(10);
+    saveHighScore(finalScore);
+  };
+
+  const openInMaps = (landmarkName: string, vicinity: string) => {
+    const query = encodeURIComponent(`${landmarkName} ${vicinity}`);
+    const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
+    Linking.openURL(url);
   };
 
   if (!gameStarted) {
@@ -211,8 +230,8 @@ export default function LandmarkGameScreen() {
           
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
-              <Text style={styles.statNum}>10</Text>
-              <Text style={styles.statLabel}>Questions</Text>
+              <Text style={styles.statNum}>{nearbyLandmarks.length > 0 ? nearbyLandmarks.length : 20}</Text>
+              <Text style={styles.statLabel}>Landmarks</Text>
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statNum}>{highScore}</Text>
@@ -220,15 +239,42 @@ export default function LandmarkGameScreen() {
             </View>
           </View>
 
-          {score > 0 && (
-            <View style={styles.resultCard}>
-              <Text style={styles.resultTitle}>Last Game</Text>
-              <Text style={styles.resultScore}>{score}/100</Text>
-              <Text style={styles.resultText}>{score === 100 ? 'Perfect! 🎉' : score >= 70 ? 'Great job! 👏' : 'Keep trying! 💪'}</Text>
-            </View>
+          {score > 0 && questionNum === 10 && (
+            <>
+              <View style={styles.resultCard}>
+                <Text style={styles.resultTitle}>Last Game</Text>
+                <Text style={styles.resultScore}>{score}/100</Text>
+                <Text style={styles.resultText}>{score === 100 ? 'Perfect! 🎉' : score >= 70 ? 'Great job! 👏' : 'Keep trying! 💪'}</Text>
+              </View>
+              
+              {nearbyLandmarks.length > 0 && (
+                <View style={styles.landmarksSection}>
+                  <Text style={styles.landmarksTitle}>Nearby Landmarks to Visit</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.landmarksScroll}>
+                    {nearbyLandmarks.slice(0, 10).map((landmark, idx) => (
+                      <TouchableOpacity 
+                        key={idx} 
+                        style={styles.landmarkCard}
+                        onPress={() => openInMaps(landmark.name, landmark.vicinity || '')}
+                      >
+                        <Image source={{ uri: landmark.image }} style={styles.landmarkCardImage} />
+                        <View style={styles.landmarkCardInfo}>
+                          <Text style={styles.landmarkCardName} numberOfLines={2}>{landmark.name}</Text>
+                          <Text style={styles.landmarkCardVicinity} numberOfLines={1}>{landmark.vicinity || landmark.country}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+            </>
           )}
 
-          <TouchableOpacity style={styles.playBtn} onPress={startGame}>
+          <TouchableOpacity 
+            style={[styles.playBtn, (nearbyLandmarks.length === 0 && LANDMARKS.length === 0) && styles.playBtnDisabled]} 
+            onPress={startGame}
+            disabled={nearbyLandmarks.length === 0 && LANDMARKS.length === 0}
+          >
             <Text style={styles.playBtnText}>Start Quiz</Text>
           </TouchableOpacity>
           </View>
@@ -329,6 +375,7 @@ const styles = StyleSheet.create({
   resultScore: { fontSize: 42, fontWeight: '600', color: '#fff', marginBottom: 8 },
   resultText: { fontSize: 15, color: '#d1d5db', fontWeight: '500' },
   playBtn: { backgroundColor: '#000', borderRadius: 12, paddingVertical: 20, paddingHorizontal: 48, width: '100%' },
+  playBtnDisabled: { backgroundColor: '#d1d5db' },
   playBtnText: { fontSize: 16, fontWeight: '600', color: '#fff', textAlign: 'center', letterSpacing: 0.5 },
   gameHeader: { paddingTop: 50, paddingHorizontal: 20, paddingBottom: 20 },
   progress: { height: 3, backgroundColor: '#e5e7eb', borderRadius: 2, marginBottom: 16, overflow: 'hidden' },
@@ -355,4 +402,12 @@ const styles = StyleSheet.create({
   factTitle: { fontSize: 12, fontWeight: '600', color: '#6b7280', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
   factText: { fontSize: 14, color: '#000', lineHeight: 22, marginBottom: 8 },
   factCountry: { fontSize: 13, fontWeight: '500', color: '#6b7280' },
+  landmarksSection: { width: '100%', marginBottom: 24 },
+  landmarksTitle: { fontSize: 16, fontWeight: '600', color: '#000', marginBottom: 16, paddingHorizontal: 0 },
+  landmarksScroll: { marginHorizontal: -32 },
+  landmarkCard: { width: 160, marginLeft: 12, backgroundColor: '#f9fafb', borderRadius: 12, overflow: 'hidden' },
+  landmarkCardImage: { width: '100%', height: 120, backgroundColor: '#e5e7eb' },
+  landmarkCardInfo: { padding: 12 },
+  landmarkCardName: { fontSize: 14, fontWeight: '600', color: '#000', marginBottom: 4 },
+  landmarkCardVicinity: { fontSize: 12, color: '#6b7280' },
 });
