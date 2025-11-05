@@ -1404,6 +1404,31 @@ Return JSON with the most specific location information you can identify:
       const responseText = response.content[0].text;
       console.log('Claude analysis response:', responseText);
       
+      // Check if Claude identified a landmark without JSON
+      if (!responseText.includes('{') && (responseText.toLowerCase().includes('landmark') || responseText.toLowerCase().includes('colosseum') || responseText.toLowerCase().includes('tower') || responseText.toLowerCase().includes('monument'))) {
+        console.log('Claude identified landmark in text format, extracting...');
+        const landmarkMatch = responseText.match(/(?:shows?|depicts?|captures?)\s+(?:the\s+)?([A-Z][^.,]+(?:Colosseum|Tower|Bridge|Monument|Cathedral|Palace|Temple|Statue)[^.,]*)/i);
+        if (landmarkMatch) {
+          const landmarkName = landmarkMatch[1].trim();
+          const locationMatch = responseText.match(/in\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),?\s+([A-Z][a-z]+)/i);
+          const location = locationMatch ? `${locationMatch[1]}, ${locationMatch[2]}` : '';
+          console.log('Extracted landmark:', landmarkName, 'Location:', location);
+          
+          // Search for the landmark
+          const landmarkLocation = await this.searchBusinessByName(`${landmarkName} ${location}`);
+          if (landmarkLocation) {
+            return {
+              success: true,
+              name: landmarkName,
+              location: landmarkLocation,
+              confidence: 0.95,
+              method: 'claude-landmark-text',
+              description: `Famous landmark: ${landmarkName}`
+            };
+          }
+        }
+      }
+      
       // Check if Claude mentions UK context in the response
       const hasUKContext = responseText.toLowerCase().includes('uk') || 
                           responseText.toLowerCase().includes('british') || 
@@ -2094,20 +2119,14 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
           const landmark = landmarks[0];
           const location = landmark.locations?.[0]?.latLng;
           if (location && landmark.description) {
-            console.log('Found landmark:', landmark.description);
+            console.log('Found landmark:', landmark.description, 'Score:', landmark.score);
             
             const lat = location.latitude || 0;
             const lng = location.longitude || 0;
             
-            // Validate landmark location - reject if clearly wrong region
-            // UK coordinates: roughly 49-61°N, -8-2°E
-            const isUKCoords = lat >= 49 && lat <= 61 && lng >= -8 && lng <= 2;
-            
-            // If landmark is in Indonesia/Asia but image seems UK-related, reject
-            if (!isUKCoords && (lat < 0 || lng > 50)) {
-              console.log(`❌ Rejecting landmark in wrong region: ${landmark.description} (${lat}, ${lng})`);
-              // Continue to text analysis instead
-            } else {
+            // Accept all valid coordinates for landmarks
+            if (lat !== 0 && lng !== 0 && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+              console.log('✅ Valid landmark coordinates:', { lat, lng });
               return {
                 success: true,
                 name: landmark.description,
@@ -2116,6 +2135,8 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
                 method: 'ai-landmark-detection',
                 description: `Landmark: ${landmark.description}`
               };
+            } else {
+              console.log(`❌ Invalid landmark coordinates: ${landmark.description} (${lat}, ${lng})`);
             }
           }
         }

@@ -20,12 +20,12 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true,
+      "config": {
+        "googleMapsApiKey": "AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho"
+      },
       "bundleIdentifier": "com.ssabiroad.pic2nav",
       "infoPlist": {
-        "NSCameraUsageDescription": "This app needs camera access to scan locations",
-        "NSPhotoLibraryUsageDescription": "This app needs photo library access to analyze images",
-        "NSLocationWhenInUseUsageDescription": "This app needs location access to provide accurate location data"
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -60,14 +60,10 @@
         "android.permission.ACCESS_MEDIA_LOCATION",
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_MEDIA_VIDEO",
-        "android.permission.READ_MEDIA_AUDIO"
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.RECORD_AUDIO"
       ],
       "usesCleartextTraffic": false
-    },
-    "ios": {
-      "config": {
-        "googleMapsApiKey": "AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho"
-      }
     },
     "web": {},
     "plugins": [
@@ -121,7 +117,10 @@
             "pathPrefix": "/location"
           }
         ],
-        "category": ["BROWSABLE", "DEFAULT"]
+        "category": [
+          "BROWSABLE",
+          "DEFAULT"
+        ]
       }
     ],
     "extra": {
