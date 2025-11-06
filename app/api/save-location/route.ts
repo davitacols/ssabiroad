@@ -14,7 +14,8 @@ export async function POST(request: NextRequest) {
         latitude: data.location?.latitude || 0,
         longitude: data.location?.longitude || 0,
         description: data.description || null,
-        userId: data.userId || null
+        userId: data.userId || null,
+        updatedAt: new Date()
       }
     });
     
