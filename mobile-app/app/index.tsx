@@ -90,9 +90,6 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.greeting}>{getGreeting()}</Text>
-          <TouchableOpacity style={styles.storiesBtn} onPress={() => router.push('/stories')}>
-            <Ionicons name="time-outline" size={24} color="#fff" />
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -160,6 +157,17 @@ export default function HomeScreen() {
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
           </TouchableOpacity>
 
+          <TouchableOpacity style={styles.toolCard} onPress={() => router.push('/street-view')}>
+            <View style={styles.toolIcon}>
+              <Ionicons name="eye" size={24} color="#000000" />
+            </View>
+            <View style={styles.toolText}>
+              <Text style={styles.toolTitle}>Street View</Text>
+              <Text style={styles.toolDesc}>360° panoramic views</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.toolCard} onPress={handleCollectionsPress}>
             <View style={styles.toolIcon}>
               <Ionicons name="folder" size={24} color="#000000" />
@@ -195,14 +203,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  storiesBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
   greeting: {
     fontSize: 32,
     fontFamily: 'LeagueSpartan_700Bold',

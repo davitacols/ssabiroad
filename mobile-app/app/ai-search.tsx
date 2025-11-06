@@ -151,7 +151,10 @@ export default function AISearchScreen() {
                   <TouchableOpacity
                     key={idx}
                     style={styles.suggestionCard}
-                    onPress={() => setQuery(item.query)}
+                    onPress={() => {
+                      setQuery(item.query);
+                      setTimeout(() => handleSend(), 100);
+                    }}
                   >
                     <View style={styles.suggestionIcon}>
                       <Ionicons name={item.icon as any} size={24} color="#8b5cf6" />

@@ -11,6 +11,7 @@ import { LocationVerifier } from './location-verifier';
 import { FranchiseDetector } from './franchise-detector';
 import { GeofenceOptimizer } from './geofence-optimizer';
 import { ErrorRecovery } from './error-recovery';
+import { OpenCVProcessor } from './opencv-processor';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -2021,6 +2022,12 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         return null;
       }
       
+      // Check image quality first
+      const quality = await OpenCVProcessor.checkQuality(buffer);
+      if (!quality.isGood) {
+        console.log('⚠️ Image quality warning:', quality.reason);
+      }
+      
       // Optimize large images for faster processing
       let processBuffer = buffer;
       if (buffer.length > 1024 * 1024) { // > 1MB
@@ -2048,18 +2055,26 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         ]);
       };
 
+      // Preprocess image with OpenCV for better OCR
+      const enhancedBuffer = await OpenCVProcessor.preprocess(processBuffer, {
+        enhanceText: true,
+        correctPerspective: true,
+        denoise: true
+      });
+      console.log('✅ OpenCV preprocessing complete');
+      
       // OPTIMIZED image analysis - prioritize essential detections with shorter timeouts
       const [landmarkResult, textResult, logoResult, labelResult] = await Promise.allSettled([
-        withTimeout(client.landmarkDetection({ image: { content: processBuffer } }), 45000),
-        withTimeout(client.textDetection({ image: { content: processBuffer } }), 45000),
-        withTimeout(client.logoDetection({ image: { content: processBuffer } }), 45000),
-        withTimeout(client.labelDetection({ image: { content: processBuffer }, maxResults: 10 }), 45000)
+        withTimeout(client.landmarkDetection({ image: { content: enhancedBuffer } }), 45000),
+        withTimeout(client.textDetection({ image: { content: enhancedBuffer } }), 45000),
+        withTimeout(client.logoDetection({ image: { content: enhancedBuffer } }), 45000),
+        withTimeout(client.labelDetection({ image: { content: enhancedBuffer }, maxResults: 10 }), 45000)
       ]);
       
       // Optional secondary analysis with even shorter timeouts
       const [documentResult, objectResult] = await Promise.allSettled([
-        withTimeout(client.documentTextDetection({ image: { content: processBuffer } }), 45000),
-        withTimeout(client.objectLocalization({ image: { content: processBuffer } }), 45000)
+        withTimeout(client.documentTextDetection({ image: { content: enhancedBuffer } }), 45000),
+        withTimeout(client.objectLocalization({ image: { content: enhancedBuffer } }), 45000)
       ]);
       
       // Skip face and web detection to reduce timeout issues

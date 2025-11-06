@@ -171,6 +171,20 @@ export default function CollectionsScreen() {
           </TouchableOpacity>
         </View>
 
+        <TouchableOpacity 
+          style={styles.savedLocationsCard}
+          onPress={() => router.push('/saved-locations' as any)}
+        >
+          <View style={styles.savedLocationsIcon}>
+            <Ionicons name="bookmark" size={24} color="#8b5cf6" />
+          </View>
+          <View style={styles.savedLocationsText}>
+            <Text style={styles.savedLocationsTitle}>Saved Locations</Text>
+            <Text style={styles.savedLocationsSubtitle}>View all your saved locations</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+        </TouchableOpacity>
+
         {filteredCollections.length === 0 ? (
           <Animated.View style={[styles.empty, { opacity: fadeAnim }]}>
             <View style={styles.emptyIconContainer}>
@@ -322,6 +336,11 @@ const styles = StyleSheet.create({
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
   searchInput: { flex: 1, fontSize: 15, fontFamily: 'LeagueSpartan_400Regular', color: '#fff' },
   content: { flex: 1 },
+  savedLocationsCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', marginHorizontal: 20, marginTop: 16, padding: 16, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  savedLocationsIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  savedLocationsText: { flex: 1 },
+  savedLocationsTitle: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold', color: '#000', marginBottom: 2 },
+  savedLocationsSubtitle: { fontSize: 13, fontFamily: 'LeagueSpartan_400Regular', color: '#6b7280' },
   filtersRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, paddingLeft: 20, gap: 12 },
   filtersScroll: { flex: 1 },
   filterChip: { backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8, borderWidth: 1, borderColor: '#e5e7eb' },

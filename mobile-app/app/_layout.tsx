@@ -36,8 +36,8 @@ export default function RootLayout() {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
       <Stack.Screen name="index" />
+      <Stack.Screen name="(tabs)" />
       <Stack.Screen name="scanner" />
       <Stack.Screen name="nearby-poi" />
       <Stack.Screen name="collections" />
@@ -59,6 +59,9 @@ export default function RootLayout() {
       <Stack.Screen name="settings" />
       <Stack.Screen name="tools/exif-editor" />
       <Stack.Screen name="tools/gps-tagger" />
+      <Stack.Screen name="memory-game" />
+      <Stack.Screen name="saved-locations" />
+      <Stack.Screen name="street-view" />
       </Stack>
     </ErrorBoundary>
   );

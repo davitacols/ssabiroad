@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, SafeAreaView, StatusBar, Alert, ActivityIndicator, Switch, Modal, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, SafeAreaView, StatusBar, Alert, ActivityIndicator, Switch, Modal, Linking, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -11,6 +12,7 @@ import { analyzeLocation, batchProcess, shareToSocial } from '../services/api';
 
 export default function BatchProcessScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [photos, setPhotos] = useState<any[]>([]);
   const [processing, setProcessing] = useState(false);
   const [results, setResults] = useState<any[]>([]);
@@ -212,8 +214,27 @@ export default function BatchProcessScreen() {
   };
 
   const saveLocation = async () => {
-    Alert.alert('Save Location', 'Location saved to your collection', [{ text: 'OK' }]);
-    setShowActions(false);
+    try {
+      const stored = await AsyncStorage.getItem('savedLocations');
+      const savedLocations = stored ? JSON.parse(stored) : [];
+      
+      const newLocation = {
+        id: Date.now().toString(),
+        name: selectedResult.data.name,
+        address: selectedResult.data.address,
+        location: selectedResult.data.location,
+        labels: selectedResult.data.labels,
+        savedAt: new Date().toISOString(),
+      };
+      
+      savedLocations.unshift(newLocation);
+      await AsyncStorage.setItem('savedLocations', JSON.stringify(savedLocations));
+      
+      Alert.alert('Saved', 'Location saved successfully', [{ text: 'OK' }]);
+      setShowActions(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save location');
+    }
   };
 
 
@@ -240,7 +261,7 @@ export default function BatchProcessScreen() {
         )}
       </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
         {photos.length === 0 ? (
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
@@ -397,6 +418,15 @@ export default function BatchProcessScreen() {
                             {result.data.location.latitude.toFixed(6)}, {result.data.location.longitude.toFixed(6)}
                           </Text>
                         )}
+                        {result.data.labels && result.data.labels.length > 0 && (
+                          <View style={styles.labelsRow}>
+                            {result.data.labels.slice(0, 3).map((label: string, i: number) => (
+                              <View key={i} style={styles.labelBadge}>
+                                <Text style={styles.labelText}>{label}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        )}
                       </View>
                     ) : (
                       <View style={styles.resultContent}>
@@ -415,7 +445,8 @@ export default function BatchProcessScreen() {
         )}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom || 20 }]}>
+        <View style={styles.footerInner}>
         <TouchableOpacity style={styles.selectBtn} onPress={selectPhotos} disabled={processing}>
           <Ionicons name="add-circle-outline" size={20} color="#8b5cf6" />
           <Text style={styles.selectText}>Select Photos</Text>
@@ -443,6 +474,7 @@ export default function BatchProcessScreen() {
             </LinearGradient>
           </TouchableOpacity>
         )}
+        </View>
       </View>
 
       <Modal
@@ -460,6 +492,7 @@ export default function BatchProcessScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHandle} />
             
+            <ScrollView showsVerticalScrollIndicator={false}>
             {selectedResult?.data && (
               <>
                 <View style={styles.modalHeader}>
@@ -544,6 +577,7 @@ export default function BatchProcessScreen() {
                 </TouchableOpacity>
               </>
             )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -559,6 +593,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 2 },
   headerSubtitle: { fontSize: 13, fontFamily: 'LeagueSpartan_400Regular', color: '#9ca3af' },
   content: { flex: 1 },
+  contentContainer: { paddingBottom: 100 },
   empty: { alignItems: 'center', paddingVertical: 80, paddingHorizontal: 40 },
   emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
   emptyTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', color: '#000', marginBottom: 8 },
@@ -608,12 +643,15 @@ const styles = StyleSheet.create({
   retriedBadge: { backgroundColor: '#fef3c7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   retriedText: { fontSize: 9, fontFamily: 'LeagueSpartan_700Bold', color: '#92400e', textTransform: 'uppercase' },
   resultAddress: { fontSize: 13, fontFamily: 'LeagueSpartan_400Regular', color: '#6b7280', marginBottom: 4, lineHeight: 18 },
-  resultCoords: { fontSize: 11, fontFamily: 'LeagueSpartan_400Regular', color: '#9ca3af', fontVariant: ['tabular-nums'] },
+  resultCoords: { fontSize: 11, fontFamily: 'LeagueSpartan_400Regular', color: '#9ca3af', fontVariant: ['tabular-nums'], marginBottom: 8 },
+  labelsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  labelBadge: { backgroundColor: '#f5f3ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  labelText: { fontSize: 10, fontFamily: 'LeagueSpartan_600SemiBold', color: '#8b5cf6' },
   resultErrorText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#ef4444', marginBottom: 4 },
   resultErrorDesc: { fontSize: 13, fontFamily: 'LeagueSpartan_400Regular', color: '#6b7280' },
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000 },
   modalBackdrop: { flex: 1 },
-  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 8, paddingBottom: 32, paddingHorizontal: 20 },
+  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 8, paddingBottom: 32, paddingHorizontal: 20, maxHeight: '80%' },
   modalHandle: { width: 40, height: 4, backgroundColor: '#e5e7eb', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24 },
   modalIconContainer: { width: 56, height: 56, borderRadius: 28, overflow: 'hidden', shadowColor: '#8b5cf6', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
@@ -629,7 +667,8 @@ const styles = StyleSheet.create({
   coordsText: { fontSize: 12, fontFamily: 'LeagueSpartan_400Regular', color: '#6b7280', fontVariant: ['tabular-nums'] },
   closeButton: { backgroundColor: '#f3f4f6', borderRadius: 12, padding: 16, alignItems: 'center' },
   closeButtonText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000' },
-  footer: { flexDirection: 'row', padding: 20, backgroundColor: '#fff', gap: 12, borderTopWidth: 1, borderTopColor: '#f3f4f6' },
+  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#f3f4f6', zIndex: 10 },
+  footerInner: { flexDirection: 'row', padding: 20, gap: 12 },
   selectBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f5f3ff', borderRadius: 12, padding: 16, gap: 8, borderWidth: 2, borderColor: '#e9d5ff' },
   selectText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#8b5cf6' },
   processBtn: { flex: 1, borderRadius: 12, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },

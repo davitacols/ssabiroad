@@ -3,6 +3,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Sharing from 'expo-sharing';
+import { Share } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 import { useRef } from 'react';
 
@@ -16,18 +17,22 @@ export default function LocationCardScreen() {
   const handleShare = async () => {
     try {
       const uri = await captureRef(cardRef, {
-        format: 'png',
-        quality: 1,
+        format: 'jpg',
+        quality: 0.8,
       });
 
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri);
-      } else {
-        Alert.alert('Sharing not available');
-      }
+      const locationId = Date.now().toString();
+      const shareUrl = `https://pic2nav.com/location/${locationId}`;
+      const message = `📍 ${locationData?.name || 'Location'}\n${locationData?.address || ''}\n\n${shareUrl}`;
+      
+      await Share.share({
+        message: message,
+        url: uri,
+        title: locationData?.name || 'Location',
+      });
     } catch (error) {
-      console.log('Error sharing card:', error);
-      Alert.alert('Error', 'Could not share card');
+      console.log('Error sharing:', error);
+      Alert.alert('Error', 'Could not share location');
     }
   };
 
@@ -60,72 +65,63 @@ export default function LocationCardScreen() {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
         {/* Card Preview */}
         <View style={styles.cardContainer} ref={cardRef} collapsable={false}>
-          {locationData?.image ? (
-            <ImageBackground
-              source={{ uri: locationData.image }}
-              style={styles.card}
-              imageStyle={styles.cardImageStyle}
-            >
-              <LinearGradient
-                colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.8)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={styles.cardOverlay}
-              >
-                <View style={styles.cardHeader}>
-                  <Ionicons name="location" size={48} color="#ffffff" />
-                </View>
-                
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardTitle}>{locationData?.name || 'Location'}</Text>
-                  <Text style={styles.cardAddress}>{locationData?.address || 'Address'}</Text>
-                  
-                  {locationData?.rating && (
-                    <View style={styles.cardRating}>
-                      <Ionicons name="star" size={20} color="#fbbf24" />
-                      <Text style={styles.ratingText}>{locationData.rating}</Text>
-                    </View>
-                  )}
-                </View>
-
-                <View style={styles.cardFooter}>
-                  <Text style={styles.cardBrand}>Pic2Nav</Text>
-                  <Text style={styles.cardSubtext}>Discover & Share Locations</Text>
-                </View>
-              </LinearGradient>
-            </ImageBackground>
-          ) : (
+          <View style={styles.card}>
             <LinearGradient
-              colors={['#6366f1', '#8b5cf6', '#d946ef']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.card}
+              colors={['#000000', '#1a1a1a']}
+              style={styles.cardGradient}
             >
-              <View style={styles.cardHeader}>
-                <Ionicons name="location" size={48} color="#ffffff" />
+              {/* Top Section */}
+              <View style={styles.cardTop}>
+                <View style={styles.logoContainer}>
+                  <Text style={styles.logoText}>Pic2Nav</Text>
+                </View>
+                <View style={styles.qrPlaceholder}>
+                  <Ionicons name="qr-code" size={32} color="#ffffff" opacity={0.3} />
+                </View>
               </View>
-              
-              <View style={styles.cardBody}>
+
+              {/* Main Content */}
+              <View style={styles.cardMain}>
+                <View style={styles.locationIconLarge}>
+                  <Ionicons name="location-sharp" size={40} color="#ffffff" />
+                </View>
                 <Text style={styles.cardTitle}>{locationData?.name || 'Location'}</Text>
                 <Text style={styles.cardAddress}>{locationData?.address || 'Address'}</Text>
                 
-                {locationData?.rating && (
-                  <View style={styles.cardRating}>
-                    <Ionicons name="star" size={20} color="#fbbf24" />
-                    <Text style={styles.ratingText}>{locationData.rating}</Text>
+                {locationData?.location && (
+                  <View style={styles.coordsContainer}>
+                    <Text style={styles.coordsText}>
+                      {locationData.location.latitude.toFixed(6)}°N, {locationData.location.longitude.toFixed(6)}°E
+                    </Text>
                   </View>
                 )}
               </View>
 
-              <View style={styles.cardFooter}>
-                <Text style={styles.cardBrand}>Pic2Nav</Text>
-                <Text style={styles.cardSubtext}>Discover & Share Locations</Text>
+              {/* Bottom Section */}
+              <View style={styles.cardBottom}>
+                <View style={styles.divider} />
+                <View style={styles.metaRow}>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="calendar-outline" size={14} color="#9ca3af" />
+                    <Text style={styles.metaText}>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</Text>
+                  </View>
+                  {locationData?.rating && (
+                    <View style={styles.metaItem}>
+                      <Ionicons name="star" size={14} color="#fbbf24" />
+                      <Text style={styles.metaText}>{locationData.rating}/5</Text>
+                    </View>
+                  )}
+                </View>
+                <View style={styles.linkContainer}>
+                  <Ionicons name="link" size={12} color="#6b7280" />
+                  <Text style={styles.linkText}>pic2nav.com</Text>
+                </View>
               </View>
             </LinearGradient>
-          )}
+          </View>
         </View>
 
         {/* Actions */}
@@ -183,81 +179,132 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
   cardContainer: {
     marginBottom: 32,
   },
   card: {
-    borderRadius: 24,
-    minHeight: 400,
+    borderRadius: 32,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.4,
+    shadowRadius: 30,
+    elevation: 12,
   },
-  cardImageStyle: {
-    borderRadius: 24,
-  },
-  cardOverlay: {
-    flex: 1,
+  cardGradient: {
     padding: 32,
+    minHeight: 450,
+  },
+  cardTop: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 60,
   },
-  cardHeader: {
-    alignItems: 'center',
+  logoContainer: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
   },
-  cardBody: {
+  logoText: {
+    fontSize: 20,
+    fontFamily: 'LeagueSpartan_700Bold',
+    color: '#ffffff',
+    letterSpacing: 1,
+  },
+  qrPlaceholder: {
+    width: 60,
+    height: 60,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
     alignItems: 'center',
-    paddingVertical: 24,
+    justifyContent: 'center',
+  },
+  cardMain: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+  },
+  locationIconLarge: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
   },
   cardTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontFamily: 'LeagueSpartan_700Bold',
     color: '#ffffff',
     textAlign: 'center',
     marginBottom: 12,
-    fontFamily: 'LeagueSpartan_700Bold',
+    letterSpacing: -0.5,
   },
   cardAddress: {
-    fontSize: 16,
-    color: '#ffffff',
+    fontSize: 15,
+    fontFamily: 'LeagueSpartan_400Regular',
+    color: '#d1d5db',
     textAlign: 'center',
-    opacity: 0.9,
-    marginBottom: 16,
+    lineHeight: 22,
+    marginBottom: 20,
+    paddingHorizontal: 20,
   },
-  cardRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  coordsContainer: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 20,
   },
-  ratingText: {
-    fontSize: 18,
-    fontFamily: 'LeagueSpartan_700Bold',
-    color: '#ffffff',
-    marginLeft: 8,
+  coordsText: {
+    fontSize: 12,
+    fontFamily: 'LeagueSpartan_600SemiBold',
+    color: '#9ca3af',
+    letterSpacing: 0.5,
   },
-  cardFooter: {
+  cardBottom: {
+    marginTop: 40,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    marginBottom: 20,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  cardBrand: {
-    fontSize: 24,
-    fontFamily: 'LeagueSpartan_700Bold',
-    color: '#ffffff',
-    marginBottom: 4,
-    fontFamily: 'LeagueSpartan_700Bold',
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  cardSubtext: {
-    fontSize: 14,
-    color: '#ffffff',
-    opacity: 0.8,
+  metaText: {
+    fontSize: 12,
+    fontFamily: 'LeagueSpartan_600SemiBold',
+    color: '#9ca3af',
+  },
+  linkContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 16,
+  },
+  linkText: {
+    fontSize: 11,
+    fontFamily: 'LeagueSpartan_600SemiBold',
+    color: '#6b7280',
+    letterSpacing: 0.5,
   },
   actions: {
     gap: 12,
