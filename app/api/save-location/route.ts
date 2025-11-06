@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
+import { randomUUID } from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
@@ -7,6 +8,7 @@ export async function POST(request: NextRequest) {
     
     const location = await prisma.location.create({
       data: {
+        id: randomUUID(),
         name: data.name || 'Unknown Location',
         address: data.address || '',
         latitude: data.location?.latitude || 0,
