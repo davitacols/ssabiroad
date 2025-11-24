@@ -6,10 +6,25 @@ import { BrandLogo } from "@/components/ui/brand-logo"
 import { SimpleMap } from "@/components/ui/simple-map"
 import { Camera, MapPin, ArrowRight, Zap, Globe2, Upload, Zap as AnalyzeIcon, MapPin as DiscoverIcon, Sparkles } from "lucide-react"
 import Link from "next/link"
+import { seoConfig } from "@/lib/seo-config"
 
 export default function HomePage() {
+  const structuredDataArray = [
+    seoConfig.webApplicationSchema,
+    seoConfig.organizationSchema,
+    seoConfig.faqSchema
+  ]
+
   return (
-    <div className="min-h-screen bg-[#fafaf9] dark:bg-[#0a0a0a]">
+    <>
+      {structuredDataArray.map((schema, index) => (
+        <script
+          key={index}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+      ))}
+      <div className="min-h-screen bg-[#fafaf9] dark:bg-[#0a0a0a]">
       {/* Organic blob backgrounds */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl animate-blob"></div>
@@ -46,15 +61,15 @@ export default function HomePage() {
               </div>
               
               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold tracking-tight leading-tight">
-                <span className="text-stone-900 dark:text-white">Turn photos into</span>
+                <span className="text-stone-900 dark:text-white">AI-Powered Photo Location Finder - Turn Photos Into</span>
                 <br />
-                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">locations</span>
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Precise Locations</span>
                 <br />
-                <span className="text-stone-900 dark:text-white">instantly</span>
+                <span className="text-stone-900 dark:text-white">Instantly</span>
               </h1>
               
               <p className="text-sm sm:text-base md:text-lg lg:text-xl text-stone-600 dark:text-stone-400 leading-relaxed max-w-xl">
-                Upload any image and discover where it was taken. Our AI extracts GPS data, identifies landmarks, and provides rich location details.
+                Upload any photo to instantly discover its location using advanced AI. Extract GPS coordinates, identify landmarks, find nearby attractions, and get detailed location insights - all completely free.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
@@ -202,6 +217,7 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+      </>
 
       <style jsx global>{`
         @keyframes blob {

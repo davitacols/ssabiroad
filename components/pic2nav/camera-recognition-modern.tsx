@@ -104,11 +104,13 @@ export function CameraRecognitionModern() {
   const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null)
   const [nearbyPlaces, setNearbyPlaces] = useState<any[]>([])
   const [showLocationInfo, setShowLocationInfo] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const mapRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
   const processImage = useCallback(async (file: File) => {
@@ -181,23 +183,42 @@ export function CameraRecognitionModern() {
     if (!mapRef.current || !window.google || !window.google.maps) return
 
     try {
+      const center = userLocation ? { lat: userLocation.latitude, lng: userLocation.longitude } : { lat: 0, lng: 0 }
+      
       const mapOptions = {
-        zoom: 15,
-        center: userLocation || { lat: 40.7128, lng: -74.0060 },
+        zoom: userLocation ? 15 : 2,
+        center: center,
         mapTypeId: mapType || 'roadmap',
-        mapTypeControl: false,
+        mapTypeControl: true,
+        mapTypeControlOptions: {
+          style: window.google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+          position: window.google.maps.ControlPosition.TOP_CENTER
+        },
         fullscreenControl: true,
+        fullscreenControlOptions: {
+          position: window.google.maps.ControlPosition.RIGHT_TOP
+        },
         streetViewControl: true,
-        zoomControl: false,
-        gestureHandling: 'cooperative',
+        streetViewControlOptions: {
+          position: window.google.maps.ControlPosition.RIGHT_TOP
+        },
+        zoomControl: true,
+        zoomControlOptions: {
+          position: window.google.maps.ControlPosition.RIGHT_CENTER
+        },
+        scaleControl: true,
+        rotateControl: true,
+        gestureHandling: 'greedy',
+        clickableIcons: true,
+        disableDoubleClickZoom: false,
         styles: [
           {
-            featureType: "poi.business",
+            featureType: "poi",
             elementType: "labels",
             stylers: [{ visibility: "on" }]
           },
           {
-            featureType: "transit.station",
+            featureType: "transit",
             elementType: "labels",
             stylers: [{ visibility: "on" }]
           }
@@ -207,10 +228,39 @@ export function CameraRecognitionModern() {
       const newMap = new window.google.maps.Map(mapRef.current, mapOptions)
       setMap(newMap)
 
+      // Add click listener for map
+      newMap.addListener('click', (e: any) => {
+        if (e.placeId) {
+          e.stop()
+          const service = new window.google.maps.places.PlacesService(newMap)
+          service.getDetails({ placeId: e.placeId }, (place: any, status: any) => {
+            if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
+              const infoWindow = new window.google.maps.InfoWindow({
+                content: `
+                  <div class="p-3">
+                    <h3 class="font-bold text-base mb-2">${place.name}</h3>
+                    <p class="text-sm text-gray-600 mb-2">${place.formatted_address || ''}</p>
+                    ${place.rating ? `<p class="text-sm">★ ${place.rating} (${place.user_ratings_total || 0} reviews)</p>` : ''}
+                  </div>
+                `
+              })
+              infoWindow.setPosition(e.latLng)
+              infoWindow.open(newMap)
+            }
+          })
+        }
+      })
+
+      // Pan to user location when available
+      if (userLocation) {
+        newMap.panTo({ lat: userLocation.latitude, lng: userLocation.longitude })
+        newMap.setZoom(15)
+      }
+
       if (userLocation) {
         // Enhanced user location marker with animation
         const marker = new window.google.maps.Marker({
-          position: userLocation,
+          position: { lat: userLocation.latitude, lng: userLocation.longitude },
           map: newMap,
           icon: {
             path: window.google.maps.SymbolPath.CIRCLE,
@@ -250,6 +300,25 @@ export function CameraRecognitionModern() {
           requestAnimationFrame(animate)
         }
         requestAnimationFrame(animate)
+        
+        // Fetch nearby places and update on map move
+        const updateNearbyPlaces = () => {
+          if (window.google?.maps?.places) {
+            const service = new window.google.maps.places.PlacesService(newMap)
+            const center = newMap.getCenter()
+            service.nearbySearch(
+              { location: center, radius: 1000, type: 'point_of_interest' },
+              (results: any, status: any) => {
+                if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
+                  setNearbyPlaces(results.slice(0, 5))
+                }
+              }
+            )
+          }
+        }
+        
+        updateNearbyPlaces()
+        newMap.addListener('idle', updateNearbyPlaces)
       }
     } catch (error) {
       console.error('Map initialization error:', error)
@@ -262,7 +331,7 @@ export function CameraRecognitionModern() {
     try {
       // Enhanced marker with custom icon
       const marker = new window.google.maps.Marker({
-        position: location,
+        position: { lat: location.latitude, lng: location.longitude },
         map: map,
         title: name,
         icon: {
@@ -385,6 +454,24 @@ export function CameraRecognitionModern() {
   useEffect(() => {
     if (typeof window === 'undefined') return
 
+    // Get user location immediately
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          }
+          setUserLocation(location)
+          setLocationAccuracy(position.coords.accuracy)
+        },
+        (error) => {
+          console.log('Geolocation error:', error)
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      )
+    }
+
     const loadGoogleMaps = () => {
       if (window.google && window.google.maps) {
         setTimeout(initializeMap, 100)
@@ -392,7 +479,7 @@ export function CameraRecognitionModern() {
       }
 
       const script = document.createElement('script')
-      script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho&libraries=places'
+      script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho&libraries=places,geometry'
       script.async = true
       script.defer = true
       script.onload = () => {
@@ -405,64 +492,7 @@ export function CameraRecognitionModern() {
     }
 
     loadGoogleMaps()
-
-    // Get high-accuracy location
-    if (navigator.geolocation) {
-      const options = {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0
-      }
-      
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          }
-          setUserLocation(location)
-          setLocationAccuracy(position.coords.accuracy)
-          
-          // Add accuracy circle if available
-          if (map && position.coords.accuracy < 1000) {
-            const circle = new window.google.maps.Circle({
-              strokeColor: "#4285f4",
-              strokeOpacity: 0.3,
-              strokeWeight: 1,
-              fillColor: "#4285f4",
-              fillOpacity: 0.1,
-              map: map,
-              center: location,
-              radius: position.coords.accuracy,
-            })
-            setAccuracyCircle(circle)
-          }
-          
-          // Search for nearby places
-          if (map) {
-            const service = new window.google.maps.places.PlacesService(map)
-            const request = {
-              location: location,
-              radius: 1000,
-              type: 'point_of_interest'
-            }
-            
-            service.nearbySearch(request, (results: any, status: any) => {
-              if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
-                setNearbyPlaces(results.slice(0, 5))
-              }
-            })
-          }
-        },
-        (error) => {
-          console.log('Geolocation error:', error)
-          // Use default location if geolocation fails
-          setUserLocation({ latitude: 40.7128, longitude: -74.0060 })
-        },
-        options
-      )
-    }
-  }, [])
+  }, [initializeMap])
 
 
 
@@ -476,6 +506,78 @@ export function CameraRecognitionModern() {
       )
     }
   }, [result, addLocationMarker])
+
+  useEffect(() => {
+    if (!showSearchBar || !searchInputRef.current || !map || !window.google?.maps?.places) return
+
+    const input = searchInputRef.current
+    const autocompleteInstance = new window.google.maps.places.Autocomplete(input, {
+      fields: ['formatted_address', 'geometry', 'name', 'place_id', 'types', 'address_components']
+    })
+
+    autocompleteInstance.bindTo('bounds', map)
+
+    const listener = autocompleteInstance.addListener('place_changed', () => {
+      const place = autocompleteInstance.getPlace()
+      
+      if (!place.geometry?.location) {
+        return
+      }
+
+      const latLng = place.geometry.location
+      const location = {
+        latitude: latLng.lat(),
+        longitude: latLng.lng()
+      }
+
+      map.panTo(latLng)
+      map.setZoom(17)
+      addLocationMarker(location, place.name || place.formatted_address || 'Searched Location', null)
+      
+      // Fetch nearby places
+      if (window.google?.maps?.places) {
+        const service = new window.google.maps.places.PlacesService(map)
+        service.nearbySearch(
+          {
+            location: latLng,
+            radius: 500,
+            type: 'point_of_interest'
+          },
+          (results: any, status: any) => {
+            if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
+              const placesWithDistance = results.slice(0, 10).map((p: any) => ({
+                name: p.name,
+                type: p.types?.[0]?.replace(/_/g, ' ') || 'Place',
+                distance: p.geometry?.location ? 
+                  Math.round(window.google.maps.geometry.spherical.computeDistanceBetween(latLng, p.geometry.location)) : null
+              }))
+              
+              setResult({
+                success: true,
+                name: place.name || 'Searched Location',
+                address: place.formatted_address,
+                location: location,
+                confidence: 1,
+                nearbyPlaces: placesWithDistance
+              })
+            }
+          }
+        )
+      }
+      
+      toast({
+        title: "Location found",
+        description: place.name || place.formatted_address,
+      })
+      
+      setSearchQuery('')
+      setShowSearchBar(false)
+    })
+
+    return () => {
+      window.google.maps.event.removeListener(listener)
+    }
+  }, [showSearchBar, map])
 
   return (
     <div className="h-screen w-screen relative overflow-hidden">
@@ -520,13 +622,19 @@ export function CameraRecognitionModern() {
                 <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
               <input 
+                ref={searchInputRef}
                 type="text" 
-                placeholder="Search locations..." 
+                placeholder="Search address, zip code, or place..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1 outline-none text-gray-800 bg-transparent placeholder-gray-500 font-medium text-sm sm:text-base"
                 autoFocus
               />
               <button 
-                onClick={() => setShowSearchBar(false)}
+                onClick={() => {
+                  setShowSearchBar(false)
+                  setSearchQuery('')
+                }}
                 className="ml-2 sm:ml-4 w-6 h-6 sm:w-8 sm:h-8 bg-white border-2 border-black text-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200"
               >
                 <X className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -660,7 +768,7 @@ export function CameraRecognitionModern() {
         {userLocation && (
           <button 
             onClick={() => {
-              map?.panTo(userLocation)
+              map?.panTo({ lat: userLocation.latitude, lng: userLocation.longitude })
               map?.setZoom(16)
             }}
             className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 border-2 border-black text-white hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200"
@@ -681,24 +789,14 @@ export function CameraRecognitionModern() {
         </button>
       </div>
 
-      {/* Floating Action Buttons */}
+      {/* Floating Action Button */}
       <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-40">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="w-14 h-14 sm:w-16 sm:h-16 bg-white border-2 border-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200 text-black hover:text-white"
-          >
-            <Upload className="w-6 h-6 sm:w-7 sm:h-7" />
-          </button>
-          
-          <button 
-            onClick={startCamera} 
-            disabled={isStartingCamera}
-            className="w-14 h-14 sm:w-16 sm:h-16 bg-black border-2 border-black text-white hover:bg-white hover:text-black flex items-center justify-center transition-all duration-200 disabled:opacity-50"
-          >
-            {isStartingCamera ? <Loader2 className="w-6 h-6 sm:w-7 sm:h-7 animate-spin" /> : <Camera className="w-6 h-6 sm:w-7 sm:h-7" />}
-          </button>
-        </div>
+        <button 
+          onClick={() => fileInputRef.current?.click()}
+          className="w-16 h-16 sm:w-20 sm:h-20 bg-black border-2 border-black text-white hover:bg-white hover:text-black flex items-center justify-center transition-all duration-200 shadow-2xl"
+        >
+          <Upload className="w-7 h-7 sm:w-9 sm:h-9" />
+        </button>
       </div>
 
       {/* Processing Overlay */}
@@ -971,7 +1069,7 @@ export function CameraRecognitionModern() {
         </div>
       )}
 
-      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFileSelect(file) }} />
+      <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFileSelect(file) }} />
       <canvas ref={canvasRef} className="hidden" />
     </div>
   )
