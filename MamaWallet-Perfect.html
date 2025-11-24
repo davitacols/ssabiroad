@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>MamaWallet – Works 100%</title>
+<style>
+    body {background:#000; margin:0; padding:20px; display:flex; justify-content:center; align-items:center; min-height:100vh;}
+    #phone {width:min(340px, 90vw); height:min(740px, 90vh); background:#111; border:15px solid #333; border-radius:40px; position:relative; box-shadow:0 20px 50px rgba(0,0,0,0.8);}
+    #screen {position:absolute; top:20px; left:20px; right:20px; height:43%; background:#000; color:#0f0; padding:15px; font-size:16px; overflow-y:auto; border:3px solid #0f0; border-radius:15px; line-height:1.6;}
+    #inputBox {position:absolute; top:calc(43% + 45px); left:20px; right:20px; padding:12px; font-size:20px; text-align:center; background:#000; color:#0f0; border:4px solid #0f0; border-radius:12px;}
+    #keypad {position:absolute; top:calc(43% + 110px); left:20px; right:20px; bottom:20px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+    button {height:20px; font-size:9px; background:#333; color:#fff; border:none; border-radius:4px; cursor:pointer;}
+    button:active {background:#0f0; color:#000;}
+    #send {background:#0b0;}
+    #clear {background:#c00; grid-column:2/4;}
+</style>
+</head>
+<body>
+<div id="phone">
+    <div id="screen"><div id="log">Dial *711# to start MamaWallet 🤱</div></div>
+    <input id="inputBox" type="text" placeholder="Type here and press Send" autofocus>
+    <div id="keypad">
+        <button onclick="add('1')">1</button><button onclick="add('2')">2</button><button onclick="add('3')">3</button>
+        <button onclick="add('4')">4</button><button onclick="add('5')">5</button><button onclick="add('6')">6</button>
+        <button onclick="add('7')">7</button><button onclick="add('8')">8</button><button onclick="add('9')">9</button>
+        <button onclick="add('*')">*</button><button onclick="add('0')">0</button><button onclick="add('#')">#</button>
+        <button id="send" onclick="process()">Send</button>
+        <button id="clear" onclick="reset()">Clear</button>
+    </div>
+</div>
+
+<script>
+let state = 'start';
+let context = {};
+const log = document.getElementById('log');
+const inputBox = document.getElementById('inputBox');
+
+function add(c){ inputBox.value += c; }
+
+function reset(){ 
+    state = 'start'; 
+    context = {};
+    log.innerHTML = 'Dial *711# to start MamaWallet 🤱'; 
+    inputBox.value = ''; 
+    inputBox.focus(); 
+}
+
+function process(){
+    let input = inputBox.value.trim();
+    if(input === '') return;
+
+    // Clear log and show only current interaction
+    log.innerHTML = '> ' + input;
+    let resp = '';
+
+    if(state === 'start'){
+        if(input === '*711#'){
+            state = 'pin';
+            resp = 'Welcome to MamaWallet 🤱<br>Safe money, fast loan for market women<br><br>Enter 4-digit PIN';
+        } else {
+            resp = 'Invalid code. Dial *711# to start.';
+        }
+    }
+    else if(state === 'pin'){
+        if(/^\d{4}$/.test(input)){
+            state = 'menu';
+            resp = 'Welcome Mama! Balance: ₦47,500<br><br>1. Deposit today sales<br>2. Take tomorrow stock loan<br>3. Check balance & savings<br>4. Auto-save 10%<br>5. Send to family<br>6. Withdraw to bank<br>7. My loans';
+        } else {
+            resp = 'Invalid PIN. Enter 4 digits';
+        }
+    }
+    else if(state === 'menu'){
+        if(input === '1'){
+            state = 'deposit';
+            resp = 'How much you make today?<br>Enter amount (e.g. 25000)';
+        }
+        else if(input === '2'){
+            state = 'loan';
+            resp = 'Need tomorrow stock?<br>1. ₦20,000<br>2. ₦50,000<br>3. ₦100,000<br>4. ₦150,000';
+        }
+        else if(input === '3'){
+            resp = 'END<br><br>Total: ₦87,400<br>Daily wallet: ₦67,400<br>Locked savings: ₦20,000 (18%/yr)<br>Interest earned: ₦1,870';
+            state = 'start';
+        }
+        else if(input === '4'){
+            resp = 'END<br><br>Auto-save 10% is ON!<br>We lock 10% of every deposit for 90 days.';
+            state = 'start';
+        }
+        else if(input === '5'){
+            resp = 'END<br><br>Free transfer to family anytime!';
+            state = 'start';
+        }
+        else if(input === '6'){
+            resp = 'END<br><br>Withdraw to any bank – free under ₦50k daily.';
+            state = 'start';
+        }
+        else if(input === '7'){
+            resp = 'END<br><br>Current loan: ₦80,000<br>Repay ₦88,000 from tomorrow sales';
+            state = 'start';
+        }
+        else {
+            resp = 'Invalid choice. Enter 1-7';
+        }
+    }
+    else if(state === 'deposit'){
+        if(/^\d+$/.test(input)){
+            let amt = parseInt(input);
+            let interest = Math.round(amt * 0.0005);
+            resp = `END<br><br>₦${amt.toLocaleString()} received!<br>You earned ₦${interest} interest today<br>Safe from collectors!`;
+            state = 'start';
+        } else {
+            resp = 'Enter valid amount (numbers only)';
+        }
+    }
+    else if(state === 'loan'){
+        if(input === '1'){
+            resp = 'END<br><br>₦20,000 loan approved!<br>Money don land your phone now!<br>Repay from next sales.';
+            state = 'start';
+        }
+        else if(input === '2'){
+            resp = 'END<br><br>₦50,000 loan approved!<br>Repay small-small.';
+            state = 'start';
+        }
+        else if(input === '3'){
+            resp = 'END<br><br>₦100,000 loan approved!<br>Repay in 30 days.';
+            state = 'start';
+        }
+        else if(input === '4'){
+            resp = 'END<br><br>₦150,000 loan approved!<br>Big stock money! Repay in 45 days.';
+            state = 'start';
+        }
+        else {
+            resp = 'Invalid choice. Enter 1-4';
+        }
+    }
+
+    log.innerHTML += '<br><br>' + resp;
+    log.scrollTop = log.scrollHeight;
+    inputBox.value = '';
+    inputBox.focus();
+}
+
+inputBox.addEventListener('keypress', function(e){
+    if(e.key === 'Enter') process();
+});
+
+inputBox.focus();
+</script>
+</body>
+</html>

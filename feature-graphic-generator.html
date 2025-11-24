@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pic2Nav Feature Graphic Generator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        #canvas {
+            border: 2px solid #333;
+            display: block;
+            margin: 20px auto;
+            background: white;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .info {
+            text-align: center;
+            color: #666;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h2>Pic2Nav Feature Graphic Generator</h2>
+        <p>Size: 1024 x 500 px (Google Play requirement)</p>
+    </div>
+    
+    <canvas id="canvas" width="1024" height="500"></canvas>
+    
+    <div class="controls">
+        <button onclick="generateBanner()">Generate Banner</button>
+        <button onclick="downloadBanner()">Download PNG</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function generateBanner() {
+            // Background gradient
+            const gradient = ctx.createLinearGradient(0, 0, 1024, 500);
+            gradient.addColorStop(0, '#1a1a1a');
+            gradient.addColorStop(1, '#2d2d2d');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 1024, 500);
+
+            // Accent line
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(0, 0, 1024, 8);
+
+            // App name
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 72px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Pic2Nav', 512, 150);
+
+            // Tagline
+            ctx.fillStyle = '#4CAF50';
+            ctx.font = '36px Arial';
+            ctx.fillText('AI Location Recognition', 512, 220);
+
+            // Features
+            ctx.fillStyle = '#cccccc';
+            ctx.font = '24px Arial';
+            ctx.fillText('📸 Photo Analysis  •  🗺️ GPS Detection  •  🏢 Business Recognition', 512, 300);
+
+            // Bottom text
+            ctx.fillStyle = '#888888';
+            ctx.font = '20px Arial';
+            ctx.fillText('Identify any location from photos instantly', 512, 380);
+
+            // Icon placeholder (circle)
+            ctx.beginPath();
+            ctx.arc(120, 250, 60, 0, 2 * Math.PI);
+            ctx.fillStyle = '#4CAF50';
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('📍', 120, 270);
+
+            // Right side icon
+            ctx.beginPath();
+            ctx.arc(904, 250, 60, 0, 2 * Math.PI);
+            ctx.fillStyle = '#4CAF50';
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 48px Arial';
+            ctx.fillText('🤖', 904, 270);
+
+            ctx.textAlign = 'left';
+        }
+
+        function downloadBanner() {
+            const link = document.createElement('a');
+            link.download = 'pic2nav-feature-graphic-1024x500.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Generate on load
+        generateBanner();
+    </script>
+</body>
+</html>

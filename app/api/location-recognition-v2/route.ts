@@ -12,6 +12,7 @@ import { FranchiseDetector } from './franchise-detector';
 import { GeofenceOptimizer } from './geofence-optimizer';
 import { ErrorRecovery } from './error-recovery';
 import { OpenCVProcessor } from './opencv-processor';
+import { EnhancedAnalyzer } from './enhanced-analysis';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -59,6 +60,7 @@ interface LocationResult {
       reason: string;
     }>;
   };
+  enhancedAnalysis?: any;
 }
 
 // Ultra-fast cache with 5-minute TTL
@@ -957,6 +959,20 @@ class LocationRecognizer {
         result.status === 'fulfilled' ? result.value : null
       );
       
+      // Add enhanced analysis
+      let enhancedAnalysis = null;
+      try {
+        enhancedAnalysis = await EnhancedAnalyzer.performEnhancedAnalysis(
+          { latitude, longitude },
+          baseResult.name,
+          buffer,
+          { labels: places }
+        );
+        console.log('Enhanced analysis completed successfully');
+      } catch (error) {
+        console.log('Enhanced analysis failed:', error.message);
+      }
+      
       return {
         ...baseResult,
         address: baseResult.address || address || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
@@ -970,6 +986,7 @@ class LocationRecognizer {
         transit: transit || [],
         demographics: demographics,
         landmarks: landmarks || [],
+        enhancedAnalysis: enhancedAnalysis,
         confidence: baseResult.confidence || 0.98,
         description: baseResult.description || `Location data with ${(places || []).length} nearby places`
       };
@@ -983,6 +1000,7 @@ class LocationRecognizer {
         photos: [],
         deviceAnalysis: this.analyzeDeviceData(buffer),
         historicalData: this.extractHistoricalData(buffer),
+        enhancedAnalysis: null,
         description: 'Basic location data (enrichment failed)'
       };
     }
@@ -1933,8 +1951,8 @@ Return JSON with the most specific location information you can identify:
         // Return specific 401 error for client handling
         return {
           success: false,
-          error: 'API error: 401',
-          method: 'v2-error',
+          error: 'Authentication failed. Please check API configuration.',
+          method: 'claude-auth-error',
           confidence: 0
         };
       } else if (error.status === 429) {

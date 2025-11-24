@@ -885,6 +885,195 @@ export default function ScannerScreen() {
                     <Text style={styles.streetViewText}>View Street View</Text>
                   </TouchableOpacity>
                 </View>
+
+                {/* Analysis Summary Card */}
+                {result.enhancedAnalysis && (
+                  <View style={styles.analysisSummaryCard}>
+                    <Text style={styles.cardTitle}>Location Insights</Text>
+                    <View style={styles.summaryGrid}>
+                      {result.enhancedAnalysis.safetyAnalysis && (
+                        <View style={styles.summaryItem}>
+                          <Text style={styles.summaryIcon}>🛡️</Text>
+                          <Text style={styles.summaryLabel}>Safety</Text>
+                          <Text style={[styles.summaryValue, { color: result.enhancedAnalysis.safetyAnalysis.crimeStatistics.overallSafety === 'very safe' ? '#10b981' : result.enhancedAnalysis.safetyAnalysis.crimeStatistics.overallSafety === 'safe' ? '#059669' : '#f59e0b' }]}>
+                            {result.enhancedAnalysis.safetyAnalysis.crimeStatistics.overallSafety.charAt(0).toUpperCase() + result.enhancedAnalysis.safetyAnalysis.crimeStatistics.overallSafety.slice(1)}
+                          </Text>
+                        </View>
+                      )}
+                      {result.enhancedAnalysis.socialAnalysis && (
+                        <View style={styles.summaryItem}>
+                          <Text style={styles.summaryIcon}>🚶</Text>
+                          <Text style={styles.summaryLabel}>Walkability</Text>
+                          <Text style={[styles.summaryValue, { color: result.enhancedAnalysis.socialAnalysis.walkability.score > 70 ? '#10b981' : result.enhancedAnalysis.socialAnalysis.walkability.score > 50 ? '#f59e0b' : '#ef4444' }]}>
+                            {result.enhancedAnalysis.socialAnalysis.walkability.score}/100
+                          </Text>
+                        </View>
+                      )}
+                      {result.enhancedAnalysis.environmentalAnalysis && (
+                        <View style={styles.summaryItem}>
+                          <Text style={styles.summaryIcon}>🌱</Text>
+                          <Text style={styles.summaryLabel}>Air Quality</Text>
+                          <Text style={[styles.summaryValue, { color: result.enhancedAnalysis.environmentalAnalysis.airQuality.index < 50 ? '#10b981' : result.enhancedAnalysis.environmentalAnalysis.airQuality.index < 100 ? '#f59e0b' : '#ef4444' }]}>
+                            {result.enhancedAnalysis.environmentalAnalysis.airQuality.rating}
+                          </Text>
+                        </View>
+                      )}
+                      {result.enhancedAnalysis.accessibilityAnalysis && (
+                        <View style={styles.summaryItem}>
+                          <Text style={styles.summaryIcon}>♿</Text>
+                          <Text style={styles.summaryLabel}>Accessible</Text>
+                          <Text style={[styles.summaryValue, { color: result.enhancedAnalysis.accessibilityAnalysis.physicalAccess.wheelchairAccessible ? '#10b981' : '#ef4444' }]}>
+                            {result.enhancedAnalysis.accessibilityAnalysis.physicalAccess.wheelchairAccessible ? 'Yes' : 'No'}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                )}
+
+                {/* Enhanced Analysis Section */}
+                {result.enhancedAnalysis && (
+                  <View style={styles.enhancedAnalysisCard}>
+                    <Text style={styles.cardTitle}>Detailed Analysis</Text>
+                    
+                    {/* Architectural Analysis */}
+                    {result.enhancedAnalysis.architecturalAnalysis && (
+                      <View style={styles.analysisSection}>
+                        <Text style={styles.analysisSectionTitle}>🏗️ Architecture</Text>
+                        <View style={styles.analysisItem}>
+                          <Text style={styles.analysisLabel}>Building Style:</Text>
+                          <Text style={styles.analysisValue}>{result.enhancedAnalysis.architecturalAnalysis.buildingStyle}</Text>
+                        </View>
+                        <View style={styles.analysisItem}>
+                          <Text style={styles.analysisLabel}>Construction Period:</Text>
+                          <Text style={styles.analysisValue}>{result.enhancedAnalysis.architecturalAnalysis.constructionPeriod}</Text>
+                        </View>
+                        <View style={styles.analysisItem}>
+                          <Text style={styles.analysisLabel}>Condition:</Text>
+                          <Text style={[styles.analysisValue, { color: result.enhancedAnalysis.architecturalAnalysis.condition === 'excellent' ? '#10b981' : result.enhancedAnalysis.architecturalAnalysis.condition === 'good' ? '#059669' : '#f59e0b' }]}>
+                            {result.enhancedAnalysis.architecturalAnalysis.condition.charAt(0).toUpperCase() + result.enhancedAnalysis.architecturalAnalysis.condition.slice(1)}
+                          </Text>
+                        </View>
+                        {result.enhancedAnalysis.architecturalAnalysis.energyEfficiency && (
+                          <View style={styles.analysisItem}>
+                            <Text style={styles.analysisLabel}>Energy Rating:</Text>
+                            <Text style={styles.analysisValue}>{result.enhancedAnalysis.architecturalAnalysis.energyEfficiency.rating}</Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+
+                    {/* Business Analysis */}
+                    {result.enhancedAnalysis.businessAnalysis && (
+                      <View style={styles.analysisSection}>
+                        <Text style={styles.analysisSectionTitle}>🏢 Business</Text>
+                        <View style={styles.analysisItem}>
+                          <Text style={styles.analysisLabel}>Business Type:</Text>
+                          <Text style={styles.analysisValue}>{result.enhancedAnalysis.businessAnalysis.businessType}</Text>
+                        </View>
+                        <View style={styles.analysisItem}>
+                          <Text style={styles.analysisLabel}>Foot Traffic:</Text>
+                          <Text style={[styles.analysisValue, { color: result.enhancedAnalysis.businessAnalysis.footTraffic === 'high' ? '#10b981' : result.enhancedAnalysis.businessAnalysis.footTraffic === 'medium' ? '#f59e0b' : '#ef4444' }]}>
+                            {result.enhancedAnalysis.businessAnalysis.footTraffic.charAt(0).toUpperCase() + result.enhancedAnalysis.businessAnalysis.footTraffic.slice(1)}
+                          </Text>
+                        </View>
+                        <View style={styles.analysisItem}>
+                          <Text style={styles.analysisLabel}>Market Saturation:</Text>
+                          <Text style={styles.analysisValue}>{result.enhancedAnalysis.businessAnalysis.competitorAnalysis?.marketSaturation || 'Unknown'}</Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Environmental Analysis */}
+                    {result.enhancedAnalysis.environmentalAnalysis && (
+                      <View style={styles.analysisSection}>
+                        <Text style={styles.analysisSectionTitle}>🌱 Environment</Text>
+                        <View style={styles.analysisItem}>
+                          <Text style={styles.analysisLabel}>Air Quality:</Text>
+                          <Text style={[styles.analysisValue, { color: result.enhancedAnalysis.environmentalAnalysis.airQuality.index < 50 ? '#10b981' : result.enhancedAnalysis.environmentalAnalysis.airQuality.index < 100 ? '#f59e0b' : '#ef4444' }]}>
+                            {result.enhancedAnalysis.environmentalAnalysis.airQuality.rating} (AQI: {result.enhancedAnalysis.environmentalAnalysis.airQuality.index})
+                          </Text>
+                        </View>
+                        <View style={styles.analysisItem}>
+                          <Text style={styles.analysisLabel}>Noise Level:</Text>
+                          <Text style={styles.analysisValue}>{result.enhancedAnalysis.environmentalAnalysis.noiseLevel.rating} ({result.enhancedAnalysis.environmentalAnalysis.noiseLevel.decibels}dB)</Text>
+                        </View>
+                        <View style={styles.analysisItem}>
+                          <Text style={styles.analysisLabel}>Green Coverage:</Text>
+                          <Text style={styles.analysisValue}>{result.enhancedAnalysis.environmentalAnalysis.greenSpaces.treeCanopyCoverage}% tree canopy</Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Safety Analysis */}
+                    {result.enhancedAnalysis.safetyAnalysis && (
+                      <View style={styles.analysisSection}>
+                        <Text style={styles.analysisSectionTitle}>🛡️ Safety</Text>
+                        <View style={styles.analysisItem}>
+                          <Text style={styles.analysisLabel}>Overall Safety:</Text>
+                          <Text style={[styles.analysisValue, { color: result.enhancedAnalysis.safetyAnalysis.crimeStatistics.overallSafety === 'very safe' ? '#10b981' : result.enhancedAnalysis.safetyAnalysis.crimeStatistics.overallSafety === 'safe' ? '#059669' : '#f59e0b' }]}>
+                            {result.enhancedAnalysis.safetyAnalysis.crimeStatistics.overallSafety.charAt(0).toUpperCase() + result.enhancedAnalysis.safetyAnalysis.crimeStatistics.overallSafety.slice(1)}
+                          </Text>
+                        </View>
+                        <View style={styles.analysisItem}>
+                          <Text style={styles.analysisLabel}>Emergency Response:</Text>
+                          <Text style={styles.analysisValue}>{result.enhancedAnalysis.safetyAnalysis.emergencyServices.responseTime}</Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Accessibility Analysis */}
+                    {result.enhancedAnalysis.accessibilityAnalysis && (
+                      <View style={styles.analysisSection}>
+                        <Text style={styles.analysisSectionTitle}>♿ Accessibility</Text>
+                        <View style={styles.analysisItem}>
+                          <Text style={styles.analysisLabel}>Wheelchair Access:</Text>
+                          <Text style={[styles.analysisValue, { color: result.enhancedAnalysis.accessibilityAnalysis.physicalAccess.wheelchairAccessible ? '#10b981' : '#ef4444' }]}>
+                            {result.enhancedAnalysis.accessibilityAnalysis.physicalAccess.wheelchairAccessible ? 'Yes' : 'No'}
+                          </Text>
+                        </View>
+                        <View style={styles.analysisItem}>
+                          <Text style={styles.analysisLabel}>Public Transport:</Text>
+                          <Text style={styles.analysisValue}>{result.enhancedAnalysis.accessibilityAnalysis.publicTransport.accessibility}</Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Economic Analysis */}
+                    {result.enhancedAnalysis.economicAnalysis && (
+                      <View style={styles.analysisSection}>
+                        <Text style={styles.analysisSectionTitle}>💰 Economics</Text>
+                        <View style={styles.analysisItem}>
+                          <Text style={styles.analysisLabel}>Property Values:</Text>
+                          <Text style={styles.analysisValue}>{result.enhancedAnalysis.economicAnalysis.propertyValues.priceRange}</Text>
+                        </View>
+                        <View style={styles.analysisItem}>
+                          <Text style={styles.analysisLabel}>Market Trend:</Text>
+                          <Text style={[styles.analysisValue, { color: result.enhancedAnalysis.economicAnalysis.propertyValues.trend === 'increasing' ? '#10b981' : result.enhancedAnalysis.economicAnalysis.propertyValues.trend === 'stable' ? '#f59e0b' : '#ef4444' }]}>
+                            {result.enhancedAnalysis.economicAnalysis.propertyValues.trend.charAt(0).toUpperCase() + result.enhancedAnalysis.economicAnalysis.propertyValues.trend.slice(1)}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Social Analysis */}
+                    {result.enhancedAnalysis.socialAnalysis && (
+                      <View style={styles.analysisSection}>
+                        <Text style={styles.analysisSectionTitle}>👥 Community</Text>
+                        <View style={styles.analysisItem}>
+                          <Text style={styles.analysisLabel}>Walkability Score:</Text>
+                          <Text style={[styles.analysisValue, { color: result.enhancedAnalysis.socialAnalysis.walkability.score > 70 ? '#10b981' : result.enhancedAnalysis.socialAnalysis.walkability.score > 50 ? '#f59e0b' : '#ef4444' }]}>
+                            {result.enhancedAnalysis.socialAnalysis.walkability.score}/100
+                          </Text>
+                        </View>
+                        <View style={styles.analysisItem}>
+                          <Text style={styles.analysisLabel}>Community Features:</Text>
+                          <Text style={styles.analysisValue}>{result.enhancedAnalysis.socialAnalysis.communityFeatures.slice(0, 2).join(', ')}</Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                )}
               </>
             )}
           </View>
@@ -1101,6 +1290,20 @@ const styles = StyleSheet.create({
   addCollectionText: { color: '#ffffff', fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold' },
   streetViewButton: { backgroundColor: '#000', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 8 },
   streetViewText: { color: '#ffffff', fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold' },
+  // Enhanced Analysis Styles
+  enhancedAnalysisCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16 },
+  analysisSection: { marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  analysisSectionTitle: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold', color: '#000', marginBottom: 12 },
+  analysisItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  analysisLabel: { fontSize: 13, color: '#6b7280', fontFamily: 'LeagueSpartan_400Regular', flex: 1 },
+  analysisValue: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000', flex: 1, textAlign: 'right' },
+  // Analysis Summary Styles
+  analysisSummaryCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16 },
+  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  summaryItem: { width: '48%', backgroundColor: '#f9fafb', borderRadius: 12, padding: 16, marginBottom: 12, alignItems: 'center' },
+  summaryIcon: { fontSize: 24, marginBottom: 8 },
+  summaryLabel: { fontSize: 12, color: '#6b7280', fontFamily: 'LeagueSpartan_400Regular', marginBottom: 4, textAlign: 'center' },
+  summaryValue: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', textAlign: 'center' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modal: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '70%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },

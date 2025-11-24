@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import { Camera, Upload, X, MapPin, Loader2, Navigation, Share2, Copy, Globe, CheckCircle2, AlertCircle, ZoomIn, ZoomOut, RotateCw, Download, History, Maximize2, Globe2, Zap } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Camera, Upload, X, MapPin, Loader2, Navigation, Menu, Search, Layers, Car, Bus, Bike, Building2, Users, Leaf, DollarSign, Shield, Landmark } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface Location {
   latitude: number
@@ -17,162 +17,131 @@ interface RecognitionResult {
   location?: Location
   confidence?: number
   error?: string
-  rating?: number
-  website?: string
-  phoneNumber?: string
-  category?: string
-  method?: string
-  nearbyPlaces?: any[]
-  photos?: string[]
-  weather?: any
-  locationDetails?: any
-  elevation?: any
-  transit?: any[]
-  demographics?: any
-  deviceAnalysis?: any
-  description?: string
+  analysis?: {
+    architecture?: string
+    buildingType?: string
+    historicalPeriod?: string
+    materials?: string[]
+    condition?: string
+    significance?: string
+    surroundings?: string
+    accessibility?: string
+  }
+  enhancedAnalysis?: {
+    businessAnalysis?: {
+      businessType: string
+      operatingHours: string
+      footTraffic: string
+      accessibility: {
+        wheelchairAccessible: boolean
+        publicTransportAccess: string
+        parkingAvailability: string
+      }
+    }
+    environmentalAnalysis?: {
+      airQuality: {
+        rating: string
+        index: number
+      }
+      noiseLevel: {
+        rating: string
+        decibels: number
+      }
+    }
+    socialAnalysis?: {
+      walkability: {
+        score: number
+      }
+    }
+    safetyAnalysis?: {
+      crimeStatistics: {
+        overallSafety: string
+        trends: string
+      }
+    }
+    economicAnalysis?: {
+      propertyValues: {
+        priceRange: string
+        trend: string
+      }
+      employment: {
+        unemploymentRate: number
+      }
+    }
+    culturalAnalysis?: {
+      communityCharacter: string
+    }
+  }
+}
+
+declare global {
+  interface Window {
+    google: any
+    initMap: () => void
+  }
 }
 
 export function CameraRecognitionModern() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [result, setResult] = useState<RecognitionResult | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [cameraActive, setCameraActive] = useState(false)
-  const [isDragging, setIsDragging] = useState(false)
-  const [zoom, setZoom] = useState(1)
-  const [rotation, setRotation] = useState(0)
-  const [uploadHistory, setUploadHistory] = useState<Array<{url: string, name: string, timestamp: number}>>([])
-  const [showHistory, setShowHistory] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadHistory, setUploadHistory] = useState<Array<{url: string, name: string, timestamp: number, location?: Location}>>([])
   const [isStartingCamera, setIsStartingCamera] = useState(false)
+  const [map, setMap] = useState<any>(null)
+  const [markers, setMarkers] = useState<any[]>([])
+  const [userLocation, setUserLocation] = useState<Location | null>(null)
+  const [showSidebar, setShowSidebar] = useState(false)
+  const [showSearchBar, setShowSearchBar] = useState(false)
+  const [mapType, setMapType] = useState('roadmap')
+  const [trafficLayer, setTrafficLayer] = useState<any>(null)
+  const [transitLayer, setTransitLayer] = useState<any>(null)
+  const [bikeLayer, setBikeLayer] = useState<any>(null)
+  const [showTraffic, setShowTraffic] = useState(false)
+  const [showTransit, setShowTransit] = useState(false)
+  const [showBiking, setShowBiking] = useState(false)
+  const [userMarker, setUserMarker] = useState<any>(null)
+  const [accuracyCircle, setAccuracyCircle] = useState<any>(null)
+  const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null)
+  const [nearbyPlaces, setNearbyPlaces] = useState<any[]>([])
+  const [showLocationInfo, setShowLocationInfo] = useState(false)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const dropZoneRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
-
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && (cameraActive || result)) {
-        reset()
-      }
-      if (e.ctrlKey && e.key === 'v') {
-        handlePaste()
-      }
-    }
-    window.addEventListener('keydown', handleKeyPress)
-    return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [cameraActive, result])
-
-  const handlePaste = async () => {
-    try {
-      const items = await navigator.clipboard.read()
-      for (const item of items) {
-        const imageType = item.types.find(type => type.startsWith('image/'))
-        if (imageType) {
-          const blob = await item.getType(imageType)
-          const file = new File([blob], `pasted-${Date.now()}.png`, { type: imageType })
-          handleFileSelect(file)
-          break
-        }
-      }
-    } catch {
-      toast({ title: "Paste failed", description: "No image in clipboard", variant: "destructive" })
-    }
-  }
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }, [])
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-  }, [])
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-    const file = e.dataTransfer.files[0]
-    if (file && file.type.startsWith('image/')) {
-      handleFileSelect(file)
-    } else {
-      toast({ title: "Invalid file", description: "Please drop an image file", variant: "destructive" })
-    }
-  }, [])
-
-  const compressImage = async (file: File): Promise<File> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const img = new Image()
-        img.onload = () => {
-          const canvas = document.createElement('canvas')
-          let width = img.width
-          let height = img.height
-          const maxSize = 1920
-          
-          if (width > height && width > maxSize) {
-            height = (height * maxSize) / width
-            width = maxSize
-          } else if (height > maxSize) {
-            width = (width * maxSize) / height
-            height = maxSize
-          }
-          
-          canvas.width = width
-          canvas.height = height
-          const ctx = canvas.getContext('2d')
-          ctx?.drawImage(img, 0, 0, width, height)
-          
-          canvas.toBlob((blob) => {
-            if (blob) {
-              resolve(new File([blob], file.name, { type: 'image/jpeg' }))
-            } else {
-              resolve(file)
-            }
-          }, 'image/jpeg', 0.85)
-        }
-        img.src = e.target?.result as string
-      }
-      reader.readAsDataURL(file)
-    })
-  }
 
   const processImage = useCallback(async (file: File) => {
     setIsProcessing(true)
     setResult(null)
-    setUploadProgress(0)
 
     try {
       const formData = new FormData()
       formData.append("image", file)
-      formData.append("analyzeLandmarks", "true")
       
-      if ((file as any).location) {
-        formData.append("clientGPSLatitude", (file as any).location.latitude.toString())
-        formData.append("clientGPSLongitude", (file as any).location.longitude.toString())
-      }
-
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => Math.min(prev + 10, 90))
-      }, 200)
-
       const response = await fetch('/api/location-recognition-v2', {
         method: "POST",
         body: formData,
       })
 
-      clearInterval(progressInterval)
-      setUploadProgress(100)
-
       if (!response.ok) throw new Error(`API error: ${response.status}`)
 
       const data = await response.json()
-      console.log('API Response:', data)
-      console.log('Historical Data:', data.historicalData)
+      
+      if (data.error && (data.error.includes('API error: 401') || data.error.includes('Authentication failed'))) {
+        const friendlyError = {
+          success: false,
+          error: "Service temporarily unavailable. Please try again later or contact support if the issue persists."
+        }
+        setResult(friendlyError)
+        toast({
+          title: "Service Error",
+          description: "Unable to process image at this time. Please try again.",
+          variant: "destructive",
+        })
+        return
+      }
+      
       setResult(data)
       
       if (data.success) {
@@ -180,17 +149,12 @@ export function CameraRecognitionModern() {
           title: "Location identified",
           description: data.name || "Location found",
         })
-        
-        // Save to database
-        try {
-          await fetch('/api/save-location', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-          })
-        } catch (e) {
-          console.error('Failed to save location:', e)
-        }
+      } else if (data.error && !data.error.includes('API error')) {
+        toast({
+          title: "Recognition failed",
+          description: data.error,
+          variant: "destructive",
+        })
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Recognition failed"
@@ -202,7 +166,188 @@ export function CameraRecognitionModern() {
       })
     } finally {
       setIsProcessing(false)
-      setUploadProgress(0)
+    }
+  }, [toast])
+
+  const handleFileSelect = useCallback((file: File) => {
+    if (!file) return
+    
+    const url = URL.createObjectURL(file)
+    setUploadHistory(prev => [{ url, name: file.name, timestamp: Date.now() }, ...prev.slice(0, 4)])
+    processImage(file)
+  }, [processImage])
+
+  const initializeMap = useCallback(() => {
+    if (!mapRef.current || !window.google || !window.google.maps) return
+
+    try {
+      const mapOptions = {
+        zoom: 15,
+        center: userLocation || { lat: 40.7128, lng: -74.0060 },
+        mapTypeId: mapType || 'roadmap',
+        mapTypeControl: false,
+        fullscreenControl: true,
+        streetViewControl: true,
+        zoomControl: false,
+        gestureHandling: 'cooperative',
+        styles: [
+          {
+            featureType: "poi.business",
+            elementType: "labels",
+            stylers: [{ visibility: "on" }]
+          },
+          {
+            featureType: "transit.station",
+            elementType: "labels",
+            stylers: [{ visibility: "on" }]
+          }
+        ]
+      }
+
+      const newMap = new window.google.maps.Map(mapRef.current, mapOptions)
+      setMap(newMap)
+
+      if (userLocation) {
+        // Enhanced user location marker with animation
+        const marker = new window.google.maps.Marker({
+          position: userLocation,
+          map: newMap,
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 12,
+            fillColor: "#4285f4",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 3,
+          },
+          title: "Your Current Location",
+          zIndex: 1000,
+        })
+        setUserMarker(marker)
+
+        // Add pulsing animation
+        let scale = 12
+        let growing = true
+        const animate = () => {
+          if (growing) {
+            scale += 0.2
+            if (scale >= 16) growing = false
+          } else {
+            scale -= 0.2
+            if (scale <= 12) growing = true
+          }
+          
+          if (marker) {
+            marker.setIcon({
+              path: window.google.maps.SymbolPath.CIRCLE,
+              scale: scale,
+              fillColor: "#4285f4",
+              fillOpacity: 0.8,
+              strokeColor: "#ffffff",
+              strokeWeight: 3,
+            })
+          }
+          requestAnimationFrame(animate)
+        }
+        requestAnimationFrame(animate)
+      }
+    } catch (error) {
+      console.error('Map initialization error:', error)
+    }
+  }, [userLocation, mapType])
+
+  const addLocationMarker = useCallback((location: Location, name: string, analysisData?: any) => {
+    if (!map || !window.google || !window.google.maps) return
+
+    try {
+      // Enhanced marker with custom icon
+      const marker = new window.google.maps.Marker({
+        position: location,
+        map: map,
+        title: name,
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 15,
+          fillColor: "#10b981",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 3,
+        },
+        animation: window.google.maps.Animation.DROP
+      })
+
+      // Rich info window with analysis data
+      const infoContent = `
+        <div class="p-4 max-w-xs">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+            <h3 class="font-bold text-lg text-gray-900">${name}</h3>
+          </div>
+          ${analysisData ? `
+            <div class="space-y-2 mb-4">
+              ${analysisData.architecture ? `<p class="text-sm"><span class="font-medium text-gray-600">Architecture:</span> ${analysisData.architecture}</p>` : ''}
+              ${analysisData.buildingType ? `<p class="text-sm"><span class="font-medium text-gray-600">Type:</span> ${analysisData.buildingType}</p>` : ''}
+              ${analysisData.historicalPeriod ? `<p class="text-sm"><span class="font-medium text-gray-600">Period:</span> ${analysisData.historicalPeriod}</p>` : ''}
+              ${analysisData.condition ? `<p class="text-sm"><span class="font-medium text-gray-600">Condition:</span> ${analysisData.condition}</p>` : ''}
+            </div>
+          ` : ''}
+          <div class="text-xs text-gray-500 font-mono bg-gray-100 p-2 rounded">
+            ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}
+          </div>
+          <div class="mt-3 flex gap-2">
+            <button onclick="window.open('https://www.google.com/maps/dir/?api=1&destination=${location.latitude},${location.longitude}', '_blank')" 
+                    class="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+              Directions
+            </button>
+            <button onclick="window.open('https://www.google.com/maps/@${location.latitude},${location.longitude},19z', '_blank')" 
+                    class="text-xs bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600">
+              Street View
+            </button>
+          </div>
+        </div>
+      `
+
+      const infoWindow = new window.google.maps.InfoWindow({
+        content: infoContent,
+        maxWidth: 300
+      })
+
+      marker.addListener("click", () => {
+        infoWindow.open(map, marker)
+      })
+
+      // Auto-open info window for detected locations
+      setTimeout(() => {
+        infoWindow.open(map, marker)
+      }, 1000)
+
+      setMarkers(prev => [...prev, marker])
+    } catch (error) {
+      console.error('Error adding marker:', error)
+    }
+  }, [map])
+
+  const startCamera = useCallback(async () => {
+    setIsStartingCamera(true)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false,
+      })
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        setCameraActive(true)
+        await videoRef.current.play()
+      }
+    } catch (error) {
+      toast({
+        title: "Camera error",
+        description: "Could not access camera",
+        variant: "destructive",
+      })
+    } finally {
+      setIsStartingCamera(false)
     }
   }, [toast])
 
@@ -214,26 +359,6 @@ export function CameraRecognitionModern() {
       setCameraActive(false)
     }
   }, [])
-
-  const handleFileSelect = useCallback((file: File & { location?: { latitude: number; longitude: number } }) => {
-    if (!file) return
-    
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please select an image under 10MB",
-        variant: "destructive"
-      })
-      return
-    }
-    
-    const url = URL.createObjectURL(file)
-    setPreviewUrl(url)
-    setZoom(1)
-    setRotation(0)
-    setUploadHistory(prev => [{ url, name: file.name, timestamp: Date.now() }, ...prev.slice(0, 4)])
-    processImage(file)
-  }, [processImage, toast])
 
   const capturePhoto = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) return
@@ -249,602 +374,605 @@ export function CameraRecognitionModern() {
 
     context.drawImage(video, 0, 0)
     
-    canvas.toBlob(async (blob) => {
+    canvas.toBlob((blob) => {
       if (!blob) return
-      
-      try {
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 5000 })
-        })
-        
-        const file = new File([blob], `capture-${Date.now()}.jpg`, { type: "image/jpeg" }) as any
-        file.location = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
-        }
-        handleFileSelect(file)
-      } catch {
-        toast({ title: "Location unavailable", description: "Photo captured without GPS", variant: "destructive" })
-        const file = new File([blob], `capture-${Date.now()}.jpg`, { type: "image/jpeg" })
-        handleFileSelect(file)
-      }
+      const file = new File([blob], `capture-${Date.now()}.jpg`, { type: "image/jpeg" })
+      handleFileSelect(file)
       stopCamera()
     }, "image/jpeg", 0.95)
-  }, [toast, stopCamera, handleFileSelect])
+  }, [handleFileSelect, stopCamera])
 
-  const startCamera = useCallback(async () => {
-    setIsStartingCamera(true)
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-        audio: false,
-      })
+  useEffect(() => {
+    if (typeof window === 'undefined') return
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        setCameraActive(true)
-        await videoRef.current.play()
+    const loadGoogleMaps = () => {
+      if (window.google && window.google.maps) {
+        setTimeout(initializeMap, 100)
+        return
       }
-    } catch (error) {
-      toast({
-        title: "Camera error",
-        description: "Could not access camera",
-        variant: "destructive",
-      })
-      fileInputRef.current?.click()
-    } finally {
-      setIsStartingCamera(false)
-    }
-  }, [toast])
 
-  const reset = useCallback(() => {
-    setResult(null)
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl)
-      setPreviewUrl(null)
-    }
-    setIsProcessing(false)
-    setZoom(1)
-    setRotation(0)
-    stopCamera()
-  }, [previewUrl, stopCamera])
-
-  const downloadImage = useCallback(() => {
-    if (!previewUrl) return
-    const a = document.createElement('a')
-    a.href = previewUrl
-    a.download = `location-${Date.now()}.jpg`
-    a.click()
-  }, [previewUrl])
-
-  const shareLocation = async (item: RecognitionResult) => {
-    if (!item.success) return
-    
-    const shareData = {
-      title: item.name || "Location Found",
-      text: `${item.name} - ${item.address}`,
-      url: item.location ? 
-        `https://www.google.com/maps/search/?api=1&query=${item.location.latitude},${item.location.longitude}` : 
-        window.location.href
-    }
-    
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData)
-      } catch {
-        navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`)
-        toast({ title: "Copied to clipboard" })
+      const script = document.createElement('script')
+      script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho&libraries=places'
+      script.async = true
+      script.defer = true
+      script.onload = () => {
+        setTimeout(initializeMap, 100)
       }
-    } else {
-      navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`)
-      toast({ title: "Copied to clipboard" })
+      script.onerror = () => {
+        console.error('Failed to load Google Maps')
+      }
+      document.head.appendChild(script)
     }
-  }
+
+    loadGoogleMaps()
+
+    // Get high-accuracy location
+    if (navigator.geolocation) {
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          }
+          setUserLocation(location)
+          setLocationAccuracy(position.coords.accuracy)
+          
+          // Add accuracy circle if available
+          if (map && position.coords.accuracy < 1000) {
+            const circle = new window.google.maps.Circle({
+              strokeColor: "#4285f4",
+              strokeOpacity: 0.3,
+              strokeWeight: 1,
+              fillColor: "#4285f4",
+              fillOpacity: 0.1,
+              map: map,
+              center: location,
+              radius: position.coords.accuracy,
+            })
+            setAccuracyCircle(circle)
+          }
+          
+          // Search for nearby places
+          if (map) {
+            const service = new window.google.maps.places.PlacesService(map)
+            const request = {
+              location: location,
+              radius: 1000,
+              type: 'point_of_interest'
+            }
+            
+            service.nearbySearch(request, (results: any, status: any) => {
+              if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
+                setNearbyPlaces(results.slice(0, 5))
+              }
+            })
+          }
+        },
+        (error) => {
+          console.log('Geolocation error:', error)
+          // Use default location if geolocation fails
+          setUserLocation({ latitude: 40.7128, longitude: -74.0060 })
+        },
+        options
+      )
+    }
+  }, [])
+
+
+
+  useEffect(() => {
+    if (result?.success && result.location) {
+      addLocationMarker(result.location, result.name || 'Detected Location')
+      setUploadHistory(prev => 
+        prev.map((item, idx) => 
+          idx === 0 ? { ...item, location: result.location } : item
+        )
+      )
+    }
+  }, [result, addLocationMarker])
 
   return (
-    <div className="min-h-screen bg-[#fafaf9] dark:bg-[#0a0a0a]">
-      {/* Organic blob backgrounds */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl animate-blob"></div>
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-400/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-pink-400/20 dark:bg-pink-600/10 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
-      </div>
-      <nav className="relative z-50 border-b border-stone-200/50 dark:border-stone-800/50 bg-white/50 dark:bg-black/50 backdrop-blur-xl sticky top-0 shadow-lg">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
-          <div className="flex items-center justify-between h-12 sm:h-14 md:h-16">
-            <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
-              <a href="/">
-                <img src="/pic2nav.png" alt="Pic2Nav" className="h-6 sm:h-8 md:h-10 w-auto object-contain drop-shadow-lg cursor-pointer hover:opacity-90 transition-opacity" />
-              </a>
-              <div className="hidden md:flex items-center gap-1">
-                <Button variant="ghost" className="rounded-full text-sm h-8" asChild>
-                  <a href="/">Home</a>
-                </Button>
-                <Button variant="ghost" className="rounded-full text-sm h-8" asChild>
-                  <a href="/dashboard">Dashboard</a>
-                </Button>
-                <Button variant="ghost" className="rounded-full text-sm h-8" asChild>
-                  <a href="/analytics">Analytics</a>
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 sm:gap-2">
-              {uploadHistory.length > 0 && (
-                <Button onClick={() => setShowHistory(!showHistory)} variant="ghost" size="sm" className="rounded-full px-2 sm:px-3 h-8">
-                  <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
-                  <span className="hidden sm:inline text-xs">History</span>
-                  <span className="ml-1 px-1.5 py-0.5 text-xs bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 rounded-full">{uploadHistory.length}</span>
-                </Button>
-              )}
-              {result && (
-                <Button onClick={reset} variant="ghost" size="sm" className="rounded-full px-2 sm:px-3 h-8">
-                  <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
-                  <span className="hidden sm:inline text-xs">Clear</span>
-                </Button>
-              )}
-              <Button className="rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 text-white text-xs px-3 sm:px-4 h-8" size="sm" asChild>
-                <a href="/camera">Scan</a>
-              </Button>
-            </div>
+    <div className="h-screen w-screen relative overflow-hidden">
+      {/* Full Screen Map */}
+      <div ref={mapRef} className="absolute inset-0 w-full h-full" />
+      
+      {/* Camera Overlay */}
+      {cameraActive && (
+        <div className="absolute inset-0 z-50 bg-black">
+          <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4">
+            <button onClick={stopCamera} className="w-16 h-16 bg-white border-2 border-black text-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200">
+              <X className="w-6 h-6" />
+            </button>
+            <button onClick={capturePhoto} className="w-20 h-20 bg-black border-2 border-black text-white hover:bg-white hover:text-black flex items-center justify-center transition-all duration-200">
+              <Camera className="w-8 h-8" />
+            </button>
           </div>
         </div>
-      </nav>
+      )}
 
-      <div className="relative w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 overflow-x-hidden">
-        {!previewUrl && !cameraActive && !isProcessing && (
-          <div className="mb-8 text-center space-y-4">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-stone-900 dark:text-white">
-              Discover <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Any Location</span>
-            </h1>
-            <p className="text-lg text-stone-600 dark:text-stone-400 max-w-2xl mx-auto">
-              Upload a photo and let AI reveal its location, landmarks, and details
-            </p>
+      {/* Logo and Search Bar */}
+      <div className="absolute top-3 sm:top-6 left-3 sm:left-6 right-3 sm:right-6 z-40">
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Logo */}
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white border-2 border-black flex items-center justify-center">
+            <img src="/pic2nav.png" alt="Pic2Nav" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
           </div>
-        )}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 w-full">
-          <div className="w-full lg:col-span-3">
-            <div className="bg-white dark:bg-stone-900 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl overflow-hidden">
-              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-800">
-                <h2 className="text-xs sm:text-sm font-semibold text-stone-900 dark:text-stone-100">Image Upload</h2>
+          
+          {/* Search Toggle Button */}
+          <button 
+            onClick={() => setShowSearchBar(!showSearchBar)}
+            className="w-10 h-10 sm:w-12 sm:h-12 bg-white border-2 border-black text-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200"
+          >
+            <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+          </button>
+          
+          {/* Collapsible Search Bar */}
+          {showSearchBar && (
+            <div className="flex-1 bg-white/95 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-2xl border border-white/20 flex items-center px-3 sm:px-5 py-3 sm:py-4">
+              <button onClick={() => setShowSidebar(!showSidebar)} className="mr-2 sm:mr-4 w-8 h-8 sm:w-10 sm:h-10 bg-white border-2 border-black text-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200">
+                <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+              <input 
+                type="text" 
+                placeholder="Search locations..." 
+                className="flex-1 outline-none text-gray-800 bg-transparent placeholder-gray-500 font-medium text-sm sm:text-base"
+                autoFocus
+              />
+              <button 
+                onClick={() => setShowSearchBar(false)}
+                className="ml-2 sm:ml-4 w-6 h-6 sm:w-8 sm:h-8 bg-white border-2 border-black text-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200"
+              >
+                <X className="w-3 h-3 sm:w-4 sm:h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Floating Sidebar */}
+      {showSidebar && (
+        <div className="absolute top-20 sm:top-32 left-3 sm:left-6 w-[calc(100vw-24px)] sm:w-80 max-h-[calc(100vh-100px)] sm:max-h-[calc(100vh-160px)] bg-white/95 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-2xl border border-white/20 z-50 overflow-hidden">
+          <div className="p-3 sm:p-5 border-b border-gray-200/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <img src="/pic2nav.png" alt="Pic2Nav" className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg" />
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Locations</h2>
               </div>
-              <div className="p-3 sm:p-4 md:p-6">
-                <div 
-                  ref={dropZoneRef}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  className={`relative aspect-[4/3] bg-stone-100 dark:bg-stone-800 rounded-xl sm:rounded-2xl overflow-hidden border-2 transition-colors ${
-                    isDragging ? 'border-stone-900 dark:border-stone-100 bg-stone-50 dark:bg-stone-900' : 'border-stone-200 dark:border-stone-700'
-                  }`}
-                >
-                  <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted style={{ display: cameraActive ? 'block' : 'none' }} />
-                  {previewUrl && !cameraActive && (
-                    <img 
-                      src={previewUrl} 
-                      alt="Preview" 
-                      className="w-full h-full object-contain transition-transform duration-200" 
-                      style={{ transform: `scale(${zoom}) rotate(${rotation}deg)` }}
-                    />
-                  )}
-                  {previewUrl && !cameraActive && !isProcessing && (
-                    <div className="absolute top-2 sm:top-4 right-2 sm:right-4 flex gap-1 sm:gap-2">
-                      <Button onClick={() => setZoom(z => Math.max(0.5, z - 0.25))} size="icon" variant="secondary" className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/90 dark:bg-stone-900/90 hover:bg-white dark:hover:bg-stone-900 shadow-lg">
-                        <ZoomOut className="w-3 h-3 sm:w-4 sm:h-4" />
-                      </Button>
-                      <Button onClick={() => setZoom(z => Math.min(3, z + 0.25))} size="icon" variant="secondary" className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/90 dark:bg-stone-900/90 hover:bg-white dark:hover:bg-stone-900 shadow-lg">
-                        <ZoomIn className="w-3 h-3 sm:w-4 sm:h-4" />
-                      </Button>
-                      <Button onClick={() => setRotation(r => (r + 90) % 360)} size="icon" variant="secondary" className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/90 dark:bg-stone-900/90 hover:bg-white dark:hover:bg-stone-900 shadow-lg">
-                        <RotateCw className="w-3 h-3 sm:w-4 sm:h-4" />
-                      </Button>
-                      <Button onClick={downloadImage} size="icon" variant="secondary" className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-white/90 dark:bg-stone-900/90 hover:bg-white dark:hover:bg-stone-900 shadow-lg">
-                        <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                      </Button>
-                    </div>
-                  )}
-                  {isProcessing && (
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/98 via-blue-50/95 to-purple-50/95 dark:from-stone-900/98 dark:via-blue-950/95 dark:to-purple-950/95 backdrop-blur-md flex items-center justify-center">
-                      <div className="text-center space-y-6 p-8 w-full max-w-sm">
-                        <div className="relative">
-                          <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full blur-2xl opacity-20 animate-pulse"></div>
-                          <Loader2 className="relative w-16 h-16 text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text animate-spin mx-auto" style={{WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}} />
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-lg font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Analyzing Image</p>
-                          <p className="text-sm text-stone-600 dark:text-stone-400">Extracting location data...</p>
-                        </div>
-                        {uploadProgress > 0 && (
-                          <div className="w-full space-y-2">
-                            <div className="h-1.5 bg-stone-200/50 dark:bg-stone-700/50 rounded-full overflow-hidden backdrop-blur-sm">
-                              <div 
-                                className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transition-all duration-500 ease-out rounded-full shadow-lg" 
-                                style={{ width: `${uploadProgress}%` }}
-                              />
-                            </div>
-                            <p className="text-xs font-medium text-stone-500 dark:text-stone-400">{uploadProgress}%</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  {cameraActive && !isProcessing && (
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-4">
-                      <Button onClick={stopCamera} variant="outline" size="icon" className="rounded-full">
-                        <X className="w-5 h-5" />
-                      </Button>
-                      <Button onClick={capturePhoto} size="lg" className="rounded-full w-16 h-16 bg-slate-900 hover:bg-slate-800">
-                        <Camera className="w-6 h-6" />
-                      </Button>
-                    </div>
-                  )}
-                  {!cameraActive && !previewUrl && !isProcessing && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-stone-50 to-stone-100 dark:from-stone-900 dark:to-stone-950">
-                      <div className="text-center space-y-4 sm:space-y-6 p-4 sm:p-8">
-                        <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-xl">
-                          {isDragging ? <Maximize2 className="w-6 h-6 sm:w-8 sm:h-8 text-white animate-pulse" /> : <Camera className="w-6 h-6 sm:w-8 sm:h-8 text-white" />}
-                        </div>
-                        <div>
-                          <h3 className="text-base sm:text-lg font-semibold text-stone-900 dark:text-stone-100 mb-2">{isDragging ? 'Drop image here' : 'Upload an image'}</h3>
-                          <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 max-w-xs mx-auto px-2">
-                            {isDragging ? 'Release to upload' : 'Drag & drop, paste (Ctrl+V), or select an image'}
-                          </p>
-                        </div>
-                        {!isDragging && (
-                          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
-                            <Button onClick={startCamera} disabled={isStartingCamera} className="rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 text-white text-sm">
-                              {isStartingCamera ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Camera className="w-4 h-4 mr-2" />}
-                              {isStartingCamera ? 'Starting...' : 'Camera'}
-                            </Button>
-                            <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="rounded-full border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-900 text-sm">
-                              <Upload className="w-4 h-4 mr-2" />
-                              Upload
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <button onClick={() => setShowSidebar(false)} className="w-8 h-8 sm:w-10 sm:h-10 bg-white border-2 border-black text-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200">
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
             </div>
           </div>
-
-          <div className="w-full lg:col-span-2 space-y-3 sm:space-y-4">
-            {!result && !isProcessing && !previewUrl && (
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-2xl sm:rounded-3xl border border-blue-200 dark:border-blue-900 shadow-xl overflow-hidden">
-                <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-blue-200 dark:border-blue-900 bg-blue-100/50 dark:bg-blue-900/20">
-                  <h2 className="text-xs sm:text-sm font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
-                    <Zap className="w-4 h-4" />
-                    How to Use
-                  </h2>
+          <div className="p-3 sm:p-5 space-y-2 sm:space-y-3 overflow-y-auto max-h-80 sm:max-h-96">
+            {uploadHistory.length === 0 ? (
+              <div className="text-center py-8 sm:py-12">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                  <MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
                 </div>
-                <div className="p-4 sm:p-6 space-y-4">
-                  <div className="flex gap-4">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">1</div>
-                    <div>
-                      <h3 className="font-semibold text-stone-900 dark:text-stone-100 mb-1">Upload Image</h3>
-                      <p className="text-sm text-stone-600 dark:text-stone-400">Click camera or upload button, drag & drop, or paste (Ctrl+V)</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white font-bold text-sm">2</div>
-                    <div>
-                      <h3 className="font-semibold text-stone-900 dark:text-stone-100 mb-1">AI Analysis</h3>
-                      <p className="text-sm text-stone-600 dark:text-stone-400">Our AI extracts GPS data and identifies landmarks instantly</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-red-600 flex items-center justify-center text-white font-bold text-sm">3</div>
-                    <div>
-                      <h3 className="font-semibold text-stone-900 dark:text-stone-100 mb-1">Get Results</h3>
-                      <p className="text-sm text-stone-600 dark:text-stone-400">View location, weather, nearby places, and more details</p>
-                    </div>
-                  </div>
-                </div>
+                <p className="text-gray-500 font-medium text-sm sm:text-base">No locations discovered yet</p>
+                <p className="text-gray-400 text-xs sm:text-sm mt-1">Upload an image to get started</p>
               </div>
-            )}
-            {showHistory && uploadHistory.length > 0 && (
-              <div className="bg-white dark:bg-stone-900 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl overflow-hidden">
-                <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-800 flex items-center justify-between">
-                  <h2 className="text-xs sm:text-sm font-semibold text-stone-900 dark:text-stone-100">Recent Uploads</h2>
-                  <Button onClick={() => setShowHistory(false)} variant="ghost" size="sm">
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-                <div className="p-3 sm:p-4 space-y-2 max-h-64 overflow-y-auto">
-                  {uploadHistory.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-3 p-2 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 cursor-pointer" onClick={() => { setPreviewUrl(item.url); setShowHistory(false) }}>
-                      <img src={item.url} alt={item.name} className="w-12 h-12 object-cover rounded-xl" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">{item.name}</p>
-                        <p className="text-xs text-stone-500 dark:text-stone-400">{new Date(item.timestamp).toLocaleTimeString()}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {result ? (
-              result.success ? (
-                <div className="space-y-3 sm:space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="relative overflow-hidden bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-900 rounded-2xl sm:rounded-3xl p-4 sm:p-5">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-green-400/10 rounded-full blur-2xl"></div>
-                    <div className="relative flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">
-                        <CheckCircle2 className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-green-900 dark:text-green-100">Location identified</p>
-                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">Analysis completed successfully</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="relative overflow-hidden bg-white dark:bg-stone-900 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 shadow-2xl">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-full blur-3xl"></div>
-                    <div className="relative px-4 sm:px-6 py-3 sm:py-4 border-b border-stone-200 dark:border-stone-800 bg-gradient-to-r from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900">
-                      <h2 className="text-xs sm:text-sm font-semibold text-stone-900 dark:text-stone-100 flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        Location Details
-                      </h2>
-                    </div>
-                    <div className="relative p-4 sm:p-6 space-y-3 sm:space-y-4">
-                      <div className="flex items-start gap-3 sm:gap-4">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0 shadow-xl animate-pulse">
-                          <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg sm:text-xl font-bold text-stone-900 dark:text-stone-100 mb-1">{result.name || "Location Found"}</h3>
-                          {result.address && <p className="text-sm text-stone-600 dark:text-stone-400">{result.address}</p>}
-                          {!result.address && result.location && (
-                            <p className="text-sm text-stone-600 dark:text-stone-400">
-                              {result.location.latitude.toFixed(6)}, {result.location.longitude.toFixed(6)}
-                            </p>
-                          )}
-                          {result.confidence && (
-                            <div className="mt-4 p-3 rounded-2xl bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700">
-                              <div className="flex items-center justify-between text-xs text-stone-600 dark:text-stone-400 mb-2">
-                                <span className="font-medium">Confidence Score</span>
-                                <span className="font-bold text-base text-stone-900 dark:text-stone-100">{Math.round(result.confidence * 100)}%</span>
-                              </div>
-                              <div className="h-3 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden shadow-inner">
-                                <div className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full transition-all duration-1000 ease-out shadow-lg" style={{ width: `${result.confidence * 100}%` }} />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {result.location && (
-                        <div className="pt-4 border-t border-stone-200 dark:border-stone-800">
-                          <p className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-2 flex items-center gap-2">
-                            <Globe2 className="w-3 h-3" />
-                            GPS Coordinates
-                          </p>
-                          <div className="flex items-center gap-2 text-sm font-mono bg-gradient-to-r from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900 rounded-2xl p-4 border border-stone-200 dark:border-stone-700 shadow-inner">
-                            <span className="text-stone-900 dark:text-stone-100 font-semibold">{result.location.latitude.toFixed(6)}</span>
-                            <span className="text-stone-400">,</span>
-                            <span className="text-stone-900 dark:text-stone-100 font-semibold">{result.location.longitude.toFixed(6)}</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {(result.locationDetails?.country || result.locationDetails?.state || result.locationDetails?.region) && (
-                        <div className="pt-4 border-t border-stone-200 dark:border-stone-800">
-                          <p className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2">
-                            <Globe className="w-3 h-3" />
-                            Location Info
-                          </p>
-                          <div className="grid grid-cols-2 gap-3">
-                            {result.locationDetails?.country && (
-                              <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/50">
-                                <p className="text-xs text-stone-600 dark:text-stone-400 mb-1">Country</p>
-                                <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{result.locationDetails.country}</p>
-                              </div>
-                            )}
-                            {result.locationDetails?.state && (
-                              <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/50">
-                                <p className="text-xs text-stone-600 dark:text-stone-400 mb-1">State</p>
-                                <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{result.locationDetails.state}</p>
-                              </div>
-                            )}
-                            {result.locationDetails?.region && (
-                              <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/50 col-span-2">
-                                <p className="text-xs text-stone-600 dark:text-stone-400 mb-1">Region</p>
-                                <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{result.locationDetails.region}</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {(result as any).historicalData && (
-                        <div className="pt-4 border-t border-stone-200 dark:border-stone-800">
-                          <p className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2">
-                            <History className="w-3 h-3" />
-                            Photo History
-                          </p>
-                          <div className="space-y-3">
-                            <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
-                              <p className="text-lg font-bold text-amber-900 dark:text-amber-100">{(result as any).historicalData.photoAge}</p>
-                              {(result as any).historicalData.photoTakenDate && (
-                                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                                  Taken: {new Date((result as any).historicalData.photoTakenDate).toLocaleDateString()}
-                                </p>
-                              )}
-                            </div>
-                            {(result as any).historicalData.historicalContext && (
-                              <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/50">
-                                <p className="text-sm text-stone-700 dark:text-stone-300">{(result as any).historicalData.historicalContext}</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {(result.method || result.phoneNumber || result.deviceAnalysis) && (
-                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-stone-200 dark:border-stone-800">
-                          {result.method && (
-                            <div>
-                              <p className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">Method</p>
-                              <p className="text-sm text-stone-900 dark:text-stone-100 capitalize">{result.method.replace(/-/g, ' ')}</p>
-                            </div>
-                          )}
-                          {result.phoneNumber && (
-                            <div>
-                              <p className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">Phone</p>
-                              <p className="text-sm text-stone-900 dark:text-stone-100">{result.phoneNumber}</p>
-                            </div>
-                          )}
-                          {result.deviceAnalysis?.camera?.model && (
-                            <div className="col-span-2">
-                              <p className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">Device</p>
-                              <p className="text-sm text-stone-900 dark:text-stone-100">{result.deviceAnalysis.camera.make} {result.deviceAnalysis.camera.model}</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
-                    <div className="relative overflow-hidden bg-white dark:bg-stone-900 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl">
-                      <div className="absolute top-0 left-0 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl"></div>
-                      <div className="relative px-6 py-4 border-b border-stone-200 dark:border-stone-800 bg-gradient-to-r from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900">
-                        <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100 flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
-                          Nearby Places
-                          <span className="ml-auto text-xs px-2 py-1 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 rounded-full">{result.nearbyPlaces.length}</span>
-                        </h2>
-                      </div>
-                      <div className="relative p-4 space-y-2 max-h-64 overflow-y-auto">
-                        {result.nearbyPlaces.slice(0, 5).map((place: any, idx: number) => (
-                          <div key={idx} className="group p-3 rounded-2xl hover:bg-stone-50 dark:hover:bg-stone-800 transition-all duration-200 cursor-pointer border border-transparent hover:border-stone-200 dark:hover:border-stone-700">
-                            <div className="flex items-start gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-md group-hover:shadow-lg transition-shadow">
-                                <MapPin className="w-5 h-5 text-white" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{place.name}</p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <span className="text-xs px-2 py-0.5 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 rounded-full capitalize">{place.type}</span>
-                                  {place.distance && <span className="text-xs text-stone-500 dark:text-stone-500">{place.distance}m</span>}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {(result.weather || result.elevation) && (
-                    <div className="relative overflow-hidden bg-white dark:bg-stone-900 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl">
-                      <div className="absolute bottom-0 right-0 w-48 h-48 bg-purple-500/5 rounded-full blur-3xl"></div>
-                      <div className="relative px-6 py-4 border-b border-stone-200 dark:border-stone-800 bg-gradient-to-r from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900">
-                        <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100 flex items-center gap-2">
-                          <Globe2 className="w-4 h-4" />
-                          Environment
-                        </h2>
-                      </div>
-                      <div className="relative p-4 grid grid-cols-2 gap-3">
-                        {result.weather && (
-                          <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 border border-blue-200 dark:border-blue-900">
-                            <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-2">Weather</p>
-                            <p className="text-lg font-bold text-blue-900 dark:text-blue-100">{result.weather.temperature}°C</p>
-                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Wind {result.weather.windSpeed} km/h</p>
-                          </div>
-                        )}
-                        {result.elevation && (
-                          <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200 dark:border-purple-900">
-                            <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 mb-2">Elevation</p>
-                            <p className="text-lg font-bold text-purple-900 dark:text-purple-100">{result.elevation.elevation}m</p>
-                            <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">Above sea level</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="relative overflow-hidden bg-gradient-to-br from-white to-stone-50 dark:from-stone-900 dark:to-stone-950 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl">
-                    <div className="px-6 py-4 border-b border-stone-200 dark:border-stone-800 bg-gradient-to-r from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900">
-                      <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100 flex items-center gap-2">
-                        <Zap className="w-4 h-4" />
-                        Quick Actions
-                      </h2>
-                    </div>
-                    <div className="p-4 space-y-2">
-                      {result.location && (
-                        <Button asChild className="w-full justify-start rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 text-white">
-                          <a href={`https://www.google.com/maps/dir/?api=1&destination=${result.location.latitude},${result.location.longitude}`} target="_blank" rel="noopener noreferrer">
-                            <Navigation className="w-4 h-4 mr-2" />
-                            Open in Maps
-                          </a>
-                        </Button>
-                      )}
-                      <Button onClick={() => result.location && (navigator.clipboard.writeText(`${result.location.latitude}, ${result.location.longitude}`), toast({ title: "Coordinates copied" }))} variant="outline" className="w-full justify-start rounded-full border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-900">
-                        <Copy className="w-4 h-4 mr-2" />
-                        Copy Coordinates
-                      </Button>
-                      <Button onClick={() => shareLocation(result)} variant="outline" className="w-full justify-start rounded-full border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-900">
-                        <Share2 className="w-4 h-4 mr-2" />
-                        Share Location
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-2xl sm:rounded-3xl p-4 sm:p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-900 flex items-center justify-center flex-shrink-0">
-                      <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-red-900 dark:text-red-100 mb-2">Recognition Failed</h3>
-                      <p className="text-sm text-red-700 dark:text-red-300">{result.error}</p>
-                      <Button onClick={reset} size="sm" className="mt-4 rounded-full bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white">
-                        Try Again
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )
             ) : (
-              <div className="bg-white dark:bg-stone-900 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 shadow-xl p-6 sm:p-8">
-                <div className="text-center space-y-4">
-                  <div className="w-12 h-12 mx-auto rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-                    <MapPin className="w-6 h-6 text-white" />
+              uploadHistory.map((item, idx) => (
+                <div key={idx} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg sm:rounded-xl hover:bg-gray-50 cursor-pointer transition-all duration-200 border border-gray-100 hover:border-gray-200 hover:shadow-md" onClick={() => item.location && map?.panTo(item.location)}>
+                  <img src={item.url} alt={item.name} className="w-12 h-12 sm:w-14 sm:h-14 object-cover rounded-lg sm:rounded-xl shadow-sm" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate text-gray-900 text-sm sm:text-base">{item.name}</p>
+                    <p className="text-gray-500 text-xs sm:text-sm font-medium">{new Date(item.timestamp).toLocaleTimeString()}</p>
+                    {item.location && (
+                      <div className="flex items-center gap-1 mt-1 sm:mt-2 bg-emerald-50 px-2 py-1 rounded-md sm:rounded-lg w-fit">
+                        <MapPin className="w-2 h-2 sm:w-3 sm:h-3 text-emerald-600" />
+                        <span className="text-emerald-700 text-xs font-semibold">Located</span>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-stone-900 dark:text-stone-100 mb-2">No results yet</h3>
-                    <p className="text-sm text-stone-600 dark:text-stone-400">Upload an image to see location details</p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Floating Map Controls */}
+      <div className="absolute top-20 sm:top-32 right-3 sm:right-6 z-40 space-y-1 sm:space-y-2">
+        <button 
+          onClick={() => {
+            const newMapType = mapType === 'roadmap' ? 'satellite' : 'roadmap'
+            setMapType(newMapType)
+            map?.setMapTypeId(newMapType)
+          }}
+          className="w-10 h-10 sm:w-12 sm:h-12 bg-white border-2 border-black text-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200"
+          title={`Switch to ${mapType === 'roadmap' ? 'Satellite' : 'Road'} View`}
+        >
+          <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
+        </button>
+        
+        <button 
+          onClick={() => {
+            if (showTraffic && trafficLayer) {
+              trafficLayer.setMap(null)
+              setTrafficLayer(null)
+              setShowTraffic(false)
+            } else {
+              const newTrafficLayer = new window.google.maps.TrafficLayer()
+              newTrafficLayer.setMap(map)
+              setTrafficLayer(newTrafficLayer)
+              setShowTraffic(true)
+            }
+          }}
+          className={`w-10 h-10 sm:w-12 sm:h-12 border-2 border-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200 ${
+            showTraffic ? 'bg-red-500 text-white' : 'bg-white text-black'
+          }`}
+          title="Toggle Traffic"
+        >
+          <Car className="w-4 h-4 sm:w-5 sm:h-5" />
+        </button>
+        
+        <button 
+          onClick={() => {
+            if (showTransit && transitLayer) {
+              transitLayer.setMap(null)
+              setTransitLayer(null)
+              setShowTransit(false)
+            } else {
+              const newTransitLayer = new window.google.maps.TransitLayer()
+              newTransitLayer.setMap(map)
+              setTransitLayer(newTransitLayer)
+              setShowTransit(true)
+            }
+          }}
+          className={`w-10 h-10 sm:w-12 sm:h-12 border-2 border-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200 ${
+            showTransit ? 'bg-green-500 text-white' : 'bg-white text-black'
+          }`}
+          title="Toggle Transit"
+        >
+          <Bus className="w-4 h-4 sm:w-5 sm:h-5" />
+        </button>
+        
+        <button 
+          onClick={() => {
+            if (showBiking && bikeLayer) {
+              bikeLayer.setMap(null)
+              setBikeLayer(null)
+              setShowBiking(false)
+            } else {
+              const newBikeLayer = new window.google.maps.BicyclingLayer()
+              newBikeLayer.setMap(map)
+              setBikeLayer(newBikeLayer)
+              setShowBiking(true)
+            }
+          }}
+          className={`w-10 h-10 sm:w-12 sm:h-12 border-2 border-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200 ${
+            showBiking ? 'bg-orange-500 text-white' : 'bg-white text-black'
+          }`}
+          title="Toggle Biking"
+        >
+          <Bike className="w-4 h-4 sm:w-5 sm:h-5" />
+        </button>
+        
+        {userLocation && (
+          <button 
+            onClick={() => {
+              map?.panTo(userLocation)
+              map?.setZoom(16)
+            }}
+            className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 border-2 border-black text-white hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200"
+            title="Center on My Location"
+          >
+            <Navigation className="w-4 h-4 sm:w-5 sm:h-5" />
+          </button>
+        )}
+        
+        <button 
+          onClick={() => setShowLocationInfo(!showLocationInfo)}
+          className={`w-10 h-10 sm:w-12 sm:h-12 border-2 border-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200 ${
+            showLocationInfo ? 'bg-purple-500 text-white' : 'bg-white text-black'
+          }`}
+          title="Location Info"
+        >
+          <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
+        </button>
+      </div>
+
+      {/* Floating Action Buttons */}
+      <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-40">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="w-14 h-14 sm:w-16 sm:h-16 bg-white border-2 border-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200 text-black hover:text-white"
+          >
+            <Upload className="w-6 h-6 sm:w-7 sm:h-7" />
+          </button>
+          
+          <button 
+            onClick={startCamera} 
+            disabled={isStartingCamera}
+            className="w-14 h-14 sm:w-16 sm:h-16 bg-black border-2 border-black text-white hover:bg-white hover:text-black flex items-center justify-center transition-all duration-200 disabled:opacity-50"
+          >
+            {isStartingCamera ? <Loader2 className="w-6 h-6 sm:w-7 sm:h-7 animate-spin" /> : <Camera className="w-6 h-6 sm:w-7 sm:h-7" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Processing Overlay */}
+      {isProcessing && (
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50">
+          <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 text-center shadow-2xl border border-white/20 max-w-sm mx-6">
+            <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-6"></div>
+            <p className="text-xl font-bold text-gray-900 mb-2">Analyzing Image</p>
+            <p className="text-gray-600 font-medium">Extracting location data with AI...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Location Info Panel */}
+      {showLocationInfo && userLocation && (
+        <div className="absolute bottom-24 left-6 z-40 w-80">
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-bold text-gray-900">Current Location</h3>
+              <button 
+                onClick={() => setShowLocationInfo(false)}
+                className="w-8 h-8 bg-white border-2 border-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                <span className="font-medium text-gray-900">Live Location</span>
+              </div>
+              
+              <div className="bg-gray-50 p-2 rounded-lg font-mono text-xs">
+                <p>Lat: {userLocation.latitude.toFixed(6)}</p>
+                <p>Lng: {userLocation.longitude.toFixed(6)}</p>
+                {locationAccuracy && (
+                  <p>Accuracy: ±{Math.round(locationAccuracy)}m</p>
+                )}
+              </div>
+              
+              {nearbyPlaces.length > 0 && (
+                <div className="mt-3">
+                  <h4 className="font-semibold text-gray-900 mb-2">Nearby Places</h4>
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {nearbyPlaces.map((place, idx) => (
+                      <div key={idx} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                           onClick={() => {
+                             if (place.geometry?.location) {
+                               map?.panTo(place.geometry.location)
+                               map?.setZoom(17)
+                             }
+                           }}>
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-xs truncate">{place.name}</p>
+                          {place.rating && (
+                            <p className="text-xs text-gray-500">★ {place.rating}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                </div>
+              )}
+              
+              <div className="flex flex-wrap gap-1 mt-3">
+                {showTraffic && <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">Traffic</span>}
+                {showTransit && <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Transit</span>}
+                {showBiking && <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">Biking</span>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modern Result Card */}
+      {result && (
+        <div className="absolute top-8 left-4 right-4 z-40 transition-all duration-300">
+          <div className="bg-white/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/20 max-w-2xl mx-auto max-h-[85vh] flex flex-col overflow-hidden">
+            {result.success ? (
+              <>
+                {/* Success Header */}
+                <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-8 flex-shrink-0 overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10"></div>
+                  <div className="relative flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                          <MapPin className="w-4 h-4 text-blue-400" />
+                        </div>
+                        <span className="text-xs font-medium text-blue-300">LOCATION IDENTIFIED</span>
+                      </div>
+                      <h3 className="text-3xl font-bold mb-3 tracking-tight">{result.name || "Unknown Location"}</h3>
+                      {result.address && (
+                        <p className="text-slate-300 text-sm leading-relaxed">{result.address}</p>
+                      )}
+                    </div>
+                    <button 
+                      onClick={() => setResult(null)}
+                      className="w-10 h-10 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center transition-all backdrop-blur-sm"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto">
+                  <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 backdrop-blur-sm px-4 py-2.5 border-b border-amber-200/50">
+                    <p className="text-xs text-amber-900 font-medium">⚠️ Estimated data - not real-time</p>
+                  </div>
+                  <Tabs defaultValue="overview" className="w-full">
+                    <TabsList className="grid w-full grid-cols-4 bg-slate-50/50 backdrop-blur-sm border-b border-slate-200/50 p-1">
+                      <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Overview</TabsTrigger>
+                      <TabsTrigger value="business" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Business</TabsTrigger>
+                      <TabsTrigger value="area" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Area</TabsTrigger>
+                      <TabsTrigger value="insights" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Insights</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="overview" className="p-6 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      {result.confidence && (
+                        <div className="relative bg-gradient-to-br from-white to-slate-50 rounded-2xl p-5 shadow-lg border border-slate-200/50">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-slate-600 text-xs font-semibold uppercase tracking-wider">Confidence</span>
+                            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{Math.round(result.confidence * 100)}%</span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                            <div 
+                              className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 h-3 rounded-full transition-all duration-700 shadow-lg" 
+                              style={{ width: `${result.confidence * 100}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {result.location && (
+                        <div className="relative bg-gradient-to-br from-white to-slate-50 rounded-2xl p-5 shadow-lg border border-slate-200/50">
+                          <span className="text-slate-600 text-xs font-semibold uppercase tracking-wider block mb-3">Coordinates</span>
+                          <p className="text-slate-900 text-sm font-mono font-semibold">
+                            {result.location.latitude.toFixed(4)}, {result.location.longitude.toFixed(4)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {result.analysis && (
+                      <div className="relative bg-gradient-to-br from-white to-slate-50 rounded-2xl p-5 shadow-lg border border-slate-200/50">
+                        <h4 className="text-slate-900 font-bold text-base mb-4 tracking-tight">Building Analysis</h4>
+                        <div className="space-y-2.5">
+                          {[
+                            { key: 'architecture', label: 'Architecture', value: result.analysis.architecture },
+                            { key: 'buildingType', label: 'Building Type', value: result.analysis.buildingType },
+                            { key: 'historicalPeriod', label: 'Period', value: result.analysis.historicalPeriod },
+                            { key: 'condition', label: 'Condition', value: result.analysis.condition }
+                          ].filter(item => item.value).map((item) => (
+                            <div key={item.key} className="flex items-center justify-between py-2.5">
+                              <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">{item.label}</span>
+                              <span className="text-gray-900 text-sm font-semibold">{item.value}</span>
+                            </div>
+                          ))}
+                          
+                          {result.analysis.materials && result.analysis.materials.length > 0 && (
+                            <div className="pt-3 border-t border-gray-100">
+                              <span className="text-gray-500 text-xs font-medium uppercase tracking-wide block mb-2">Materials</span>
+                              <div className="flex flex-wrap gap-2">
+                                {result.analysis.materials.map((material, idx) => (
+                                  <span key={idx} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
+                                    {material}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {result.analysis.significance && (
+                            <div className="pt-3 border-t border-gray-100">
+                              <span className="text-gray-500 text-xs font-medium uppercase tracking-wide block mb-2">Significance</span>
+                              <p className="text-gray-700 text-sm leading-relaxed">{result.analysis.significance}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    </TabsContent>
+                    
+                    <TabsContent value="business" className="p-6 space-y-4">
+                      {result.nearbyPlaces && result.nearbyPlaces.length > 0 ? (
+                        <div className="relative bg-gradient-to-br from-white to-slate-50 rounded-2xl p-5 shadow-lg border border-slate-200/50">
+                          <h4 className="text-slate-900 font-bold text-base mb-4 tracking-tight">Nearby Places</h4>
+                          <div className="space-y-3">
+                            {result.nearbyPlaces.slice(0, 5).map((place: any, idx: number) => (
+                              <div key={idx} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                                <div>
+                                  <p className="font-semibold text-sm text-slate-900">{place.name}</p>
+                                  <p className="text-xs text-slate-500">{place.type}</p>
+                                </div>
+                                {place.distance && <span className="text-xs text-slate-600">{place.distance}m</span>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-slate-500 text-sm">No nearby places data available</p>
+                        </div>
+                      )}
+                    </TabsContent>
+                    
+                    <TabsContent value="area" className="p-6 space-y-4">
+                      <div className="text-center py-8">
+                        <p className="text-slate-500 text-sm">No environmental data available</p>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="insights" className="p-6 space-y-4">
+                      <div className="text-center py-8">
+                        <p className="text-slate-500 text-sm">No additional insights available</p>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+                
+                {result.location && (
+                  <div className="p-6 bg-gradient-to-br from-slate-50 to-white border-t border-slate-200/50 flex-shrink-0">
+                    <button 
+                      onClick={() => {
+                        if (result.location) {
+                          const { latitude, longitude } = result.location
+                          const locationName = encodeURIComponent(result.name || 'Detected Location')
+                          const googleMapsUrl = `https://www.google.com/maps/search/${locationName}/@${latitude},${longitude},17z`
+                          window.open(googleMapsUrl, '_blank')
+                        }
+                      }}
+                      className="w-full bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-200 flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-95"
+                    >
+                      <MapPin className="w-5 h-5" />
+                      Open in Google Maps
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center">
+                {/* Error Header */}
+                <div className="bg-gradient-to-r from-red-500 to-rose-600 text-white p-4">
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                    <span className="text-xs font-medium opacity-90">Recognition Failed</span>
+                  </div>
+                  <h3 className="text-lg font-bold">Unable to Identify Location</h3>
+                </div>
+                
+                <div className="p-6">
+                  <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-red-100">
+                    <X className="w-8 h-8 text-red-500" />
+                  </div>
+                  <p className="text-gray-600 text-sm leading-relaxed mb-6 max-w-xs mx-auto">{result.error}</p>
+                  <button 
+                    onClick={() => setResult(null)}
+                    className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    aria-label="Close and try again"
+                  >
+                    Try Again
+                  </button>
                 </div>
               </div>
             )}
           </div>
         </div>
-      </div>
+      )}
 
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFileSelect(file) }} />
       <canvas ref={canvasRef} className="hidden" />
-
-      <style jsx global>{`
-        @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-      `}</style>
     </div>
   )
 }
