@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { BrandLogo } from "@/components/ui/brand-logo"
 import { SimpleMap } from "@/components/ui/simple-map"
+import { CookieConsent } from "@/components/CookieConsent"
 import { Camera, MapPin, ArrowRight, Zap, Globe2, Upload, Zap as AnalyzeIcon, MapPin as DiscoverIcon, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { seoConfig } from "@/lib/seo-config"
@@ -213,11 +214,17 @@ export default function HomePage() {
             <div className="flex items-center gap-3">
               <img src="/pic2nav.png" alt="Pic2Nav" className="h-10 sm:h-12 md:h-14 w-auto object-contain drop-shadow-lg" />
             </div>
-            <p className="text-xs sm:text-sm text-stone-500">© 2024 Pic2Nav</p>
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-xs sm:text-sm text-stone-500">
+              <div className="flex gap-4">
+                <Link href="/privacy" className="hover:text-stone-700 dark:hover:text-stone-300">Privacy</Link>
+                <Link href="/cookies" className="hover:text-stone-700 dark:hover:text-stone-300">Cookies</Link>
+                <Link href="/data-management" className="hover:text-stone-700 dark:hover:text-stone-300">Manage Data</Link>
+              </div>
+              <p>© 2024 Pic2Nav</p>
+            </div>
           </div>
         </div>
       </footer>
-      </>
 
       <style jsx global>{`
         @keyframes blob {
@@ -235,6 +242,8 @@ export default function HomePage() {
           animation-delay: 4s;
         }
       `}</style>
-    </div>
+      </div>
+      <CookieConsent />
+    </>
   )
 }

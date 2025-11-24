@@ -20,17 +20,12 @@ export const metadata = {
     address: false,
     telephone: false,
   },
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=5',
   icons: {
     icon: '/pic2nav.png',
     apple: '/pic2nav.png',
     shortcut: '/pic2nav.png',
   },
   manifest: '/manifest.json',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' }
-  ],
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -74,7 +69,17 @@ export const metadata = {
   },
   category: 'technology',
   classification: 'AI Photo Analysis Tool',
-  referrer: 'origin-when-cross-origin',
+  referrer: 'strict-origin-when-cross-origin',
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' }
+  ],
 }
 
 export default function RootLayout({
@@ -85,13 +90,29 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-JWTQJ8XY8Z"></script>
         <script dangerouslySetInnerHTML={{
           __html: `
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
+            
+            // Initialize consent mode
+            gtag('consent', 'default', {
+              'analytics_storage': 'denied',
+              'ad_storage': 'denied',
+              'wait_for_update': 500
+            });
+            
             gtag('js', new Date());
-            gtag('config', 'G-JWTQJ8XY8Z');
+          `
+        }} />
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-JWTQJ8XY8Z"></script>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            gtag('config', 'G-JWTQJ8XY8Z', {
+              'anonymize_ip': true,
+              'allow_google_signals': false,
+              'allow_ad_personalization_signals': false
+            });
           `
         }} />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
