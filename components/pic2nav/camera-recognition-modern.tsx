@@ -599,203 +599,119 @@ export function CameraRecognitionModern() {
         </div>
       )}
 
-      {/* Logo and Search Bar */}
-      <div className="absolute top-3 sm:top-6 left-3 sm:left-6 right-3 sm:right-6 z-40">
-        <div className="flex items-center gap-2 sm:gap-4">
-          {/* Logo */}
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white border-2 border-black flex items-center justify-center">
-            <img src="/pic2nav.png" alt="Pic2Nav" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+      {/* Mobile Header */}
+      <div className="absolute top-4 left-4 right-4 z-40">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-lg">
+              <img src="/pic2nav.png" alt="Pic2Nav" className="w-6 h-6 object-contain" />
+            </div>
+            <button 
+              onClick={() => setShowSidebar(!showSidebar)}
+              className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-lg"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
           </div>
-          
-          {/* Search Toggle Button */}
           <button 
             onClick={() => setShowSearchBar(!showSearchBar)}
-            className="w-10 h-10 sm:w-12 sm:h-12 bg-white border-2 border-black text-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200"
+            className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-lg"
           >
-            <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+            <Search className="w-5 h-5" />
           </button>
-          
-          {/* Collapsible Search Bar */}
-          {showSearchBar && (
-            <div className="flex-1 bg-white/95 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-2xl border border-white/20 flex items-center px-3 sm:px-5 py-3 sm:py-4">
-              <button onClick={() => setShowSidebar(!showSidebar)} className="mr-2 sm:mr-4 w-8 h-8 sm:w-10 sm:h-10 bg-white border-2 border-black text-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200">
-                <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-              <input 
-                ref={searchInputRef}
-                type="text" 
-                placeholder="Search address, zip code, or place..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 outline-none text-gray-800 bg-transparent placeholder-gray-500 font-medium text-sm sm:text-base"
-                autoFocus
-              />
-              <button 
-                onClick={() => {
-                  setShowSearchBar(false)
-                  setSearchQuery('')
-                }}
-                className="ml-2 sm:ml-4 w-6 h-6 sm:w-8 sm:h-8 bg-white border-2 border-black text-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200"
-              >
-                <X className="w-3 h-3 sm:w-4 sm:h-4" />
-              </button>
-            </div>
-          )}
         </div>
+        
+        {/* Search Bar */}
+        {showSearchBar && (
+          <div className="mt-3 bg-white rounded-lg shadow-lg p-3">
+            <input 
+              ref={searchInputRef}
+              type="text" 
+              placeholder="Search places..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full outline-none text-gray-800 placeholder-gray-500"
+              autoFocus
+            />
+          </div>
+        )}
       </div>
 
-      {/* Floating Sidebar */}
+      {/* Mobile Sidebar */}
       {showSidebar && (
-        <div className="absolute top-20 sm:top-32 left-3 sm:left-6 w-[calc(100vw-24px)] sm:w-80 max-h-[calc(100vh-100px)] sm:max-h-[calc(100vh-160px)] bg-white/95 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-2xl border border-white/20 z-50 overflow-hidden">
-          <div className="p-3 sm:p-5 border-b border-gray-200/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <img src="/pic2nav.png" alt="Pic2Nav" className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg" />
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Locations</h2>
+        <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowSidebar(false)}>
+          <div className="absolute left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold">Locations</h2>
+                <button onClick={() => setShowSidebar(false)} className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <button onClick={() => setShowSidebar(false)} className="w-8 h-8 sm:w-10 sm:h-10 bg-white border-2 border-black text-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200">
-                <X className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
             </div>
-          </div>
-          <div className="p-3 sm:p-5 space-y-2 sm:space-y-3 overflow-y-auto max-h-80 sm:max-h-96">
-            {uploadHistory.length === 0 ? (
-              <div className="text-center py-8 sm:py-12">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                  <MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
+            <div className="p-4 overflow-y-auto h-full">
+              {uploadHistory.length === 0 ? (
+                <div className="text-center py-12">
+                  <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">No locations yet</p>
                 </div>
-                <p className="text-gray-500 font-medium text-sm sm:text-base">No locations discovered yet</p>
-                <p className="text-gray-400 text-xs sm:text-sm mt-1">Upload an image to get started</p>
-              </div>
-            ) : (
-              uploadHistory.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg sm:rounded-xl hover:bg-gray-50 cursor-pointer transition-all duration-200 border border-gray-100 hover:border-gray-200 hover:shadow-md" onClick={() => item.location && map?.panTo(item.location)}>
-                  <img src={item.url} alt={item.name} className="w-12 h-12 sm:w-14 sm:h-14 object-cover rounded-lg sm:rounded-xl shadow-sm" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate text-gray-900 text-sm sm:text-base">{item.name}</p>
-                    <p className="text-gray-500 text-xs sm:text-sm font-medium">{new Date(item.timestamp).toLocaleTimeString()}</p>
-                    {item.location && (
-                      <div className="flex items-center gap-1 mt-1 sm:mt-2 bg-emerald-50 px-2 py-1 rounded-md sm:rounded-lg w-fit">
-                        <MapPin className="w-2 h-2 sm:w-3 sm:h-3 text-emerald-600" />
-                        <span className="text-emerald-700 text-xs font-semibold">Located</span>
+              ) : (
+                <div className="space-y-3">
+                  {uploadHistory.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50" onClick={() => item.location && map?.panTo(item.location)}>
+                      <img src={item.url} alt={item.name} className="w-12 h-12 object-cover rounded-lg" />
+                      <div className="flex-1">
+                        <p className="font-medium text-sm truncate">{item.name}</p>
+                        <p className="text-xs text-gray-500">{new Date(item.timestamp).toLocaleTimeString()}</p>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              ))
-            )}
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Floating Map Controls */}
-      <div className="absolute top-20 sm:top-32 right-3 sm:right-6 z-40 space-y-1 sm:space-y-2">
-        <button 
-          onClick={() => {
-            const newMapType = mapType === 'roadmap' ? 'satellite' : 'roadmap'
-            setMapType(newMapType)
-            map?.setMapTypeId(newMapType)
-          }}
-          className="w-10 h-10 sm:w-12 sm:h-12 bg-white border-2 border-black text-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200"
-          title={`Switch to ${mapType === 'roadmap' ? 'Satellite' : 'Road'} View`}
-        >
-          <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
-        </button>
-        
-        <button 
-          onClick={() => {
-            if (showTraffic && trafficLayer) {
-              trafficLayer.setMap(null)
-              setTrafficLayer(null)
-              setShowTraffic(false)
-            } else {
-              const newTrafficLayer = new window.google.maps.TrafficLayer()
-              newTrafficLayer.setMap(map)
-              setTrafficLayer(newTrafficLayer)
-              setShowTraffic(true)
-            }
-          }}
-          className={`w-10 h-10 sm:w-12 sm:h-12 border-2 border-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200 ${
-            showTraffic ? 'bg-red-500 text-white' : 'bg-white text-black'
-          }`}
-          title="Toggle Traffic"
-        >
-          <Car className="w-4 h-4 sm:w-5 sm:h-5" />
-        </button>
-        
-        <button 
-          onClick={() => {
-            if (showTransit && transitLayer) {
-              transitLayer.setMap(null)
-              setTransitLayer(null)
-              setShowTransit(false)
-            } else {
-              const newTransitLayer = new window.google.maps.TransitLayer()
-              newTransitLayer.setMap(map)
-              setTransitLayer(newTransitLayer)
-              setShowTransit(true)
-            }
-          }}
-          className={`w-10 h-10 sm:w-12 sm:h-12 border-2 border-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200 ${
-            showTransit ? 'bg-green-500 text-white' : 'bg-white text-black'
-          }`}
-          title="Toggle Transit"
-        >
-          <Bus className="w-4 h-4 sm:w-5 sm:h-5" />
-        </button>
-        
-        <button 
-          onClick={() => {
-            if (showBiking && bikeLayer) {
-              bikeLayer.setMap(null)
-              setBikeLayer(null)
-              setShowBiking(false)
-            } else {
-              const newBikeLayer = new window.google.maps.BicyclingLayer()
-              newBikeLayer.setMap(map)
-              setBikeLayer(newBikeLayer)
-              setShowBiking(true)
-            }
-          }}
-          className={`w-10 h-10 sm:w-12 sm:h-12 border-2 border-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200 ${
-            showBiking ? 'bg-orange-500 text-white' : 'bg-white text-black'
-          }`}
-          title="Toggle Biking"
-        >
-          <Bike className="w-4 h-4 sm:w-5 sm:h-5" />
-        </button>
-        
+      {/* Map Controls */}
+      <div className="absolute top-20 right-4 z-40 space-y-2">
         {userLocation && (
           <button 
             onClick={() => {
               map?.panTo({ lat: userLocation.latitude, lng: userLocation.longitude })
               map?.setZoom(16)
             }}
-            className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 border-2 border-black text-white hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200"
-            title="Center on My Location"
+            className="w-10 h-10 bg-blue-500 text-white rounded-lg shadow-lg flex items-center justify-center"
           >
-            <Navigation className="w-4 h-4 sm:w-5 sm:h-5" />
+            <Navigation className="w-5 h-5" />
           </button>
         )}
-        
         <button 
-          onClick={() => setShowLocationInfo(!showLocationInfo)}
-          className={`w-10 h-10 sm:w-12 sm:h-12 border-2 border-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200 ${
-            showLocationInfo ? 'bg-purple-500 text-white' : 'bg-white text-black'
-          }`}
-          title="Location Info"
+          onClick={() => {
+            const newMapType = mapType === 'roadmap' ? 'satellite' : 'roadmap'
+            setMapType(newMapType)
+            map?.setMapTypeId(newMapType)
+          }}
+          className="w-10 h-10 bg-white rounded-lg shadow-lg flex items-center justify-center"
         >
-          <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
+          <Layers className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Floating Action Button */}
-      <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-40">
+      {/* Action Buttons */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-40 flex gap-4">
+        <button 
+          onClick={startCamera}
+          disabled={isStartingCamera}
+          className="w-16 h-16 bg-blue-500 text-white rounded-full shadow-xl flex items-center justify-center disabled:opacity-50"
+        >
+          {isStartingCamera ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6" />}
+        </button>
         <button 
           onClick={() => fileInputRef.current?.click()}
-          className="w-16 h-16 sm:w-20 sm:h-20 bg-black border-2 border-black text-white hover:bg-white hover:text-black flex items-center justify-center transition-all duration-200 shadow-2xl"
+          className="w-16 h-16 bg-black text-white rounded-full shadow-xl flex items-center justify-center"
         >
-          <Upload className="w-7 h-7 sm:w-9 sm:h-9" />
+          <Upload className="w-6 h-6" />
         </button>
       </div>
 
@@ -812,8 +728,8 @@ export function CameraRecognitionModern() {
 
       {/* Location Info Panel */}
       {showLocationInfo && userLocation && (
-        <div className="absolute bottom-24 left-6 z-40 w-80">
-          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 p-4">
+        <div className="absolute bottom-24 left-3 sm:left-6 z-40 w-[calc(100vw-24px)] sm:w-80 max-w-sm">
+          <div className="bg-white/95 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-2xl border border-white/20 p-3 sm:p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-bold text-gray-900">Current Location</h3>
               <button 
@@ -873,155 +789,74 @@ export function CameraRecognitionModern() {
         </div>
       )}
       
-      {/* Modern Result Card */}
+      {/* Result Card */}
       {result && (
-        <div className="absolute top-8 left-4 right-4 z-40 transition-all duration-300">
-          <div className="bg-white/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/20 max-w-2xl mx-auto max-h-[85vh] flex flex-col overflow-hidden">
+        <div className="absolute bottom-32 left-4 right-4 z-40">
+          <div className="bg-white rounded-xl shadow-xl max-h-[60vh] flex flex-col overflow-hidden">
             {result.success ? (
               <>
-                {/* Success Header */}
-                <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-8 flex-shrink-0 overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10"></div>
-                  <div className="relative flex items-start justify-between">
+                <div className="bg-slate-900 text-white p-4 flex-shrink-0">
+                  <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-                          <MapPin className="w-4 h-4 text-blue-400" />
-                        </div>
-                        <span className="text-xs font-medium text-blue-300">LOCATION IDENTIFIED</span>
-                      </div>
-                      <h3 className="text-3xl font-bold mb-3 tracking-tight">{result.name || "Unknown Location"}</h3>
+                      <h3 className="text-lg font-bold mb-1">{result.name || "Unknown Location"}</h3>
                       {result.address && (
-                        <p className="text-slate-300 text-sm leading-relaxed">{result.address}</p>
+                        <p className="text-slate-300 text-sm">{result.address}</p>
                       )}
                     </div>
                     <button 
                       onClick={() => setResult(null)}
-                      className="w-10 h-10 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center transition-all backdrop-blur-sm"
+                      className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto">
-                  <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 backdrop-blur-sm px-4 py-2.5 border-b border-amber-200/50">
-                    <p className="text-xs text-amber-900 font-medium">⚠️ Estimated data - not real-time</p>
-                  </div>
-                  <Tabs defaultValue="overview" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4 bg-slate-50/50 backdrop-blur-sm border-b border-slate-200/50 p-1">
-                      <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Overview</TabsTrigger>
-                      <TabsTrigger value="business" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Business</TabsTrigger>
-                      <TabsTrigger value="area" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Area</TabsTrigger>
-                      <TabsTrigger value="insights" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Insights</TabsTrigger>
-                    </TabsList>
+                <div className="flex-1 overflow-y-auto p-4">
+                  <div className="space-y-3">
                     
-                    <TabsContent value="overview" className="p-6 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      {result.confidence && (
-                        <div className="relative bg-gradient-to-br from-white to-slate-50 rounded-2xl p-5 shadow-lg border border-slate-200/50">
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="text-slate-600 text-xs font-semibold uppercase tracking-wider">Confidence</span>
-                            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{Math.round(result.confidence * 100)}%</span>
-                          </div>
-                          <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                            <div 
-                              className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 h-3 rounded-full transition-all duration-700 shadow-lg" 
-                              style={{ width: `${result.confidence * 100}%` }}
-                            ></div>
-                          </div>
+                    {result.confidence && (
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium">Confidence</span>
+                          <span className="text-lg font-bold">{Math.round(result.confidence * 100)}%</span>
                         </div>
-                      )}
-                      
-                      {result.location && (
-                        <div className="relative bg-gradient-to-br from-white to-slate-50 rounded-2xl p-5 shadow-lg border border-slate-200/50">
-                          <span className="text-slate-600 text-xs font-semibold uppercase tracking-wider block mb-3">Coordinates</span>
-                          <p className="text-slate-900 text-sm font-mono font-semibold">
-                            {result.location.latitude.toFixed(4)}, {result.location.longitude.toFixed(4)}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {result.analysis && (
-                      <div className="relative bg-gradient-to-br from-white to-slate-50 rounded-2xl p-5 shadow-lg border border-slate-200/50">
-                        <h4 className="text-slate-900 font-bold text-base mb-4 tracking-tight">Building Analysis</h4>
-                        <div className="space-y-2.5">
-                          {[
-                            { key: 'architecture', label: 'Architecture', value: result.analysis.architecture },
-                            { key: 'buildingType', label: 'Building Type', value: result.analysis.buildingType },
-                            { key: 'historicalPeriod', label: 'Period', value: result.analysis.historicalPeriod },
-                            { key: 'condition', label: 'Condition', value: result.analysis.condition }
-                          ].filter(item => item.value).map((item) => (
-                            <div key={item.key} className="flex items-center justify-between py-2.5">
-                              <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">{item.label}</span>
-                              <span className="text-gray-900 text-sm font-semibold">{item.value}</span>
-                            </div>
-                          ))}
-                          
-                          {result.analysis.materials && result.analysis.materials.length > 0 && (
-                            <div className="pt-3 border-t border-gray-100">
-                              <span className="text-gray-500 text-xs font-medium uppercase tracking-wide block mb-2">Materials</span>
-                              <div className="flex flex-wrap gap-2">
-                                {result.analysis.materials.map((material, idx) => (
-                                  <span key={idx} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
-                                    {material}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {result.analysis.significance && (
-                            <div className="pt-3 border-t border-gray-100">
-                              <span className="text-gray-500 text-xs font-medium uppercase tracking-wide block mb-2">Significance</span>
-                              <p className="text-gray-700 text-sm leading-relaxed">{result.analysis.significance}</p>
-                            </div>
-                          )}
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-500 h-2 rounded-full" 
+                            style={{ width: `${result.confidence * 100}%` }}
+                          ></div>
                         </div>
                       </div>
                     )}
-                    </TabsContent>
                     
-                    <TabsContent value="business" className="p-6 space-y-4">
-                      {result.nearbyPlaces && result.nearbyPlaces.length > 0 ? (
-                        <div className="relative bg-gradient-to-br from-white to-slate-50 rounded-2xl p-5 shadow-lg border border-slate-200/50">
-                          <h4 className="text-slate-900 font-bold text-base mb-4 tracking-tight">Nearby Places</h4>
-                          <div className="space-y-3">
-                            {result.nearbyPlaces.slice(0, 5).map((place: any, idx: number) => (
-                              <div key={idx} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                                <div>
-                                  <p className="font-semibold text-sm text-slate-900">{place.name}</p>
-                                  <p className="text-xs text-slate-500">{place.type}</p>
-                                </div>
-                                {place.distance && <span className="text-xs text-slate-600">{place.distance}m</span>}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <p className="text-slate-500 text-sm">No nearby places data available</p>
-                        </div>
-                      )}
-                    </TabsContent>
-                    
-                    <TabsContent value="area" className="p-6 space-y-4">
-                      <div className="text-center py-8">
-                        <p className="text-slate-500 text-sm">No environmental data available</p>
+                    {result.location && (
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <span className="text-sm font-medium block mb-1">Coordinates</span>
+                        <p className="text-sm font-mono">
+                          {result.location.latitude.toFixed(4)}, {result.location.longitude.toFixed(4)}
+                        </p>
                       </div>
-                    </TabsContent>
+                    )}
                     
-                    <TabsContent value="insights" className="p-6 space-y-4">
-                      <div className="text-center py-8">
-                        <p className="text-slate-500 text-sm">No additional insights available</p>
+                    {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <h4 className="font-medium mb-2">Nearby Places</h4>
+                        <div className="space-y-2">
+                          {result.nearbyPlaces.slice(0, 3).map((place: any, idx: number) => (
+                            <div key={idx} className="flex justify-between text-sm">
+                              <span>{place.name}</span>
+                              {place.distance && <span className="text-gray-500">{place.distance}m</span>}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </TabsContent>
-                  </Tabs>
+                    )}
+                  </div>
                 </div>
                 
                 {result.location && (
-                  <div className="p-6 bg-gradient-to-br from-slate-50 to-white border-t border-slate-200/50 flex-shrink-0">
+                  <div className="p-4 border-t">
                     <button 
                       onClick={() => {
                         if (result.location) {
@@ -1031,10 +866,10 @@ export function CameraRecognitionModern() {
                           window.open(googleMapsUrl, '_blank')
                         }
                       }}
-                      className="w-full bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-200 flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-95"
+                      className="w-full bg-blue-500 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2"
                     >
-                      <MapPin className="w-5 h-5" />
-                      Open in Google Maps
+                      <MapPin className="w-4 h-4" />
+                      Open in Maps
                     </button>
                   </div>
                 )}
@@ -1050,7 +885,7 @@ export function CameraRecognitionModern() {
                   <h3 className="text-lg font-bold">Unable to Identify Location</h3>
                 </div>
                 
-                <div className="p-6">
+                <div className="p-4">
                   <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-red-100">
                     <X className="w-8 h-8 text-red-500" />
                   </div>
