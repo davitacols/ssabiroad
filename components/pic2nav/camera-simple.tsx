@@ -264,16 +264,16 @@ export function CameraSimple() {
       )}
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
         {/* Hero Section */}
         {!previewImage && !isProcessing && !result && (
           <div>
-            <div className="max-w-4xl mx-auto text-center mb-16">
-              <h2 className="text-6xl font-light text-stone-900 dark:text-white mb-6 leading-tight">Discover locations<br />through images</h2>
-              <p className="text-xl text-stone-600 dark:text-stone-400 mb-12">Upload photos, search by address, or use GPS coordinates to find any location</p>
+            <div className="max-w-4xl mx-auto text-center mb-8 sm:mb-16">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light text-stone-900 dark:text-white mb-4 sm:mb-6 leading-tight px-4">Discover locations<br className="hidden sm:block" />through images</h2>
+              <p className="text-base sm:text-lg md:text-xl text-stone-600 dark:text-stone-400 mb-8 sm:mb-12 px-4">Upload photos, search by address, or use GPS coordinates to find any location</p>
               
               {/* Search Bar */}
-              <div className="max-w-2xl mx-auto mb-12 relative">
+              <div className="max-w-2xl mx-auto mb-8 sm:mb-12 relative px-4">
                 <div className="relative">
                   <input
                     ref={searchInputRef}
@@ -286,7 +286,7 @@ export function CameraSimple() {
                     }}
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                     onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                    className="w-full bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-white px-6 py-4 pr-12 focus:outline-none focus:border-stone-400 dark:focus:border-stone-500 transition-colors"
+                    className="w-full bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-white px-4 sm:px-6 py-3 sm:py-4 pr-12 text-sm sm:text-base focus:outline-none focus:border-stone-400 dark:focus:border-stone-500 transition-colors rounded-lg sm:rounded-none"
                   />
                   <button
                     onClick={() => handleSearch()}
@@ -322,24 +322,24 @@ export function CameraSimple() {
             </div>
             
             {/* Upload Section */}
-            <div className="max-w-4xl mx-auto mb-20">
-              <div className="bg-white dark:bg-stone-900 border-2 border-dashed border-stone-300 dark:border-stone-700 p-20 text-center hover:border-stone-400 dark:hover:border-stone-600 transition-colors">
+            <div className="max-w-4xl mx-auto mb-12 sm:mb-20 px-4">
+              <div className="bg-white dark:bg-stone-900 border-2 border-dashed border-stone-300 dark:border-stone-700 p-8 sm:p-12 lg:p-20 text-center hover:border-stone-400 dark:hover:border-stone-600 transition-colors rounded-lg">
                 <MapPin className="w-16 h-16 text-stone-400 dark:text-stone-600 mx-auto mb-6" />
-                <h3 className="text-2xl font-light text-stone-900 dark:text-white mb-8">Or upload an image</h3>
+                <h3 className="text-xl sm:text-2xl font-light text-stone-900 dark:text-white mb-6 sm:mb-8">Or upload an image</h3>
                 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="bg-stone-900 dark:bg-white text-white dark:text-black px-10 py-4 font-medium hover:bg-stone-800 dark:hover:bg-stone-100 transition-colors"
+                    className="w-full sm:w-auto bg-stone-900 dark:bg-white text-white dark:text-black px-6 sm:px-10 py-3 sm:py-4 font-medium hover:bg-stone-800 dark:hover:bg-stone-100 transition-colors rounded-lg text-sm sm:text-base"
                   >
                     Choose file
                   </button>
-                  <span className="text-stone-500">or</span>
+                  <span className="text-stone-500 text-sm sm:text-base">or</span>
                   <button
                     onClick={startCamera}
-                    className="border border-stone-300 dark:border-stone-600 text-stone-900 dark:text-white px-10 py-4 font-medium hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors flex items-center gap-2"
+                    className="w-full sm:w-auto border border-stone-300 dark:border-stone-600 text-stone-900 dark:text-white px-6 sm:px-10 py-3 sm:py-4 font-medium hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors flex items-center justify-center gap-2 rounded-lg text-sm sm:text-base"
                   >
-                    <Camera className="w-5 h-5" />
+                    <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
                     Take photo
                   </button>
                 </div>
@@ -347,39 +347,39 @@ export function CameraSimple() {
             </div>
             
             {/* Features Grid */}
-            <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
-              <div className="border-t border-stone-300 dark:border-stone-800 pt-6">
-                <h3 className="text-xl font-light text-stone-900 dark:text-white mb-3">Image Recognition</h3>
-                <p className="text-stone-600 dark:text-stone-400">Upload any photo and our AI will identify the location, landmarks, and points of interest</p>
+            <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-12 sm:mb-20 px-4">
+              <div className="border-t border-stone-300 dark:border-stone-800 pt-4 sm:pt-6">
+                <h3 className="text-lg sm:text-xl font-light text-stone-900 dark:text-white mb-2 sm:mb-3">Image Recognition</h3>
+                <p className="text-sm sm:text-base text-stone-600 dark:text-stone-400">Upload any photo and our AI will identify the location, landmarks, and points of interest</p>
               </div>
-              <div className="border-t border-stone-300 dark:border-stone-800 pt-6">
-                <h3 className="text-xl font-light text-stone-900 dark:text-white mb-3">Text Search</h3>
-                <p className="text-stone-600 dark:text-stone-400">Search using addresses, postcodes, zip codes, or GPS coordinates from anywhere in the world</p>
+              <div className="border-t border-stone-300 dark:border-stone-800 pt-4 sm:pt-6">
+                <h3 className="text-lg sm:text-xl font-light text-stone-900 dark:text-white mb-2 sm:mb-3">Text Search</h3>
+                <p className="text-sm sm:text-base text-stone-600 dark:text-stone-400">Search using addresses, postcodes, zip codes, or GPS coordinates from anywhere in the world</p>
               </div>
-              <div className="border-t border-stone-300 dark:border-stone-800 pt-6">
-                <h3 className="text-xl font-light text-stone-900 dark:text-white mb-3">Instant Results</h3>
-                <p className="text-stone-600 dark:text-stone-400">Get detailed location information, coordinates, and direct links to view on maps</p>
+              <div className="border-t border-stone-300 dark:border-stone-800 pt-4 sm:pt-6">
+                <h3 className="text-lg sm:text-xl font-light text-stone-900 dark:text-white mb-2 sm:mb-3">Instant Results</h3>
+                <p className="text-sm sm:text-base text-stone-600 dark:text-stone-400">Get detailed location information, coordinates, and direct links to view on maps</p>
               </div>
             </div>
             
             {/* Stats */}
-            <div className="max-w-6xl mx-auto border-t border-stone-300 dark:border-stone-800 pt-12">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div className="max-w-6xl mx-auto border-t border-stone-300 dark:border-stone-800 pt-8 sm:pt-12 px-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 text-center">
                 <div>
-                  <p className="text-4xl font-light text-stone-900 dark:text-white mb-2">1M+</p>
-                  <p className="text-sm text-stone-500">Locations identified</p>
+                  <p className="text-2xl sm:text-3xl lg:text-4xl font-light text-stone-900 dark:text-white mb-1 sm:mb-2">1M+</p>
+                  <p className="text-xs sm:text-sm text-stone-500">Locations identified</p>
                 </div>
                 <div>
-                  <p className="text-4xl font-light text-stone-900 dark:text-white mb-2">195</p>
-                  <p className="text-sm text-stone-500">Countries covered</p>
+                  <p className="text-2xl sm:text-3xl lg:text-4xl font-light text-stone-900 dark:text-white mb-1 sm:mb-2">195</p>
+                  <p className="text-xs sm:text-sm text-stone-500">Countries covered</p>
                 </div>
                 <div>
-                  <p className="text-4xl font-light text-stone-900 dark:text-white mb-2">99%</p>
-                  <p className="text-sm text-stone-500">Accuracy rate</p>
+                  <p className="text-2xl sm:text-3xl lg:text-4xl font-light text-stone-900 dark:text-white mb-1 sm:mb-2">99%</p>
+                  <p className="text-xs sm:text-sm text-stone-500">Accuracy rate</p>
                 </div>
                 <div>
-                  <p className="text-4xl font-light text-stone-900 dark:text-white mb-2">24/7</p>
-                  <p className="text-sm text-stone-500">Always available</p>
+                  <p className="text-2xl sm:text-3xl lg:text-4xl font-light text-stone-900 dark:text-white mb-1 sm:mb-2">24/7</p>
+                  <p className="text-xs sm:text-sm text-stone-500">Always available</p>
                 </div>
               </div>
             </div>
@@ -388,10 +388,10 @@ export function CameraSimple() {
 
         {/* Processing */}
         {(isProcessing || isSearching) && (
-          <div className="max-w-2xl mx-auto text-center py-20">
-            <Loader2 className="w-12 h-12 text-stone-900 dark:text-white animate-spin mx-auto mb-6" />
-            <h3 className="text-2xl font-light text-stone-900 dark:text-white mb-2">{isSearching ? 'Searching location' : 'Analyzing image'}</h3>
-            <p className="text-stone-600 dark:text-stone-400">Please wait while we identify the location</p>
+          <div className="max-w-2xl mx-auto text-center py-12 sm:py-20 px-4">
+            <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 text-stone-900 dark:text-white animate-spin mx-auto mb-4 sm:mb-6" />
+            <h3 className="text-xl sm:text-2xl font-light text-stone-900 dark:text-white mb-2">{isSearching ? 'Searching location' : 'Analyzing image'}</h3>
+            <p className="text-sm sm:text-base text-stone-600 dark:text-stone-400">Please wait while we identify the location</p>
           </div>
         )}
 
@@ -399,17 +399,17 @@ export function CameraSimple() {
         {result && (
           <div className="max-w-7xl mx-auto">
             {result.success ? (
-              <div className="grid lg:grid-cols-3 gap-6">
+              <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
                 {/* Left Column - Image & Map */}
                 <div className="lg:col-span-2 space-y-6">
                   {previewImage && (
-                    <div className="bg-stone-900 dark:bg-black">
-                      <img src={previewImage} alt="Preview" className="w-full h-[500px] object-contain bg-stone-900 dark:bg-black" />
+                    <div className="bg-stone-900 dark:bg-black rounded-lg overflow-hidden">
+                      <img src={previewImage} alt="Preview" className="w-full h-[300px] sm:h-[400px] lg:h-[500px] object-contain bg-stone-900 dark:bg-black" />
                     </div>
                   )}
                   
                   {result.location && (
-                    <div className="bg-stone-200 dark:bg-stone-900 h-[400px]">
+                    <div className="bg-stone-200 dark:bg-stone-900 h-[250px] sm:h-[300px] lg:h-[400px] rounded-lg overflow-hidden">
                       <iframe
                         src={`https://www.google.com/maps?q=${result.location.latitude},${result.location.longitude}&output=embed`}
                         className="w-full h-full border-0"
@@ -419,12 +419,12 @@ export function CameraSimple() {
                   )}
                   
                   {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
-                    <div className="bg-white dark:bg-stone-900 p-6">
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Nearby Places</h4>
-                      <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-white dark:bg-stone-900 p-4 sm:p-6 rounded-lg">
+                      <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Nearby Places</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                         {result.nearbyPlaces.slice(0, 6).map((place: NearbyPlace, idx: number) => (
                           <div key={idx}>
-                            <div className="w-full h-32 bg-gray-200 dark:bg-stone-800 mb-2 overflow-hidden">
+                            <div className="w-full h-20 sm:h-24 lg:h-32 bg-gray-200 dark:bg-stone-800 mb-2 overflow-hidden rounded">
                               {place.photoReference ? (
                                 <img 
                                   src={`/api/place-photo?reference=${place.photoReference}`}
@@ -441,7 +441,7 @@ export function CameraSimple() {
                                 <MapPin className="w-6 h-6 text-gray-400 dark:text-stone-600" />
                               </div>
                             </div>
-                            <p className="text-sm text-gray-900 dark:text-white font-medium truncate">{place.name}</p>
+                            <p className="text-xs sm:text-sm text-gray-900 dark:text-white font-medium truncate">{place.name}</p>
                             <p className="text-xs text-gray-500 dark:text-stone-400">{place.distance}m away</p>
                           </div>
                         ))}
@@ -451,12 +451,12 @@ export function CameraSimple() {
                 </div>
 
                 {/* Right Column - Info */}
-                <div className="space-y-6">
-                  <div className="bg-white dark:bg-stone-900 p-6">
-                    <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">{result.name}</h3>
-                    {result.address && <p className="text-gray-600 dark:text-stone-400 mb-4">{result.address}</p>}
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="bg-white dark:bg-stone-900 p-4 sm:p-6 rounded-lg">
+                    <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mb-2">{result.name}</h3>
+                    {result.address && <p className="text-sm sm:text-base text-gray-600 dark:text-stone-400 mb-4">{result.address}</p>}
                     
-                    <div className="flex gap-3 mb-6">
+                    <div className="flex flex-col sm:flex-row gap-3 mb-6">
                       <button
                         onClick={() => {
                           if (result.location) {
@@ -464,7 +464,7 @@ export function CameraSimple() {
                             window.open(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`, '_blank')
                           }
                         }}
-                        className="flex-1 bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700 transition-colors"
+                        className="flex-1 bg-blue-600 text-white px-4 py-3 sm:py-2 text-sm hover:bg-blue-700 transition-colors rounded-lg"
                       >
                         Open in Maps
                       </button>
@@ -473,7 +473,7 @@ export function CameraSimple() {
                           setResult(null)
                           setPreviewImage(null)
                         }}
-                        className="flex-1 bg-gray-100 dark:bg-stone-800 text-gray-900 dark:text-white px-4 py-2 text-sm hover:bg-gray-200 dark:hover:bg-stone-700 transition-colors"
+                        className="flex-1 bg-gray-100 dark:bg-stone-800 text-gray-900 dark:text-white px-4 py-3 sm:py-2 text-sm hover:bg-gray-200 dark:hover:bg-stone-700 transition-colors rounded-lg"
                       >
                         New Search
                       </button>
