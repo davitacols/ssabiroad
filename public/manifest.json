@@ -1,7 +1,7 @@
 {
-  "name": "Pic2Nav - AI Photo Location Discovery",
+  "name": "Pic2Nav - AI Photo Location Finder",
   "short_name": "Pic2Nav",
-  "description": "Transform any photo into detailed location insights with AI. Extract GPS data and identify landmarks instantly.",
+  "description": "Transform any photo into detailed location insights with advanced AI. Discover places, extract GPS data, and explore nearby attractions instantly.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -12,21 +12,16 @@
       "src": "/pic2nav.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     },
     {
       "src": "/pic2nav.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
-  "categories": ["utilities", "navigation", "photo"],
-  "screenshots": [
-    {
-      "src": "/screenshots/screenshot1.png",
-      "sizes": "1280x720",
-      "type": "image/png"
-    }
-  ]
+  "categories": ["photo", "travel", "utilities", "productivity"],
+  "lang": "en",
+  "dir": "ltr"
 }

@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+
 import jwt from "jsonwebtoken";
 
 const prisma = new PrismaClient();
@@ -20,23 +20,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
     }
 
-    const { email, password } = body;
+    const { email } = body;
 
-    // ✅ Ensure email and password are valid
-    if (!email || !password || typeof email !== "string" || typeof password !== "string") {
-      return NextResponse.json({ error: "Valid email and password are required" }, { status: 400 });
+    // ✅ Ensure email is valid
+    if (!email || typeof email !== "string") {
+      return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
     }
 
     // ✅ Find user in the database
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    // ✅ Check if the password is correct
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
     // ✅ Ensure `JWT_SECRET` is set
@@ -56,8 +50,8 @@ export async function POST(req: NextRequest) {
       { expiresIn: "1h" } // Token expires in 1 hour
     );
 
-    // ✅ Return token and user info
-    return NextResponse.json(
+    // ✅ Return token and user info with cookie
+    const response = NextResponse.json(
       {
         message: "Login successful",
         token,
@@ -69,6 +63,17 @@ export async function POST(req: NextRequest) {
       },
       { status: 200 }
     );
+    
+    // Set cookie (not httpOnly so JS can read it)
+    response.cookies.set('token', token, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 3600, // 1 hour
+      path: '/'
+    });
+    
+    return response;
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json({ error: "An error occurred during login" }, { status: 500 });

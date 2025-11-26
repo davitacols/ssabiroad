@@ -728,18 +728,27 @@ class LocationRecognizer {
       }
       
       const data = await response.json();
-      const places = data.results?.slice(0, 10).map((p: any) => ({
-        name: p.name,
-        type: p.types?.[0]?.replace(/_/g, ' ') || 'Place',
-        rating: p.rating || 0,
-        distance: Math.round(this.calculateDistance(
-          { latitude: lat, longitude: lng },
-          { latitude: p.geometry.location.lat, longitude: p.geometry.location.lng }
-        ) * 1000),
-        address: p.vicinity,
-        placeId: p.place_id,
-        priceLevel: p.price_level
-      })) || [];
+      const places = data.results?.slice(0, 10).map((p: any) => {
+        const place: any = {
+          name: p.name,
+          type: p.types?.[0]?.replace(/_/g, ' ') || 'Place',
+          rating: p.rating || 0,
+          distance: Math.round(this.calculateDistance(
+            { latitude: lat, longitude: lng },
+            { latitude: p.geometry.location.lat, longitude: p.geometry.location.lng }
+          ) * 1000),
+          address: p.vicinity,
+          placeId: p.place_id,
+          priceLevel: p.price_level
+        };
+        
+        // Add photo reference if available
+        if (p.photos && p.photos.length > 0) {
+          place.photoReference = p.photos[0].photo_reference;
+        }
+        
+        return place;
+      }) || [];
       
       cache.set(key, places, 300);
       return places;
@@ -3889,20 +3898,6 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     return candidates.filter(candidate => {
       const address = candidate.formatted_address?.toLowerCase() || '';
       
-      // PRIORITY: For Chinese takeaways without area context, prioritize UK locations
-      if (!area && (businessLower.includes('fortune cookie') || businessLower.includes('chinese takeaway'))) {
-        const lat = candidate.geometry?.location?.lat || 0;
-        const lng = candidate.geometry?.location?.lng || 0;
-        // UK coordinates: roughly 49-61°N, -8-2°E
-        if (lat >= 49 && lat <= 61 && lng >= -8 && lng <= 2) {
-          console.log(`Prioritizing UK location for Chinese takeaway: ${candidate.formatted_address}`);
-          return true;
-        } else {
-          console.log(`Rejecting non-UK location for Chinese takeaway: ${candidate.formatted_address} (${lat}, ${lng})`);
-          return false;
-        }
-      }
-      
       // If area suggests UK, reject non-UK locations
       if (area === 'UK' || areaLower.includes('uk') || areaLower.includes('london') || areaLower.includes('britain') || areaLower.includes('post box')) {
         if (!address.includes('uk') && !address.includes('united kingdom') && !address.includes('england') && !address.includes('london')) {
@@ -3921,8 +3916,6 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
           return false;
         }
       }
-      
-
       
       // If area suggests US, reject non-US locations
       if (area === 'USA' || areaLower.includes('usa') || areaLower.includes('florida') || areaLower.includes('america')) {
@@ -3943,38 +3936,33 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         }
       }
       
-      // Reject obviously wrong countries for common business types
-      if (businessLower.includes('indian') && areaLower.includes('uk')) {
-        // Indian restaurant in UK should not be in Nigeria/India
-        if (address.includes('nigeria') || address.includes('lagos') || (address.includes('india') && !address.includes('uk'))) {
-          console.log(`Rejecting wrong country for UK Indian restaurant: ${candidate.formatted_address}`);
+      // Only apply strict filters when area context is explicitly provided
+      if (area) {
+        // Reject obviously wrong countries for common business types
+        if (businessLower.includes('indian') && areaLower.includes('uk')) {
+          if (address.includes('nigeria') || address.includes('lagos') || (address.includes('india') && !address.includes('uk'))) {
+            console.log(`Rejecting wrong country for UK Indian restaurant: ${candidate.formatted_address}`);
+            return false;
+          }
+        }
+        
+        // Strong Nigeria filter for UK/US businesses
+        if (address.includes('nigeria') || address.includes('lagos')) {
+          if (areaLower.includes('uk') || areaLower.includes('london') || businessLower.includes('wines')) {
+            console.log(`Rejecting Nigerian location for UK business: ${candidate.formatted_address}`);
+            return false;
+          }
+          if (areaLower.includes('usa') || areaLower.includes('florida')) {
+            console.log(`Rejecting Nigerian location for US business: ${candidate.formatted_address}`);
+            return false;
+          }
+        }
+        
+        // Portugal filter for UK businesses
+        if ((areaLower.includes('uk') || businessLower.includes('vinum') || businessLower.includes('enoteca')) && address.includes('portugal')) {
+          console.log(`Rejecting Portuguese location for UK business: ${candidate.formatted_address}`);
           return false;
         }
-      }
-      
-      // Strong Nigeria filter for UK/US businesses and generic restaurants
-      if (address.includes('nigeria') || address.includes('lagos')) {
-        // Always reject Nigerian locations for UK businesses
-        if (areaLower.includes('uk') || areaLower.includes('london') || businessLower.includes('wines')) {
-          console.log(`Rejecting Nigerian location for UK business: ${candidate.formatted_address}`);
-          return false;
-        }
-        // Also reject for US businesses
-        if (areaLower.includes('usa') || areaLower.includes('florida')) {
-          console.log(`Rejecting Nigerian location for US business: ${candidate.formatted_address}`);
-          return false;
-        }
-        // Reject Nigerian locations for generic restaurant names unless specifically Nigerian
-        if ((businessLower.includes('chinese') || businessLower.includes('takeaway') || businessLower.includes('restaurant')) && !businessLower.includes('nigerian') && !businessLower.includes('african')) {
-          console.log(`Rejecting Nigerian location for non-Nigerian restaurant: ${candidate.formatted_address}`);
-          return false;
-        }
-      }
-      
-      // Portugal filter for UK businesses (common wine bar name confusion)
-      if ((areaLower.includes('uk') || businessLower.includes('vinum') || businessLower.includes('enoteca')) && address.includes('portugal')) {
-        console.log(`Rejecting Portuguese location for UK business: ${candidate.formatted_address}`);
-        return false;
       }
       
       return true;

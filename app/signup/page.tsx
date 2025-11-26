@@ -3,18 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
-import { FaGoogle } from "react-icons/fa";
-import { MailIcon, UserIcon, LockIcon } from "lucide-react";
+import { MailIcon, UserIcon } from "lucide-react";
 
 export default function SignUp() {
   const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -28,160 +23,91 @@ export default function SignUp() {
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, username, email, password }),
+        body: JSON.stringify({ name, email }),
       });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Signup failed");
 
-      alert("Signup successful! Redirecting...");
-      router.push("/dashboard");
+      router.push("/api-access");
     } catch (err: any) {
       setError(err.message || "An error occurred. Please try again.");
-      console.error("Signup Error:", err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-stone-50 dark:bg-black flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          {/* Brand Section */}
-          <div className="text-center mb-8">
-            <motion.div
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 0.5 }}
-              className="inline-block"
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-block mb-6">
+            <img src="/pic2nav.png" alt="Pic2Nav" className="h-16 w-auto mx-auto drop-shadow-lg" />
+          </Link>
+          <h1 className="text-3xl font-bold text-stone-900 dark:text-white mb-2">Create Account</h1>
+          <p className="text-stone-600 dark:text-stone-400">Join Pic2Nav to access our API</p>
+        </div>
+
+        <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl p-6 shadow-lg">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-600 dark:text-red-400 text-center">{error}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Name</label>
+              <div className="relative">
+                <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-stone-400" />
+                <Input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="pl-10 h-11 border-stone-300 dark:border-stone-700"
+                  placeholder="Your full name"
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Email</label>
+              <div className="relative">
+                <MailIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-stone-400" />
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="pl-10 h-11 border-stone-300 dark:border-stone-700"
+                  placeholder="your@email.com"
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
+
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-11 bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 text-white dark:text-stone-900 rounded-lg font-medium"
             >
-              <img
-                src="logos/logo.png"
-                alt="Logo"
-                className="w-16 h-16 mx-auto mb-4 rounded-xl shadow-lg"
-              />
-            </motion.div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              Create Your Account
-            </h1>
-            <p className="text-gray-500 mt-2 text-sm">
-              Join us and start your journey today!
+              {loading ? "Creating Account..." : "Create Account"}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-stone-600 dark:text-stone-400">
+              Already have an account?{" "}
+              <Link href="/login" className="font-medium text-stone-900 dark:text-white hover:underline">
+                Sign in
+              </Link>
             </p>
           </div>
-
-          <Card className="p-6 bg-white/70 backdrop-blur-lg border border-gray-100 rounded-2xl shadow-xl">
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg">
-                <p className="text-sm text-red-600 text-center" role="alert">
-                  {error}
-                </p>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-700">Full Name</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                    <UserIcon className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <Input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    className="pl-10 h-12 bg-white border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
-                    placeholder="Enter your full name"
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-700">Username</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                    <UserIcon className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <Input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                    className="pl-10 h-12 bg-white border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
-                    placeholder="Choose a username"
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-700">Email</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                    <MailIcon className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="pl-10 h-12 bg-white border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
-                    placeholder="Enter your email"
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-700">Password</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                    <LockIcon className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <Input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="pl-10 h-12 bg-white border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
-                    placeholder="Create a password"
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                {loading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-5 h-5 border-t-2 border-white rounded-full animate-spin" />
-                    <span>Creating Account...</span>
-                  </div>
-                ) : (
-                  "Sign Up"
-                )}
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                Already have an account?{" "}
-                <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-700">
-                  Sign in
-                </Link>
-              </p>
-            </div>
-          </Card>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

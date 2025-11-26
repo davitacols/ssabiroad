@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { serialize } from "cookie";
+import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -13,26 +14,26 @@ const isValidPassword = (password: string): boolean => password.length >= 8 && p
 export async function POST(req: NextRequest) {
   try {
     console.log("=== Signup Request Started ===");
-    const { email, password, username, name } = await req.json();
+    const { email, name } = await req.json();
 
-    if (!email || !password || !username || !name) {
+    if (!email || !name) {
       return NextResponse.json({ error: "All fields are required" }, { status: 400 });
     }
     if (!isValidEmail(email)) return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
-    if (!isValidUsername(username)) return NextResponse.json({ error: "Invalid username format" }, { status: 400 });
-    if (!isValidPassword(password)) return NextResponse.json({ error: "Password must be 8-100 characters" }, { status: 400 });
 
     console.log("Checking if user already exists...");
-    const existingUser = await prisma.user.findFirst({ where: { OR: [{ email: email.toLowerCase() }, { username: username.toLowerCase() }] } });
+    const existingUser = await prisma.user.findFirst({ where: { email: email.toLowerCase() } });
     if (existingUser) {
-      return NextResponse.json({ error: "Email or Username already in use" }, { status: 400 });
+      return NextResponse.json({ error: "Email already in use" }, { status: 400 });
     }
-
-    console.log("Hashing password...");
-    const hashedPassword = await bcrypt.hash(password, 12);
     console.log("Creating user in database...");
     const newUser = await prisma.user.create({
-      data: { email: email.toLowerCase(), username: username.toLowerCase(), name: name.trim(), password: hashedPassword, role: "user" }
+      data: { 
+        id: crypto.randomUUID(),
+        email: email.toLowerCase(), 
+        name: name.trim(),
+        updatedAt: new Date()
+      }
     });
 
     if (!process.env.JWT_SECRET) {
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
     }
 
     console.log("Generating JWT...");
-    const token = jwt.sign({ userId: newUser.id, email: newUser.email, username: newUser.username }, process.env.JWT_SECRET, { expiresIn: "1d" });
+    const token = jwt.sign({ userId: newUser.id, email: newUser.email }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
     console.log("Setting cookie...");
     const cookie = serialize("token", token, {
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
       path: "/"
     });
 
-    const response = NextResponse.json({ message: "Signup successful", user: { id: newUser.id, email: newUser.email, username: newUser.username, name: newUser.name } }, { status: 201 });
+    const response = NextResponse.json({ message: "Signup successful", user: { id: newUser.id, email: newUser.email, name: newUser.name } }, { status: 201 });
     response.headers.append("Set-Cookie", cookie);
 
     console.log("=== Signup Completed Successfully ===");

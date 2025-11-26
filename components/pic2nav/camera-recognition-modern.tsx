@@ -601,18 +601,17 @@ export function CameraRecognitionModern() {
 
       {/* Mobile Header */}
       <div className="absolute top-4 left-4 right-4 z-40">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-lg">
-              <img src="/pic2nav.png" alt="Pic2Nav" className="w-6 h-6 object-contain" />
-            </div>
-            <button 
-              onClick={() => setShowSidebar(!showSidebar)}
-              className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-lg"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
+        <div className="flex items-center gap-2">
+          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-lg">
+            <img src="/pic2nav.png" alt="Pic2Nav" className="w-6 h-6 object-contain" />
           </div>
+          <button 
+            onClick={() => setShowSidebar(!showSidebar)}
+            className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-lg"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="flex-1"></div>
           <button 
             onClick={() => setShowSearchBar(!showSearchBar)}
             className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-lg"
@@ -674,44 +673,78 @@ export function CameraRecognitionModern() {
       )}
 
       {/* Map Controls */}
-      <div className="absolute top-20 right-4 z-40 space-y-2">
-        {userLocation && (
-          <button 
-            onClick={() => {
-              map?.panTo({ lat: userLocation.latitude, lng: userLocation.longitude })
-              map?.setZoom(16)
-            }}
-            className="w-10 h-10 bg-blue-500 text-white rounded-lg shadow-lg flex items-center justify-center"
-          >
-            <Navigation className="w-5 h-5" />
-          </button>
-        )}
+      <div className="absolute top-20 left-4 z-30 flex flex-col gap-3">
         <button 
           onClick={() => {
-            const newMapType = mapType === 'roadmap' ? 'satellite' : 'roadmap'
-            setMapType(newMapType)
-            map?.setMapTypeId(newMapType)
+            navigator.geolocation?.getCurrentPosition(
+              (position) => {
+                const newLocation = {
+                  latitude: position.coords.latitude,
+                  longitude: position.coords.longitude
+                }
+                setUserLocation(newLocation)
+                
+                if (map && window.google?.maps) {
+                  const latLng = new window.google.maps.LatLng(newLocation.latitude, newLocation.longitude)
+                  map.panTo(latLng)
+                  map.setZoom(16)
+                  
+                  // Update or create user marker
+                  if (userMarker) {
+                    userMarker.setPosition(latLng)
+                  } else {
+                    const marker = new window.google.maps.Marker({
+                      position: latLng,
+                      map: map,
+                      icon: {
+                        path: window.google.maps.SymbolPath.CIRCLE,
+                        scale: 12,
+                        fillColor: "#4285f4",
+                        fillOpacity: 1,
+                        strokeColor: "#ffffff",
+                        strokeWeight: 3,
+                      },
+                      title: "Your Location"
+                    })
+                    setUserMarker(marker)
+                  }
+                }
+                
+                toast({
+                  title: "Location Updated",
+                  description: "Found your current location",
+                })
+              },
+              (error) => {
+                toast({
+                  title: "Location Error", 
+                  description: "Please enable location access",
+                  variant: "destructive",
+                })
+              },
+              { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+            )
           }}
-          className="w-10 h-10 bg-white rounded-lg shadow-lg flex items-center justify-center"
+          className="w-12 h-12 bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform"
         >
-          <Layers className="w-5 h-5" />
+          <Navigation className="w-5 h-5" />
         </button>
       </div>
 
       {/* Action Buttons */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-40 flex gap-4">
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 flex gap-6">
         <button 
           onClick={startCamera}
           disabled={isStartingCamera}
-          className="w-16 h-16 bg-blue-500 text-white rounded-full shadow-xl flex items-center justify-center disabled:opacity-50"
+          className="w-14 h-14 bg-blue-500 text-white rounded-full shadow-xl flex items-center justify-center disabled:opacity-50"
         >
-          {isStartingCamera ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6" />}
+          {isStartingCamera ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
         </button>
         <button 
           onClick={() => fileInputRef.current?.click()}
-          className="w-16 h-16 bg-black text-white rounded-full shadow-xl flex items-center justify-center"
+          className="w-14 h-14 bg-black text-white rounded-full shadow-xl flex items-center justify-center"
         >
-          <Upload className="w-6 h-6" />
+          <Upload className="w-5 h-5" />
         </button>
       </div>
 
@@ -728,13 +761,13 @@ export function CameraRecognitionModern() {
 
       {/* Location Info Panel */}
       {showLocationInfo && userLocation && (
-        <div className="absolute bottom-24 left-3 sm:left-6 z-40 w-[calc(100vw-24px)] sm:w-80 max-w-sm">
-          <div className="bg-white/95 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-2xl border border-white/20 p-3 sm:p-4">
+        <div className="absolute bottom-32 left-4 right-4 z-40">
+          <div className="bg-white rounded-xl shadow-xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-bold text-gray-900">Current Location</h3>
+              <h3 className="text-lg font-bold">Current Location</h3>
               <button 
                 onClick={() => setShowLocationInfo(false)}
-                className="w-8 h-8 bg-white border-2 border-black hover:bg-black hover:text-white flex items-center justify-center transition-all duration-200"
+                className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -791,8 +824,8 @@ export function CameraRecognitionModern() {
       
       {/* Result Card */}
       {result && (
-        <div className="absolute bottom-32 left-4 right-4 z-40">
-          <div className="bg-white rounded-xl shadow-xl max-h-[60vh] flex flex-col overflow-hidden">
+        <div className="absolute bottom-24 left-4 right-4 z-40">
+          <div className="bg-white rounded-xl shadow-xl max-h-[50vh] flex flex-col overflow-hidden">
             {result.success ? (
               <>
                 <div className="bg-slate-900 text-white p-4 flex-shrink-0">
