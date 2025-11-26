@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback } from "react"
-import { Camera, Upload, X, MapPin, Loader2, Search, Menu } from "lucide-react"
+import { Camera, Upload, X, MapPin, Loader2, Search, Menu, Share2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { ThemeToggle } from "@/components/theme-toggle"
 
@@ -477,6 +477,43 @@ export function CameraSimple() {
                       >
                         New Search
                       </button>
+                    </div>
+                    
+                    {/* Share Buttons */}
+                    <div className="border-t border-stone-200 dark:border-stone-800 pt-4">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-stone-300 mb-3 flex items-center gap-2">
+                        <Share2 className="w-4 h-4" />
+                        Share Location
+                      </h4>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            const text = `Found: ${result.name || 'Unknown location'}\n${result.address || ''}\n\nDiscovered using Pic2Nav AI!\nTry it: pic2nav.com`
+                            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+                          }}
+                          className="flex-1 bg-green-500 text-white px-3 py-2 text-xs hover:bg-green-600 transition-colors rounded flex items-center justify-center gap-1"
+                        >
+                          WhatsApp
+                        </button>
+                        <button
+                          onClick={() => {
+                            const text = `Just discovered: ${result.name || 'this location'} using Pic2Nav AI! #Pic2Nav #AI #LocationDiscovery`
+                            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=pic2nav.com`, '_blank')
+                          }}
+                          className="flex-1 bg-blue-500 text-white px-3 py-2 text-xs hover:bg-blue-600 transition-colors rounded flex items-center justify-center gap-1"
+                        >
+                          Twitter
+                        </button>
+                        <button
+                          onClick={() => {
+                            const text = `Just discovered: ${result.name || 'this amazing location'} using Pic2Nav AI! Try it at pic2nav.com #AI #LocationDiscovery`
+                            window.open(`https://www.facebook.com/sharer/sharer.php?u=pic2nav.com&quote=${encodeURIComponent(text)}`, '_blank')
+                          }}
+                          className="flex-1 bg-blue-700 text-white px-3 py-2 text-xs hover:bg-blue-800 transition-colors rounded flex items-center justify-center gap-1"
+                        >
+                          Facebook
+                        </button>
+                      </div>
                     </div>
                     
                     {result.location && (

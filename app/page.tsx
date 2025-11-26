@@ -43,6 +43,9 @@ export default function HomePage() {
             <Button variant="ghost" className="hidden md:inline-flex rounded-full" asChild>
               <Link href="/api-access">API</Link>
             </Button>
+            <Button variant="ghost" className="hidden md:inline-flex rounded-full text-red-600 hover:text-red-700" asChild>
+              <Link href="/report-crime">Report Crime</Link>
+            </Button>
             <Button className="rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 text-sm sm:text-base px-3 sm:px-4" asChild>
               <Link href="/camera">Try Now</Link>
             </Button>

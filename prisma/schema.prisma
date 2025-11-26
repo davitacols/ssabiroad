@@ -192,3 +192,19 @@ model Story {
   @@index([createdAt])
   @@index([isPublic])
 }
+
+model CrimeReport {
+  id            String   @id
+  description   String
+  contactInfo   String?
+  isAnonymous   Boolean  @default(false)
+  fileUrls      Json     // Array of encrypted file URLs
+  location      Json?    // {lat, lng, address}
+  status        String   @default("PENDING") // PENDING, REVIEWED, CLOSED
+  reporterIp    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
