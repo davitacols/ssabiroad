@@ -138,13 +138,13 @@ export default function BlogPostPage() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col lg:flex-row gap-8 lg:gap-12">
-        <article className="flex-1 w-full lg:max-w-[680px]">
+      <div className="max-w-[1400px] mx-auto px-6 sm:px-8 lg:px-12 py-12 sm:py-16 flex flex-col lg:flex-row gap-12 lg:gap-16">
+        <article className="flex-1 w-full lg:max-w-[780px] mx-auto">
         {/* Title */}
-        <h1 className="text-2xl sm:text-3xl lg:text-[42px] leading-tight sm:leading-[52px] font-bold tracking-tight mb-2">{post.title}</h1>
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl leading-tight font-bold tracking-tight mb-6">{post.title}</h1>
         
         {/* Author & Meta */}
-        <div className="flex items-center gap-4 py-6 border-b border-stone-200 dark:border-stone-800">
+        <div className="flex items-center gap-4 py-8 border-b border-stone-200 dark:border-stone-800">
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
             {post.author.name.charAt(0)}
           </div>
@@ -171,7 +171,7 @@ export default function BlogPostPage() {
         </div>
 
         {/* Actions Bar */}
-        <div className="flex items-center justify-between py-4 border-b border-stone-200 dark:border-stone-800 mb-8">
+        <div className="flex items-center justify-between py-6 border-b border-stone-200 dark:border-stone-800 mb-12">
           <div className="flex items-center gap-6">
             <button onClick={handlePostLike} className="flex items-center gap-2 text-stone-600 hover:text-stone-900">
               <Heart className="h-6 w-6" />
@@ -202,7 +202,7 @@ export default function BlogPostPage() {
         </div>
 
         {/* Social Share Buttons */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-8 pb-6 border-b border-stone-200 dark:border-stone-800">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-12 pb-8 border-b border-stone-200 dark:border-stone-800">
           <span className="text-sm text-stone-600 dark:text-stone-400 w-full sm:w-auto mb-2 sm:mb-0">Share:</span>
           <a
             href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(window.location.href)}`}
@@ -254,26 +254,26 @@ export default function BlogPostPage() {
 
         {/* Cover Image */}
         {post.coverImage && (
-          <img src={post.coverImage} alt={post.title} className="w-full mb-12" />
+          <img src={post.coverImage} alt={post.title} className="w-full mb-16 rounded-lg" />
         )}
         
         {/* Content */}
         <div 
-          className="prose prose-lg max-w-none mb-12"
+          className="prose prose-lg max-w-none mb-16"
           style={{ 
             fontFamily: 'Georgia, Cambria, "Times New Roman", Times, serif',
-            fontSize: '21px',
-            lineHeight: '1.58',
+            fontSize: '20px',
+            lineHeight: '1.8',
             color: '#242424'
           }}
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
 
         {/* Comments */}
-        <div className="border-t border-stone-200 dark:border-stone-800 pt-12">
-          <h2 className="text-2xl font-bold mb-8">Responses ({comments.length})</h2>
+        <div className="border-t border-stone-200 dark:border-stone-800 pt-16">
+          <h2 className="text-3xl font-bold mb-10">Responses ({comments.length})</h2>
           
-          <form onSubmit={handleCommentSubmit} className="mb-12">
+          <form onSubmit={handleCommentSubmit} className="mb-16">
             <div className="flex gap-4">
               <div className="w-10 h-10 rounded-full bg-stone-300 flex-shrink-0" />
               <div className="flex-1">
@@ -291,7 +291,7 @@ export default function BlogPostPage() {
             </div>
           </form>
 
-          <div className="space-y-8">
+          <div className="space-y-10">
             {comments.map((comment) => (
               <div key={comment.id} className="flex gap-4">
                 <div className="w-10 h-10 rounded-full bg-stone-300 flex-shrink-0" />
@@ -318,9 +318,9 @@ export default function BlogPostPage() {
       </article>
 
       {/* Sidebar */}
-      <aside className="w-full lg:w-80 lg:block">
+      <aside className="w-full lg:w-96 lg:block">
         {/* Author Profile */}
-        <div className="sticky top-24 space-y-8">
+        <div className="sticky top-24 space-y-10">
           <div className="border border-stone-200 dark:border-stone-800 rounded-xl p-6">
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4">
               {post.author.name.charAt(0)}
