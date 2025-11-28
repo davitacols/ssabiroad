@@ -5,11 +5,20 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { BrandLogo } from "@/components/ui/brand-logo"
 import { SimpleMap } from "@/components/ui/simple-map"
 import { CookieConsent } from "@/components/CookieConsent"
-import { Camera, MapPin, ArrowRight, Zap, Globe2, Upload, Zap as AnalyzeIcon, MapPin as DiscoverIcon, Sparkles } from "lucide-react"
+import { Camera, MapPin, ArrowRight, Zap, Globe2, Upload, Zap as AnalyzeIcon, MapPin as DiscoverIcon, Sparkles, BookOpen } from "lucide-react"
 import Link from "next/link"
 import { seoConfig } from "@/lib/seo-config"
+import { useEffect, useState } from "react"
 
 export default function HomePage() {
+  const [posts, setPosts] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch('/api/blog?page=1&limit=3')
+      .then(res => res.json())
+      .then(data => setPosts(data.posts || []))
+      .catch(() => setPosts([]))
+  }, [])
   const structuredDataArray = [
     seoConfig.webApplicationSchema,
     seoConfig.organizationSchema,
@@ -168,6 +177,62 @@ export default function HomePage() {
                 className="w-full h-[300px] sm:h-[400px] md:h-[500px]"
               />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Blog Posts */}
+      <section className="relative py-16 sm:py-24 md:py-32 px-4 sm:px-6 bg-stone-50 dark:bg-stone-900">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between mb-12 sm:mb-16">
+            <div>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-stone-900 dark:text-white mb-3 sm:mb-4">
+                Latest from our blog
+              </h2>
+              <p className="text-base sm:text-lg md:text-xl text-stone-600 dark:text-stone-400">
+                Tips, guides, and insights
+              </p>
+            </div>
+            <Button variant="outline" className="rounded-full" asChild>
+              <Link href="/blog">
+                View All
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
+            {posts.map((post) => (
+              <Link key={post.id} href={`/blog/${post.slug}`} className="group">
+                <article className="h-full rounded-2xl bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 overflow-hidden hover:shadow-xl transition-all">
+                  {post.coverImage && (
+                    <div className="aspect-video overflow-hidden">
+                      <img 
+                        src={post.coverImage} 
+                        alt={post.title} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                  )}
+                  <div className="p-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="px-3 py-1 bg-stone-100 dark:bg-stone-800 rounded-full text-xs font-medium">
+                        {post.category}
+                      </span>
+                      <span className="text-xs text-stone-500">
+                        {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-bold text-stone-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+                      {post.title}
+                    </h3>
+                    <p className="text-sm text-stone-600 dark:text-stone-400 line-clamp-2">
+                      {post.excerpt}
+                    </p>
+                  </div>
+                </article>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
