@@ -57,6 +57,7 @@ export default function BlogPage() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [suggestedUsers, setSuggestedUsers] = useState<any[]>([])
 
   const handleSignOut = () => {
     document.cookie = 'token=; Max-Age=0; path=/'
@@ -87,6 +88,11 @@ export default function BlogPage() {
         setTotalPages(data.totalPages || 1)
         setLoading(false)
       })
+    
+    fetch('/api/users/suggested')
+      .then(res => res.json())
+      .then(data => setSuggestedUsers(data.slice(0, 3)))
+      .catch(err => console.error('Error loading users:', err))
   }, [currentPage])
 
   const handleLike = async (postId: string) => {
@@ -277,23 +283,27 @@ export default function BlogPage() {
                 ))}
               </div>
             </div>
-            <div className="hidden lg:block">
-              <h3 className="text-sm sm:text-base font-bold mb-3 sm:mb-4">Who to follow</h3>
-              <div className="space-y-4">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-stone-300 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <div className="font-medium text-xs sm:text-sm truncate">Pic2Nav Team</div>
-                        <div className="text-xs text-stone-600 truncate">Location experts</div>
+            {suggestedUsers.length > 0 && (
+              <div className="hidden lg:block">
+                <h3 className="text-sm sm:text-base font-bold mb-3 sm:mb-4">Who to follow</h3>
+                <div className="space-y-4">
+                  {suggestedUsers.map(user => (
+                    <div key={user.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                          {user.name.charAt(0)}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-medium text-xs sm:text-sm truncate">{user.name}</div>
+                          <div className="text-xs text-stone-600 truncate">{user.bio || 'Writer'}</div>
+                        </div>
                       </div>
+                      <Button size="sm" variant="outline" className="rounded-full text-xs flex-shrink-0">Follow</Button>
                     </div>
-                    <Button size="sm" variant="outline" className="rounded-full text-xs flex-shrink-0">Follow</Button>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </aside>
         </div>
       </div>
