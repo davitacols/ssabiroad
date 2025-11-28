@@ -16,6 +16,8 @@ export default function BlogPostPage() {
   const [post, setPost] = useState<any>(null)
   const [comments, setComments] = useState<any[]>([])
   const [commentText, setCommentText] = useState('')
+  const [replyingTo, setReplyingTo] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState('')
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -70,12 +72,12 @@ export default function BlogPostPage() {
       setShowAuthModal(true)
       return
     }
-    await fetch(`/api/blog/${post.id}/like`, {
+    setPost({ ...post, likes: post.likes + 1 })
+    fetch(`/api/blog/${post.id}/like`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: user.id }),
     })
-    loadData()
   }
 
   const handleCommentLike = async (commentId: string) => {
@@ -83,12 +85,12 @@ export default function BlogPostPage() {
       setShowAuthModal(true)
       return
     }
-    await fetch(`/api/blog/comments/${commentId}/like`, {
+    setComments(comments.map(c => c.id === commentId ? { ...c, likes: c.likes + 1 } : c))
+    fetch(`/api/blog/comments/${commentId}/like`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: user.id }),
     })
-    loadData()
   }
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
@@ -111,12 +113,40 @@ export default function BlogPostPage() {
       })
 
       if (res.ok) {
-        const newComment = await res.json()
-        setComments([newComment, ...comments])
         setCommentText('')
+        loadData()
       }
     } catch (error) {
       alert('Failed to post comment')
+    }
+  }
+
+  const handleReplySubmit = async (parentId: string) => {
+    if (!user) {
+      setShowAuthModal(true)
+      return
+    }
+    if (!replyText.trim()) return
+
+    try {
+      const res = await fetch('/api/blog/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: replyText,
+          authorId: user.id,
+          postId: post.id,
+          parentId,
+        }),
+      })
+
+      if (res.ok) {
+        setReplyText('')
+        setReplyingTo(null)
+        loadData()
+      }
+    } catch (error) {
+      alert('Failed to post reply')
     }
   }
 
@@ -337,23 +367,67 @@ export default function BlogPostPage() {
           </form>
 
           <div className="space-y-10">
-            {comments.map((comment) => (
-              <div key={comment.id} className="flex gap-4">
-                <div className="w-10 h-10 rounded-full bg-stone-300 flex-shrink-0" />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-medium text-sm">{comment.author.name}</span>
-                    <span className="text-sm text-stone-500">
-                      {new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </span>
-                  </div>
-                  <p className="text-stone-800 dark:text-stone-200 mb-3">{comment.content}</p>
-                  <div className="flex items-center gap-4 text-sm text-stone-600">
-                    <button onClick={() => handleCommentLike(comment.id)} className="flex items-center gap-1 hover:text-stone-900">
-                      <Heart className="h-4 w-4" />
-                      <span>{comment.likes}</span>
-                    </button>
-                    <button className="hover:text-stone-900">Reply</button>
+            {comments.filter(c => !c.parentId).map((comment) => (
+              <div key={comment.id}>
+                <div className="flex gap-4">
+                  <div className="w-10 h-10 rounded-full bg-stone-300 flex-shrink-0" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-medium text-sm">{comment.author.name}</span>
+                      <span className="text-sm text-stone-500">
+                        {new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+                    <p className="text-stone-800 dark:text-stone-200 mb-3">{comment.content}</p>
+                    <div className="flex items-center gap-4 text-sm text-stone-600">
+                      <button onClick={() => handleCommentLike(comment.id)} className="flex items-center gap-1 hover:text-stone-900">
+                        <Heart className="h-4 w-4" />
+                        <span>{comment.likes}</span>
+                      </button>
+                      <button onClick={() => setReplyingTo(comment.id)} className="hover:text-stone-900">Reply</button>
+                    </div>
+
+                    {replyingTo === comment.id && (
+                      <div className="mt-4 flex gap-3">
+                        <div className="w-8 h-8 rounded-full bg-stone-300 flex-shrink-0" />
+                        <div className="flex-1">
+                          <textarea
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                            placeholder="Write a reply..."
+                            className="w-full px-3 py-2 border border-stone-200 dark:border-stone-800 rounded-lg focus:border-stone-900 focus:ring-0 text-sm"
+                            rows={2}
+                          />
+                          <div className="flex gap-2 mt-2">
+                            <Button onClick={() => handleReplySubmit(comment.id)} size="sm" className="rounded-full">Reply</Button>
+                            <Button onClick={() => { setReplyingTo(null); setReplyText(''); }} size="sm" variant="outline" className="rounded-full">Cancel</Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {comments.filter(r => r.parentId === comment.id).length > 0 && (
+                      <div className="mt-6 ml-8 space-y-6 border-l-2 border-stone-200 dark:border-stone-800 pl-6">
+                        {comments.filter(r => r.parentId === comment.id).map((reply) => (
+                          <div key={reply.id} className="flex gap-3">
+                            <div className="w-8 h-8 rounded-full bg-stone-300 flex-shrink-0" />
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="font-medium text-sm">{reply.author.name}</span>
+                                <span className="text-sm text-stone-500">
+                                  {new Date(reply.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </span>
+                              </div>
+                              <p className="text-stone-800 dark:text-stone-200 mb-2 text-sm">{reply.content}</p>
+                              <button onClick={() => handleCommentLike(reply.id)} className="flex items-center gap-1 text-sm text-stone-600 hover:text-stone-900">
+                                <Heart className="h-3 w-3" />
+                                <span>{reply.likes}</span>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

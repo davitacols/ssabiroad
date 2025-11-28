@@ -244,6 +244,9 @@ model BlogComment {
   author       User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
   postId       String
   post         BlogPost      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentId     String?
+  parent       BlogComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      BlogComment[] @relation("CommentReplies")
   likes        Int           @default(0)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -251,6 +254,7 @@ model BlogComment {
 
   @@index([postId])
   @@index([authorId])
+  @@index([parentId])
 }
 
 model BlogLike {
