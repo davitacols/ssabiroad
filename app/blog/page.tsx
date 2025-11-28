@@ -53,42 +53,42 @@ export default function BlogPage() {
       <header className="border-b border-stone-200 dark:border-stone-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <img src="/pic2nav.png" alt="Pic2Nav" className="h-10 w-auto" />
+            <img src="/pic2nav.png" alt="Pic2Nav" className="h-8 sm:h-10 w-auto" />
           </Link>
-          <nav className="flex items-center gap-6">
-            <Link href="/blog" className="text-sm font-medium">Stories</Link>
-            {user && <Link href="/blog/create" className="text-sm text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white">Write</Link>}
+          <nav className="flex items-center gap-2 sm:gap-6">
+            <Link href="/blog" className="text-xs sm:text-sm font-medium">Stories</Link>
+            {user && <Link href="/blog/create" className="hidden sm:inline text-sm text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white">Write</Link>}
             {user ? (
-              <div className="flex items-center gap-3">
-                <span className="text-sm">{user.email}</span>
-                <Button size="sm" variant="outline" className="rounded-full" onClick={() => { document.cookie = 'token=; Max-Age=0'; window.location.reload(); }}>Sign Out</Button>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="text-xs sm:text-sm hidden md:inline">{user.email}</span>
+                <Button size="sm" variant="outline" className="rounded-full text-xs sm:text-sm" onClick={() => { document.cookie = 'token=; Max-Age=0'; window.location.reload(); }}>Sign Out</Button>
               </div>
             ) : (
-              <Button size="sm" className="rounded-full" asChild><Link href="/login">Sign In</Link></Button>
+              <Button size="sm" className="rounded-full text-xs sm:text-sm" asChild><Link href="/login">Sign In</Link></Button>
             )}
           </nav>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="border-b border-stone-200 dark:border-stone-800 bg-amber-50 dark:bg-amber-950/20 py-12">
+      <section className="border-b border-stone-200 dark:border-stone-800 bg-amber-50 dark:bg-amber-950/20 py-6 sm:py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="h-5 w-5" />
-            <span className="text-sm font-medium">TRENDING ON PIC2NAV</span>
+            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span className="text-xs sm:text-sm font-medium">TRENDING ON PIC2NAV</span>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
             {posts.slice(0, 3).map((post, i) => (
               <Link key={post.id} href={`/blog/${post.slug}`} className="group">
-                <div className="flex gap-4">
-                  <span className="text-3xl font-bold text-stone-300">0{i + 1}</span>
-                  <div>
+                <div className="flex gap-3 sm:gap-4">
+                  <span className="text-2xl sm:text-3xl font-bold text-stone-300">0{i + 1}</span>
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-6 h-6 rounded-full bg-stone-300" />
-                      <span className="text-sm font-medium">{post.author.name}</span>
+                      <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-stone-300 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm font-medium truncate">{post.author.name}</span>
                     </div>
-                    <h3 className="font-bold group-hover:underline line-clamp-2">{post.title}</h3>
-                    <div className="text-sm text-stone-600 mt-2">{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                    <h3 className="text-sm sm:text-base font-bold group-hover:underline line-clamp-2">{post.title}</h3>
+                    <div className="text-xs sm:text-sm text-stone-600 mt-2">{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
                   </div>
                 </div>
               </Link>
@@ -98,10 +98,10 @@ export default function BlogPage() {
       </section>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-        <div className="grid lg:grid-cols-3 gap-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+        <div className="grid lg:grid-cols-3 gap-6 sm:gap-12">
           {/* Posts */}
-          <div className="lg:col-span-2 space-y-12">
+          <div className="lg:col-span-2 space-y-6 sm:space-y-12">
             {loading ? (
               <div className="text-center py-12">Loading...</div>
             ) : posts.length === 0 ? (
@@ -113,29 +113,29 @@ export default function BlogPage() {
               posts.map((post) => (
                 <article key={post.id} className="group">
                   <Link href={`/blog/${post.slug}`}>
-                    <div className="flex gap-8">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="w-6 h-6 rounded-full bg-stone-300" />
-                          <span className="text-sm font-medium">{post.author.name}</span>
+                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                          <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-stone-300 flex-shrink-0" />
+                          <span className="text-xs sm:text-sm font-medium truncate">{post.author.name}</span>
                         </div>
-                        <h2 className="text-2xl font-bold mb-2 group-hover:underline line-clamp-2">{post.title}</h2>
-                        <p className="text-stone-600 dark:text-stone-400 mb-4 line-clamp-2">{post.excerpt}</p>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4 text-sm text-stone-600">
+                        <h2 className="text-lg sm:text-2xl font-bold mb-2 group-hover:underline line-clamp-2">{post.title}</h2>
+                        <p className="text-sm sm:text-base text-stone-600 dark:text-stone-400 mb-3 sm:mb-4 line-clamp-2">{post.excerpt}</p>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                          <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-stone-600 flex-wrap">
                             <span>{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                            <span>·</span>
-                            <span>{Math.ceil(post.content.length / 1000)} min read</span>
+                            <span className="hidden sm:inline">·</span>
+                            <span className="hidden sm:inline">{Math.ceil(post.content.length / 1000)} min read</span>
                             <span className="px-2 py-1 bg-stone-100 dark:bg-stone-800 rounded-full text-xs">{post.category}</span>
                           </div>
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-3 sm:gap-4">
                             <button onClick={(e) => { e.preventDefault(); handleLike(post.id); }} className="flex items-center gap-1 text-stone-600 hover:text-stone-900">
                               <Heart className="h-4 w-4" />
-                              <span className="text-sm">{post.likes}</span>
+                              <span className="text-xs sm:text-sm">{post.likes}</span>
                             </button>
                             <button className="flex items-center gap-1 text-stone-600 hover:text-stone-900">
                               <MessageCircle className="h-4 w-4" />
-                              <span className="text-sm">{post._count.comments}</span>
+                              <span className="text-xs sm:text-sm">{post._count.comments}</span>
                             </button>
                             <button className="text-stone-600 hover:text-stone-900">
                               <Bookmark className="h-4 w-4" />
@@ -144,7 +144,7 @@ export default function BlogPage() {
                         </div>
                       </div>
                       {post.coverImage && (
-                        <img src={post.coverImage} alt={post.title} className="w-32 h-32 object-cover rounded" />
+                        <img src={post.coverImage} alt={post.title} className="w-full sm:w-24 md:w-32 h-48 sm:h-24 md:h-32 object-cover rounded flex-shrink-0" />
                       )}
                     </div>
                   </Link>
@@ -154,28 +154,28 @@ export default function BlogPage() {
           </div>
 
           {/* Sidebar */}
-          <aside className="space-y-8">
+          <aside className="space-y-6 sm:space-y-8">
             <div>
-              <h3 className="font-bold mb-4">Recommended topics</h3>
+              <h3 className="text-sm sm:text-base font-bold mb-3 sm:mb-4">Recommended topics</h3>
               <div className="flex flex-wrap gap-2">
                 {['Tutorial', 'Guide', 'Safety', 'News'].map(tag => (
-                  <button key={tag} className="px-4 py-2 bg-stone-100 dark:bg-stone-800 rounded-full text-sm hover:bg-stone-200 dark:hover:bg-stone-700">{tag}</button>
+                  <button key={tag} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-stone-100 dark:bg-stone-800 rounded-full text-xs sm:text-sm hover:bg-stone-200 dark:hover:bg-stone-700">{tag}</button>
                 ))}
               </div>
             </div>
-            <div>
-              <h3 className="font-bold mb-4">Who to follow</h3>
+            <div className="hidden lg:block">
+              <h3 className="text-sm sm:text-base font-bold mb-3 sm:mb-4">Who to follow</h3>
               <div className="space-y-4">
                 {[1, 2, 3].map(i => (
                   <div key={i} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-stone-300" />
-                      <div>
-                        <div className="font-medium text-sm">Pic2Nav Team</div>
-                        <div className="text-xs text-stone-600">Location experts</div>
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-stone-300 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <div className="font-medium text-xs sm:text-sm truncate">Pic2Nav Team</div>
+                        <div className="text-xs text-stone-600 truncate">Location experts</div>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" className="rounded-full">Follow</Button>
+                    <Button size="sm" variant="outline" className="rounded-full text-xs flex-shrink-0">Follow</Button>
                   </div>
                 ))}
               </div>
