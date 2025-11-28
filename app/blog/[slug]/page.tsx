@@ -24,6 +24,11 @@ export default function BlogPostPage() {
   const [isFollowing, setIsFollowing] = useState(false)
   const [isBookmarked, setIsBookmarked] = useState(false)
 
+  const handleSignOut = () => {
+    document.cookie = 'token=; Max-Age=0; path=/'
+    window.location.href = '/login'
+  }
+
   useEffect(() => {
     const token = document.cookie.split('; ').find(row => row.startsWith('token='))
     if (token) {
@@ -33,20 +38,25 @@ export default function BlogPostPage() {
   }, [])
 
   const loadData = () => {
-    fetch('/api/blog')
+    fetch('/api/blog?page=1&limit=100')
       .then(res => res.json())
       .then(data => {
-        const foundPost = data.find((p: any) => p.slug === slug)
+        const posts = data.posts || data
+        const foundPost = posts.find((p: any) => p.slug === slug)
         setPost(foundPost)
-        setRecentPosts(data.slice(0, 4))
+        setRecentPosts(posts.slice(0, 4))
         if (foundPost) {
-          setRelatedPosts(data.filter((p: any) => p.id !== foundPost.id && p.category === foundPost.category).slice(0, 3))
+          setRelatedPosts(posts.filter((p: any) => p.id !== foundPost.id && p.category === foundPost.category).slice(0, 3))
           return fetch(`/api/blog/comments?postId=${foundPost.id}`)
         }
       })
       .then(res => res?.json())
       .then(data => {
         if (data) setComments(data)
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error('Error loading data:', err)
         setLoading(false)
       })
   }
@@ -145,50 +155,6 @@ export default function BlogPostPage() {
     }
   }
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      document.title = `${post.title} | SSABIRoad Blog`
-      
-      const metaTags = [
-        { property: 'og:title', content: post.title },
-        { property: 'og:description', content: post.excerpt },
-        { property: 'og:image', content: post.coverImage || 'https://ssabiroad.vercel.app/pic2nav.png' },
-        { property: 'og:url', content: canonicalUrl },
-        { property: 'og:type', content: 'article' },
-        { property: 'article:published_time', content: post.createdAt },
-        { property: 'article:author', content: post.author.name },
-        { property: 'article:section', content: post.category },
-        { name: 'twitter:card', content: 'summary_large_image' },
-        { name: 'twitter:title', content: post.title },
-        { name: 'twitter:description', content: post.excerpt },
-        { name: 'twitter:image', content: post.coverImage || 'https://ssabiroad.vercel.app/pic2nav.png' },
-        { name: 'description', content: post.excerpt },
-        { name: 'keywords', content: `${post.category}, navigation, maps, location, ${post.title.toLowerCase().split(' ').slice(0, 5).join(', ')}` }
-      ]
-
-      metaTags.forEach(tag => {
-        const existing = document.querySelector(`meta[${tag.property ? 'property' : 'name'}="${tag.property || tag.name}"]`)
-        if (existing) {
-          existing.setAttribute('content', tag.content)
-        } else {
-          const meta = document.createElement('meta')
-          if (tag.property) meta.setAttribute('property', tag.property)
-          if (tag.name) meta.setAttribute('name', tag.name)
-          meta.setAttribute('content', tag.content)
-          document.head.appendChild(meta)
-        }
-      })
-
-      let canonical = document.querySelector('link[rel="canonical"]')
-      if (!canonical) {
-        canonical = document.createElement('link')
-        canonical.setAttribute('rel', 'canonical')
-        document.head.appendChild(canonical)
-      }
-      canonical.setAttribute('href', canonicalUrl)
-    }
-  }, [post])
-
   return (
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a]">
       <script
@@ -206,8 +172,8 @@ export default function BlogPostPage() {
             <ThemeToggle />
             {user ? (
               <div className="flex items-center gap-2 sm:gap-3">
-                <span className="text-xs sm:text-sm hidden md:inline">{user.email}</span>
-                <Button size="sm" variant="outline" className="rounded-full text-xs sm:text-sm" onClick={() => { document.cookie = 'token=; Max-Age=0'; window.location.reload(); }}>Sign Out</Button>
+                <Link href="/profile" className="text-xs sm:text-sm hover:underline hidden md:inline">{user.email}</Link>
+                <Button size="sm" variant="outline" className="rounded-full text-xs sm:text-sm" onClick={handleSignOut}>Sign Out</Button>
               </div>
             ) : (
               <Button size="sm" className="rounded-full text-xs sm:text-sm" asChild><Link href="/login">Sign In</Link></Button>

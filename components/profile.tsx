@@ -3,13 +3,15 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
+import NextLink from "next/link"
+import Link from "next/link"
 import {
   User,
   Mail,
   Calendar,
   MapPin,
   Briefcase,
-  Link,
+  Link as LinkIcon,
   Edit,
   Camera,
   Save,
@@ -19,6 +21,7 @@ import {
   Loader2,
   Heart,
 } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -89,22 +92,20 @@ export function ProfileComponent() {
       try {
         setIsLoading(true)
 
-        // Get the JWT token from localStorage
-        const token = localStorage.getItem("token")
-
+        // Get user from cookie
+        const token = document.cookie.split('; ').find(row => row.startsWith('token='))
         if (!token) {
-          throw new Error("No authentication token found")
+          router.push("/login")
+          return
         }
 
-        const response = await fetch("/api/user", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
+        const payload = JSON.parse(atob(token.split('=')[1].split('.')[1]))
+        const userId = payload.userId
+
+        const response = await fetch(`/api/user/profile?userId=${userId}`)
 
         if (!response.ok) {
           if (response.status === 401) {
-            // Token is invalid or expired, redirect to login
             router.push("/login")
             return
           }
@@ -216,21 +217,12 @@ export function ProfileComponent() {
     try {
       setIsSaving(true)
 
-      // Get the JWT token from localStorage
-      const token = localStorage.getItem("token")
-
-      if (!token) {
-        throw new Error("No authentication token found")
-      }
-
-      // In a real app, this would be an API call to update the profile
-      const response = await fetch("/api/user", {
+      const response = await fetch("/api/user/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(editedProfile),
+        body: JSON.stringify({ userId: profile?.id, name: editedProfile.fullName, bio: editedProfile.bio }),
       })
 
       if (!response.ok) {
@@ -278,7 +270,6 @@ export function ProfileComponent() {
       setIsUploading(true)
       setUploadProgress(0)
 
-      // Simulate upload progress
       const interval = setInterval(() => {
         setUploadProgress((prev) => {
           if (prev >= 95) {
@@ -289,21 +280,27 @@ export function ProfileComponent() {
         })
       }, 100)
 
-      // In a real app, this would be an API call to upload the avatar
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      
+      const avatarUrl = await new Promise<string>((resolve) => {
+        reader.onload = () => resolve(reader.result as string)
+      })
+
+      await fetch("/api/user/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: profile?.id, avatar: avatarUrl }),
+      })
 
       setUploadProgress(100)
+      clearInterval(interval)
 
-      // Create a temporary URL for the uploaded file
-      const avatarUrl = URL.createObjectURL(file)
-
-      // Update profile with new avatar URL
       setProfile((prev) => {
         if (!prev) return null
-        return {
-          ...prev,
-          avatarUrl,
-        }
+        return { ...prev, avatarUrl }
       })
 
       toast({
@@ -354,7 +351,27 @@ export function ProfileComponent() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-white dark:bg-[#0a0a0a]">
+      {/* Header */}
+      <header className="border-b border-stone-200 dark:border-stone-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <img src="/pic2nav.png" alt="Pic2Nav" className="h-8 sm:h-10 w-auto" />
+          </Link>
+          <nav className="flex items-center gap-2 sm:gap-4">
+            <Link href="/blog" className="text-xs sm:text-sm font-medium">Stories</Link>
+            <ThemeToggle />
+            {profile && (
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Link href="/profile" className="text-xs sm:text-sm hover:underline hidden md:inline">{profile.email}</Link>
+                <Button size="sm" variant="outline" className="rounded-full text-xs sm:text-sm" onClick={() => { document.cookie = 'token=; Max-Age=0; path=/'; window.location.href = '/login'; }}>Sign Out</Button>
+              </div>
+            )}
+          </nav>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold">
@@ -567,7 +584,7 @@ export function ProfileComponent() {
 
                       {profile.website && (
                         <div className="flex items-center gap-2">
-                          <Link className="h-4 w-4 text-muted-foreground" />
+                          <LinkIcon className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm text-muted-foreground">Website:</span>
                           <a
                             href={profile.website}
@@ -728,6 +745,7 @@ export function ProfileComponent() {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   )
 }

@@ -58,6 +58,11 @@ export default function BlogPage() {
   const [user, setUser] = useState<any>(null)
   const [showAuthModal, setShowAuthModal] = useState(false)
 
+  const handleSignOut = () => {
+    document.cookie = 'token=; Max-Age=0; path=/'
+    window.location.href = '/login'
+  }
+
   useEffect(() => {
     const token = document.cookie.split('; ').find(row => row.startsWith('token='))
     if (token) {
@@ -136,8 +141,8 @@ export default function BlogPage() {
             <ThemeToggle />
             {user ? (
               <div className="flex items-center gap-2 sm:gap-3">
-                <span className="text-xs sm:text-sm hidden md:inline">{user.email}</span>
-                <Button size="sm" variant="outline" className="rounded-full text-xs sm:text-sm" onClick={() => { document.cookie = 'token=; Max-Age=0'; window.location.reload(); }}>Sign Out</Button>
+                <Link href="/profile" className="text-xs sm:text-sm hover:underline hidden md:inline">{user.email}</Link>
+                <Button size="sm" variant="outline" className="rounded-full text-xs sm:text-sm" onClick={handleSignOut}>Sign Out</Button>
               </div>
             ) : (
               <Button size="sm" className="rounded-full text-xs sm:text-sm" asChild><Link href="/login">Sign In</Link></Button>

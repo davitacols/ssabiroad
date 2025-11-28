@@ -73,6 +73,7 @@ model User {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime
   bio         String?
+  avatar      String?
   Bookmark    Bookmark[]
   Job         Job[]
   Location    Location[]
