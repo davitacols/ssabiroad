@@ -67,16 +67,18 @@ model Location {
 }
 
 model User {
-  id        String     @id
-  email     String     @unique
-  name      String?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime
-  bio       String?
-  Bookmark  Bookmark[]
-  Job       Job[]
-  Location  Location[]
-  ApiKey    ApiKey[]
+  id          String        @id
+  email       String        @unique
+  name        String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime
+  bio         String?
+  Bookmark    Bookmark[]
+  Job         Job[]
+  Location    Location[]
+  ApiKey      ApiKey[]
+  BlogPost    BlogPost[]
+  BlogComment BlogComment[]
 }
 
 model ApiKey {
@@ -198,13 +200,74 @@ model CrimeReport {
   description   String
   contactInfo   String?
   isAnonymous   Boolean  @default(false)
-  fileUrls      Json     // Array of encrypted file URLs
-  location      Json?    // {lat, lng, address}
-  status        String   @default("PENDING") // PENDING, REVIEWED, CLOSED
+  fileUrls      Json
+  location      Json?
+  status        String   @default("PENDING")
   reporterIp    String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([status])
   @@index([createdAt])
+}
+
+model BlogPost {
+  id          String        @id @default(cuid())
+  title       String
+  slug        String        @unique
+  excerpt     String
+  content     String
+  coverImage  String?
+  category    String
+  authorId    String
+  author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  published   Boolean       @default(false)
+  views       Int           @default(0)
+  likes       Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  comments    BlogComment[]
+  postLikes   BlogLike[]
+
+  @@index([slug])
+  @@index([published])
+  @@index([authorId])
+}
+
+model BlogComment {
+  id           String        @id @default(cuid())
+  content      String
+  authorId     String
+  author       User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  postId       String
+  post         BlogPost      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  likes        Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  commentLikes CommentLike[]
+
+  @@index([postId])
+  @@index([authorId])
+}
+
+model BlogLike {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  post      BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+  @@index([postId])
+}
+
+model CommentLike {
+  id        String      @id @default(cuid())
+  userId    String
+  commentId String
+  comment   BlogComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@unique([userId, commentId])
+  @@index([commentId])
 }

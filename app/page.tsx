@@ -56,6 +56,9 @@ export default function HomePage() {
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
             <Button variant="ghost" className="hidden md:inline-flex rounded-full" asChild>
+              <Link href="/blog">Blog</Link>
+            </Button>
+            <Button variant="ghost" className="hidden md:inline-flex rounded-full" asChild>
               <Link href="/api-access">API</Link>
             </Button>
             <Button variant="ghost" className="rounded-full text-red-600 hover:text-red-700 text-xs sm:text-sm px-2 sm:px-4" asChild>

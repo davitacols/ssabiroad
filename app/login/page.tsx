@@ -28,9 +28,10 @@ export default function Login() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Login failed");
 
-      // Wait a bit for cookie to be set, then redirect
+      // Redirect based on referrer or default to home
+      const from = new URLSearchParams(window.location.search).get('from')
       setTimeout(() => {
-        window.location.href = '/api-access';
+        window.location.href = from || '/';
       }, 100);
     } catch (err: any) {
       setError(err.message || "An error occurred. Please try again.");
