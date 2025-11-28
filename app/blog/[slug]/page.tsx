@@ -6,6 +6,8 @@ import { Heart, MessageCircle, Bookmark, MoreHorizontal } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { AuthModal } from '@/components/auth-modal'
+import { ThemeToggle } from '@/components/theme-toggle'
+import Head from 'next/head'
 
 export default function BlogPostPage() {
   const params = useParams()
@@ -116,23 +118,99 @@ export default function BlogPostPage() {
     return <div className="min-h-screen flex items-center justify-center">Post not found</div>
   }
 
+  const canonicalUrl = `https://ssabiroad.vercel.app/blog/${post.slug}`
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": post.title,
+    "description": post.excerpt,
+    "image": post.coverImage || "https://ssabiroad.vercel.app/pic2nav.png",
+    "author": {
+      "@type": "Person",
+      "name": post.author.name
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "SSABIRoad",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://ssabiroad.vercel.app/pic2nav.png"
+      }
+    },
+    "datePublished": post.createdAt,
+    "dateModified": post.updatedAt,
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": canonicalUrl
+    }
+  }
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      document.title = `${post.title} | SSABIRoad Blog`
+      
+      const metaTags = [
+        { property: 'og:title', content: post.title },
+        { property: 'og:description', content: post.excerpt },
+        { property: 'og:image', content: post.coverImage || 'https://ssabiroad.vercel.app/pic2nav.png' },
+        { property: 'og:url', content: canonicalUrl },
+        { property: 'og:type', content: 'article' },
+        { property: 'article:published_time', content: post.createdAt },
+        { property: 'article:author', content: post.author.name },
+        { property: 'article:section', content: post.category },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: post.title },
+        { name: 'twitter:description', content: post.excerpt },
+        { name: 'twitter:image', content: post.coverImage || 'https://ssabiroad.vercel.app/pic2nav.png' },
+        { name: 'description', content: post.excerpt },
+        { name: 'keywords', content: `${post.category}, navigation, maps, location, ${post.title.toLowerCase().split(' ').slice(0, 5).join(', ')}` }
+      ]
+
+      metaTags.forEach(tag => {
+        const existing = document.querySelector(`meta[${tag.property ? 'property' : 'name'}="${tag.property || tag.name}"]`)
+        if (existing) {
+          existing.setAttribute('content', tag.content)
+        } else {
+          const meta = document.createElement('meta')
+          if (tag.property) meta.setAttribute('property', tag.property)
+          if (tag.name) meta.setAttribute('name', tag.name)
+          meta.setAttribute('content', tag.content)
+          document.head.appendChild(meta)
+        }
+      })
+
+      let canonical = document.querySelector('link[rel="canonical"]')
+      if (!canonical) {
+        canonical = document.createElement('link')
+        canonical.setAttribute('rel', 'canonical')
+        document.head.appendChild(canonical)
+      }
+      canonical.setAttribute('href', canonicalUrl)
+    }
+  }, [post])
+
   return (
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       {/* Header */}
       <header className="border-b border-stone-200 dark:border-stone-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <img src="/pic2nav.png" alt="Pic2Nav" className="h-10 w-auto" />
           </Link>
-          <nav className="flex items-center gap-6">
-            <Link href="/blog" className="text-sm font-medium">Stories</Link>
+          <nav className="flex items-center gap-2 sm:gap-4">
+            <Link href="/blog" className="text-xs sm:text-sm font-medium">Stories</Link>
+            <ThemeToggle />
             {user ? (
-              <div className="flex items-center gap-3">
-                <span className="text-sm">{user.email}</span>
-                <Button size="sm" variant="outline" className="rounded-full" onClick={() => { document.cookie = 'token=; Max-Age=0'; window.location.reload(); }}>Sign Out</Button>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="text-xs sm:text-sm hidden md:inline">{user.email}</span>
+                <Button size="sm" variant="outline" className="rounded-full text-xs sm:text-sm" onClick={() => { document.cookie = 'token=; Max-Age=0'; window.location.reload(); }}>Sign Out</Button>
               </div>
             ) : (
-              <Button size="sm" className="rounded-full" asChild><Link href="/login">Sign In</Link></Button>
+              <Button size="sm" className="rounded-full text-xs sm:text-sm" asChild><Link href="/login">Sign In</Link></Button>
             )}
           </nav>
         </div>
@@ -254,7 +332,7 @@ export default function BlogPostPage() {
 
         {/* Cover Image */}
         {post.coverImage && (
-          <img src={post.coverImage} alt={post.title} className="w-full mb-16 rounded-lg" />
+          <img src={post.coverImage} alt={post.title} className="w-full mb-16 rounded-lg" loading="eager" />
         )}
         
         {/* Content */}
@@ -267,6 +345,7 @@ export default function BlogPostPage() {
             color: '#242424'
           }}
           dangerouslySetInnerHTML={{ __html: post.content }}
+          itemProp="articleBody"
         />
 
         {/* Comments */}

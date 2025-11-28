@@ -6,15 +6,15 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/dashboard/', '/.next/', '/admin/', '/login/', '/signup/', '/settings/'],
+        disallow: ['/api/', '/dashboard/', '/.next/', '/admin/', '/settings/'],
       },
       {
         userAgent: 'Googlebot',
         allow: '/',
-        disallow: ['/api/', '/dashboard/', '/.next/', '/admin/', '/login/', '/signup/', '/settings/'],
+        disallow: ['/api/', '/dashboard/', '/.next/', '/admin/', '/settings/'],
       }
     ],
-    sitemap: 'https://pic2nav.app/sitemap.xml',
-    host: 'https://pic2nav.app'
+    sitemap: 'https://ssabiroad.vercel.app/sitemap.xml',
+    host: 'https://ssabiroad.vercel.app'
   }
 }

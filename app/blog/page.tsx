@@ -5,9 +5,55 @@ import { Button } from '@/components/ui/button'
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, TrendingUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { AuthModal } from '@/components/auth-modal'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 export default function BlogPage() {
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const postsPerPage = 10
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      document.title = 'Blog - Stories & Insights | SSABIRoad'
+      
+      const metaTags = [
+        { name: 'description', content: 'Explore stories, tutorials, and insights about navigation, maps, location technology, and building analysis on SSABIRoad blog.' },
+        { name: 'keywords', content: 'navigation blog, map reading, location technology, building analysis, SSABIRoad, Pic2Nav, tutorials, guides' },
+        { property: 'og:title', content: 'Blog - Stories & Insights | SSABIRoad' },
+        { property: 'og:description', content: 'Explore stories, tutorials, and insights about navigation, maps, location technology, and building analysis.' },
+        { property: 'og:url', content: 'https://ssabiroad.vercel.app/blog' },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:image', content: 'https://ssabiroad.vercel.app/pic2nav.png' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: 'Blog - Stories & Insights | SSABIRoad' },
+        { name: 'twitter:description', content: 'Explore stories, tutorials, and insights about navigation, maps, and location technology.' }
+      ]
+
+      metaTags.forEach(tag => {
+        const existing = document.querySelector(`meta[${tag.property ? 'property' : 'name'}="${tag.property || tag.name}"]`)
+        if (existing) {
+          existing.setAttribute('content', tag.content)
+        } else {
+          const meta = document.createElement('meta')
+          if (tag.property) meta.setAttribute('property', tag.property)
+          if (tag.name) meta.setAttribute('name', tag.name)
+          meta.setAttribute('content', tag.content)
+          document.head.appendChild(meta)
+        }
+      })
+
+      let canonical = document.querySelector('link[rel="canonical"]')
+      if (!canonical) {
+        canonical = document.createElement('link')
+        canonical.setAttribute('rel', 'canonical')
+        document.head.appendChild(canonical)
+      }
+      canonical.setAttribute('href', 'https://ssabiroad.vercel.app/blog')
+    }
+  }, [])
+
   const [posts, setPosts] = useState<any[]>([])
+  const [allPosts, setAllPosts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -21,13 +67,22 @@ export default function BlogPage() {
   }, [])
 
   useEffect(() => {
-    fetch('/api/blog')
+    if (currentPage === 1) {
+      fetch('/api/blog?page=1&limit=100')
+        .then(res => res.json())
+        .then(data => setAllPosts(data.posts || []))
+    }
+  }, [])
+
+  useEffect(() => {
+    fetch(`/api/blog?page=${currentPage}&limit=${postsPerPage}`)
       .then(res => res.json())
       .then(data => {
-        setPosts(data)
+        setPosts(data.posts || data)
+        setTotalPages(data.totalPages || 1)
         setLoading(false)
       })
-  }, [])
+  }, [currentPage])
 
   const handleLike = async (postId: string) => {
     if (!user) {
@@ -47,17 +102,38 @@ export default function BlogPage() {
   const featuredPost = posts[0]
   const regularPosts = posts.slice(1)
 
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    "name": "SSABIRoad Blog",
+    "description": "Stories, tutorials, and insights about navigation, maps, and location technology",
+    "url": "https://ssabiroad.vercel.app/blog",
+    "publisher": {
+      "@type": "Organization",
+      "name": "SSABIRoad",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://ssabiroad.vercel.app/pic2nav.png"
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       {/* Header */}
       <header className="border-b border-stone-200 dark:border-stone-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <img src="/pic2nav.png" alt="Pic2Nav" className="h-8 sm:h-10 w-auto" />
           </Link>
-          <nav className="flex items-center gap-2 sm:gap-6">
+          <nav className="flex items-center gap-2 sm:gap-4">
             <Link href="/blog" className="text-xs sm:text-sm font-medium">Stories</Link>
             {user && <Link href="/blog/create" className="hidden sm:inline text-sm text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white">Write</Link>}
+            <ThemeToggle />
             {user ? (
               <div className="flex items-center gap-2 sm:gap-3">
                 <span className="text-xs sm:text-sm hidden md:inline">{user.email}</span>
@@ -78,7 +154,7 @@ export default function BlogPage() {
             <span className="text-xs sm:text-sm font-medium">TRENDING ON PIC2NAV</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-            {posts.slice(0, 3).map((post, i) => (
+            {(allPosts.length > 0 ? allPosts : posts).slice(0, 3).map((post, i) => (
               <Link key={post.id} href={`/blog/${post.slug}`} className="group">
                 <div className="flex gap-3 sm:gap-4">
                   <span className="text-2xl sm:text-3xl font-bold text-stone-300">0{i + 1}</span>
@@ -150,6 +226,39 @@ export default function BlogPage() {
                   </Link>
                 </article>
               ))
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-12">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 rounded-lg border border-stone-200 dark:border-stone-800 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-stone-100 dark:hover:bg-stone-800"
+                >
+                  Previous
+                </button>
+                {[...Array(totalPages)].map((_, i) => (
+                  <button
+                    key={i + 1}
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`px-4 py-2 rounded-lg border ${
+                      currentPage === i + 1
+                        ? 'bg-stone-900 text-white border-stone-900 dark:bg-white dark:text-black'
+                        : 'border-stone-200 dark:border-stone-800 hover:bg-stone-100 dark:hover:bg-stone-800'
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 rounded-lg border border-stone-200 dark:border-stone-800 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-stone-100 dark:hover:bg-stone-800"
+                >
+                  Next
+                </button>
+              </div>
             )}
           </div>
 
