@@ -24,15 +24,52 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { content, authorId, postId } = await req.json()
+    const { content, authorId, postId, parentId } = await req.json()
     
     const comment = await prisma.blogComment.create({
-      data: { content, authorId, postId },
+      data: { content, authorId, postId, parentId: parentId || null },
       include: { author: { select: { name: true, email: true } } }
     })
     
     return NextResponse.json(comment)
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create comment' }, { status: 500 })
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { commentId, userId } = await req.json()
+    
+    const comment = await prisma.blogComment.findUnique({ where: { id: commentId } })
+    if (!comment || comment.authorId !== userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+    
+    await prisma.blogComment.delete({ where: { id: commentId } })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to delete comment' }, { status: 500 })
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    const { commentId, userId, content } = await req.json()
+    
+    const comment = await prisma.blogComment.findUnique({ where: { id: commentId } })
+    if (!comment || comment.authorId !== userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+    
+    const updated = await prisma.blogComment.update({
+      where: { id: commentId },
+      data: { content },
+      include: { author: { select: { name: true, email: true } } }
+    })
+    
+    return NextResponse.json(updated)
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to update comment' }, { status: 500 })
   }
 }

@@ -18,6 +18,10 @@ export default function BlogPostPage() {
   const [commentText, setCommentText] = useState('')
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
+  const [editingComment, setEditingComment] = useState<string | null>(null)
+  const [editText, setEditText] = useState('')
+  const [likedComments, setLikedComments] = useState<Set<string>>(new Set())
+  const [likedPost, setLikedPost] = useState(false)
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -72,7 +76,8 @@ export default function BlogPostPage() {
       setShowAuthModal(true)
       return
     }
-    setPost({ ...post, likes: post.likes + 1 })
+    setLikedPost(!likedPost)
+    setPost({ ...post, likes: likedPost ? post.likes - 1 : post.likes + 1 })
     fetch(`/api/blog/${post.id}/like`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -85,12 +90,46 @@ export default function BlogPostPage() {
       setShowAuthModal(true)
       return
     }
-    setComments(comments.map(c => c.id === commentId ? { ...c, likes: c.likes + 1 } : c))
+    const isLiked = likedComments.has(commentId)
+    const newLiked = new Set(likedComments)
+    if (isLiked) {
+      newLiked.delete(commentId)
+    } else {
+      newLiked.add(commentId)
+    }
+    setLikedComments(newLiked)
+    setComments(comments.map(c => c.id === commentId ? { ...c, likes: isLiked ? c.likes - 1 : c.likes + 1 } : c))
     fetch(`/api/blog/comments/${commentId}/like`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: user.id }),
     })
+  }
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm('Delete this comment?')) return
+    const res = await fetch('/api/blog/comments', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ commentId, userId: user.id }),
+    })
+    if (res.ok) {
+      setComments(comments.filter(c => c.id !== commentId))
+    }
+  }
+
+  const handleEditComment = async (commentId: string) => {
+    const res = await fetch('/api/blog/comments', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ commentId, userId: user.id, content: editText }),
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      setComments(comments.map(c => c.id === commentId ? updated : c))
+      setEditingComment(null)
+      setEditText('')
+    }
   }
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
@@ -247,8 +286,8 @@ export default function BlogPostPage() {
         {/* Actions Bar */}
         <div className="flex items-center justify-between py-6 border-b border-stone-200 dark:border-stone-800 mb-12">
           <div className="flex items-center gap-6">
-            <button onClick={handlePostLike} className="flex items-center gap-2 text-stone-600 hover:text-stone-900">
-              <Heart className="h-6 w-6" />
+            <button onClick={handlePostLike} className={`flex items-center gap-2 ${likedPost ? 'text-red-500' : 'text-stone-600'} hover:text-red-500`}>
+              <Heart className={`h-6 w-6 ${likedPost ? 'fill-current' : ''}`} />
               <span className="text-sm">{post.likes}</span>
             </button>
             <button className="flex items-center gap-2 text-stone-600 hover:text-stone-900">
@@ -378,13 +417,34 @@ export default function BlogPostPage() {
                         {new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
-                    <p className="text-stone-800 dark:text-stone-200 mb-3">{comment.content}</p>
+                    {editingComment === comment.id ? (
+                      <div className="mb-3">
+                        <textarea
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          className="w-full px-3 py-2 border border-stone-200 dark:border-stone-800 rounded-lg focus:border-stone-900 focus:ring-0 text-sm"
+                          rows={2}
+                        />
+                        <div className="flex gap-2 mt-2">
+                          <Button onClick={() => handleEditComment(comment.id)} size="sm" className="rounded-full">Save</Button>
+                          <Button onClick={() => { setEditingComment(null); setEditText(''); }} size="sm" variant="outline" className="rounded-full">Cancel</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-stone-800 dark:text-stone-200 mb-3">{comment.content}</p>
+                    )}
                     <div className="flex items-center gap-4 text-sm text-stone-600">
-                      <button onClick={() => handleCommentLike(comment.id)} className="flex items-center gap-1 hover:text-stone-900">
-                        <Heart className="h-4 w-4" />
+                      <button onClick={() => handleCommentLike(comment.id)} className={`flex items-center gap-1 ${likedComments.has(comment.id) ? 'text-red-500' : ''} hover:text-red-500`}>
+                        <Heart className={`h-4 w-4 ${likedComments.has(comment.id) ? 'fill-current' : ''}`} />
                         <span>{comment.likes}</span>
                       </button>
                       <button onClick={() => setReplyingTo(comment.id)} className="hover:text-stone-900">Reply</button>
+                      {user && user.id === comment.authorId && (
+                        <>
+                          <button onClick={() => { setEditingComment(comment.id); setEditText(comment.content); }} className="hover:text-stone-900">Edit</button>
+                          <button onClick={() => handleDeleteComment(comment.id)} className="hover:text-red-600">Delete</button>
+                        </>
+                      )}
                     </div>
 
                     {replyingTo === comment.id && (
@@ -418,11 +478,34 @@ export default function BlogPostPage() {
                                   {new Date(reply.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                 </span>
                               </div>
-                              <p className="text-stone-800 dark:text-stone-200 mb-2 text-sm">{reply.content}</p>
-                              <button onClick={() => handleCommentLike(reply.id)} className="flex items-center gap-1 text-sm text-stone-600 hover:text-stone-900">
-                                <Heart className="h-3 w-3" />
-                                <span>{reply.likes}</span>
-                              </button>
+                              {editingComment === reply.id ? (
+                                <div className="mb-2">
+                                  <textarea
+                                    value={editText}
+                                    onChange={(e) => setEditText(e.target.value)}
+                                    className="w-full px-3 py-2 border border-stone-200 dark:border-stone-800 rounded-lg focus:border-stone-900 focus:ring-0 text-sm"
+                                    rows={2}
+                                  />
+                                  <div className="flex gap-2 mt-2">
+                                    <Button onClick={() => handleEditComment(reply.id)} size="sm" className="rounded-full text-xs">Save</Button>
+                                    <Button onClick={() => { setEditingComment(null); setEditText(''); }} size="sm" variant="outline" className="rounded-full text-xs">Cancel</Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-stone-800 dark:text-stone-200 mb-2 text-sm">{reply.content}</p>
+                              )}
+                              <div className="flex items-center gap-3 text-sm">
+                                <button onClick={() => handleCommentLike(reply.id)} className={`flex items-center gap-1 ${likedComments.has(reply.id) ? 'text-red-500' : 'text-stone-600'} hover:text-red-500`}>
+                                  <Heart className={`h-3 w-3 ${likedComments.has(reply.id) ? 'fill-current' : ''}`} />
+                                  <span>{reply.likes}</span>
+                                </button>
+                                {user && user.id === reply.authorId && (
+                                  <>
+                                    <button onClick={() => { setEditingComment(reply.id); setEditText(reply.content); }} className="text-stone-600 hover:text-stone-900">Edit</button>
+                                    <button onClick={() => handleDeleteComment(reply.id)} className="text-stone-600 hover:text-red-600">Delete</button>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))}
