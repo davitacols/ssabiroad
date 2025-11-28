@@ -13,7 +13,22 @@ export default function HomePage() {
   const structuredDataArray = [
     seoConfig.webApplicationSchema,
     seoConfig.organizationSchema,
-    seoConfig.faqSchema
+    seoConfig.faqSchema,
+    {
+      "@context": "https://schema.org",
+      "@type": "GovernmentService",
+      "name": "Pic2Nav Crime Reporting",
+      "description": "Report crimes to Nigerian Police Force with AI-powered location detection",
+      "provider": {
+        "@type": "GovernmentOrganization",
+        "name": "Nigerian Police Force"
+      },
+      "areaServed": "Nigeria",
+      "availableChannel": {
+        "@type": "ServiceChannel",
+        "serviceUrl": "https://pic2nav.com/report-crime"
+      }
+    }
   ]
 
   return (
@@ -65,15 +80,15 @@ export default function HomePage() {
               </div>
               
               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold tracking-tight leading-tight">
-                <span className="text-stone-900 dark:text-white">AI-Powered Photo Location Finder - Turn Photos Into</span>
+                <span className="text-stone-900 dark:text-white">Find Location from Photo - Identify Buildings & Landmarks</span>
                 <br />
-                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Precise Locations</span>
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Worldwide</span>
                 <br />
-                <span className="text-stone-900 dark:text-white">Instantly</span>
+                <span className="text-stone-900 dark:text-white">with AI</span>
               </h1>
               
               <p className="text-sm sm:text-base md:text-lg lg:text-xl text-stone-600 dark:text-stone-400 leading-relaxed max-w-xl">
-                Upload any photo to instantly discover its location using advanced AI. Extract GPS coordinates, identify landmarks, find nearby attractions, and get detailed location insights - all completely free.
+                Upload any photo to discover its location using AI. Extract GPS coordinates, identify buildings & landmarks globally, analyze architecture. In Nigeria? Report crimes to Nigerian Police Force. Free forever.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
@@ -219,9 +234,9 @@ export default function HomePage() {
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-xs sm:text-sm text-stone-500">
               <div className="flex gap-4">
+                <Link href="/blog" className="hover:text-stone-700 dark:hover:text-stone-300">Blog</Link>
                 <Link href="/privacy" className="hover:text-stone-700 dark:hover:text-stone-300">Privacy</Link>
                 <Link href="/cookies" className="hover:text-stone-700 dark:hover:text-stone-300">Cookies</Link>
-                <Link href="/data-management" className="hover:text-stone-700 dark:hover:text-stone-300">Manage Data</Link>
               </div>
               <p>© 2024 Pic2Nav</p>
             </div>

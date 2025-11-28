@@ -10,8 +10,8 @@ export const metadata = {
     default: 'Pic2Nav - AI-Powered Location Discovery from Photos',
     template: '%s | Pic2Nav'
   },
-  description: 'Transform any photo into detailed location insights with our advanced AI. Discover places, extract GPS data, and explore nearby attractions instantly. Free photo location finder.',
-  keywords: ['photo location finder', 'AI image recognition', 'GPS extraction', 'location discovery', 'photo geolocation', 'image analysis', 'landmark recognition'],
+  description: 'Find locations from photos worldwide using AI. Extract GPS coordinates, identify buildings & landmarks globally. Report crimes in Nigeria to Nigerian Police Force. Free photo location finder.',
+  keywords: ['find location from photo', 'identify building from picture', 'gps location from image', 'reverse image location search', 'photo location finder', 'AI image recognition', 'landmark identification', 'architectural style detector', 'building analysis tool', 'report crime online nigeria', 'nigerian police force crime report', 'anonymous crime reporting nigeria', 'abuja location finder', 'lagos photo location'],
   authors: [{ name: 'Pic2Nav Team' }],
   creator: 'Pic2Nav',
   publisher: 'Pic2Nav',

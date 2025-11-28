@@ -1,5 +1,16 @@
-# https://www.robotstxt.org/robotstxt.html
+# Allow all search engines
 User-agent: *
 Allow: /
 
-Sitemap: https://pic2nav.app/sitemap.xml
+# Sitemap location
+Sitemap: https://pic2nav.com/sitemap.xml
+Sitemap: https://ssabiroad.vercel.app/sitemap.xml
+
+# Crawl-delay for polite bots
+Crawl-delay: 1
+
+# Disallow admin/private areas
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
+Disallow: /private/
