@@ -1,9 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { NextResponse } from 'next/server'
+import prisma from '@/lib/prisma'
 
-const prisma = new PrismaClient()
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const { email, name } = await req.json()
 
@@ -14,10 +12,12 @@ export async function POST(req: NextRequest) {
     const existing = await prisma.user.findUnique({ where: { email } })
     
     if (existing) {
-      await prisma.user.update({
-        where: { email },
-        data: { emailNotifications: true }
-      })
+      if (!existing.emailNotifications) {
+        await prisma.user.update({
+          where: { email },
+          data: { emailNotifications: true }
+        })
+      }
       return NextResponse.json({ message: 'Already subscribed!' })
     }
 
@@ -32,9 +32,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ message: 'Subscribed successfully!' })
   } catch (error: any) {
-    console.error('Newsletter error:', error?.message)
-    return NextResponse.json({ error: 'Failed to subscribe' }, { status: 500 })
-  } finally {
-    await prisma.$disconnect()
+    console.error('Newsletter error:', error)
+    return NextResponse.json({ error: error?.message || 'Failed' }, { status: 500 })
   }
 }
