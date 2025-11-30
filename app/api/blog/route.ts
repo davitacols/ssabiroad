@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { NextResponse } from 'next/server'
+import prisma from '@/lib/prisma'
 
-const prisma = new PrismaClient()
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
-export async function GET(req: NextRequest) {
+export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
     const page = parseInt(searchParams.get('page') || '1')
@@ -30,28 +31,20 @@ export async function GET(req: NextRequest) {
       currentPage: page,
       total
     })
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch posts' }, { status: 500 })
+  } catch (error: any) {
+    console.error('Blog fetch error:', error)
+    return NextResponse.json({ error: 'Failed', posts: [] }, { status: 500 })
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const { title, slug, excerpt, content, coverImage, category, authorId } = await req.json()
     
     let userId = authorId
     if (!userId || userId === 'default-user-id') {
-      let user = await prisma.user.findFirst()
-      if (!user) {
-        user = await prisma.user.create({
-          data: {
-            id: 'default-blog-author',
-            email: 'blog@pic2nav.com',
-            name: 'Pic2Nav Team',
-          }
-        })
-      }
-      userId = user.id
+      const user = await prisma.user.findFirst()
+      userId = user?.id || 'default-blog-author'
     }
     
     const post = await prisma.blogPost.create({
@@ -61,6 +54,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(post)
   } catch (error: any) {
     console.error('Blog post error:', error)
-    return NextResponse.json({ error: error.message || 'Failed to create post' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
   }
 }
