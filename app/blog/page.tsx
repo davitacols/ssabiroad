@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, TrendingUp } from 'lucide-react'
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, TrendingUp, Search, Share2, Twitter, Facebook, Linkedin, Copy, Check } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { AuthModal } from '@/components/auth-modal'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -59,6 +59,10 @@ export default function BlogPage() {
   const [user, setUser] = useState<any>(null)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [suggestedUsers, setSuggestedUsers] = useState<any[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('All')
+  const [sharePostId, setSharePostId] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const handleSignOut = () => {
     document.cookie = 'token=; Max-Age=0; path=/'
@@ -109,6 +113,25 @@ export default function BlogPage() {
     const res = await fetch('/api/blog')
     const data = await res.json()
     setPosts(data)
+  }
+
+  const handleShare = (postSlug: string, platform: string) => {
+    const url = `https://pic2nav.com/blog/${postSlug}`
+    const text = 'Check out this article on Pic2Nav'
+    
+    const urls: Record<string, string> = {
+      twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
+    }
+    
+    if (platform === 'copy') {
+      navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } else {
+      window.open(urls[platform], '_blank', 'width=600,height=400')
+    }
   }
 
   const featuredPost = posts[0]
@@ -185,6 +208,20 @@ export default function BlogPage() {
         </div>
       </section>
 
+      {/* Search Bar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-12">
+        <div className="max-w-2xl relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-400" />
+          <input
+            type="text"
+            placeholder="Search posts..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 dark:focus:ring-white"
+          />
+        </div>
+      </div>
+
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
         <div className="grid lg:grid-cols-3 gap-6 sm:gap-12">
@@ -198,7 +235,14 @@ export default function BlogPage() {
                 <Button asChild><Link href="/blog/create">Create First Post</Link></Button>
               </div>
             ) : (
-              posts.map((post) => (
+              posts
+                .filter(post => 
+                  (selectedCategory === 'All' || post.category === selectedCategory) &&
+                  (searchQuery === '' || 
+                    post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()))
+                )
+                .map((post) => (
                 <article key={post.id} className="group">
                   <Link href={`/blog/${post.slug}`}>
                     <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
@@ -217,17 +261,41 @@ export default function BlogPage() {
                             <span className="px-2 py-1 bg-stone-100 dark:bg-stone-800 rounded-full text-xs">{post.category}</span>
                           </div>
                           <div className="flex items-center gap-3 sm:gap-4">
-                            <button onClick={(e) => { e.preventDefault(); handleLike(post.id); }} className="flex items-center gap-1 text-stone-600 hover:text-stone-900">
+                            <button onClick={(e) => { e.preventDefault(); handleLike(post.id); }} className="flex items-center gap-1 text-stone-600 hover:text-red-600 transition-colors">
                               <Heart className="h-4 w-4" />
                               <span className="text-xs sm:text-sm">{post.likes}</span>
                             </button>
-                            <button className="flex items-center gap-1 text-stone-600 hover:text-stone-900">
+                            <button className="flex items-center gap-1 text-stone-600 hover:text-blue-600 transition-colors">
                               <MessageCircle className="h-4 w-4" />
                               <span className="text-xs sm:text-sm">{post._count.comments}</span>
                             </button>
-                            <button className="text-stone-600 hover:text-stone-900">
+                            <button className="text-stone-600 hover:text-yellow-600 transition-colors">
                               <Bookmark className="h-4 w-4" />
                             </button>
+                            <div className="relative">
+                              <button 
+                                onClick={(e) => { e.preventDefault(); setSharePostId(sharePostId === post.slug ? null : post.slug); }}
+                                className="text-stone-600 hover:text-green-600 transition-colors"
+                              >
+                                <Share2 className="h-4 w-4" />
+                              </button>
+                              {sharePostId === post.slug && (
+                                <div className="absolute right-0 mt-2 p-3 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-lg z-10 flex gap-2">
+                                  <button onClick={(e) => { e.preventDefault(); handleShare(post.slug, 'twitter'); }} className="p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded">
+                                    <Twitter className="h-4 w-4" />
+                                  </button>
+                                  <button onClick={(e) => { e.preventDefault(); handleShare(post.slug, 'facebook'); }} className="p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded">
+                                    <Facebook className="h-4 w-4" />
+                                  </button>
+                                  <button onClick={(e) => { e.preventDefault(); handleShare(post.slug, 'linkedin'); }} className="p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded">
+                                    <Linkedin className="h-4 w-4" />
+                                  </button>
+                                  <button onClick={(e) => { e.preventDefault(); handleShare(post.slug, 'copy'); }} className="p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded">
+                                    {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -282,10 +350,20 @@ export default function BlogPage() {
               <NewsletterSignup />
             </div>
             <div>
-              <h3 className="text-sm sm:text-base font-bold mb-3 sm:mb-4">Recommended topics</h3>
+              <h3 className="text-sm sm:text-base font-bold mb-3 sm:mb-4">Filter by category</h3>
               <div className="flex flex-wrap gap-2">
-                {['Tutorial', 'Guide', 'Safety', 'News'].map(tag => (
-                  <button key={tag} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-stone-100 dark:bg-stone-800 rounded-full text-xs sm:text-sm hover:bg-stone-200 dark:hover:bg-stone-700">{tag}</button>
+                {['All', 'Tutorial', 'Guide', 'Technology', 'News'].map(tag => (
+                  <button 
+                    key={tag} 
+                    onClick={() => setSelectedCategory(tag)}
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-colors ${
+                      selectedCategory === tag 
+                        ? 'bg-stone-900 text-white dark:bg-white dark:text-black' 
+                        : 'bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700'
+                    }`}
+                  >
+                    {tag}
+                  </button>
                 ))}
               </div>
             </div>
