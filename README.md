@@ -7,16 +7,16 @@ SSABIRoad is a sophisticated web application built with Next.js that provides co
 - **Building Analysis**
   - Architectural style detection
   - Material analysis
-  - Structural condition assessment
-  - Cultural significance evaluation
-  - Energy efficiency metrics
+  - Basic structural condition assessment
+  - Landmark recognition
+  - Building comparison tools
 
 - **Location Intelligence**
   - Precise geolocation tracking
   - Walkability and bike scores
-  - Urban density analysis
-  - Environmental metrics (air quality, noise levels)
-  - Safety assessments
+  - Environmental metrics (air quality)
+  - Weather data integration
+  - Crime reporting system
 
 - **Smart Detection System**
   - Image-based building recognition
@@ -45,15 +45,15 @@ SSABIRoad is a sophisticated web application built with Next.js that provides co
   - React 18
   - TailwindCSS
   - Radix UI Components
-  - Three.js for 3D visualizations
   - Leaflet for maps
+  - Responsive design
 
 - **Backend**
   - Prisma ORM
   - PostgreSQL Database
-  - Authentication with NextAuth.js
+  - JWT Authentication
   - Google Cloud Vision API integration
-  - Firebase services
+  - AWS S3 for file storage
 
 - **APIs & Services**
   - Location services

@@ -145,10 +145,19 @@ function detectMaterials(labels: any[]): string[] {
 }
 
 function estimateEnergyRating(labels: any[]): string {
-  const ratings = ['A', 'B', 'C', 'D', 'E'];
   const labelDesc = labels.map(l => l.description.toLowerCase());
-  if (labelDesc.some(d => d.includes('modern') || d.includes('new'))) return ratings[Math.floor(Math.random() * 2)];
-  return ratings[2 + Math.floor(Math.random() * 3)];
+  let score = 50;
+  
+  if (labelDesc.some(d => d.includes('solar') || d.includes('green'))) score += 30;
+  if (labelDesc.some(d => d.includes('glass') || d.includes('window'))) score += 10;
+  if (labelDesc.some(d => d.includes('modern') || d.includes('new'))) score += 15;
+  if (labelDesc.some(d => d.includes('old') || d.includes('historic'))) score -= 20;
+  
+  if (score >= 85) return 'A';
+  if (score >= 70) return 'B';
+  if (score >= 55) return 'C';
+  if (score >= 40) return 'D';
+  return 'E';
 }
 
 function assessCondition(labels: any[]): string {

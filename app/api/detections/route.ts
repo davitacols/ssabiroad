@@ -1,44 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 
 const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  if (!checkRateLimit(request, 100, 60000)) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  }
 
-    const userId = session.user.id;
-    const detections = await prisma.detection.findMany({
-      where: { userId },
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    
+    const detections = await prisma.location_recognitions.findMany({
+      where: userId ? { userId } : {},
       orderBy: { createdAt: "desc" },
-      include: {
-        building: true
-      }
+      take: 100
     });
 
-    const formattedDetections = detections.map((detection) => ({
-      id: detection.id,
-      buildingName: detection.buildingName || "Unknown Building",
-      address: detection.address || "Unknown Address",
-      confidence: detection.confidence,
-      timestamp: detection.createdAt.toISOString(),
-      features: [
-        ...(detection.architecture || []),
-        ...(detection.materials || []),
-        ...(detection.styles || [])
-      ],
-      coordinates: {
-        lat: detection.latitude,
-        lng: detection.longitude
-      }
-    }));
-
-    return NextResponse.json({ detections: formattedDetections });
+    return NextResponse.json(
+      { detections },
+      { headers: getRateLimitHeaders(request, 100) }
+    );
   } catch (error) {
     console.error("Error fetching detections:", error);
     return NextResponse.json(
