@@ -19,10 +19,21 @@ export async function GET(req: NextRequest) {
 
     const message = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 2000,
+      max_tokens: 4096,
       messages: [{
         role: 'user',
-        content: `Write a blog post about latest navigation tech, AI, or smart cities news. Include title, excerpt, HTML content with <h2>, <p>, <ul>, <li> tags. Only mention Pic2Nav (https://pic2nav.com) if highly relevant (30% chance). Return JSON: {"title":"...","excerpt":"...","content":"...","category":"News"}`
+        content: `Write a comprehensive, detailed blog post (1500-2000 words) about navigation technology, AI in mapping, smart cities, location services, or building recognition. 
+
+Requirements:
+- Create engaging, in-depth content with multiple sections
+- Use proper HTML formatting: <h2> for sections, <h3> for subsections, <p> for paragraphs, <ul>/<li> for lists, <strong> for emphasis
+- Include practical examples, use cases, or tips
+- Write in a professional yet accessible tone
+- Only mention Pic2Nav (https://pic2nav.com) if naturally relevant (20% chance)
+- Make it valuable and informative for readers
+
+Return ONLY valid JSON in this exact format:
+{"title":"Engaging Title Here","excerpt":"Compelling 2-3 sentence summary","content":"<h2>Section Title</h2><p>Detailed content...</p>...","category":"Tutorial or Guide or News or Technology"}`
       }],
     })
 

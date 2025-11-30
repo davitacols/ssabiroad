@@ -32,10 +32,20 @@ export async function GET(req: NextRequest) {
 
     const users = await prisma.user.findMany({
       where: {
-        emailNotifications: true,
-        OR: [
-          { lastEmailSent: null },
-          { lastEmailSent: { lt: today } }
+        email: { not: null },
+        AND: [
+          {
+            OR: [
+              { emailNotifications: true },
+              { emailNotifications: null }
+            ]
+          },
+          {
+            OR: [
+              { lastEmailSent: null },
+              { lastEmailSent: { lt: today } }
+            ]
+          }
         ]
       }
     });
