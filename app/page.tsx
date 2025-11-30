@@ -9,6 +9,7 @@ import { Camera, MapPin, ArrowRight, Zap, Globe2, Upload, Zap as AnalyzeIcon, Ma
 import Link from "next/link"
 import { seoConfig } from "@/lib/seo-config"
 import { useEffect, useState } from "react"
+import { NewsletterSignup } from "@/components/newsletter-signup"
 
 export default function HomePage() {
   const [posts, setPosts] = useState<any[]>([])
@@ -266,6 +267,21 @@ export default function HomePage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Newsletter */}
+      <section className="relative py-16 sm:py-24 md:py-32 px-4 sm:px-6 bg-stone-50 dark:bg-stone-900">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-stone-900 dark:text-white mb-4">
+            Stay updated with our newsletter
+          </h2>
+          <p className="text-base sm:text-lg text-stone-600 dark:text-stone-400 mb-8">
+            Get the latest blog posts, tips, and updates delivered to your inbox
+          </p>
+          <div className="flex justify-center">
+            <NewsletterSignup />
           </div>
         </div>
       </section>

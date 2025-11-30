@@ -6,6 +6,7 @@ import { Heart, MessageCircle, Bookmark, MoreHorizontal, TrendingUp } from 'luci
 import { useEffect, useState } from 'react'
 import { AuthModal } from '@/components/auth-modal'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { NewsletterSignup } from '@/components/newsletter-signup'
 
 export default function BlogPage() {
   const [currentPage, setCurrentPage] = useState(1)
@@ -275,6 +276,11 @@ export default function BlogPage() {
 
           {/* Sidebar */}
           <aside className="space-y-6 sm:space-y-8">
+            <div className="p-6 bg-stone-50 dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800">
+              <h3 className="text-base font-bold mb-3">Subscribe to newsletter</h3>
+              <p className="text-sm text-stone-600 dark:text-stone-400 mb-4">Get new posts delivered to your inbox</p>
+              <NewsletterSignup />
+            </div>
             <div>
               <h3 className="text-sm sm:text-base font-bold mb-3 sm:mb-4">Recommended topics</h3>
               <div className="flex flex-wrap gap-2">
