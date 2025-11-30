@@ -27,6 +27,7 @@ export async function POST(req: Request) {
         email,
         name: name || email.split('@')[0],
         emailNotifications: true,
+        updatedAt: new Date(),
       }
     })
 
