@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { AuthModal } from '@/components/auth-modal'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { NewsletterSignup } from '@/components/newsletter-signup'
+import { Pic2NavAd } from '@/components/pic2nav-ad'
 
 export default function BlogPage() {
   const [currentPage, setCurrentPage] = useState(1)
@@ -154,13 +155,19 @@ export default function BlogPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0a0a0a]">
+    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-20 left-10 w-32 h-32 bg-blue-500/10 rounded-full blur-xl animate-pulse"></div>
+        <div className="absolute top-40 right-20 w-24 h-24 bg-purple-500/10 rounded-full blur-lg animate-bounce" style={{animationDelay: '1s'}}></div>
+        <div className="absolute bottom-32 left-1/4 w-40 h-40 bg-pink-500/10 rounded-full blur-2xl animate-pulse" style={{animationDelay: '2s'}}></div>
+      </div>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
       {/* Header */}
-      <header className="border-b border-stone-200 dark:border-stone-800">
+      <header className="sticky top-0 z-50 border-b border-stone-200 dark:border-stone-800 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <img src="/pic2nav.png" alt="Pic2Nav" className="h-8 sm:h-10 w-auto" />
@@ -242,9 +249,11 @@ export default function BlogPage() {
                     post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()))
                 )
-                .map((post) => (
-                <article key={post.id} className="group">
-                  <Link href={`/blog/${post.slug}`}>
+                .map((post, index) => (
+                <div key={post.id}>
+                  {index === 2 && <Pic2NavAd variant="inline" />}
+                <article key={post.id} className="group transform hover:scale-[1.02] transition-all duration-300 hover:shadow-xl">
+                  <Link href={`/blog/${post.slug}`} className="block">
                     <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2 sm:mb-3">
@@ -300,11 +309,15 @@ export default function BlogPage() {
                         </div>
                       </div>
                       {post.coverImage && (
-                        <img src={post.coverImage} alt={post.title} className="w-full sm:w-24 md:w-32 h-48 sm:h-24 md:h-32 object-cover rounded flex-shrink-0" />
+                        <div className="relative overflow-hidden rounded">
+                          <img src={post.coverImage} alt={post.title} className="w-full sm:w-24 md:w-32 h-48 sm:h-24 md:h-32 object-cover flex-shrink-0 transform group-hover:scale-110 transition-transform duration-500" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        </div>
                       )}
                     </div>
                   </Link>
                 </article>
+                </div>
               ))
             )}
 
@@ -340,11 +353,16 @@ export default function BlogPage() {
                 </button>
               </div>
             )}
+            
+            <Pic2NavAd variant="footer" />
           </div>
 
           {/* Sidebar */}
-          <aside className="space-y-6 sm:space-y-8">
-            <div className="p-6 bg-stone-50 dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800">
+          <aside className="space-y-6 sm:space-y-8 sticky top-24">
+            <div className="transform hover:scale-105 transition-transform duration-300">
+              <Pic2NavAd variant="sidebar" />
+            </div>
+            <div className="p-6 bg-stone-50 dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 transform hover:scale-105 transition-all duration-300 hover:shadow-lg">
               <h3 className="text-base font-bold mb-3">Subscribe to newsletter</h3>
               <p className="text-sm text-stone-600 dark:text-stone-400 mb-4">Get new posts delivered to your inbox</p>
               <NewsletterSignup />
@@ -356,9 +374,9 @@ export default function BlogPage() {
                   <button 
                     key={tag} 
                     onClick={() => setSelectedCategory(tag)}
-                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-colors ${
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm transition-all duration-300 transform hover:scale-110 hover:shadow-md ${
                       selectedCategory === tag 
-                        ? 'bg-stone-900 text-white dark:bg-white dark:text-black' 
+                        ? 'bg-stone-900 text-white dark:bg-white dark:text-black shadow-lg scale-105' 
                         : 'bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700'
                     }`}
                   >
@@ -372,7 +390,7 @@ export default function BlogPage() {
                 <h3 className="text-sm sm:text-base font-bold mb-3 sm:mb-4">Who to follow</h3>
                 <div className="space-y-4">
                   {suggestedUsers.map(user => (
-                    <div key={user.id} className="flex items-center justify-between">
+                    <div key={user.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 transition-all duration-300 transform hover:scale-105">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
                           {user.name.charAt(0)}
@@ -382,7 +400,7 @@ export default function BlogPage() {
                           <div className="text-xs text-stone-600 truncate">{user.bio || 'Writer'}</div>
                         </div>
                       </div>
-                      <Button size="sm" variant="outline" className="rounded-full text-xs flex-shrink-0">Follow</Button>
+                      <Button size="sm" variant="outline" className="rounded-full text-xs flex-shrink-0 transform hover:scale-110 transition-transform duration-200">Follow</Button>
                     </div>
                   ))}
                 </div>

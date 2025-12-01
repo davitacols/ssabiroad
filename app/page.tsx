@@ -10,6 +10,7 @@ import Link from "next/link"
 import { seoConfig } from "@/lib/seo-config"
 import { useEffect, useState } from "react"
 import { NewsletterSignup } from "@/components/newsletter-signup"
+import { BlogCTA } from "@/components/blog-cta"
 
 export default function HomePage() {
   const [posts, setPosts] = useState<any[]>([])
@@ -237,6 +238,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Blog CTA */}
+      <BlogCTA />
 
       {/* Features */}
       <section className="relative py-16 sm:py-24 md:py-32 px-4 sm:px-6 bg-white dark:bg-stone-950">

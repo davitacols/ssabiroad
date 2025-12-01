@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { AuthModal } from '@/components/auth-modal'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { Pic2NavAd } from '@/components/pic2nav-ad'
 import Head from 'next/head'
 
 export default function BlogPostPage() {
@@ -225,13 +226,18 @@ export default function BlogPostPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0a0a0a]">
+    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden">
+      {/* Floating elements */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-32 right-16 w-20 h-20 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-xl animate-pulse"></div>
+        <div className="absolute bottom-40 left-20 w-32 h-32 bg-gradient-to-r from-pink-500/20 to-orange-500/20 rounded-full blur-2xl animate-bounce" style={{animationDelay: '1.5s'}}></div>
+      </div>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
       {/* Header */}
-      <header className="border-b border-stone-200 dark:border-stone-800">
+      <header className="sticky top-0 z-50 border-b border-stone-200 dark:border-stone-800 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <img src="/pic2nav.png" alt="Pic2Nav" className="h-10 w-auto" />
@@ -252,7 +258,7 @@ export default function BlogPostPage() {
       </header>
 
       <div className="max-w-[1400px] mx-auto px-6 sm:px-8 lg:px-12 py-12 sm:py-16 flex flex-col lg:flex-row gap-12 lg:gap-16">
-        <article className="flex-1 w-full lg:max-w-[780px] mx-auto">
+        <article className="flex-1 w-full lg:max-w-[780px] mx-auto transform hover:scale-[1.01] transition-transform duration-500">
         {/* Title */}
         <h1 className="text-3xl sm:text-4xl lg:text-5xl leading-tight font-bold tracking-tight mb-6">{post.title}</h1>
         
@@ -322,7 +328,7 @@ export default function BlogPostPage() {
               const url = typeof window !== 'undefined' ? window.location.href : canonicalUrl
               window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(url)}`, '_blank')
             }}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-black text-white hover:bg-stone-800 transition-colors text-xs sm:text-sm"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-black text-white hover:bg-stone-800 transition-all duration-300 text-xs sm:text-sm transform hover:scale-110 hover:shadow-lg"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
             Twitter
@@ -372,7 +378,10 @@ export default function BlogPostPage() {
 
         {/* Cover Image */}
         {post.coverImage && (
-          <img src={post.coverImage} alt={post.title} className="w-full mb-16 rounded-lg" loading="eager" />
+          <div className="relative mb-16 group">
+            <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <img src={post.coverImage} alt={post.title} className="relative w-full rounded-lg shadow-2xl transform group-hover:scale-105 transition-transform duration-500" loading="eager" />
+          </div>
         )}
         
         {/* Content */}
@@ -387,6 +396,8 @@ export default function BlogPostPage() {
           dangerouslySetInnerHTML={{ __html: post.content }}
           itemProp="articleBody"
         />
+        
+        <Pic2NavAd variant="inline" />
 
         {/* Comments */}
         <div className="border-t border-stone-200 dark:border-stone-800 pt-16">
@@ -527,8 +538,9 @@ export default function BlogPostPage() {
       {/* Sidebar */}
       <aside className="w-full lg:w-96 lg:block">
         {/* Author Profile */}
-        <div className="sticky top-24 space-y-10">
-          <div className="border border-stone-200 dark:border-stone-800 rounded-xl p-6">
+        <div className="sticky top-24 space-y-10 transform hover:scale-[1.02] transition-transform duration-300">
+          <Pic2NavAd variant="sidebar" />
+          <div className="border border-stone-200 dark:border-stone-800 rounded-xl p-6 transform hover:scale-105 transition-all duration-300 hover:shadow-xl bg-gradient-to-br from-white to-stone-50 dark:from-stone-900 dark:to-stone-800">
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4">
               {post.author.name.charAt(0)}
             </div>
@@ -558,7 +570,7 @@ export default function BlogPostPage() {
               <h3 className="font-bold mb-4">Related Stories</h3>
               <div className="space-y-4">
                 {relatedPosts.map((p) => (
-                  <Link key={p.id} href={`/blog/${p.slug}`} className="block group">
+                  <Link key={p.id} href={`/blog/${p.slug}`} className="block group transform hover:scale-105 transition-all duration-300 p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800">
                     <h4 className="font-medium text-sm group-hover:underline mb-1">{p.title}</h4>
                     <p className="text-xs text-stone-600 dark:text-stone-400">
                       {new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -583,6 +595,8 @@ export default function BlogPostPage() {
               ))}
             </div>
           </div>
+          
+          <Pic2NavAd variant="banner" />
         </div>
       </aside>
       </div>
