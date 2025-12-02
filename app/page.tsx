@@ -59,6 +59,11 @@ export default function HomePage() {
         <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-pink-400/20 dark:bg-pink-600/10 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
       </div>
 
+      {/* Announcement Banner */}
+      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white py-3 px-4 text-center text-base">
+        <span className="font-semibold">New Feature:</span> Get public transit directions from your location! <Link href="/transit" className="underline ml-2 font-medium">Try it now →</Link>
+      </div>
+
       {/* Navigation */}
       <nav className="sticky top-0 z-50 border-b border-stone-200/50 dark:border-stone-800/50 bg-white/50 dark:bg-black/50 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
@@ -112,6 +117,18 @@ export default function HomePage() {
                     Start Scanning
                   </Link>
                 </Button>
+              </div>
+
+              {/* Social Proof */}
+              <div className="flex items-center gap-4 pt-4">
+                <div className="flex -space-x-2">
+                  {[1,2,3,4].map(i => (
+                    <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 border-2 border-white dark:border-stone-900" />
+                  ))}
+                </div>
+                <p className="text-sm text-stone-600 dark:text-stone-400">
+                  <span className="font-semibold text-stone-900 dark:text-white">1,000+</span> users discovering locations daily
+                </p>
               </div>
 
               {/* Stats */}
@@ -241,6 +258,24 @@ export default function HomePage() {
 
       {/* Blog CTA */}
       <BlogCTA />
+
+      {/* Transit Feature Banner */}
+      <section className="relative py-12 sm:py-16 px-4 sm:px-6 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4">
+            New: Public Transit Directions
+          </h2>
+          <p className="text-base sm:text-lg text-white/90 mb-6">
+            Get step-by-step transit directions from your current location to any destination worldwide
+          </p>
+          <Button size="lg" className="rounded-full bg-white text-purple-600 hover:bg-stone-100" asChild>
+            <Link href="/transit">
+              Try Transit Directions
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+          </Button>
+        </div>
+      </section>
 
       {/* Features */}
       <section className="relative py-16 sm:py-24 md:py-32 px-4 sm:px-6 bg-white dark:bg-stone-950">
