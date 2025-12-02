@@ -87,7 +87,13 @@ export default function BlogPage() {
   }, [])
 
   useEffect(() => {
-    fetch(`/api/blog?page=${currentPage}&limit=${postsPerPage}`)
+    const params = new URLSearchParams({
+      page: currentPage.toString(),
+      limit: postsPerPage.toString()
+    })
+    if (searchQuery) params.append('search', searchQuery)
+    
+    fetch(`/api/blog?${params}`)
       .then(res => res.json())
       .then(data => {
         setPosts(data.posts || data)
@@ -99,7 +105,7 @@ export default function BlogPage() {
       .then(res => res.json())
       .then(data => setSuggestedUsers(data.slice(0, 3)))
       .catch(err => console.error('Error loading users:', err))
-  }, [currentPage])
+  }, [currentPage, searchQuery])
 
   const handleLike = async (postId: string) => {
     if (!user) {
@@ -116,9 +122,16 @@ export default function BlogPage() {
     setPosts(data)
   }
 
-  const handleShare = (postSlug: string, platform: string) => {
+  const handleShare = async (postSlug: string, platform: string) => {
     const url = `https://pic2nav.com/blog/${postSlug}`
     const text = 'Check out this article on Pic2Nav'
+    
+    // Track share
+    fetch('/api/blog/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ postSlug, platform })
+    }).catch(() => {})
     
     const urls: Record<string, string> = {
       twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
@@ -174,7 +187,7 @@ export default function BlogPage() {
           </Link>
           <nav className="flex items-center gap-2 sm:gap-4">
             <Link href="/blog" className="text-xs sm:text-sm font-medium">Stories</Link>
-            {user && <Link href="/blog/create" className="hidden sm:inline text-sm text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white">Write</Link>}
+            {user && <Link href="/blog/create" className="text-sm text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white">Write</Link>}
             <ThemeToggle />
             {user ? (
               <div className="flex items-center gap-2 sm:gap-3">
@@ -266,7 +279,7 @@ export default function BlogPage() {
                           <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-stone-600 flex-wrap">
                             <span>{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                             <span className="hidden sm:inline">·</span>
-                            <span className="hidden sm:inline">{Math.ceil(post.content.length / 1000)} min read</span>
+                            <span className="hidden sm:inline">{Math.max(1, Math.ceil(post.content.replace(/<[^>]*>/g, '').length / 200))} min read</span>
                             <span className="px-2 py-1 bg-stone-100 dark:bg-stone-800 rounded-full text-xs">{post.category}</span>
                           </div>
                           <div className="flex items-center gap-3 sm:gap-4">

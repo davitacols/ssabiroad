@@ -38,45 +38,26 @@ export function BlogCTA() {
           </div>
 
           {/* Pic2Nav Promotion */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 shadow-xl border border-gray-200 dark:border-gray-800">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <Camera className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Pic2Nav Web App</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">AI-Powered Photo Location Scanner</p>
-              </div>
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-6 border border-gray-200 dark:border-gray-800">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Pic2Nav</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Photo Location Analysis Tool</p>
             </div>
             
-            <div className="space-y-3 mb-6">
-              <div className="flex items-center gap-3">
-                <MapPin className="h-4 w-4 text-green-600" />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Instant Location Discovery</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Camera className="h-4 w-4 text-green-600" />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Building & Landmark Recognition</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <BookOpen className="h-4 w-4 text-green-600" />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Weather & Location Data</span>
-              </div>
+            <div className="space-y-2 mb-4 text-sm text-gray-700 dark:text-gray-300">
+              <div>• Extract GPS coordinates from photos</div>
+              <div>• Identify buildings and landmarks</div>
+              <div>• Get weather and location data</div>
             </div>
 
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <div className="flex text-yellow-400">
-                  {'★'.repeat(5)}
-                </div>
-                <span className="text-sm font-medium">4.8/5</span>
-              </div>
-              <span className="text-sm text-green-600 font-medium">Free to Use</span>
+            <div className="flex items-center justify-between mb-4 text-sm text-gray-600 dark:text-gray-400">
+              <span>Free tool</span>
+              <span>No signup required</span>
             </div>
 
-            <Button className="w-full bg-green-600 hover:bg-green-700" size="lg" asChild>
+            <Button className="w-full" variant="default" asChild>
               <Link href="/camera">
-                Try Pic2Nav Now
+                Try Tool
               </Link>
             </Button>
           </div>

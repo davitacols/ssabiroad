@@ -53,7 +53,12 @@ export default function BlogPostPage() {
         setPost(foundPost)
         setRecentPosts(posts.slice(0, 4))
         if (foundPost) {
-          setRelatedPosts(posts.filter((p: any) => p.id !== foundPost.id && p.category === foundPost.category).slice(0, 3))
+          const related = posts.filter((p: any) => p.id !== foundPost.id && p.category === foundPost.category)
+          if (related.length < 3) {
+            const others = posts.filter((p: any) => p.id !== foundPost.id && p.category !== foundPost.category)
+            related.push(...others.slice(0, 3 - related.length))
+          }
+          setRelatedPosts(related.slice(0, 3))
           return fetch(`/api/blog/comments?postId=${foundPost.id}`)
         }
       })

@@ -9,10 +9,22 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50)
+    const search = searchParams.get('search')
     const skip = (page - 1) * limit
 
+    const where = {
+      published: true,
+      ...(search && {
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { excerpt: { contains: search, mode: 'insensitive' } },
+          { content: { contains: search, mode: 'insensitive' } }
+        ]
+      })
+    }
+
     const posts = await prisma.blogPost.findMany({
-      where: { published: true },
+      where,
       include: {
         author: { select: { name: true, email: true } },
         _count: { select: { comments: true } }
@@ -22,7 +34,7 @@ export async function GET(req: Request) {
       take: limit
     })
 
-    const total = await prisma.blogPost.count({ where: { published: true } })
+    const total = await prisma.blogPost.count({ where })
 
     return NextResponse.json({
       posts,
