@@ -6,6 +6,7 @@ import { MapPin, Navigation, Bus, Train, Clock, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
 export default function TransitPage() {
+  const [originInput, setOriginInput] = useState('')
   const [origin, setOrigin] = useState({ lat: 0, lng: 0 })
   const [destination, setDestination] = useState('')
   const [routes, setRoutes] = useState<any[]>([])
@@ -13,14 +14,39 @@ export default function TransitPage() {
   const [error, setError] = useState('')
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [originSuggestions, setOriginSuggestions] = useState<any[]>([])
+  const [showOriginSuggestions, setShowOriginSuggestions] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const originRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setOrigin({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => setError('Enable location access')
-    )
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setOrigin({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+          setOriginInput('Current Location')
+        },
+        () => setOriginInput('')
+      )
+    }
   }, [])
+
+  useEffect(() => {
+    if (originInput.length > 2 && originInput !== 'Current Location') {
+      const timer = setTimeout(() => {
+        fetch(`/api/places-autocomplete?input=${encodeURIComponent(originInput)}`)
+          .then(res => res.json())
+          .then(data => {
+            setOriginSuggestions(data.predictions || [])
+            setShowOriginSuggestions(true)
+          })
+      }, 300)
+      return () => clearTimeout(timer)
+    } else {
+      setOriginSuggestions([])
+      setShowOriginSuggestions(false)
+    }
+  }, [originInput])
 
   useEffect(() => {
     if (destination.length > 2) {
@@ -40,12 +66,24 @@ export default function TransitPage() {
   }, [destination])
 
   const searchDestination = async () => {
-    if (!destination) return
+    if (!destination || !originInput) return
     
     setLoading(true)
     setError('')
 
     try {
+      let originCoords = origin
+      
+      if (originInput !== 'Current Location') {
+        const originGeocode = await fetch(
+          `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(originInput)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+        )
+        const originData = await originGeocode.json()
+        if (originData.results[0]) {
+          originCoords = originData.results[0].geometry.location
+        }
+      }
+
       const geocodeRes = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(destination)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
       )
@@ -55,7 +93,7 @@ export default function TransitPage() {
         const destCoords = geocodeData.results[0].geometry.location
         
         const res = await fetch(
-          `/api/transit-directions?originLat=${origin.lat}&originLng=${origin.lng}&destLat=${destCoords.lat}&destLng=${destCoords.lng}`
+          `/api/transit-directions?originLat=${originCoords.lat}&originLng=${originCoords.lng}&destLat=${destCoords.lat}&destLng=${destCoords.lng}`
         )
         const data = await res.json()
         
@@ -83,12 +121,39 @@ export default function TransitPage() {
 
         <div className="bg-stone-50 dark:bg-stone-900 rounded-xl p-6 mb-6">
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">From (Current Location)</label>
-              <div className="flex items-center gap-2 p-3 bg-white dark:bg-stone-800 rounded-lg">
-                <MapPin className="h-5 w-5 text-blue-600" />
-                <span className="text-sm">{origin.lat.toFixed(4)}, {origin.lng.toFixed(4)}</span>
-              </div>
+            <div className="relative">
+              <label className="block text-sm font-medium mb-2">From</label>
+              <input
+                ref={originRef}
+                type="text"
+                value={originInput}
+                onChange={(e) => setOriginInput(e.target.value)}
+                placeholder="Enter starting location or use current"
+                className="w-full p-3 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-800"
+                onFocus={() => originSuggestions.length > 0 && setShowOriginSuggestions(true)}
+              />
+              {showOriginSuggestions && originSuggestions.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {originSuggestions.map((suggestion: any) => (
+                    <button
+                      key={suggestion.place_id}
+                      onClick={() => {
+                        setOriginInput(suggestion.description)
+                        setShowOriginSuggestions(false)
+                      }}
+                      className="w-full text-left p-3 hover:bg-stone-50 dark:hover:bg-stone-700 border-b border-stone-100 dark:border-stone-700 last:border-0"
+                    >
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-stone-400 mt-1 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{suggestion.structured_formatting.main_text}</div>
+                          <div className="text-xs text-stone-500 truncate">{suggestion.structured_formatting.secondary_text}</div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="relative">
@@ -129,7 +194,7 @@ export default function TransitPage() {
 
             <LoadingButton 
               onClick={searchDestination} 
-              disabled={!destination || loading}
+              disabled={!destination || !originInput || loading}
               className="w-full"
             >
               <Navigation className="mr-2 h-4 w-4" />
