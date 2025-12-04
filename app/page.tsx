@@ -99,19 +99,26 @@ export default function HomePage() {
               </div>
               
               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold tracking-tight leading-tight">
-                <span className="text-stone-900 dark:text-white">Find Location from Photo - Identify Buildings & Landmarks</span>
+                <span className="text-stone-900 dark:text-white">Pic2Nav – Find Any Building's Location From a Photo</span>
                 <br />
-                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Worldwide</span>
-                <br />
-                <span className="text-stone-900 dark:text-white">with AI</span>
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">(AI Image Locator)</span>
               </h1>
               
               <p className="text-sm sm:text-base md:text-lg lg:text-xl text-stone-600 dark:text-stone-400 leading-relaxed max-w-xl">
-                Upload any photo to discover its location using AI. Extract GPS coordinates, identify buildings & landmarks globally, analyze architecture. In Nigeria? Report crimes to Nigerian Police Force. Free forever.
+                Upload a photo of any building and get the exact location instantly using AI. Works for streets without addresses. Fast, accurate, global. Perfect for delivery riders, real estate agents, and anyone finding locations in Nigeria and worldwide. Free forever.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
-                <Button size="lg" className="rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 shadow-lg shadow-stone-900/10" asChild>
+                <Button 
+                  size="lg" 
+                  className="rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 shadow-lg shadow-stone-900/10" 
+                  asChild
+                  onClick={() => {
+                    if (typeof window !== 'undefined' && (window as any).gtag) {
+                      (window as any).gtag('event', 'cta_click', { location: 'hero', action: 'start_scanning' })
+                    }
+                  }}
+                >
                   <Link href="/camera">
                     <Camera className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                     Start Scanning
