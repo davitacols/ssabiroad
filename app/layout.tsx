@@ -5,7 +5,7 @@ import { Providers } from './providers'
 const leagueSpartan = League_Spartan({ subsets: ['latin'] })
 
 export const metadata = {
-  metadataBase: new URL('https://pic2nav.app'),
+  metadataBase: new URL('https://pic2nav.com'),
   title: {
     default: 'Pic2Nav - AI-Powered Location Discovery from Photos',
     template: '%s | Pic2Nav'
@@ -29,7 +29,7 @@ export const metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://pic2nav.app',
+    url: 'https://pic2nav.com',
     siteName: 'Pic2Nav',
     title: 'Pic2Nav - AI-Powered Location Discovery from Photos',
     description: 'Transform any photo into detailed location insights with our advanced AI. Discover places, extract GPS data, and explore nearby attractions instantly.',
@@ -65,7 +65,7 @@ export const metadata = {
     bing: 'your-bing-verification-code',
   },
   alternates: {
-    canonical: 'https://pic2nav.app',
+    canonical: 'https://pic2nav.com',
   },
   category: 'technology',
   classification: 'AI Photo Analysis Tool',

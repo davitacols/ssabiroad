@@ -52,21 +52,17 @@ export default function HomePage() {
         />
       ))}
       <div className="min-h-screen bg-[#fafaf9] dark:bg-[#0a0a0a]">
-      {/* Organic blob backgrounds */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl animate-blob"></div>
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-400/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-pink-400/20 dark:bg-pink-600/10 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
-      </div>
+      {/* Subtle gradient background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50 dark:from-stone-950 dark:via-stone-950 dark:to-blue-950/20 pointer-events-none"></div>
 
       {/* Announcement Banner */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white py-3 px-4 text-center text-base">
-        <span className="font-semibold">New Feature:</span> Get public transit directions from your location! <Link href="/transit" className="underline ml-2 font-medium">Try it now →</Link>
+      <div className="bg-blue-600 text-white py-2.5 px-4 text-center text-sm">
+        <span className="font-medium">🚀 New:</span> Public transit directions now available <Link href="/transit" className="underline ml-2 font-semibold hover:text-blue-100">Try it →</Link>
       </div>
 
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-stone-200/50 dark:border-stone-800/50 bg-white/50 dark:bg-black/50 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
+      <nav className="sticky top-0 z-50 border-b border-stone-200 dark:border-stone-800 bg-white/95 dark:bg-stone-950/95 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
             <img src="/pic2nav.png" alt="Pic2Nav" className="h-12 sm:h-14 md:h-16 w-auto object-contain drop-shadow-lg" />
           </Link>
@@ -77,11 +73,8 @@ export default function HomePage() {
             <Button variant="ghost" className="hidden md:inline-flex rounded-full" asChild>
               <Link href="/api-access">API</Link>
             </Button>
-            <Button variant="ghost" className="rounded-full text-red-600 hover:text-red-700 text-xs sm:text-sm px-2 sm:px-4" asChild>
-              <Link href="/report-crime">Report Crime</Link>
-            </Button>
-            <Button className="rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 text-sm sm:text-base px-3 sm:px-4" asChild>
-              <Link href="/camera">Try Now</Link>
+            <Button className="rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm px-6" asChild>
+              <Link href="/camera">Get Started</Link>
             </Button>
           </div>
         </div>
@@ -93,25 +86,26 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center">
             {/* Left Content */}
             <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-stone-800">
-                <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
-                <span className="text-xs sm:text-sm font-medium text-stone-700 dark:text-stone-300">AI-Powered Recognition</span>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                <Sparkles className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">AI-Powered • 95% Accurate</span>
               </div>
               
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold tracking-tight leading-tight">
-                <span className="text-stone-900 dark:text-white">Pic2Nav – Find Any Building's Location From a Photo</span>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">
+                <span className="text-stone-900 dark:text-white">Find Any Location</span>
                 <br />
-                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">(AI Image Locator)</span>
+                <span className="text-stone-900 dark:text-white">From a </span>
+                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Photo</span>
               </h1>
               
-              <p className="text-sm sm:text-base md:text-lg lg:text-xl text-stone-600 dark:text-stone-400 leading-relaxed max-w-xl">
-                Upload a photo of any building and get the exact location instantly using AI. Works for streets without addresses. Fast, accurate, global. Perfect for delivery riders, real estate agents, and anyone finding locations in Nigeria and worldwide. Free forever.
+              <p className="text-base sm:text-lg md:text-xl text-stone-600 dark:text-stone-400 leading-relaxed max-w-xl">
+                Upload any building photo and get its exact location in 3 seconds. Perfect for delivery, real estate, and travel. Works worldwide, even without addresses.
               </p>
               
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <Button 
                   size="lg" 
-                  className="rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base bg-stone-900 hover:bg-stone-800 dark:bg-white dark:hover:bg-stone-100 dark:text-stone-900 shadow-lg shadow-stone-900/10" 
+                  className="rounded-full h-14 px-8 text-base bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20" 
                   asChild
                   onClick={() => {
                     if (typeof window !== 'undefined' && (window as any).gtag) {
@@ -120,53 +114,75 @@ export default function HomePage() {
                   }}
                 >
                   <Link href="/camera">
-                    <Camera className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                    Start Scanning
+                    <Camera className="mr-2 h-5 w-5" />
+                    Try It Free
+                  </Link>
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="rounded-full h-14 px-8 text-base border-2" 
+                  asChild
+                >
+                  <Link href="#how-it-works">
+                    See How It Works
                   </Link>
                 </Button>
               </div>
 
-              {/* Social Proof */}
-              <div className="flex items-center gap-4 pt-4">
-                <div className="flex -space-x-2">
-                  {[1,2,3,4].map(i => (
-                    <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 border-2 border-white dark:border-stone-900" />
-                  ))}
+              {/* Trust Signals */}
+              <div className="flex flex-wrap items-center gap-6 pt-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex -space-x-2">
+                    {[1,2,3,4].map(i => (
+                      <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 border-2 border-white dark:border-stone-900" />
+                    ))}
+                  </div>
+                  <p className="text-sm text-stone-600 dark:text-stone-400">
+                    <span className="font-bold text-stone-900 dark:text-white">10,000+</span> users
+                  </p>
                 </div>
-                <p className="text-sm text-stone-600 dark:text-stone-400">
-                  <span className="font-semibold text-stone-900 dark:text-white">1,000+</span> users discovering locations daily
-                </p>
+                <div className="flex items-center gap-1 text-sm">
+                  <span className="text-yellow-500">★★★★★</span>
+                  <span className="font-semibold text-stone-900 dark:text-white ml-1">4.9/5</span>
+                  <span className="text-stone-500">rating</span>
+                </div>
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-2 sm:pt-4">
+              <div className="grid grid-cols-4 gap-4 pt-6">
                 {[
-                  { value: "10K+", label: "Scanned" },
+                  { value: "10K+", label: "Photos" },
                   { value: "95%", label: "Accuracy" },
-                  { value: "<3s", label: "Speed" },
-                  { value: "Free", label: "Forever" }
+                  { value: "3s", label: "Speed" },
+                  { value: "195", label: "Countries" }
                 ].map((stat, i) => (
                   <div key={i} className="text-center">
-                    <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-stone-900 dark:text-white mb-1">{stat.value}</div>
-                    <div className="text-xs text-stone-600 dark:text-stone-400">{stat.label}</div>
+                    <div className="text-2xl sm:text-3xl font-bold text-stone-900 dark:text-white mb-1">{stat.value}</div>
+                    <div className="text-xs text-stone-500 dark:text-stone-400">{stat.label}</div>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Right Video */}
-            <div className="relative mt-6 lg:mt-0">
-              <div className="absolute -inset-2 sm:-inset-4 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-2xl sm:rounded-3xl blur-xl sm:blur-2xl"></div>
-              <div className="relative rounded-xl sm:rounded-2xl overflow-hidden border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 shadow-xl sm:shadow-2xl">
-                <div className="bg-stone-100 dark:bg-stone-800 px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 border-b border-stone-200 dark:border-stone-700">
-                  <div className="flex gap-1 sm:gap-1.5">
-                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
-                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
-                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+            <div className="relative mt-6 lg:mt-0 group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl blur-2xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
+              <div className="relative rounded-2xl overflow-hidden border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 shadow-2xl">
+                <div className="bg-gradient-to-r from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900 px-4 py-3 flex items-center gap-3 border-b border-stone-200 dark:border-stone-700">
+                  <div className="flex gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
                   </div>
-                  <div className="text-xs sm:text-sm text-stone-600 dark:text-stone-400">pic2nav.app</div>
+                  <div className="flex-1 text-center">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-stone-700">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs font-medium text-stone-600 dark:text-stone-400">pic2nav.app</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="aspect-[16/10] bg-black">
+                <div className="aspect-[16/10] bg-gradient-to-br from-stone-900 to-stone-800">
                   <video 
                     className="w-full h-full object-cover"
                     autoPlay 
@@ -183,26 +199,40 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Interactive Map Section */}
-      <section className="relative py-8 sm:py-16 md:py-24 lg:py-32 px-4 sm:px-6 bg-stone-50 dark:bg-stone-900">
+      {/* Use Cases */}
+      <section className="relative py-16 sm:py-24 px-4 sm:px-6 bg-white dark:bg-stone-950">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-6 sm:mb-12 md:mb-16">
-            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-stone-900 dark:text-white mb-2 sm:mb-3 md:mb-4 px-2">
-              Explore your world
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold text-stone-900 dark:text-white mb-4">
+              Perfect For
             </h2>
-            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-stone-600 dark:text-stone-400 px-4">
-              See your current location and discover nearby places of interest
+            <p className="text-lg text-stone-600 dark:text-stone-400">
+              Trusted by professionals worldwide
             </p>
           </div>
           
-          <div className="relative">
-            <div className="absolute -inset-2 sm:-inset-4 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 rounded-xl sm:rounded-3xl blur-xl sm:blur-2xl"></div>
-            <div className="relative rounded-xl sm:rounded-2xl overflow-hidden border border-stone-200 dark:border-stone-800 shadow-xl sm:shadow-2xl">
-              <SimpleMap 
-                height="100%" 
-                className="w-full h-[300px] sm:h-[400px] md:h-[500px]"
-              />
-            </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop', title: 'Delivery Riders', desc: 'Find addresses 10x faster', color: 'from-orange-500 to-red-500' },
+              { image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=300&fit=crop', title: 'Real Estate', desc: 'Show exact property locations', color: 'from-blue-500 to-cyan-500' },
+              { image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=300&fit=crop', title: 'Travelers', desc: 'Never get lost anywhere', color: 'from-purple-500 to-pink-500' },
+              { image: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=400&h=300&fit=crop', title: 'Photographers', desc: 'Track photo locations', color: 'from-green-500 to-emerald-500' },
+              { image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&h=300&fit=crop', title: 'Construction', desc: 'Document site locations', color: 'from-yellow-500 to-orange-500' },
+              { image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop', title: 'Emergency', desc: 'Report incidents with location', color: 'from-red-500 to-rose-500' }
+            ].map((use, i) => (
+              <div key={i} className="group relative">
+                <div className={`absolute inset-0 bg-gradient-to-br ${use.color} opacity-0 group-hover:opacity-10 rounded-2xl transition-opacity`}></div>
+                <div className="relative rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 hover:border-stone-300 dark:hover:border-stone-700 transition-all overflow-hidden">
+                  <div className="aspect-video overflow-hidden">
+                    <img src={use.image} alt={use.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-2">{use.title}</h3>
+                    <p className="text-stone-600 dark:text-stone-400">{use.desc}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -229,7 +259,7 @@ export default function HomePage() {
 
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
             {posts.map((post) => (
-              <Link key={post.id} href={`/blog/${post.slug}`} className="group">
+              <Link key={post.id} href={'/blog/' + post.slug} className="group">
                 <article className="h-full rounded-2xl bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 overflow-hidden hover:shadow-xl transition-all">
                   {post.coverImage && (
                     <div className="aspect-video overflow-hidden">
@@ -264,52 +294,113 @@ export default function HomePage() {
       </section>
 
       {/* Blog CTA */}
-      <BlogCTA />
+      <section className="py-16 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950/20 dark:to-indigo-950/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Blog Promotion */}
+            <div className="text-center lg:text-left">
+              <div className="flex items-center justify-center lg:justify-start gap-2 mb-4">
+                <BookOpen className="h-6 w-6 text-blue-600" />
+                <span className="text-sm font-medium text-blue-800 dark:text-blue-200">LATEST INSIGHTS</span>
+              </div>
+              <h2 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">
+                Discover Location Technology Insights
+              </h2>
+              <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
+                Explore our blog for tutorials, guides, and insights about navigation technology, 
+                photo location analysis, and building recognition.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+                <Button size="lg" asChild>
+                  <Link href="/blog" className="flex items-center gap-2">
+                    Read Our Blog
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <Link href="/blog/pic2nav-photo-location-scanner-professionals">
+                    Learn About Pic2Nav
+                  </Link>
+                </Button>
+              </div>
+            </div>
 
-      {/* Transit Feature Banner */}
-      <section className="relative py-12 sm:py-16 px-4 sm:px-6 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4">
-            New: Public Transit Directions
-          </h2>
-          <p className="text-base sm:text-lg text-white/90 mb-6">
-            Get step-by-step transit directions from your current location to any destination worldwide
-          </p>
-          <Button size="lg" className="rounded-full bg-white text-purple-600 hover:bg-stone-100" asChild>
-            <Link href="/transit">
-              Try Transit Directions
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-          </Button>
+            {/* Pic2Nav Promotion */}
+            <div className="bg-white dark:bg-gray-900 rounded-lg p-6 border border-gray-200 dark:border-gray-800">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Pic2Nav</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Photo Location Analysis Tool</p>
+              </div>
+              
+              <div className="space-y-2 mb-4 text-sm text-gray-700 dark:text-gray-300">
+                <div>• Extract GPS coordinates from photos</div>
+                <div>• Identify buildings and landmarks</div>
+                <div>• Get weather and location data</div>
+              </div>
+
+              <div className="flex items-center justify-between mb-4 text-sm text-gray-600 dark:text-gray-400">
+                <span>Free tool</span>
+                <span>No signup required</span>
+              </div>
+
+              <Button className="w-full" variant="default" asChild>
+                <Link href="/camera">
+                  Try Tool
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Social Proof */}
+      <section className="relative py-16 px-4 sm:px-6 bg-stone-50 dark:bg-stone-900">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 text-center">
+            <div className="p-8 rounded-2xl bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800">
+              <div className="text-5xl font-bold text-blue-600 mb-2">10K+</div>
+              <div className="text-stone-600 dark:text-stone-400">Photos Analyzed</div>
+            </div>
+            <div className="p-8 rounded-2xl bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800">
+              <div className="text-5xl font-bold text-purple-600 mb-2">195</div>
+              <div className="text-stone-600 dark:text-stone-400">Countries Supported</div>
+            </div>
+            <div className="p-8 rounded-2xl bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800">
+              <div className="text-5xl font-bold text-green-600 mb-2">95%</div>
+              <div className="text-stone-600 dark:text-stone-400">Accuracy Rate</div>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Features */}
-      <section className="relative py-16 sm:py-24 md:py-32 px-4 sm:px-6 bg-white dark:bg-stone-950">
+      <section id="how-it-works" className="relative py-16 sm:py-24 md:py-32 px-4 sm:px-6 bg-white dark:bg-stone-950">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12 sm:mb-16 md:mb-20">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-stone-900 dark:text-white mb-3 sm:mb-4 px-2">
-              Simple, powerful, instant
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-stone-900 dark:text-white mb-4">
+              How It Works
             </h2>
-            <p className="text-base sm:text-lg md:text-xl text-stone-600 dark:text-stone-400 px-4">
-              Three steps to discover any location
+            <p className="text-lg text-stone-600 dark:text-stone-400">
+              Three simple steps to find any location
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+          <div className="grid md:grid-cols-3 gap-8">
             {[
-              { icon: Upload, title: "Upload", desc: "Drop any photo or take one with your camera", color: "from-blue-500 to-cyan-500" },
-              { icon: AnalyzeIcon, title: "Analyze", desc: "AI processes GPS data and visual landmarks", color: "from-purple-500 to-pink-500" },
-              { icon: DiscoverIcon, title: "Discover", desc: "Get location, weather, and nearby places", color: "from-orange-500 to-red-500" }
+              { icon: Upload, num: '01', title: "Upload Photo", desc: "Take or upload any building photo", color: "from-blue-500 to-cyan-500" },
+              { icon: AnalyzeIcon, num: '02', title: "AI Analysis", desc: "Our AI extracts GPS and visual data", color: "from-purple-500 to-pink-500" },
+              { icon: DiscoverIcon, num: '03', title: "Get Location", desc: "Receive exact address and map", color: "from-orange-500 to-red-500" }
             ].map((feature, i) => (
-              <div key={i} className="group relative">
-                <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl sm:rounded-3xl blur-xl" style={{ background: `linear-gradient(to bottom right, ${feature.color})` }}></div>
-                <div className="relative p-5 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 transition-all">
-                  <div className={`inline-flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br ${feature.color} mb-4 sm:mb-6 shadow-lg`}>
-                    <feature.icon className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
+              <div key={i} className="relative group">
+                <div className="relative p-8 rounded-2xl bg-white dark:bg-stone-900 border-2 border-stone-200 dark:border-stone-800 hover:border-blue-500 dark:hover:border-blue-500 transition-colors">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className={'flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br ' + feature.color + ' flex items-center justify-center shadow-lg'}>
+                      <feature.icon className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="text-5xl font-bold text-stone-200 dark:text-stone-800">{feature.num}</div>
                   </div>
-                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-stone-900 dark:text-white mb-2 sm:mb-3">{feature.title}</h3>
-                  <p className="text-sm sm:text-base text-stone-600 dark:text-stone-400 leading-relaxed">{feature.desc}</p>
+                  <h3 className="text-2xl font-bold text-stone-900 dark:text-white mb-3">{feature.title}</h3>
+                  <p className="text-stone-600 dark:text-stone-400 leading-relaxed">{feature.desc}</p>
                 </div>
               </div>
             ))}
@@ -333,25 +424,29 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section className="relative py-16 sm:py-24 md:py-32 px-4 sm:px-6">
+      <section className="relative py-24 px-4 sm:px-6 bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl sm:rounded-[3rem] blur-3xl opacity-20"></div>
-            <div className="relative p-8 sm:p-12 md:p-16 rounded-2xl sm:rounded-[3rem] bg-gradient-to-br from-stone-900 to-stone-800 dark:from-stone-100 dark:to-stone-50">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white dark:text-stone-900 mb-4 sm:mb-6 px-2">
-                Ready to explore?
-              </h2>
-              <p className="text-base sm:text-lg md:text-xl text-stone-300 dark:text-stone-600 mb-6 sm:mb-8 md:mb-10 max-w-2xl mx-auto px-4">
-                Join thousands discovering locations from their photos every day
-              </p>
-              <Button size="lg" className="rounded-full h-12 sm:h-14 px-6 sm:px-10 text-sm sm:text-base bg-white hover:bg-stone-100 text-stone-900 dark:bg-stone-900 dark:hover:bg-stone-800 dark:text-white shadow-xl" asChild>
-                <Link href="/camera">
-                  Get Started Free
-                  <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
-                </Link>
-              </Button>
-            </div>
+          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
+            Start Finding Locations Today
+          </h2>
+          <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
+            Join 10,000+ users discovering exact locations from photos in seconds
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" className="rounded-full h-14 px-8 text-base bg-white hover:bg-stone-100 text-blue-600 shadow-xl" asChild>
+              <Link href="/camera">
+                <Camera className="mr-2 h-5 w-5" />
+                Try It Free
+              </Link>
+            </Button>
+            <Button size="lg" variant="outline" className="rounded-full h-14 px-8 text-base border-2 border-white text-white hover:bg-white/10" asChild>
+              <Link href="/transit">
+                Explore Transit
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
           </div>
+          <p className="mt-6 text-sm text-blue-200">No credit card required • Free forever • 195 countries</p>
         </div>
       </section>
 
@@ -374,22 +469,6 @@ export default function HomePage() {
         </div>
       </footer>
 
-      <style jsx global>{`
-        @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-      `}</style>
       </div>
       <CookieConsent />
     </>
