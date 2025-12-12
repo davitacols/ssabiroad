@@ -7,7 +7,8 @@ export default function MLStatsPage() {
   const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
-    fetch('http://localhost:8000/stats')
+    const ML_URL = process.env.NEXT_PUBLIC_ML_API_URL || 'http://localhost:8000';
+    fetch(`${ML_URL}/stats`)
       .then(r => r.json())
       .then(setStats)
       .catch(() => setStats({ error: 'ML server offline' }));
