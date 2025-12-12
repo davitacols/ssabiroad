@@ -2,23 +2,39 @@
 
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export default function MLStatsPage() {
   const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchStats = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/ml-stats');
+      const data = await response.json();
+      setStats(data);
+    } catch (error) {
+      setStats({ error: 'ML server offline' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const ML_URL = process.env.NEXT_PUBLIC_ML_API_URL || 'http://localhost:8000';
-    fetch(`${ML_URL}/stats`)
-      .then(r => r.json())
-      .then(setStats)
-      .catch(() => setStats({ error: 'ML server offline' }));
+    fetchStats();
   }, []);
 
   if (!stats) return <div className="p-8">Loading...</div>;
 
   return (
     <div className="container mx-auto p-8 max-w-2xl">
-      <h1 className="text-3xl font-bold mb-6">ML Training Stats</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">ML Training Stats</h1>
+        <Button onClick={fetchStats} disabled={loading}>
+          {loading ? 'Refreshing...' : 'Refresh'}
+        </Button>
+      </div>
       
       <Card className="p-6">
         <div className="space-y-4">
