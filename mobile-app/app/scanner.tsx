@@ -33,6 +33,8 @@ export default function ScannerScreen() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [distance, setDistance] = useState<number | null>(null);
   const [elevation, setElevation] = useState<number | null>(null);
+  const [showInsights, setShowInsights] = useState(false);
+  const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
   const cameraRef = useRef<any>(null);
 
   useEffect(() => {
@@ -747,6 +749,30 @@ export default function ScannerScreen() {
                   </View>
                 )}
 
+                {/* Quick Insights Toggle */}
+                <View style={styles.insightsToggleCard}>
+                  <TouchableOpacity 
+                    style={styles.insightsToggle}
+                    onPress={() => setShowInsights(!showInsights)}
+                  >
+                    <View style={styles.insightsToggleLeft}>
+                      <Ionicons name="analytics" size={20} color="#3b82f6" />
+                      <Text style={styles.insightsToggleText}>Location Insights</Text>
+                    </View>
+                    <Ionicons name={showInsights ? "chevron-up" : "chevron-down"} size={20} color="#6b7280" />
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.insightsToggle}
+                    onPress={() => setShowDetailedAnalysis(!showDetailedAnalysis)}
+                  >
+                    <View style={styles.insightsToggleLeft}>
+                      <Ionicons name="document-text" size={20} color="#8b5cf6" />
+                      <Text style={styles.insightsToggleText}>Detailed Analysis</Text>
+                    </View>
+                    <Ionicons name={showDetailedAnalysis ? "chevron-up" : "chevron-down"} size={20} color="#6b7280" />
+                  </TouchableOpacity>
+                </View>
+
                 {weather && (
                   <View style={styles.weatherCard}>
                     <Text style={styles.cardTitle}>Weather Forecast</Text>
@@ -887,9 +913,17 @@ export default function ScannerScreen() {
                 </View>
 
                 {/* Analysis Summary Card */}
-                {result.enhancedAnalysis && (
+                {showInsights && (
                   <View style={styles.analysisSummaryCard}>
                     <Text style={styles.cardTitle}>Location Insights</Text>
+                    {!result.enhancedAnalysis && (
+                      <View style={styles.noDataCard}>
+                        <Ionicons name="information-circle-outline" size={32} color="#9ca3af" />
+                        <Text style={styles.noDataText}>Enhanced analysis not available for this location</Text>
+                        <Text style={styles.noDataSubtext}>Basic location data is shown above</Text>
+                      </View>
+                    )}
+                    {result.enhancedAnalysis && (
                     <View style={styles.summaryGrid}>
                       {result.enhancedAnalysis.safetyAnalysis && (
                         <View style={styles.summaryItem}>
@@ -928,14 +962,25 @@ export default function ScannerScreen() {
                         </View>
                       )}
                     </View>
+                    )}
                   </View>
                 )}
 
                 {/* Enhanced Analysis Section */}
-                {result.enhancedAnalysis && (
+                {showDetailedAnalysis && (
                   <View style={styles.enhancedAnalysisCard}>
                     <Text style={styles.cardTitle}>Detailed Analysis</Text>
                     
+                    {!result.enhancedAnalysis && (
+                      <View style={styles.noDataCard}>
+                        <Ionicons name="document-text-outline" size={32} color="#9ca3af" />
+                        <Text style={styles.noDataText}>Detailed analysis not available</Text>
+                        <Text style={styles.noDataSubtext}>This feature requires enhanced location data from the API</Text>
+                      </View>
+                    )}
+                    
+                    {result.enhancedAnalysis && (
+                    <>
                     {/* Architectural Analysis */}
                     {result.enhancedAnalysis.architecturalAnalysis && (
                       <View style={styles.analysisSection}>
@@ -1071,6 +1116,8 @@ export default function ScannerScreen() {
                           <Text style={styles.analysisValue}>{result.enhancedAnalysis.socialAnalysis.communityFeatures.slice(0, 2).join(', ')}</Text>
                         </View>
                       </View>
+                    )}
+                    </>
                     )}
                   </View>
                 )}
@@ -1239,6 +1286,10 @@ const styles = StyleSheet.create({
   nearbyName: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000000', marginBottom: 4, height: 36 },
   nearbyType: { fontSize: 12, color: '#6b7280', marginBottom: 8, textTransform: 'capitalize', fontFamily: 'LeagueSpartan_400Regular' },
   nearbyDistance: { fontSize: 12, color: '#000000', fontFamily: 'LeagueSpartan_600SemiBold' },
+  insightsToggleCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16 },
+  insightsToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
+  insightsToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  insightsToggleText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000' },
   placeDetailsCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16 },
   ratingSection: { marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   ratingHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -1304,6 +1355,9 @@ const styles = StyleSheet.create({
   summaryIcon: { fontSize: 24, marginBottom: 8 },
   summaryLabel: { fontSize: 12, color: '#6b7280', fontFamily: 'LeagueSpartan_400Regular', marginBottom: 4, textAlign: 'center' },
   summaryValue: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', textAlign: 'center' },
+  noDataCard: { alignItems: 'center', paddingVertical: 32, paddingHorizontal: 24 },
+  noDataText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#6b7280', marginTop: 12, textAlign: 'center' },
+  noDataSubtext: { fontSize: 13, fontFamily: 'LeagueSpartan_400Regular', color: '#9ca3af', marginTop: 4, textAlign: 'center' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modal: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '70%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },

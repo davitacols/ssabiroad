@@ -2,7 +2,7 @@
   "expo": {
     "name": "Pic2Nav",
     "slug": "pic2nav",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -38,7 +38,7 @@
         "backgroundColor": "#000000"
       },
       "package": "com.ssabiroad.pic2nav",
-      "versionCode": 1,
+      "versionCode": 2,
       "targetSdkVersion": 35,
       "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ssabiroad.pic2nav",
       "config": {
@@ -61,7 +61,8 @@
         "INTERNET",
         "ACCESS_NETWORK_STATE"
       ],
-      "usesCleartextTraffic": false
+      "usesCleartextTraffic": false,
+      "blockedPermissions": []
     },
     "web": {},
     "plugins": [
@@ -96,12 +97,20 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow Pic2Nav to access your photos with location data",
-          "savePhotosPermission": "Allow Pic2Nav to save photos",
+          "photosPermission": "Allow Pic2Nav to access your photos to extract GPS location data and analyze building features for location identification",
+          "savePhotosPermission": "Allow Pic2Nav to save processed photos with location tags",
           "isAccessMediaLocationEnabled": true
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": false
+          }
+        }
+      ]
     ],
     "scheme": "pic2nav",
     "intentFilters": [

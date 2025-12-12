@@ -78,6 +78,11 @@ export default function HomeScreen() {
     router.push('/compare-locations');
   };
 
+  const handleTransitPress = () => {
+    addActivity('Transit Directions', 'Planned journey route', '/transit');
+    router.push('/transit');
+  };
+
 
 
 
@@ -137,6 +142,17 @@ export default function HomeScreen() {
             <View style={styles.actionText}>
               <Text style={styles.actionTitle}>Compare Locations</Text>
               <Text style={styles.actionSubtitle}>Side-by-side comparison</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionCard} onPress={handleTransitPress}>
+            <View style={styles.actionIcon}>
+              <Ionicons name="bus" size={24} color="#000000" />
+            </View>
+            <View style={styles.actionText}>
+              <Text style={styles.actionTitle}>Transit Directions</Text>
+              <Text style={styles.actionSubtitle}>Plan your journey</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
           </TouchableOpacity>

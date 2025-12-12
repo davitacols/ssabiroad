@@ -1,5 +1,5 @@
 /**
- * ML Prediction API Route - Integrates with Python ML backend
+ * Add Building to ML Index
  */
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -9,8 +9,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     
-    // Forward request to Python ML backend
-    const response = await fetch(`${ML_API_URL}/predict_location`, {
+    const response = await fetch(`${ML_API_URL}/add_to_index`, {
       method: 'POST',
       body: formData,
     });
@@ -20,18 +19,11 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await response.json();
-
-    return NextResponse.json({
-      success: true,
-      ...result,
-    });
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('ML prediction error:', error);
+    console.error('Add building error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'ML prediction failed' 
-      },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to add building' },
       { status: 500 }
     );
   }

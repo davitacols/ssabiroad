@@ -53,9 +53,15 @@ export function CameraSimple() {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
+  const [showVerify, setShowVerify] = useState(false)
+  const [buildingName, setBuildingName] = useState('')
+  const [currentFile, setCurrentFile] = useState<File | null>(null)
+
   const processImage = useCallback(async (file: File) => {
     setIsProcessing(true)
     setResult(null)
+    setShowVerify(false)
+    setCurrentFile(file)
 
     try {
       const formData = new FormData()
@@ -71,7 +77,8 @@ export function CameraSimple() {
       const data = await response.json()
       setResult(data)
       
-      if (data.success) {
+      if (data.success && data.location) {
+        setShowVerify(true)
         toast({
           title: "Location Found!",
           description: data.name || "Location identified",
@@ -89,6 +96,31 @@ export function CameraSimple() {
       setIsProcessing(false)
     }
   }, [toast])
+
+  const handleVerifyAndTrain = useCallback(async () => {
+    if (!currentFile || !buildingName || !result?.location) return
+
+    try {
+      const formData = new FormData()
+      formData.append('file', currentFile)
+      formData.append('name', buildingName)
+      formData.append('latitude', result.location.latitude.toString())
+      formData.append('longitude', result.location.longitude.toString())
+
+      const response = await fetch('/api/ml-predict-and-learn?action=verify', {
+        method: 'POST',
+        body: formData,
+      })
+      
+      if (response.ok) {
+        toast({ title: "✅ Added to training data!", description: "Helping improve AI accuracy" })
+        setShowVerify(false)
+        setBuildingName('')
+      }
+    } catch (error) {
+      toast({ title: "Failed to add", variant: "destructive" })
+    }
+  }, [currentFile, buildingName, result, toast])
 
   const handleFileSelect = useCallback((file: File) => {
     if (!file) return
@@ -456,6 +488,27 @@ export function CameraSimple() {
                     <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mb-2">{result.name}</h3>
                     {result.address && <p className="text-sm sm:text-base text-gray-600 dark:text-stone-400 mb-4">{result.address}</p>}
                     
+                    {showVerify && (
+                      <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">✅ Help train our AI</p>
+                        <p className="text-xs text-blue-700 dark:text-blue-300 mb-3">Is this correct? Add it to improve future predictions!</p>
+                        <input
+                          type="text"
+                          placeholder="Building name (e.g., Eiffel Tower)"
+                          value={buildingName}
+                          onChange={(e) => setBuildingName(e.target.value)}
+                          className="w-full p-2 border rounded mb-2 text-sm"
+                        />
+                        <button
+                          onClick={handleVerifyAndTrain}
+                          disabled={!buildingName}
+                          className="w-full bg-blue-600 text-white px-4 py-2 text-sm rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        >
+                          Verify & Train AI
+                        </button>
+                      </div>
+                    )}
+                    
                     <div className="flex flex-col sm:flex-row gap-3 mb-6">
                       <button
                         onClick={() => {
@@ -472,6 +525,7 @@ export function CameraSimple() {
                         onClick={() => {
                           setResult(null)
                           setPreviewImage(null)
+                          setShowVerify(false)
                         }}
                         className="flex-1 bg-gray-100 dark:bg-stone-800 text-gray-900 dark:text-white px-4 py-3 sm:py-2 text-sm hover:bg-gray-200 dark:hover:bg-stone-700 transition-colors rounded-lg"
                       >
