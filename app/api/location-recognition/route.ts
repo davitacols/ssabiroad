@@ -381,7 +381,20 @@ async function extractLocationFromText(detections: any[]): Promise<{
     }
   }
 
-  // Simple address detection
+  // Check for full address with postcode first (return without geocoding)
+  const fullAddressPattern = /\b\d+[A-Z]?\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Court|Ct|Place|Pl)\s*,?\s*[A-Za-z\s]*,?\s*[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}\b/i
+  const fullAddressMatch = fullText.match(fullAddressPattern)
+  
+  if (fullAddressMatch) {
+    console.log("Found full address with postcode:", fullAddressMatch[0])
+    return { 
+      locationText: fullAddressMatch[0], 
+      confidence: 0.95, 
+      type: "address" 
+    }
+  }
+  
+  // Simple address detection (without postcode)
   const addressPattern = /\b\d+\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd)\b/i
   const addressMatch = fullText.match(addressPattern)
   
@@ -716,6 +729,27 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
         
         console.log("Web search failed, skipping known business database for better accuracy")
 
+        // If full address detected, geocode for coordinates but mark as extracted
+        if (extractedLocation.type === "address" && extractedLocation.confidence >= 0.95) {
+          console.log("Full address detected in image:", extractedLocation.locationText)
+          const geocodeResult = await geocodeTextToLocation(extractedLocation.locationText)
+          
+          return {
+            success: true,
+            type: "full-address-extracted",
+            name: extractedLocation.businessName || "Address from Image",
+            address: extractedLocation.locationText,
+            extractedAddress: extractedLocation.locationText,
+            formattedAddress: extractedLocation.locationText,
+            location: geocodeResult.success ? geocodeResult.location : undefined,
+            description: `Full address found in image: ${extractedLocation.locationText}`,
+            confidence: extractedLocation.confidence,
+            category: "Address",
+            addressSource: "image-ocr",
+            processingTime: Date.now() - startTime,
+          }
+        }
+        
         // Skip known business database and try direct geocoding for better accuracy
         const geocodeResult = await geocodeTextToLocation(extractedLocation.locationText)
 

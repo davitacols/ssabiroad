@@ -914,7 +914,8 @@ class LocationRecognizer {
     
     const { latitude, longitude } = baseResult.location;
     
-    const addressKey = `addr_${Math.round(latitude*1000)}_${Math.round(longitude*1000)}`;
+    // Use precise coordinates for consistent caching
+    const addressKey = `addr_${latitude.toFixed(6)}_${longitude.toFixed(6)}`;
     let address = cache.get(addressKey) as string;
     let locationDetails = cache.get(`details_${addressKey}`) as any;
     
@@ -930,8 +931,8 @@ class LocationRecognizer {
           ]);
           address = addressData.address;
           locationDetails = addressData.details;
-          cache.set(addressKey, addressData.address, 600);
-          cache.set(`details_${addressKey}`, addressData.details, 600);
+          cache.set(addressKey, addressData.address, 3600);
+          cache.set(`details_${addressKey}`, addressData.details, 3600);
         } catch (error) {
           console.log('Address fetch failed, using coordinates');
           address = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
@@ -1017,34 +1018,34 @@ class LocationRecognizer {
   
   private async getDetailedAddress(lat: number, lng: number): Promise<{address: string, details: any}> {
     const apiKey = process.env.GOOGLE_PLACES_API_KEY;
-    console.log('Geocoding request for:', lat, lng, 'API key available:', !!apiKey);
     
     if (!apiKey) {
-      console.log('No Google API key - using coordinates');
       return {
         address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
         details: null
       };
     }
     
+    // Use precise coordinates for cache key to avoid inconsistencies
+    const cacheKey = `geocode_${lat.toFixed(6)}_${lng.toFixed(6)}`;
+    const cached = cache.get(cacheKey) as {address: string, details: any} | undefined;
+    if (cached) {
+      console.log('Using cached geocoding result:', cached.address);
+      return cached;
+    }
+    
     try {
       const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
-      console.log('Making geocoding request to:', url.replace(apiKey, 'API_KEY'));
-      
       const response = await fetch(url);
-      console.log('Geocoding response status:', response.status);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
       
       const data = await response.json();
-      console.log('Geocoding response:', data.status, 'Results:', data.results?.length || 0);
-      
       const result = data.results?.[0];
       
       if (result) {
-        console.log('Found address:', result.formatted_address);
         const details = {
           country: result.address_components?.find((c: any) => c.types.includes('country'))?.long_name,
           city: result.address_components?.find((c: any) => c.types.includes('locality'))?.long_name,
@@ -1053,18 +1054,19 @@ class LocationRecognizer {
           neighborhood: result.address_components?.find((c: any) => c.types.includes('neighborhood'))?.long_name,
           placeId: result.place_id
         };
-        return {
+        const addressData = {
           address: result.formatted_address,
           details
         };
-      } else {
-        console.log('No geocoding results found');
+        // Cache with precise key
+        cache.set(cacheKey, addressData, 3600);
+        console.log('Geocoded and cached:', result.formatted_address);
+        return addressData;
       }
     } catch (error) {
       console.error('Geocoding failed:', error.message);
     }
     
-    console.log('Using fallback coordinates');
     return {
       address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
       details: null
@@ -2273,24 +2275,62 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         const allAddresses = this.extractAllAddresses(enhancedText, businessNameValue);
         console.log('All addresses found in text:', allAddresses);
         
-        for (const address of allAddresses) {
-          console.log('Trying address:', address);
-          const addressLocation = await withTimeout(
-            this.geocodeAddress(address),
-            2000
-          ).catch(() => null);
+        // Check for full address with postcode - geocode for coordinates but mark as extracted
+        const fullAddressPattern = /\b\d+[A-Z]?\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Court|Ct|Place|Pl)\s*,?\s*[A-Za-z\s]*,?\s*[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}\b/i;
+        const fullAddressMatch = enhancedText.match(fullAddressPattern);
+        
+        if (fullAddressMatch) {
+          const fullAddress = fullAddressMatch[0].trim();
+          console.log('📍 FULL ADDRESS DETECTED IN IMAGE:', fullAddress);
           
-          if (addressLocation) {
-            return {
-              success: true,
-              name: businessNameValue || address,
-              location: addressLocation,
-              confidence: 0.95,
-              method: 'ai-text-address-found',
-              description: `Address from text: ${address}`
-            };
+          const geocoded = await withTimeout(this.geocodeAddress(fullAddress), 2000).catch(() => null);
+          
+          return {
+            success: true,
+            name: businessNameValue || 'Address from Image',
+            address: fullAddress,
+            extractedAddress: fullAddress,
+            location: geocoded || null,
+            confidence: 0.95,
+            method: 'full-address-extracted',
+            description: `Full address found in image: ${fullAddress}`,
+            addressSource: 'image-ocr'
+          };
+        }
+        
+        // Check for UK postcode - if found, force UK geocoding with full address
+        const ukPostcodeMatch = enhancedText.match(/\b[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}\b/i);
+        if (ukPostcodeMatch) {
+          console.log('🇬🇧 UK POSTCODE DETECTED:', ukPostcodeMatch[0], '- FORCING UK GEOCODING');
+          
+          // Try full address with postcode first
+          const fullAddressQueries = [];
+          if (streetAddressValue) {
+            fullAddressQueries.push(`${streetAddressValue} ${ukPostcodeMatch[0]} UK`);
+          }
+          fullAddressQueries.push(`${ukPostcodeMatch[0]} UK`);
+          
+          for (const query of fullAddressQueries) {
+            const postcodeLocation = await withTimeout(
+              this.geocodeAddress(query),
+              2000
+            ).catch(() => null);
+            
+            if (postcodeLocation) {
+              console.log('✅ UK address geocoded:', query);
+              return {
+                success: true,
+                name: businessNameValue || streetAddressValue || ukPostcodeMatch[0],
+                location: postcodeLocation,
+                confidence: 0.98,
+                method: 'ai-uk-postcode-direct',
+                description: `UK location: ${query}`
+              };
+            }
           }
         }
+        
+        // Skip generic address search - postcode already handled above
         
         // Try address with postcode (fallback)
         if (hasPostcode) {
