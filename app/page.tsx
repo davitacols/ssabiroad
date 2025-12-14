@@ -57,7 +57,7 @@ export default function HomePage() {
 
       {/* Announcement Banner */}
       <div className="bg-blue-600 text-white py-2.5 px-4 text-center text-sm">
-        <span className="font-medium">🚀 New:</span> Public transit directions now available <Link href="/transit" className="underline ml-2 font-semibold hover:text-blue-100">Try it →</Link>
+        <span className="font-medium">🚀 New:</span> AI-powered location detection now available <Link href="/camera" className="underline ml-2 font-semibold hover:text-blue-100">Try it →</Link>
       </div>
 
       {/* Navigation */}
@@ -153,9 +153,9 @@ export default function HomePage() {
               <div className="grid grid-cols-4 gap-4 pt-6">
                 {[
                   { value: "10K+", label: "Photos" },
-                  { value: "95%", label: "Accuracy" },
+                  { value: "195", label: "Countries" },
                   { value: "3s", label: "Speed" },
-                  { value: "195", label: "Countries" }
+                  { value: "95%", label: "Accuracy" }
                 ].map((stat, i) => (
                   <div key={i} className="text-center">
                     <div className="text-2xl sm:text-3xl font-bold text-stone-900 dark:text-white mb-1">{stat.value}</div>

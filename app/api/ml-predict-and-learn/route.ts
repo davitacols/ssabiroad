@@ -3,7 +3,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 
-const ML_API_URL = process.env.ML_API_URL || 'http://localhost:8000';
+const ML_API_URL = process.env.ML_API_URL || 'http://52.91.173.191:8000';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,10 +19,19 @@ export async function POST(request: NextRequest) {
       const metadata = { name, latitude, longitude };
       formData.append('metadata', JSON.stringify(metadata));
       
+      console.log('Sending to ML API:', `${ML_API_URL}/add_to_index`);
+      console.log('Metadata:', metadata);
+      
       const response = await fetch(`${ML_API_URL}/add_to_index`, {
         method: 'POST',
         body: formData,
       });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('ML API error:', response.status, errorText);
+        throw new Error(`ML API error: ${response.status} ${errorText}`);
+      }
       
       return NextResponse.json(await response.json());
     } else {
@@ -35,6 +44,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(await response.json());
     }
   } catch (error) {
+    console.error('ML training error:', error);
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Failed' },
       { status: 500 }

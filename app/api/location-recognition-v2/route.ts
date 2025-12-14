@@ -4640,12 +4640,13 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     console.log('❌ No valid server EXIF GPS data found - proceeding to AI analysis');
     console.log('🤖 No EXIF GPS data found - trying Claude AI and Google Vision...');
     
-    // 2. Try Claude AI comprehensive analysis first (highest accuracy for storefronts)
-    console.log('🔍 Step 2: Trying Claude AI comprehensive analysis...');
+    // 2. Skip Claude AI - misreads special characters like ü, ö, ä
+    console.log('🔍 Step 2: Skipping Claude AI - using Google Vision OCR only');
     let claudeBusinessName = null;
     let claudeAreaContext = null;
     
-    try {
+    if (false) { // Disabled - Claude misreads umlauts and special characters
+      try {
       const claudeResult = await Promise.race([
         this.analyzeWithClaude({}, buffer),
         new Promise<LocationResult | null>((_, reject) => 
@@ -4686,39 +4687,12 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         }
       }
     } catch (error) {
-      console.log('⚠️ Claude AI analysis failed:', error.message);
-      console.log('Claude error type:', error.name);
-      console.log('Claude error stack:', error.stack?.substring(0, 200));
-      
-      // Log specific error details for debugging
-      if (error.message?.includes('401') || error.message?.includes('authentication')) {
-        console.error('❌ Claude API authentication failed - API key may be invalid or missing');
-      } else if (error.message?.includes('timeout')) {
-        console.error('⏱️ Claude API timed out after 120 seconds');
-      }
-      
-      // Try to extract Claude's business analysis even if location search failed
-      try {
-        console.log('Attempting fallback Claude business analysis...');
-        const claudeAnalysis = await this.getClaudeBusinessAnalysis(buffer);
-        if (claudeAnalysis) {
-          claudeBusinessName = claudeAnalysis.businessName;
-          claudeAreaContext = claudeAnalysis.area;
-          console.log('✅ Extracted Claude analysis:', { businessName: claudeBusinessName, area: claudeAreaContext });
-        } else {
-          console.log('❌ Claude business analysis returned null');
-        }
-      } catch (analysisError) {
-        console.log('❌ Could not extract Claude analysis:', analysisError.message);
-        console.log('Proceeding without Claude analysis - will rely on Google Vision only');
       }
     }
     
     // 3. Always try Google Vision analysis for better accuracy
     console.log('🔍 Step 3: Trying Google Vision analysis...');
-    console.log('Claude results - businessName:', claudeBusinessName, 'area:', claudeAreaContext);
-    let extractedAreaContext = claudeAreaContext || null;
-    console.log('Passing area context to Vision:', extractedAreaContext);
+    let extractedAreaContext = null;
     
     try {
       const aiResult = await Promise.race([

@@ -21,6 +21,7 @@
     "@aws-sdk/client-dynamodb": "^3.936.0",
     "@aws-sdk/client-rekognition": "^3.936.0",
     "@aws-sdk/client-s3": "^3.940.0",
+    "@aws-sdk/client-textract": "^3.948.0",
     "@aws-sdk/lib-dynamodb": "^3.936.0",
     "@aws-sdk/s3-request-presigner": "^3.937.0",
     "@chakra-ui/modal": "^2.3.1",
