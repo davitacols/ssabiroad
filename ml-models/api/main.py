@@ -15,7 +15,7 @@ from utils.model_monitor import ModelMonitor, ModelVersionManager, auto_model_se
 from utils.active_learning import ActiveLearningPipeline
 from loguru import logger
 
-app = FastAPI(title="Pic2Nav ML API", version="2.0.0")
+app = FastAPI(title="NaviSense AI - Intelligent Location Recognition", version="1.0.0", description="Powered by SSABIRoad")
 
 app.add_middleware(
     CORSMiddleware,
@@ -67,7 +67,13 @@ class PredictionResponse(BaseModel):
 
 @app.get("/")
 async def root():
-    return {"status": "online", "service": "Pic2Nav ML API"}
+    return {
+        "status": "online", 
+        "service": "NaviSense AI",
+        "description": "Intelligent Location Recognition System",
+        "version": "1.0.0",
+        "powered_by": "SSABIRoad"
+    }
 
 @app.post("/embed", response_model=Dict)
 async def embed_image(file: UploadFile = File(...)):

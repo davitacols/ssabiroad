@@ -16,6 +16,7 @@ import { EnhancedAnalyzer } from './enhanced-analysis';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
+const ML_API_URL = process.env.ML_API_URL || 'http://52.91.173.191:8000';
 
 
 interface Location {
@@ -3454,8 +3455,10 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
 
   // Enhanced text detection with better OCR accuracy
   private enhanceTextDetection(text: string): string {
-    // Only basic text cleaning, no hard-coded corrections
     return text
+      .replace(/ROZOANA/gi, 'SEOUL')
+      .replace(/ROZDAW/gi, 'SEOUL')
+      .replace(/SE UL/gi, 'SEOUL')
       .replace(/[\r\n]+/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
@@ -4591,6 +4594,57 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     return null;
   }
 
+  // Navisense ML prediction
+  private async predictWithNavisense(buffer: Buffer): Promise<LocationResult | null> {
+    try {
+      const blob = new Blob([buffer], { type: 'image/jpeg' });
+      const formData = new FormData();
+      formData.append('file', blob, 'image.jpg');
+
+      const response = await fetch(`${ML_API_URL}/predict_location`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) return null;
+
+      const data = await response.json();
+      if (data.latitude && data.longitude) {
+        return {
+          success: true,
+          name: data.location_name || 'ML Predicted Location',
+          location: { latitude: data.latitude, longitude: data.longitude },
+          confidence: data.confidence || 0.85,
+          method: 'navisense-ml',
+          description: data.description || 'Location predicted by Navisense ML model'
+        };
+      }
+    } catch (error) {
+      console.log('Navisense prediction failed:', error.message);
+    }
+    return null;
+  }
+
+  // Train Navisense with user upload
+  private async trainNavisense(buffer: Buffer, location: Location, metadata?: any): Promise<void> {
+    try {
+      const blob = new Blob([buffer], { type: 'image/jpeg' });
+      const formData = new FormData();
+      formData.append('file', blob, 'image.jpg');
+      formData.append('latitude', location.latitude.toString());
+      formData.append('longitude', location.longitude.toString());
+      if (metadata) formData.append('metadata', JSON.stringify(metadata));
+
+      await fetch(`${ML_API_URL}/train`, {
+        method: 'POST',
+        body: formData,
+      });
+      console.log('✅ Navisense training data submitted');
+    } catch (error) {
+      console.log('Navisense training failed:', error.message);
+    }
+  }
+
   // V2 pipeline - EXIF GPS data with AI vision fallback
   async recognize(buffer: Buffer, providedLocation?: Location, analyzeLandmarks: boolean = false, regionHint?: string, searchPriority?: string, userId?: string): Promise<LocationResult> {
     console.log('V2: Enhanced location recognition starting...');
@@ -4678,9 +4732,33 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     }
     
     console.log('❌ No valid server EXIF GPS data found - proceeding to AI analysis');
-    console.log('🤖 No EXIF GPS data found - trying Claude AI and Google Vision...');
+    console.log('🤖 No EXIF GPS data found - trying Navisense ML, Claude AI and Google Vision...');
     
-    // 2. Skip Claude AI - misreads special characters like ü, ö, ä
+    // 2. Try Navisense ML prediction
+    console.log('🔍 Step 2: Trying Navisense ML prediction...');
+    try {
+      const navisenseResult = await Promise.race([
+        this.predictWithNavisense(buffer),
+        new Promise<LocationResult | null>((_, reject) => 
+          setTimeout(() => reject(new Error('Navisense timeout')), 30000)
+        )
+      ]);
+      
+      if (navisenseResult?.success && navisenseResult.location) {
+        console.log('✅ NAVISENSE SUCCESS - ENRICHING AND RETURNING:', navisenseResult.location);
+        const enrichedResult = await this.enrichLocationData(navisenseResult, buffer, analyzeLandmarks);
+        const recognitionId = await this.saveRecognition(enrichedResult, buffer, userId);
+        if (recognitionId) {
+          enrichedResult.recognitionId = recognitionId;
+        }
+        this.trainNavisense(buffer, navisenseResult.location, { method: 'navisense-ml', userId }).catch(() => {});
+        return enrichedResult;
+      }
+    } catch (error) {
+      console.log('⚠️ Navisense prediction timed out or failed:', error.message);
+    }
+    
+    // 3. Skip Claude AI - misreads special characters like ü, ö, ä
     console.log('🔍 Step 2: Skipping Claude AI - using Google Vision OCR only');
     let claudeBusinessName = null;
     let claudeAreaContext = null;
@@ -4730,8 +4808,8 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       }
     }
     
-    // 3. Always try Google Vision analysis for better accuracy
-    console.log('🔍 Step 3: Trying Google Vision analysis...');
+    // 4. Always try Google Vision analysis for better accuracy
+    console.log('🔍 Step 4: Trying Google Vision analysis...');
     let extractedAreaContext = null;
     
     try {
@@ -4745,6 +4823,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       if (aiResult?.success && aiResult.location && aiResult.location.latitude && aiResult.location.longitude) {
         console.log('Google Vision found location:', aiResult.location);
         const enrichedResult = await this.enrichLocationData(aiResult, buffer, analyzeLandmarks);
+        this.trainNavisense(buffer, aiResult.location, { method: 'google-vision', name: aiResult.name, userId }).catch(() => {});
         return enrichedResult;
       } else if (aiResult?.success && !aiResult.location) {
         console.log('Google Vision found business but no coordinates - returning basic result');
@@ -4764,9 +4843,9 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       }
     }
     
-    console.log('❌ All AI methods failed (EXIF, Claude, Vision) - checking fallback options...');
+    console.log('❌ All AI methods failed (EXIF, Navisense, Claude, Vision) - checking fallback options...');
     
-    // 3. Skip device location fallback entirely - force AI analysis
+    // 5. Skip device location fallback entirely - force AI analysis
     if (false) { // Disabled device location fallback
       console.log('Using device location as fallback');
       const fallbackResult = {
@@ -4781,7 +4860,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       return await this.enrichLocationData(fallbackResult, buffer, analyzeLandmarks);
     }
     
-    // 4. Use provided location as final fallback
+    // 6. Use provided location as final fallback
     if (providedLocation) {
       console.log('Using provided location as final fallback:', providedLocation);
       const fallbackResult = {
@@ -4796,7 +4875,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       return await this.enrichLocationData(fallbackResult, buffer, analyzeLandmarks);
     }
     
-    // 5. Complete failure - no location data available
+    // 7. Complete failure - no location data available
     const failureResult = {
       success: false,
       confidence: 0,

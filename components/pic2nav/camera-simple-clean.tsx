@@ -52,14 +52,11 @@ export function CameraSimple() {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
-  const [showVerify, setShowVerify] = useState(false)
-  const [buildingName, setBuildingName] = useState('')
   const [currentFile, setCurrentFile] = useState<File | null>(null)
 
   const processImage = useCallback(async (file: File) => {
     setIsProcessing(true)
     setResult(null)
-    setShowVerify(false)
     setCurrentFile(file)
 
     try {
@@ -77,7 +74,6 @@ export function CameraSimple() {
       setResult(data)
       
       if (data.success && data.location) {
-        setShowVerify(true)
         toast({
           title: "Location Found!",
           description: data.name || "Location identified",
@@ -96,34 +92,7 @@ export function CameraSimple() {
     }
   }, [toast])
 
-  const handleVerifyAndTrain = useCallback(async () => {
-    if (!currentFile || !buildingName || !result?.location) return
 
-    try {
-      const formData = new FormData()
-      formData.append('file', currentFile)
-      formData.append('name', buildingName)
-      formData.append('latitude', result.location.latitude.toString())
-      formData.append('longitude', result.location.longitude.toString())
-      formData.append('address', result.address || '')
-      formData.append('confidence', result.confidence?.toString() || '0')
-      formData.append('method', 'user-corrected')
-      formData.append('verified', 'true')
-
-      const response = await fetch('/api/ml-predict-and-learn?action=verify', {
-        method: 'POST',
-        body: formData,
-      })
-      
-      if (response.ok) {
-        toast({ title: "✅ Added to training data!", description: "Helping improve AI accuracy" })
-        setShowVerify(false)
-        setBuildingName('')
-      }
-    } catch (error) {
-      toast({ title: "Failed to add", variant: "destructive" })
-    }
-  }, [currentFile, buildingName, result, toast])
 
   const handleFileSelect = useCallback((file: File) => {
     if (!file) return
@@ -454,63 +423,48 @@ export function CameraSimple() {
 
               {/* Right Column - Info */}
               <div className="space-y-4 sm:space-y-6">
-                {/* ML Training */}
-                {showVerify && result.location && (
-                  <div className="bg-blue-50 p-4 sm:p-6 rounded-md border border-blue-200">
-                    <h4 className="font-semibold text-blue-900 mb-2 text-sm">Help Improve AI</h4>
-                    <p className="text-xs text-blue-700 mb-3">Verify this location to improve accuracy</p>
-                    <input
-                      type="text"
-                      placeholder="Enter correct building name"
-                      value={buildingName}
-                      onChange={(e) => setBuildingName(e.target.value)}
-                      className="w-full px-3 py-2 border border-blue-300 rounded-md text-xs mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                      onClick={handleVerifyAndTrain}
-                      disabled={!buildingName.trim()}
-                      className="w-full bg-blue-600 text-white px-4 py-2 text-xs rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Submit & Train AI
-                    </button>
-                  </div>
-                )}
-
                 {/* Main Info Card */}
                 <div className="bg-white p-4 sm:p-6 rounded-md border border-stone-200">
                   <h3 className="text-xl sm:text-2xl font-semibold text-stone-900 mb-2">{result.name}</h3>
                   {result.address && <p className="text-sm sm:text-base text-stone-600 mb-4">{result.address}</p>}
                   
-                  {/* Quick Verification */}
-                  {result.location && (
-                    <div className="mb-4 p-3 bg-stone-50 rounded-md border border-stone-200">
-                      <p className="text-xs text-stone-600 mb-2">Is this location correct?</p>
+                  {/* AI Training */}
+                  {result.location && currentFile && (
+                    <div className="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200">
+                      <p className="text-xs font-semibold text-blue-900 mb-2">Help train our AI</p>
+                      <p className="text-xs text-blue-700 mb-3">Is this location correct?</p>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => {
-                            if (currentFile && result.name && result.location) {
-                              const formData = new FormData()
-                              formData.append('file', currentFile)
-                              formData.append('name', result.name)
-                              formData.append('latitude', result.location.latitude.toString())
-                              formData.append('longitude', result.location.longitude.toString())
-                              formData.append('address', result.address || '')
-                              formData.append('confidence', result.confidence?.toString() || '0')
-                              formData.append('method', 'user-verified')
-                              formData.append('verified', 'true')
-                              fetch('/api/ml-predict-and-learn?action=verify', { method: 'POST', body: formData })
-                                .then(() => toast({ title: "✅ Thanks! AI improved" }))
-                            }
+                          onClick={async () => {
+                            if (!currentFile || !result.location || !result.address) return
+                            const formData = new FormData()
+                            formData.append('file', currentFile)
+                            formData.append('latitude', result.location.latitude.toString())
+                            formData.append('longitude', result.location.longitude.toString())
+                            formData.append('address', result.address)
+                            await fetch('/api/location-recognition-v2/feedback', { method: 'POST', body: formData })
+                            toast({ title: "✅ Thanks! AI improved" })
                           }}
                           className="flex-1 bg-green-600 text-white px-3 py-1.5 text-xs rounded hover:bg-green-700 transition-colors"
                         >
-                          ✓ Yes
+                          ✓ Yes, correct
                         </button>
                         <button
-                          onClick={() => setShowVerify(true)}
-                          className="flex-1 bg-red-600 text-white px-3 py-1.5 text-xs rounded hover:bg-red-700 transition-colors"
+                          onClick={() => {
+                            const correction = prompt('Enter correct address:')
+                            if (correction && currentFile && result.location) {
+                              const formData = new FormData()
+                              formData.append('file', currentFile)
+                              formData.append('latitude', result.location.latitude.toString())
+                              formData.append('longitude', result.location.longitude.toString())
+                              formData.append('address', correction)
+                              fetch('/api/location-recognition-v2/feedback', { method: 'POST', body: formData })
+                                .then(() => toast({ title: "✅ Correction submitted!" }))
+                            }
+                          }}
+                          className="flex-1 bg-orange-600 text-white px-3 py-1.5 text-xs rounded hover:bg-orange-700 transition-colors"
                         >
-                          ✗ No
+                          ✗ Correct it
                         </button>
                       </div>
                     </div>
@@ -532,7 +486,6 @@ export function CameraSimple() {
                       onClick={() => {
                         setResult(null)
                         setPreviewImage(null)
-                        setShowVerify(false)
                       }}
                       className="flex-1 bg-stone-100 text-stone-900 px-4 py-2 text-sm hover:bg-stone-200 transition-colors rounded-md"
                     >

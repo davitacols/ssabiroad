@@ -53,6 +53,12 @@ const nextConfig = {
     parallelServerCompiles: true,
   },
   serverExternalPackages: ['@google-cloud/vision'],
+  api: {
+    responseLimit: false,
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
 }
 
 mergeConfig(nextConfig, userConfig)

@@ -1,104 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { LocationMLModel } from '../ml-model';
 
-const prisma = new PrismaClient();
-const mlModel = new LocationMLModel();
+const ML_API_URL = process.env.ML_API_URL || 'http://52.91.173.191:8000';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { recognitionId, wasCorrect, correctAddress, correctLat, correctLng, userId } = body;
-
-    if (!recognitionId || typeof wasCorrect !== 'boolean') {
-      return NextResponse.json(
-        { error: 'recognitionId and wasCorrect are required' },
-        { status: 400 }
-      );
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+    const latitude = formData.get('latitude') as string;
+    const longitude = formData.get('longitude') as string;
+    const address = formData.get('address') as string;
+    const userId = formData.get('userId') as string;
+    
+    if (!file || !latitude || !longitude) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const recognition = await prisma.locationRecognition.findUnique({
-      where: { id: recognitionId }
+    const mlFormData = new FormData();
+    mlFormData.append('file', file);
+    mlFormData.append('latitude', latitude);
+    mlFormData.append('longitude', longitude);
+    mlFormData.append('metadata', JSON.stringify({ 
+      method: 'user-correction',
+      address,
+      userId,
+      timestamp: new Date().toISOString()
+    }));
+
+    const mlResponse = await fetch(`${ML_API_URL}/train`, {
+      method: 'POST',
+      body: mlFormData,
     });
 
-    if (!recognition) {
-      return NextResponse.json({ error: 'Recognition not found' }, { status: 404 });
-    }
+    const mlResult = await mlResponse.json();
+    console.log('✅ Navisense training response:', mlResult);
 
-    const feedback = await prisma.locationFeedback.create({
-      data: { recognitionId, wasCorrect, correctAddress, correctLat, correctLng, userId }
-    });
-
-    if (recognition.businessName) {
-      await mlModel.trainWithFeedback(
-        recognition.businessName,
-        {
-          formatted_address: wasCorrect ? recognition.detectedAddress : correctAddress,
-          geometry: {
-            location: {
-              lat: wasCorrect ? recognition.latitude : correctLat,
-              lng: wasCorrect ? recognition.longitude : correctLng
-            }
-          }
-        },
-        wasCorrect
-      );
-    }
-
-    if (wasCorrect && recognition.businessName) {
-      await prisma.knownLocation.upsert({
-        where: {
-          businessName_latitude_longitude: {
-            businessName: recognition.businessName,
-            latitude: recognition.latitude,
-            longitude: recognition.longitude
-          }
-        },
-        update: { verificationCount: { increment: 1 }, lastVerified: new Date() },
-        create: {
-          businessName: recognition.businessName,
-          address: recognition.detectedAddress || '',
-          latitude: recognition.latitude,
-          longitude: recognition.longitude,
-          verificationCount: 1
-        }
-      });
-    }
-
-    return NextResponse.json({
-      success: true,
-      feedback,
-      message: 'Thank you for your feedback!'
-    });
-  } catch (error) {
-    console.error('Feedback error:', error);
-    return NextResponse.json({ error: 'Failed to process feedback' }, { status: 500 });
-  }
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const method = searchParams.get('method');
-
-    const stats = await prisma.locationFeedback.groupBy({
-      by: ['wasCorrect'],
-      _count: true,
-      where: method ? { recognition: { method } } : undefined
-    });
-
-    const total = stats.reduce((sum, s) => sum + s._count, 0);
-    const correct = stats.find(s => s.wasCorrect)?._count || 0;
-
-    return NextResponse.json({
-      total,
-      correct,
-      incorrect: total - correct,
-      accuracy: total > 0 ? ((correct / total) * 100).toFixed(2) + '%' : '0%',
-      method: method || 'all'
-    });
-  } catch (error) {
-    console.error('Stats error:', error);
-    return NextResponse.json({ error: 'Failed to get stats' }, { status: 500 });
+    return NextResponse.json({ success: true, message: 'Training data submitted', mlResponse: mlResult });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
