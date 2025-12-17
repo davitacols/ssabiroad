@@ -1,0 +1,67 @@
+{
+  "training": {
+    "geolocation": {
+      "data_dir": "data/geolocations",
+      "epochs": 20,
+      "batch_size": 32,
+      "learning_rate": 0.0001,
+      "backbone": "efficientnet_b0"
+    },
+    "landmark": {
+      "data_dir": "data/landmarks",
+      "epochs": 30,
+      "batch_size": 32,
+      "learning_rate": 0.0001,
+      "backbone": "efficientnet_b0",
+      "focal_loss_gamma": 2
+    }
+  },
+  "data_collection": {
+    "google_api_key": "YOUR_GOOGLE_API_KEY_HERE",
+    "cities": [
+      {
+        "name": "Lagos",
+        "bbox": [6.4, 3.2, 6.7, 3.6]
+      },
+      {
+        "name": "Abuja",
+        "bbox": [8.9, 7.3, 9.2, 7.6]
+      },
+      {
+        "name": "Kano",
+        "bbox": [11.9, 8.4, 12.1, 8.6]
+      }
+    ],
+    "building_types": ["bank", "mall", "church", "mosque", "school", "hospital"],
+    "max_per_city": 50,
+    "angles": [0, 90, 180, 270]
+  },
+  "active_learning": {
+    "min_samples": 100,
+    "confidence_threshold": 0.7,
+    "high_priority_threshold": 20,
+    "retraining_schedule_hours": 24
+  },
+  "monitoring": {
+    "metrics_window_hours": 24,
+    "auto_switch_threshold": 1.2,
+    "log_predictions": true
+  },
+  "faiss": {
+    "index_path": "faiss_index",
+    "similarity_threshold": 0.75,
+    "dimension": 512
+  },
+  "api": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "cors_origins": ["*"],
+    "max_upload_size_mb": 10
+  },
+  "pipeline": {
+    "collect_data": true,
+    "build_index": true,
+    "train_landmark": true,
+    "train_geolocation": true
+  }
+}

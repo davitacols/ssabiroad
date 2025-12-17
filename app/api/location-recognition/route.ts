@@ -95,9 +95,9 @@ function validateRequest(formData: FormData): { image?: File; location?: Locatio
     const lat = Number.parseFloat(formData.get("latitude") as string)
     const lng = Number.parseFloat(formData.get("longitude") as string)
     
-    const location = !isNaN(lat) && !isNaN(lng) 
+    const location = !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0
       ? { latitude: lat, longitude: lng }
-      : { latitude: 40.7128, longitude: -74.006 } // Default NYC
+      : { latitude: 0, longitude: 0 } // Null island - indicates no GPS
     
     return { image, location }
   }
@@ -839,16 +839,26 @@ async function recognizeLocation(imageBuffer: Buffer, currentLocation: Location)
       }
     }
 
-    // Fallback to current location
+    // Fallback - only use current location if valid
+    if (currentLocation.latitude !== 0 && currentLocation.longitude !== 0) {
+      return {
+        success: true,
+        type: "fallback-location",
+        name: "Current Location",
+        location: currentLocation,
+        confidence: 0.3,
+        description: "Using provided location as fallback",
+        category: "Unknown",
+        mapUrl: `https://www.google.com/maps/search/?api=1&query=${currentLocation.latitude},${currentLocation.longitude}`,
+        processingTime: Date.now() - startTime,
+      }
+    }
+    
     return {
-      success: true,
-      type: "fallback-location",
-      name: "Current Location",
-      location: currentLocation,
-      confidence: 0.3,
-      description: "Using provided location as fallback",
-      category: "Unknown",
-      mapUrl: `https://www.google.com/maps/search/?api=1&query=${currentLocation.latitude},${currentLocation.longitude}`,
+      success: false,
+      type: "no-location-detected",
+      error: "Unable to identify location from image",
+      description: "No recognizable location found in the image",
       processingTime: Date.now() - startTime,
     }
   } catch (error: any) {

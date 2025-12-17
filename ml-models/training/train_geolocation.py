@@ -27,8 +27,12 @@ def load_dataset(data_dir: str):
     logger.info(f"Loaded {len(image_paths)} images with GPS data")
     return image_paths, coordinates
 
-def train_geolocation_model(data_dir: str, epochs: int = 20, batch_size: int = 32):
+def train_geolocation_model(data_dir: str, epochs: int = 20, batch_size: int = 32, model_version: str = None):
     """Train geolocation estimation model"""
+    
+    if model_version is None:
+        from datetime import datetime
+        model_version = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     # Load data
     train_paths, train_coords = load_dataset(f"{data_dir}/train")
@@ -62,25 +66,55 @@ def train_geolocation_model(data_dir: str, epochs: int = 20, batch_size: int = 3
     model = GeolocationModel(backbone="efficientnet_b0")
     trainer = GeolocationTrainer(model, device)
     
+    # Learning rate scheduler
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(trainer.optimizer, T_max=epochs)
+    
     # Training loop
     best_distance = float('inf')
+    history = []
     
     for epoch in range(epochs):
         train_loss = trainer.train_epoch(train_loader)
         val_metrics = trainer.validate(val_loader)
+        scheduler.step()
         
-        logger.info(f"Epoch {epoch+1}/{epochs}")
+        logger.info(f"Epoch {epoch+1}/{epochs} | LR: {scheduler.get_last_lr()[0]:.6f}")
         logger.info(f"  Train Loss: {train_loss:.4f}")
         logger.info(f"  Val Loss: {val_metrics['loss']:.4f}")
         logger.info(f"  Mean Distance: {val_metrics['mean_distance_km']:.2f} km")
         logger.info(f"  Median Distance: {val_metrics['median_distance_km']:.2f} km")
+        logger.info(f"  Acc@1km: {val_metrics['accuracy_1km']:.2%} | Acc@5km: {val_metrics['accuracy_5km']:.2%} | Acc@25km: {val_metrics['accuracy_25km']:.2%}")
+        
+        history.append({"epoch": epoch+1, "train_loss": train_loss, **val_metrics})
         
         if val_metrics['mean_distance_km'] < best_distance:
             best_distance = val_metrics['mean_distance_km']
-            torch.save(model.state_dict(), "models/geolocation_best.pth")
-            logger.info(f"  Saved best model!")
+            Path("models").mkdir(exist_ok=True)
+            torch.save({
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': trainer.optimizer.state_dict(),
+                'epoch': epoch,
+                'metrics': val_metrics,
+                'version': model_version
+            }, f"models/geolocation_{model_version}_best.pth")
+            logger.info(f"  ✅ Saved best model!")
+    
+    # Save final model and history
+    torch.save(model.state_dict(), f"models/geolocation_{model_version}_final.pth")
+    import json
+    with open(f"models/geolocation_{model_version}_history.json", "w") as f:
+        json.dump(history, f, indent=2)
     
     logger.info(f"Training complete. Best mean distance: {best_distance:.2f} km")
+    logger.info(f"Model version: {model_version}")
 
 if __name__ == "__main__":
-    train_geolocation_model("data/geolocations", epochs=20)
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data_dir", default="data/geolocations")
+    parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--version", default=None)
+    args = parser.parse_args()
+    
+    train_geolocation_model(args.data_dir, args.epochs, args.batch_size, args.version)

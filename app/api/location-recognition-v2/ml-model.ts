@@ -72,12 +72,76 @@ export class LocationMLModel {
     return score;
   }
 
+  // Search for similar locations in training data
+  async searchSimilar(text: string, limit: number = 5): Promise<Array<{name: string, latitude: number, longitude: number, confidence: number}>> {
+    const results: Array<{name: string, latitude: number, longitude: number, confidence: number, similarity: number}> = [];
+    
+    // Search through training data for similar text
+    for (const example of this.trainingData) {
+      if (example.label === 1 && example.metadata) {
+        const similarity = this.calculateTextSimilarity(text, example.metadata.name);
+        if (similarity > 0.3) {
+          results.push({
+            name: example.metadata.name,
+            latitude: example.metadata.latitude,
+            longitude: example.metadata.longitude,
+            confidence: similarity,
+            similarity
+          });
+        }
+      }
+    }
+    
+    // Sort by similarity and return top results
+    return results
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, limit)
+      .map(r => ({ name: r.name, latitude: r.latitude, longitude: r.longitude, confidence: r.confidence }));
+  }
+  
+  // Calculate text similarity using Levenshtein distance
+  private calculateTextSimilarity(text1: string, text2: string): number {
+    const s1 = text1.toLowerCase();
+    const s2 = text2.toLowerCase();
+    
+    const len1 = s1.length;
+    const len2 = s2.length;
+    const matrix: number[][] = [];
+    
+    for (let i = 0; i <= len1; i++) {
+      matrix[i] = [i];
+    }
+    for (let j = 0; j <= len2; j++) {
+      matrix[0][j] = j;
+    }
+    
+    for (let i = 1; i <= len1; i++) {
+      for (let j = 1; j <= len2; j++) {
+        const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j - 1] + cost
+        );
+      }
+    }
+    
+    const distance = matrix[len1][len2];
+    const maxLen = Math.max(len1, len2);
+    return maxLen > 0 ? 1 - (distance / maxLen) : 0;
+  }
+
   // Train model with new data (simplified gradient descent)
   async trainWithFeedback(businessName: string, candidate: any, isCorrect: boolean, phoneNumber?: string, address?: string, area?: string) {
     const features = this.featureExtractor.extract(businessName, candidate, phoneNumber, address, area);
     const label = isCorrect ? 1 : 0;
     
-    this.trainingData.push({ features, label, timestamp: Date.now() });
+    this.trainingData.push({ 
+      features, 
+      label, 
+      timestamp: Date.now(),
+      metadata: { name: businessName, latitude: candidate.geometry?.location?.lat, longitude: candidate.geometry?.location?.lng }
+    });
     
     // Keep only recent training data (last 100 examples)
     if (this.trainingData.length > 100) {
@@ -302,4 +366,5 @@ interface TrainingExample {
   features: number[];
   label: number;
   timestamp: number;
+  metadata?: { name: string; latitude: number; longitude: number };
 }

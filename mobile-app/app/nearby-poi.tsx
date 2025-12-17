@@ -7,9 +7,13 @@ import * as Location from 'expo-location';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NearbyPoiService } from '../services/nearbyPoi';
+import LocationPermissionDisclosure from '../components/LocationPermissionDisclosure';
+import { useTheme, getColors } from '../contexts/ThemeContext';
 
 export default function NearbyPoi() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const colors = getColors(theme);
   const [location, setLocation] = useState<any>(null);
   const [selectedType, setSelectedType] = useState('restaurant');
   const [places, setPlaces] = useState<any[]>([]);
@@ -30,6 +34,8 @@ export default function NearbyPoi() {
   const [minRating, setMinRating] = useState(0);
   const [savedPlaces, setSavedPlaces] = useState<string[]>([]);
   const fadeAnim = useState(new Animated.Value(0))[0];
+  const [showDisclosure, setShowDisclosure] = useState(false);
+  const [disclosureShown, setDisclosureShown] = useState(false);
 
   const placeTypes = NearbyPoiService.getPlaceTypes();
 
@@ -54,8 +60,22 @@ export default function NearbyPoi() {
   };
 
   useEffect(() => {
-    getCurrentLocation();
+    checkDisclosureStatus();
   }, []);
+
+  const checkDisclosureStatus = async () => {
+    try {
+      const shown = await AsyncStorage.getItem('locationDisclosureShown');
+      if (shown === 'true') {
+        setDisclosureShown(true);
+        getCurrentLocation();
+      } else {
+        setShowDisclosure(true);
+      }
+    } catch (error) {
+      console.log('Check disclosure error:', error);
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -78,6 +98,22 @@ export default function NearbyPoi() {
     } catch (error) {
       Alert.alert('Error', 'Failed to get location');
     }
+  };
+
+  const handleAcceptDisclosure = async () => {
+    try {
+      await AsyncStorage.setItem('locationDisclosureShown', 'true');
+      setDisclosureShown(true);
+      setShowDisclosure(false);
+      getCurrentLocation();
+    } catch (error) {
+      console.log('Accept disclosure error:', error);
+    }
+  };
+
+  const handleDeclineDisclosure = () => {
+    setShowDisclosure(false);
+    Alert.alert('Location Required', 'Location permission is needed to find nearby places.');
   };
 
   const searchNearbyPlaces = async (lat: number, lng: number, type: string) => {
@@ -205,12 +241,12 @@ export default function NearbyPoi() {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       
       {initialLoading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#000000" />
+          <ActivityIndicator size="large" color="#fff" />
           <Text style={styles.loadingText}>Finding places near you</Text>
         </View>
       )}
@@ -310,7 +346,7 @@ export default function NearbyPoi() {
 
             {loading && (
               <View style={styles.loadingSection}>
-                <ActivityIndicator size="small" color="#000000" />
+                <ActivityIndicator size="small" color="#fff" />
                 <Text style={styles.loadingText}>Loading places...</Text>
               </View>
             )}
@@ -358,7 +394,7 @@ export default function NearbyPoi() {
 
           {detailsLoading ? (
             <View style={styles.modalLoading}>
-              <ActivityIndicator size="large" color="#000000" />
+              <ActivityIndicator size="large" color="#fff" />
             </View>
           ) : (
             <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
@@ -421,78 +457,84 @@ export default function NearbyPoi() {
           )}
         </SafeAreaView>
       </Modal>
+
+      <LocationPermissionDisclosure
+        visible={showDisclosure}
+        onAccept={handleAcceptDisclosure}
+        onDecline={handleDeclineDisclosure}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
-  loadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-  loadingText: { marginTop: 16, fontSize: 16, color: '#000000', fontFamily: 'LeagueSpartan_600SemiBold' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  container: { flex: 1, backgroundColor: '#000' },
+  loadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
+  loadingText: { marginTop: 16, fontSize: 16, color: '#fff', fontFamily: 'LeagueSpartan_600SemiBold' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
   backButton: { marginRight: 16 },
-  backText: { fontSize: 16, color: '#000000', fontFamily: 'LeagueSpartan_600SemiBold' },
-  headerTitle: { fontSize: 24, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000000' },
+  backText: { fontSize: 16, color: '#fff', fontFamily: 'LeagueSpartan_600SemiBold' },
+  headerTitle: { fontSize: 28, fontFamily: 'LeagueSpartan_700Bold', color: '#fff' },
   content: { flex: 1 },
-  searchSection: { padding: 24, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  searchSection: { padding: 24, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
   searchContainer: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  searchInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 },
-  searchDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#000000', marginRight: 12 },
-  searchInput: { flex: 1, fontSize: 16, color: '#000000' },
+  searchInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a1a', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: '#333' },
+  searchDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff', marginRight: 12 },
+  searchInput: { flex: 1, fontSize: 16, color: '#fff' },
   clearButton: { paddingHorizontal: 16, paddingVertical: 12 },
-  clearText: { fontSize: 16, color: '#6b7280', fontFamily: 'LeagueSpartan_600SemiBold' },
+  clearText: { fontSize: 16, color: '#9ca3af', fontFamily: 'LeagueSpartan_600SemiBold' },
   autocompleteSection: { paddingHorizontal: 24, paddingBottom: 12 },
-  autocompleteItem: { backgroundColor: '#ffffff', padding: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  autocompleteText: { fontSize: 14, color: '#000000' },
+  autocompleteItem: { backgroundColor: '#1a1a1a', padding: 12, borderBottomWidth: 1, borderBottomColor: '#333' },
+  autocompleteText: { fontSize: 14, color: '#fff' },
   resultsSection: { padding: 24 },
-  sectionTitle: { fontSize: 18, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000000', marginBottom: 16 },
-  categoriesSection: { padding: 24, backgroundColor: '#fafafa' },
+  sectionTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 16 },
+  categoriesSection: { padding: 24, backgroundColor: '#000' },
   categoriesScroll: { marginTop: 16 },
-  categoryChip: { backgroundColor: '#ffffff', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, marginRight: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
-  categoryChipActive: { backgroundColor: '#000000', shadowOpacity: 0.15 },
-  categoryText: { fontSize: 15, color: '#374151', fontFamily: 'LeagueSpartan_600SemiBold' },
-  categoryTextActive: { color: '#ffffff' },
-  loadingSection: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  categoryChip: { backgroundColor: '#1a1a1a', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, marginRight: 12, borderWidth: 1, borderColor: '#333' },
+  categoryChipActive: { backgroundColor: '#fff', borderColor: '#fff' },
+  categoryText: { fontSize: 15, color: '#9ca3af', fontFamily: 'LeagueSpartan_600SemiBold' },
+  categoryTextActive: { color: '#000' },
+  loadingSection: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
   placesSection: { padding: 24 },
-  placeCard: { backgroundColor: '#ffffff', borderRadius: 16, padding: 20, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3 },
+  placeCard: { backgroundColor: '#1a1a1a', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#333' },
   placeContent: { },
   placeTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
-  placeName: { fontSize: 18, fontFamily: 'LeagueSpartan_700Bold', color: '#000000', marginBottom: 6, letterSpacing: -0.3, flex: 1 },
-  placeAddress: { fontSize: 15, color: '#6b7280', marginBottom: 12, lineHeight: 20 },
+  placeName: { fontSize: 18, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 6, flex: 1 },
+  placeAddress: { fontSize: 15, color: '#9ca3af', marginBottom: 12, lineHeight: 20 },
   placeMetrics: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  placeDistance: { fontSize: 15, color: '#000000', fontFamily: 'LeagueSpartan_600SemiBold' },
-  placeRating: { fontSize: 15, color: '#000000', fontFamily: 'LeagueSpartan_600SemiBold' },
+  placeDistance: { fontSize: 15, color: '#fff', fontFamily: 'LeagueSpartan_600SemiBold' },
+  placeRating: { fontSize: 15, color: '#fff', fontFamily: 'LeagueSpartan_600SemiBold' },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   statusText: { fontSize: 12, fontFamily: 'LeagueSpartan_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.5 },
-  placeHero: { padding: 24, backgroundColor: '#f8fafc', borderRadius: 16, marginBottom: 24 },
-  heroTitle: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', color: '#0f172a', marginBottom: 8 },
-  heroSubtitle: { fontSize: 16, color: '#64748b', marginBottom: 16, lineHeight: 24 },
+  placeHero: { padding: 24, backgroundColor: '#0a0a0a', borderRadius: 16, marginBottom: 24, borderWidth: 1, borderColor: '#1a1a1a' },
+  heroTitle: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 8 },
+  heroSubtitle: { fontSize: 16, color: '#a3a3a3', marginBottom: 16, lineHeight: 24 },
   ratingContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  ratingText: { fontSize: 18, fontFamily: 'LeagueSpartan_600SemiBold', color: '#f59e0b' },
-  ratingLabel: { fontSize: 14, color: '#64748b' },
+  ratingText: { fontSize: 18, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fbbf24' },
+  ratingLabel: { fontSize: 14, color: '#a3a3a3' },
   quickActions: { flexDirection: 'row', gap: 12, marginBottom: 24 },
-  actionButton: { flex: 1, backgroundColor: '#000000', borderRadius: 12, padding: 16, alignItems: 'center' },
-  secondaryAction: { backgroundColor: '#f1f5f9' },
-  actionButtonText: { color: '#ffffff', fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
-  secondaryActionText: { color: '#000000' },
-  infoCard: { backgroundColor: '#ffffff', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#e2e8f0' },
-  infoTitle: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold', color: '#0f172a', marginBottom: 12 },
+  actionButton: { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 16, alignItems: 'center' },
+  secondaryAction: { backgroundColor: '#0a0a0a', borderWidth: 1, borderColor: '#1a1a1a' },
+  actionButtonText: { color: '#000', fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
+  secondaryActionText: { color: '#fff' },
+  infoCard: { backgroundColor: '#0a0a0a', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#1a1a1a' },
+  infoTitle: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff', marginBottom: 12 },
   statusIndicator: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
-  hoursText: { fontSize: 14, color: '#64748b', marginBottom: 4, lineHeight: 20 },
-  modalContainer: { flex: 1, backgroundColor: '#ffffff' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  modalTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000000', flex: 1 },
+  hoursText: { fontSize: 14, color: '#a3a3a3', marginBottom: 4, lineHeight: 20 },
+  modalContainer: { flex: 1, backgroundColor: '#000' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
+  modalTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff', flex: 1 },
   modalClose: { },
-  modalCloseText: { fontSize: 16, color: '#000000', fontFamily: 'LeagueSpartan_600SemiBold' },
-  modalLoading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  modalCloseText: { fontSize: 16, color: '#fff', fontFamily: 'LeagueSpartan_600SemiBold' },
+  modalLoading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
   modalContent: { padding: 24, paddingBottom: 40 },
   detailSection: { marginBottom: 24 },
-  detailLabel: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', color: '#6b7280', marginBottom: 4, textTransform: 'uppercase' },
-  detailValue: { fontSize: 16, color: '#000000', lineHeight: 24 },
-  linkText: { color: '#000000', textDecorationLine: 'underline' },
+  detailLabel: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', color: '#737373', marginBottom: 4, textTransform: 'uppercase' },
+  detailValue: { fontSize: 16, color: '#fff', lineHeight: 24 },
+  linkText: { color: '#fff', textDecorationLine: 'underline' },
   actionSection: { marginTop: 16, gap: 12 },
-  primaryButton: { backgroundColor: '#000000', borderRadius: 12, padding: 14, alignItems: 'center' },
-  primaryButtonText: { color: '#ffffff', fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
-  secondaryButton: { backgroundColor: '#f3f4f6', borderRadius: 12, padding: 16, alignItems: 'center' },
-  secondaryButtonText: { color: '#000000', fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
+  primaryButton: { backgroundColor: '#fff', borderRadius: 12, padding: 14, alignItems: 'center' },
+  primaryButtonText: { color: '#000', fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
+  secondaryButton: { backgroundColor: '#0a0a0a', borderRadius: 12, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#1a1a1a' },
+  secondaryButtonText: { color: '#fff', fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
 });

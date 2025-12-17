@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MenuBar from '../components/MenuBar';
+import { useTheme, getColors } from '../contexts/ThemeContext';
 
 interface Activity {
   id: string;
@@ -14,6 +15,8 @@ interface Activity {
 
 export default function ActivityScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const colors = getColors(theme);
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
 
   useEffect(() => {
@@ -51,14 +54,14 @@ export default function ActivityScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>Back</Text>
+          <Text style={[styles.backText, { color: colors.text }]}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Activity</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Activity</Text>
         {recentActivities.length > 0 && (
           <TouchableOpacity onPress={clearAllActivities} style={styles.clearButton}>
             <Text style={styles.clearText}>Clear</Text>
@@ -72,21 +75,21 @@ export default function ActivityScreen() {
             {recentActivities.map((activity) => (
               <TouchableOpacity 
                 key={activity.id} 
-                style={styles.activityItem}
+                style={[styles.activityItem, { backgroundColor: colors.card, borderColor: colors.border }]}
                 onPress={() => router.push(activity.route as any)}
               >
                 <View style={styles.activityContent}>
-                  <Text style={styles.activityTitle}>{activity.title}</Text>
-                  <Text style={styles.activitySubtitle}>{activity.subtitle}</Text>
-                  <Text style={styles.activityTime}>{formatTime(activity.timestamp)}</Text>
+                  <Text style={[styles.activityTitle, { color: colors.text }]}>{activity.title}</Text>
+                  <Text style={[styles.activitySubtitle, { color: colors.textSecondary }]}>{activity.subtitle}</Text>
+                  <Text style={[styles.activityTime, { color: colors.textTertiary }]}>{formatTime(activity.timestamp)}</Text>
                 </View>
               </TouchableOpacity>
             ))}
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>No recent activity</Text>
-            <Text style={styles.emptySubtitle}>Start exploring to see your activity here</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No recent activity</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>Start exploring to see your activity here</Text>
           </View>
         )}
       </ScrollView>
@@ -99,7 +102,6 @@ export default function ActivityScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
   },
   header: {
     flexDirection: 'row',
@@ -108,20 +110,17 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
   },
   backButton: {
     marginRight: 16,
   },
   backText: {
     fontSize: 16,
-    color: '#000000',
     fontFamily: 'LeagueSpartan_600SemiBold',
   },
   headerTitle: {
     fontSize: 24,
     fontFamily: 'LeagueSpartan_600SemiBold',
-    color: '#000000',
     flex: 1,
   },
   clearButton: {},
@@ -141,31 +140,21 @@ const styles = StyleSheet.create({
   activityItem: {
     paddingVertical: 16,
     paddingHorizontal: 20,
-    backgroundColor: '#ffffff',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
   },
   activityContent: {},
   activityTitle: {
     fontSize: 16,
     fontFamily: 'LeagueSpartan_600SemiBold',
-    color: '#000000',
     marginBottom: 2,
   },
   activitySubtitle: {
     fontSize: 14,
-    color: '#6b7280',
     marginBottom: 4,
   },
   activityTime: {
     fontSize: 12,
-    color: '#9ca3af',
     fontFamily: 'LeagueSpartan_600SemiBold',
   },
   emptyState: {
@@ -175,12 +164,10 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontFamily: 'LeagueSpartan_600SemiBold',
-    color: '#374151',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#9ca3af',
     textAlign: 'center',
     lineHeight: 20,
   },

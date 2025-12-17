@@ -15,12 +15,25 @@ export async function POST(request: NextRequest) {
       const name = formData.get('name') as string;
       const latitude = parseFloat(formData.get('latitude') as string);
       const longitude = parseFloat(formData.get('longitude') as string);
+      const address = formData.get('address') as string;
+      const confidence = formData.get('confidence') as string;
+      const method = formData.get('method') as string;
+      const verified = formData.get('verified') === 'true';
       
-      const metadata = { name, latitude, longitude };
+      const metadata = { 
+        name, 
+        latitude, 
+        longitude,
+        address,
+        confidence: confidence ? parseFloat(confidence) : null,
+        method,
+        verified,
+        timestamp: new Date().toISOString()
+      };
       formData.append('metadata', JSON.stringify(metadata));
       
       console.log('Sending to ML API:', `${ML_API_URL}/add_to_index`);
-      console.log('Metadata:', metadata);
+      console.log('Training data:', metadata);
       
       const response = await fetch(`${ML_API_URL}/add_to_index`, {
         method: 'POST',

@@ -151,6 +151,95 @@ const DetectionResultDialog: React.FC<DetectionResultDialogProps> = ({
               </div>
             )}
 
+            {detectionResult.method && (
+              <div className="flex items-center gap-2">
+                <Info className="w-5 h-5" />
+                <span>Detection Method: {detectionResult.method}</span>
+              </div>
+            )}
+
+            {detectionResult.nearbyPlaces && detectionResult.nearbyPlaces.length > 0 && (
+              <div>
+                <h3 className="font-semibold">Nearby Places ({detectionResult.nearbyPlaces.length})</h3>
+                <ul className="list-disc list-inside">
+                  {detectionResult.nearbyPlaces.slice(0, 3).map((place, index) => (
+                    <li key={index}>{place.name} - {place.distance}m away</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {detectionResult.weather && (
+              <div>
+                <h3 className="font-semibold">Current Weather</h3>
+                <p>Temperature: {detectionResult.weather.temperature}°C</p>
+                {detectionResult.weather.humidity && <p>Humidity: {detectionResult.weather.humidity}%</p>}
+              </div>
+            )}
+
+            {detectionResult.historicalData && (
+              <div>
+                <h3 className="font-semibold">Photo Information</h3>
+                <p>Photo Age: {detectionResult.historicalData.photoAge}</p>
+                {detectionResult.historicalData.historicalContext && (
+                  <p className="text-sm text-gray-600">{detectionResult.historicalData.historicalContext}</p>
+                )}
+              </div>
+            )}
+
+            {detectionResult.elevation && (
+              <div>
+                <h3 className="font-semibold">Elevation</h3>
+                <p>{detectionResult.elevation.elevation} {detectionResult.elevation.unit}</p>
+              </div>
+            )}
+
+            {detectionResult.timezone && (
+              <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                <span>Timezone: {detectionResult.timezone}</span>
+              </div>
+            )}
+
+            {detectionResult.transit && detectionResult.transit.length > 0 && (
+              <div>
+                <h3 className="font-semibold">Transit Stations</h3>
+                <ul className="list-disc list-inside">
+                  {detectionResult.transit.slice(0, 3).map((station, index) => (
+                    <li key={index}>{station.name} ({station.type}) - {station.distance}m away</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {detectionResult.demographics && (
+              <div>
+                <h3 className="font-semibold">Area Demographics</h3>
+                <p>Data Source: {detectionResult.demographics.dataSource}</p>
+                {detectionResult.demographics.note && <p className="text-sm text-gray-600">{detectionResult.demographics.note}</p>}
+              </div>
+            )}
+
+            {detectionResult.verification && (
+              <div>
+                <h3 className="font-semibold">Verification Status</h3>
+                <p>Verified: {detectionResult.verification.verified ? 'Yes' : 'No'}</p>
+                {detectionResult.verification.sources && detectionResult.verification.sources.length > 0 && (
+                  <p>Sources: {detectionResult.verification.sources.join(', ')}</p>
+                )}
+                {detectionResult.verification.warnings && detectionResult.verification.warnings.length > 0 && (
+                  <div className="text-yellow-600">
+                    <p className="font-semibold">Warnings:</p>
+                    <ul className="list-disc list-inside">
+                      {detectionResult.verification.warnings.map((warning, index) => (
+                        <li key={index}>{warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
             {detectionResult.features && (
               <div className="grid grid-cols-2 gap-4">
                 {detectionResult.features.style && (
@@ -158,6 +247,43 @@ const DetectionResultDialog: React.FC<DetectionResultDialogProps> = ({
                     <h3 className="font-semibold">Architectural Style</h3>
                     <p>{detectionResult.features.style.join(", ")}</p>
                   </div>
+                )}
+                {detectionResult.features.materials && (
+                  <div>
+                    <h3 className="font-semibold">Materials</h3>
+                    <p>{detectionResult.features.materials.join(", ")}</p>
+                  </div>
+                )}
+                {detectionResult.features.architecture && (
+                  <div>
+                    <h3 className="font-semibold">Architecture</h3>
+                    <p>{detectionResult.features.architecture.join(", ")}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {detectionResult.enhancedAnalysis && (
+              <div>
+                <h3 className="font-semibold">Enhanced Analysis</h3>
+                {detectionResult.enhancedAnalysis.walkability && (
+                  <p>Walkability Score: {detectionResult.enhancedAnalysis.walkability.score}/100</p>
+                )}
+                {detectionResult.enhancedAnalysis.bikeability && (
+                  <p>Bikeability Score: {detectionResult.enhancedAnalysis.bikeability.score}/100</p>
+                )}
+                {detectionResult.enhancedAnalysis.airQuality && (
+                  <p>Air Quality: {detectionResult.enhancedAnalysis.airQuality.category}</p>
+                )}
+              </div>
+            )}
+
+            {detectionResult.deviceAnalysis && (
+              <div>
+                <h3 className="font-semibold">Camera Information</h3>
+                <p>Device: {detectionResult.deviceAnalysis.camera.make} {detectionResult.deviceAnalysis.camera.model}</p>
+                {detectionResult.deviceAnalysis.image && (
+                  <p>Resolution: {detectionResult.deviceAnalysis.image.width}x{detectionResult.deviceAnalysis.image.height}</p>
                 )}
               </div>
             )}
@@ -468,9 +594,29 @@ const DetectionResultDialog: React.FC<DetectionResultDialogProps> = ({
           </TabsContent>
 
           <TabsContent value="nearby" className="p-4 space-y-4">
-            {detectionResult.publicInfo?.nearbyAttractions &&
-            detectionResult.publicInfo.nearbyAttractions.length > 0 ? (
+            {detectionResult.nearbyPlaces && detectionResult.nearbyPlaces.length > 0 && (
               <div>
+                <h3 className="font-semibold text-lg mb-2">Nearby Places</h3>
+                <ul className="space-y-2">
+                  {detectionResult.nearbyPlaces.map((place, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <MapPin className="w-5 h-5 mt-1" />
+                      <div>
+                        <h4 className="font-semibold">{place.name}</h4>
+                        <p>Type: {place.type}</p>
+                        <p>Distance: {place.distance}m away</p>
+                        {place.rating && <p>Rating: {place.rating}/5</p>}
+                        {place.address && <p className="text-sm text-gray-600">{place.address}</p>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {detectionResult.publicInfo?.nearbyAttractions &&
+            detectionResult.publicInfo.nearbyAttractions.length > 0 && (
+              <div className="mt-6">
                 <h3 className="font-semibold text-lg mb-2">Nearby Attractions</h3>
                 <ul className="space-y-2">
                   {detectionResult.publicInfo.nearbyAttractions.map((attraction, index) => (
@@ -486,8 +632,32 @@ const DetectionResultDialog: React.FC<DetectionResultDialogProps> = ({
                   ))}
                 </ul>
               </div>
-            ) : (
-              <p>No information about nearby attractions available.</p>
+            )}
+
+            {detectionResult.landmarks && detectionResult.landmarks.length > 0 && (
+              <div className="mt-6">
+                <h3 className="font-semibold text-lg mb-2">Landmarks</h3>
+                <ul className="space-y-2">
+                  {detectionResult.landmarks.map((landmark, index) => (
+                    <li key={index}>
+                      <h4 className="font-semibold">{landmark.name}</h4>
+                      <p className="text-sm text-gray-600">{landmark.description}</p>
+                      {landmark.confidence && <p className="text-sm">Confidence: {(landmark.confidence * 100).toFixed(0)}%</p>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {detectionResult.photos && detectionResult.photos.length > 0 && (
+              <div className="mt-6">
+                <h3 className="font-semibold text-lg mb-2">Location Photos</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {detectionResult.photos.slice(0, 4).map((photo, index) => (
+                    <img key={index} src={photo} alt={`Location ${index + 1}`} className="w-full h-32 object-cover rounded" />
+                  ))}
+                </div>
+              </div>
             )}
 
             {detectionResult.publicInfo?.events && detectionResult.publicInfo.events.length > 0 && (

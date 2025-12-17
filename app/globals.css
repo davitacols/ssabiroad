@@ -97,3 +97,9 @@
   .prose img { margin: 2rem auto; border-radius: 8px; }
   .prose ul, .prose ol { padding-left: 1.5rem; }
 }
+
+/* Custom animations for advanced UI */
+@keyframes gradient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}

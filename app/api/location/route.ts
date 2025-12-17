@@ -1,18 +1,21 @@
 import { getLocation } from '../../../lib/location-smart';
 import { NextRequest, NextResponse } from 'next/server';
+import { ErrorHandler, throwApiError } from '@/app/middleware-error-handler';
+import { ErrorCodes, SpecificErrorMessages } from '@/app/error-constants';
 
-export async function GET(request: NextRequest) {
+export const GET = ErrorHandler.withErrorHandling(async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('q');
   
   if (!query) {
-    return NextResponse.json({ error: 'Query parameter required' }, { status: 400 });
+    throwApiError(ErrorCodes.BAD_REQUEST, SpecificErrorMessages.MISSING_SEARCH_QUERY);
   }
 
-  try {
-    const location = await getLocation(query);
-    return NextResponse.json(location);
-  } catch (error) {
-    return NextResponse.json({ error: 'Location not found' }, { status: 404 });
+  const location = await getLocation(query);
+  
+  if (!location) {
+    throwApiError(ErrorCodes.NOT_FOUND, SpecificErrorMessages.LOCATION_NOT_FOUND);
   }
-}
+
+  return NextResponse.json({ success: true, data: location });
+});

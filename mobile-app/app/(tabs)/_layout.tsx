@@ -18,20 +18,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="tools"
-        options={{
-          title: 'Tools',
-          tabBarIcon: ({ color, focused }) => <Text style={{ fontSize: focused ? 26 : 24 }}>🛠️</Text>,
-        }}
-      />
-      <Tabs.Screen
-        name="geofence"
-        options={{
-          title: 'Geofence',
-          tabBarIcon: ({ color, focused }) => <Text style={{ fontSize: focused ? 26 : 24 }}>🔔</Text>,
-        }}
-      />
-      <Tabs.Screen
         name="history"
         options={{
           title: 'History',

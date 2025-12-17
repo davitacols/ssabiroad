@@ -9,7 +9,6 @@ export default function MenuBar() {
   const menuItems = [
     { icon: 'home-outline', activeIcon: 'home', label: 'Home', route: '/', key: 'home' },
     { icon: 'camera-outline', activeIcon: 'camera', label: 'Scanner', route: '/scanner', key: 'scanner' },
-    { icon: 'location-outline', activeIcon: 'location', label: 'Geofence', route: '/geofence', key: 'geofence' },
     { icon: 'compass-outline', activeIcon: 'compass', label: 'Nearby', route: '/nearby-poi', key: 'nearby' },
     { icon: 'time-outline', activeIcon: 'time', label: 'Activity', route: '/activity', key: 'activity' },
   ];

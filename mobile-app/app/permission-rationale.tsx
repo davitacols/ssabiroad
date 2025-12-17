@@ -38,17 +38,7 @@ export default function PermissionRationale() {
           </Text>
         </View>
 
-        <View style={styles.permissionCard}>
-          <Ionicons name="notifications" size={32} color="#f59e0b" />
-          <Text style={styles.permissionTitle}>🔔 Background Location</Text>
-          <Text style={styles.permissionOptional}>OPTIONAL - Enhanced Feature</Text>
-          <Text style={styles.permissionDesc}>
-            Background location is ONLY used for:
-            {'\n'}• Geofence alerts (notify when near saved locations)
-            {'\n'}• Journey tracking (optional feature)
-            {'\n\n'}You must explicitly enable this feature. A notification shows when active. Disable anytime in settings.
-          </Text>
-        </View>
+
 
         <View style={styles.permissionCard}>
           <Ionicons name="camera" size={32} color="#8b5cf6" />

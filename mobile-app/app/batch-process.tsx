@@ -9,9 +9,13 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
 import { analyzeLocation, batchProcess, shareToSocial } from '../services/api';
+import { useTheme, getColors } from '../contexts/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function BatchProcessScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const colors = getColors(theme);
   const insets = useSafeAreaInsets();
   const [photos, setPhotos] = useState<any[]>([]);
   const [processing, setProcessing] = useState(false);
@@ -44,6 +48,18 @@ export default function BatchProcessScreen() {
     
     setProcessing(true);
     setCurrentIndex(0);
+    
+    // Get device location for fallback
+    let deviceLocation = null;
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({});
+        deviceLocation = loc.coords;
+      }
+    } catch (error) {
+      console.log('Could not get device location:', error);
+    }
     
     try {
       const imageUris = photos.map(p => p.uri);
@@ -80,7 +96,7 @@ export default function BatchProcessScreen() {
       setCurrentIndex(i + 1);
       
       try {
-        const data = await analyzeLocation(photo.uri, null);
+        const data = await analyzeLocation(photo.uri, deviceLocation);
         const success = !data.error && data.location;
         
         newResults.push({ 
@@ -94,7 +110,7 @@ export default function BatchProcessScreen() {
         // Auto-retry failed items once
         if (!success && autoRetry) {
           await new Promise(resolve => setTimeout(resolve, 1000));
-          const retryData = await analyzeLocation(photo.uri, null);
+          const retryData = await analyzeLocation(photo.uri, deviceLocation);
           if (!retryData.error && retryData.location) {
             newResults[newResults.length - 1] = {
               photo: photo.uri,
@@ -240,8 +256,8 @@ export default function BatchProcessScreen() {
 
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       
       <LinearGradient
         colors={['#000000', '#1a1a1a']}

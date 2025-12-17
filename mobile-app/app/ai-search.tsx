@@ -5,6 +5,8 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { getApiUrl, API_CONFIG } from '../config/api';
+import { useTheme, getColors } from '../contexts/ThemeContext';
+import MenuBar from '../components/MenuBar';
 
 interface Message {
   id: string;
@@ -16,6 +18,8 @@ interface Message {
 
 export default function AISearchScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const colors = getColors(theme);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -76,10 +80,31 @@ export default function AISearchScreen() {
 
       const data = await response.json();
 
+      let responseText = data.success ? data.response : `Sorry, ${data.error || 'something went wrong.'}`;
+      
+      // Parse if it's a JSON string
+      if (typeof responseText === 'string') {
+        // Decode HTML entities
+        responseText = responseText.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+        
+        // Try to parse as JSON
+        try {
+          const parsed = JSON.parse(responseText);
+          responseText = parsed.response || parsed.message || parsed.text || parsed.answer || responseText;
+        } catch {}
+        
+        // Remove remaining JSON formatting
+        responseText = responseText.replace(/```[a-z]*\n?/gi, '').replace(/```/g, '');
+        responseText = responseText.replace(/\{[^}]*needsPlaceSearch[^}]*\}/gi, '');
+        responseText = responseText.replace(/[{}\[\]"]/g, '').replace(/needsPlaceSearch:\s*(true|false),?/gi, '');
+        responseText = responseText.replace(/response:\s*/gi, '');
+        responseText = responseText.replace(/\n{3,}/g, '\n\n').trim();
+      }
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        text: data.success ? data.response : `Sorry, ${data.error || 'something went wrong.'}`,
+        text: responseText,
         places: data.places,
         timestamp: new Date(),
       };
@@ -99,20 +124,17 @@ export default function AISearchScreen() {
   };
 
   const suggestedQueries = [
-    { icon: 'restaurant', text: 'Find restaurants nearby', query: 'best restaurants near me' },
-    { icon: 'fitness', text: 'Gyms in my area', query: 'gyms near me' },
-    { icon: 'cafe', text: 'Coffee shops', query: 'coffee shops nearby' },
-    { icon: 'medical', text: 'Hospitals', query: 'hospitals near me' },
+    { icon: 'restaurant', text: 'Best restaurants nearby', query: 'What are the best restaurants near me?' },
+    { icon: 'cafe', text: 'Coffee shops', query: 'Find me a good coffee shop' },
+    { icon: 'fitness', text: 'Gyms nearby', query: 'Where can I find gyms near me?' },
+    { icon: 'business', text: 'Compare places', query: 'Compare restaurants in my area' },
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       
-      <LinearGradient
-        colors={['#000000', '#1a1a1a']}
-        style={styles.header}
-      >
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
@@ -120,7 +142,7 @@ export default function AISearchScreen() {
           <Text style={styles.headerTitle}>AI Assistant</Text>
           <Text style={styles.headerSubtitle}>Find places instantly</Text>
         </View>
-      </LinearGradient>
+      </View>
 
       <KeyboardAvoidingView 
         style={styles.chatContainer}
@@ -136,15 +158,12 @@ export default function AISearchScreen() {
           {messages.length === 0 && (
             <Animated.View style={[styles.emptyState, { opacity: fadeAnim }]}>
               <View style={styles.logoContainer}>
-                <LinearGradient
-                  colors={['#8b5cf6', '#6366f1']}
-                  style={styles.logoGradient}
-                >
-                  <Ionicons name="location" size={40} color="#fff" />
-                </LinearGradient>
+                <View style={styles.logoGradient}>
+                  <Ionicons name="sparkles" size={36} color="#fff" />
+                </View>
               </View>
-              <Text style={styles.emptyTitle}>Where to?</Text>
-              <Text style={styles.emptySubtitle}>Ask me about any place you want to find</Text>
+              <Text style={styles.emptyTitle}>Ask me anything</Text>
+              <Text style={styles.emptySubtitle}>I can help you find places, compare locations, get directions, and more</Text>
               
               <View style={styles.suggestionsGrid}>
                 {suggestedQueries.map((item, idx) => (
@@ -157,7 +176,7 @@ export default function AISearchScreen() {
                     }}
                   >
                     <View style={styles.suggestionIcon}>
-                      <Ionicons name={item.icon as any} size={24} color="#8b5cf6" />
+                      <Ionicons name={item.icon as any} size={24} color="#fff" />
                     </View>
                     <Text style={styles.suggestionText}>{item.text}</Text>
                   </TouchableOpacity>
@@ -173,24 +192,18 @@ export default function AISearchScreen() {
                 message.type === 'user' ? styles.userBubble : styles.aiBubble
               ]}>
                 {message.type === 'ai' && (
-                  <LinearGradient
-                    colors={['#8b5cf6', '#6366f1']}
-                    style={styles.aiAvatar}
-                  >
-                    <Ionicons name="sparkles" size={14} color="#fff" />
-                  </LinearGradient>
+                  <View style={styles.aiAvatar}>
+                    <Ionicons name="sparkles" size={12} color="#fff" />
+                  </View>
                 )}
                 <View style={[
                   styles.messageContent,
                   message.type === 'user' && styles.userMessageContent
                 ]}>
                   {message.type === 'user' ? (
-                    <LinearGradient
-                      colors={['#000000', '#1a1a1a']}
-                      style={styles.userMessageGradient}
-                    >
+                    <View style={styles.userMessageGradient}>
                       <Text style={styles.userText}>{message.text}</Text>
-                    </LinearGradient>
+                    </View>
                   ) : (
                     <View style={styles.aiMessageBox}>
                       <Text style={styles.aiText}>{message.text}</Text>
@@ -213,7 +226,7 @@ export default function AISearchScreen() {
                       }}
                     >
                       <View style={styles.placeIconContainer}>
-                        <Ionicons name="location-sharp" size={20} color="#8b5cf6" />
+                        <Ionicons name="location-sharp" size={20} color="#fff" />
                       </View>
                       
                       <View style={styles.placeInfo}>
@@ -249,12 +262,9 @@ export default function AISearchScreen() {
 
           {loading && (
             <View style={[styles.messageBubble, styles.aiBubble]}>
-              <LinearGradient
-                colors={['#8b5cf6', '#6366f1']}
-                style={styles.aiAvatar}
-              >
-                <Ionicons name="sparkles" size={14} color="#fff" />
-              </LinearGradient>
+              <View style={styles.aiAvatar}>
+                <Ionicons name="sparkles" size={12} color="#fff" />
+              </View>
               <View style={styles.loadingContainer}>
                 <View style={styles.typingDot} />
                 <View style={[styles.typingDot, styles.typingDotDelay1]} />
@@ -269,13 +279,12 @@ export default function AISearchScreen() {
             <Ionicons name="search" size={20} color="#9ca3af" style={styles.searchIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Where do you want to go?"
+              placeholder="Ask me anything about places..."
               placeholderTextColor="#9ca3af"
               value={query}
               onChangeText={setQuery}
               onSubmitEditing={handleSend}
               returnKeyType="send"
-              multiline
               maxLength={200}
             />
             {query.trim() && (
@@ -289,72 +298,70 @@ export default function AISearchScreen() {
             onPress={handleSend}
             disabled={!query.trim() || loading}
           >
-            <LinearGradient
-              colors={query.trim() && !loading ? ['#000000', '#1a1a1a'] : ['#e5e7eb', '#d1d5db']}
-              style={styles.sendButtonGradient}
-            >
-              <Ionicons name="arrow-forward" size={22} color={query.trim() && !loading ? '#fff' : '#9ca3af'} />
-            </LinearGradient>
+            <View style={[styles.sendButtonGradient, { backgroundColor: query.trim() && !loading ? '#fff' : '#333' }]}>
+              <Ionicons name="arrow-up" size={20} color={query.trim() && !loading ? '#000' : '#6b7280'} />
+            </View>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+      <MenuBar />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
-  header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, flexDirection: 'row', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: '#000' },
+  header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, flexDirection: 'row', alignItems: 'center', backgroundColor: '#000' },
   backButton: { marginRight: 16, padding: 4 },
   headerContent: { flex: 1 },
   headerTitle: { fontSize: 28, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 2 },
-  headerSubtitle: { fontSize: 14, color: '#9ca3af' },
-  chatContainer: { flex: 1, backgroundColor: '#f9fafb' },
+  headerSubtitle: { fontSize: 14, color: '#6b7280' },
+  chatContainer: { flex: 1, backgroundColor: '#000' },
   messagesContainer: { flex: 1 },
   messagesContent: { padding: 20, paddingBottom: 8 },
-  emptyState: { alignItems: 'center', paddingTop: 40 },
-  logoContainer: { marginBottom: 24 },
-  logoGradient: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', shadowColor: '#8b5cf6', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
-  emptyTitle: { fontSize: 32, fontFamily: 'LeagueSpartan_700Bold', color: '#000', marginBottom: 8 },
-  emptySubtitle: { fontSize: 16, color: '#6b7280', marginBottom: 32 },
-  suggestionsGrid: { width: '100%', gap: 12 },
-  suggestionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
-  suggestionIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
-  suggestionText: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000', flex: 1 },
-  messageBubble: { flexDirection: 'row', marginBottom: 16, alignItems: 'flex-start' },
+  emptyState: { alignItems: 'center', paddingTop: 60 },
+  logoContainer: { marginBottom: 32 },
+  logoGradient: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#333' },
+  emptyTitle: { fontSize: 36, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 12 },
+  emptySubtitle: { fontSize: 15, color: '#6b7280', marginBottom: 40, textAlign: 'center', paddingHorizontal: 20, lineHeight: 22 },
+  suggestionsGrid: { width: '100%', gap: 10 },
+  suggestionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a1a', borderRadius: 14, padding: 18, borderWidth: 1, borderColor: '#333' },
+  suggestionIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center', marginRight: 14, borderWidth: 1, borderColor: '#333' },
+  suggestionText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff', flex: 1 },
+  messageBubble: { flexDirection: 'row', marginBottom: 20, alignItems: 'flex-start' },
   userBubble: { justifyContent: 'flex-end' },
   aiBubble: { justifyContent: 'flex-start' },
-  aiAvatar: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginRight: 12, shadowColor: '#8b5cf6', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3 },
-  messageContent: { maxWidth: '75%' },
+  aiAvatar: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 10, backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#333' },
+  messageContent: { maxWidth: '80%' },
   userMessageContent: { marginLeft: 'auto' },
-  userMessageGradient: { paddingHorizontal: 20, paddingVertical: 14, borderRadius: 24, borderBottomRightRadius: 6 },
-  userText: { fontSize: 16, lineHeight: 22, color: '#fff', fontFamily: 'LeagueSpartan_600SemiBold' },
-  aiMessageBox: { backgroundColor: '#fff', paddingHorizontal: 20, paddingVertical: 14, borderRadius: 24, borderBottomLeftRadius: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
-  aiText: { fontSize: 16, lineHeight: 22, color: '#000' },
-  loadingContainer: { flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 20, paddingVertical: 14, borderRadius: 24, borderBottomLeftRadius: 6, gap: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
-  typingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#d1d5db' },
+  userMessageGradient: { paddingHorizontal: 18, paddingVertical: 12, borderRadius: 20, backgroundColor: '#fff' },
+  userText: { fontSize: 15, lineHeight: 22, color: '#000', fontFamily: 'LeagueSpartan_400Regular' },
+  aiMessageBox: { backgroundColor: '#1a1a1a', paddingHorizontal: 18, paddingVertical: 12, borderRadius: 20, borderWidth: 1, borderColor: '#333' },
+  aiText: { fontSize: 15, lineHeight: 24, color: '#e5e7eb', fontFamily: 'LeagueSpartan_400Regular' },
+  loadingContainer: { flexDirection: 'row', backgroundColor: '#1a1a1a', paddingHorizontal: 18, paddingVertical: 12, borderRadius: 20, gap: 6, borderWidth: 1, borderColor: '#333' },
+  typingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#6b7280' },
   typingDotDelay1: { opacity: 0.7 },
   typingDotDelay2: { opacity: 0.4 },
-  placesContainer: { marginLeft: 44, marginTop: 8, gap: 12 },
-  placeCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  placeIconContainer: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#f5f3ff', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  placesContainer: { marginLeft: 38, marginTop: 12, gap: 10 },
+  placeCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a1a', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#333' },
+  placeIconContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: '#333' },
   placeInfo: { flex: 1 },
-  placeName: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold', color: '#000', marginBottom: 4 },
-  placeAddress: { fontSize: 13, color: '#6b7280', marginBottom: 8, lineHeight: 18 },
-  placeMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  ratingBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  ratingText: { fontSize: 13, fontFamily: 'LeagueSpartan_700Bold', color: '#92400e' },
-  statusDot: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  openDot: { backgroundColor: '#d1fae5' },
-  closedDot: { backgroundColor: '#fee2e2' },
-  statusText: { fontSize: 12, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000' },
+  placeName: { fontSize: 15, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 4 },
+  placeAddress: { fontSize: 13, color: '#9ca3af', marginBottom: 8, lineHeight: 18 },
+  placeMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  ratingBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#422006', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  ratingText: { fontSize: 12, fontFamily: 'LeagueSpartan_700Bold', color: '#fbbf24' },
+  statusDot: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  openDot: { backgroundColor: '#064e3b' },
+  closedDot: { backgroundColor: '#450a0a' },
+  statusText: { fontSize: 11, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
   arrowContainer: { marginLeft: 8 },
-  inputContainer: { flexDirection: 'row', padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#f3f4f6', gap: 12, alignItems: 'center' },
-  inputWrapper: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9fafb', borderRadius: 28, paddingHorizontal: 20, paddingVertical: 4, borderWidth: 1, borderColor: '#e5e7eb' },
-  searchIcon: { marginRight: 12 },
-  input: { flex: 1, fontSize: 16, color: '#000', paddingVertical: 12, maxHeight: 100 },
+  inputContainer: { flexDirection: 'row', padding: 16, backgroundColor: '#000', borderTopWidth: 1, borderTopColor: '#1a1a1a', gap: 10, alignItems: 'center' },
+  inputWrapper: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a1a', borderRadius: 24, paddingHorizontal: 16, borderWidth: 1, borderColor: '#333' },
+  searchIcon: { marginRight: 10 },
+  input: { flex: 1, fontSize: 15, color: '#fff', paddingVertical: 0, height: 44 },
   clearButton: { padding: 4 },
-  sendButton: { width: 56, height: 56, borderRadius: 28 },
-  sendButtonGradient: { width: '100%', height: '100%', borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  sendButton: { width: 48, height: 48, borderRadius: 24 },
+  sendButtonGradient: { width: '100%', height: '100%', borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   sendButtonDisabled: { opacity: 1 },
 });

@@ -3,9 +3,12 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MenuBar from '../components/MenuBar';
+import { useTheme, getColors } from '../contexts/ThemeContext';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { theme, toggleTheme } = useTheme();
+  const colors = getColors(theme);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -88,20 +91,23 @@ export default function HomeScreen() {
 
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
       
       {/* Black Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <View style={styles.headerContent}>
-          <Text style={styles.greeting}>{getGreeting()}</Text>
+          <Text style={[styles.greeting, { color: colors.text }]}>{getGreeting()}</Text>
+          <TouchableOpacity onPress={toggleTheme} style={styles.themeToggle}>
+            <Ionicons name={theme === 'dark' ? 'sunny' : 'moon'} size={24} color={colors.text} />
+          </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Hero Section */}
         <View style={styles.hero}>
-          <TouchableOpacity style={styles.heroCard} onPress={handleScannerPress}>
+          <TouchableOpacity style={[styles.heroCard, { backgroundColor: colors.card }]} onPress={handleScannerPress}>
             <Image source={require('../assets/location.jpg')} style={styles.heroImage} />
             <View style={styles.heroOverlay}>
               <Ionicons name="camera" size={32} color="#ffffff" />
@@ -113,46 +119,46 @@ export default function HomeScreen() {
 
         {/* Quick Actions */}
         <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.actionCard} onPress={handleAISearchPress}>
-            <View style={styles.actionIcon}>
-              <Ionicons name="sparkles" size={24} color="#000000" />
+          <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleAISearchPress}>
+            <View style={[styles.actionIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <Ionicons name="sparkles" size={24} color={colors.text} />
             </View>
             <View style={styles.actionText}>
-              <Text style={styles.actionTitle}>AI Search</Text>
-              <Text style={styles.actionSubtitle}>Ask anything</Text>
+              <Text style={[styles.actionTitle, { color: colors.text }]}>AI Search</Text>
+              <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Ask anything</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard} onPress={handleNearbyPress}>
-            <View style={styles.actionIcon}>
-              <Ionicons name="location" size={24} color="#000000" />
+          <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleNearbyPress}>
+            <View style={[styles.actionIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <Ionicons name="location" size={24} color={colors.text} />
             </View>
             <View style={styles.actionText}>
-              <Text style={styles.actionTitle}>Nearby Places</Text>
-              <Text style={styles.actionSubtitle}>Discover around you</Text>
+              <Text style={[styles.actionTitle, { color: colors.text }]}>Nearby Places</Text>
+              <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Discover around you</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard} onPress={handleComparePress}>
-            <View style={styles.actionIcon}>
-              <Ionicons name="git-compare" size={24} color="#000000" />
+          <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleComparePress}>
+            <View style={[styles.actionIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <Ionicons name="git-compare" size={24} color={colors.text} />
             </View>
             <View style={styles.actionText}>
-              <Text style={styles.actionTitle}>Compare Locations</Text>
-              <Text style={styles.actionSubtitle}>Side-by-side comparison</Text>
+              <Text style={[styles.actionTitle, { color: colors.text }]}>Compare Locations</Text>
+              <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Side-by-side comparison</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard} onPress={handleTransitPress}>
-            <View style={styles.actionIcon}>
-              <Ionicons name="bus" size={24} color="#000000" />
+          <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleTransitPress}>
+            <View style={[styles.actionIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <Ionicons name="bus" size={24} color={colors.text} />
             </View>
             <View style={styles.actionText}>
-              <Text style={styles.actionTitle}>Transit Directions</Text>
-              <Text style={styles.actionSubtitle}>Plan your journey</Text>
+              <Text style={[styles.actionTitle, { color: colors.text }]}>Transit Directions</Text>
+              <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Plan your journey</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
           </TouchableOpacity>
@@ -160,37 +166,37 @@ export default function HomeScreen() {
 
         {/* Tools Section */}
         <View style={styles.toolsSection}>
-          <Text style={styles.sectionTitle}>TOOLS</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>TOOLS</Text>
           
-          <TouchableOpacity style={styles.toolCard} onPress={handleBatchPress}>
-            <View style={styles.toolIcon}>
-              <Ionicons name="images" size={24} color="#000000" />
+          <TouchableOpacity style={[styles.toolCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleBatchPress}>
+            <View style={[styles.toolIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <Ionicons name="images" size={24} color={colors.text} />
             </View>
             <View style={styles.toolText}>
-              <Text style={styles.toolTitle}>Batch Process</Text>
-              <Text style={styles.toolDesc}>Process multiple photos at once</Text>
+              <Text style={[styles.toolTitle, { color: colors.text }]}>Batch Process</Text>
+              <Text style={[styles.toolDesc, { color: colors.textSecondary }]}>Process multiple photos at once</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.toolCard} onPress={() => router.push('/street-view')}>
-            <View style={styles.toolIcon}>
-              <Ionicons name="eye" size={24} color="#000000" />
+          <TouchableOpacity style={[styles.toolCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => router.push('/street-view')}>
+            <View style={[styles.toolIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <Ionicons name="eye" size={24} color={colors.text} />
             </View>
             <View style={styles.toolText}>
-              <Text style={styles.toolTitle}>Street View</Text>
-              <Text style={styles.toolDesc}>360° panoramic views</Text>
+              <Text style={[styles.toolTitle, { color: colors.text }]}>Street View</Text>
+              <Text style={[styles.toolDesc, { color: colors.textSecondary }]}>360° panoramic views</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.toolCard} onPress={handleCollectionsPress}>
-            <View style={styles.toolIcon}>
-              <Ionicons name="folder" size={24} color="#000000" />
+          <TouchableOpacity style={[styles.toolCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleCollectionsPress}>
+            <View style={[styles.toolIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <Ionicons name="folder" size={24} color={colors.text} />
             </View>
             <View style={styles.toolText}>
-              <Text style={styles.toolTitle}>Collections</Text>
-              <Text style={styles.toolDesc}>Organize and tag locations</Text>
+              <Text style={[styles.toolTitle, { color: colors.text }]}>Collections</Text>
+              <Text style={[styles.toolDesc, { color: colors.textSecondary }]}>Organize and tag locations</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
           </TouchableOpacity>
@@ -204,160 +210,29 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  header: {
-    backgroundColor: '#000000',
-    paddingTop: 60,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-
-  greeting: {
-    fontSize: 32,
-    fontFamily: 'LeagueSpartan_700Bold',
-    color: '#ffffff',
-    fontFamily: 'LeagueSpartan_700Bold',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  hero: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-  },
-  heroCard: {
-    height: 200,
-    borderRadius: 16,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  heroImage: {
-    width: '100%',
-    height: '100%',
-  },
-  heroOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  heroTitle: {
-    fontSize: 28,
-    fontFamily: 'LeagueSpartan_700Bold',
-    color: '#ffffff',
-    marginTop: 12,
-    fontFamily: 'LeagueSpartan_700Bold',
-  },
-  heroSubtitle: {
-    fontSize: 15,
-    color: '#ffffff',
-    marginTop: 4,
-    opacity: 0.9,
-    fontFamily: 'LeagueSpartan_400Regular',
-  },
-  quickActions: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-  },
-  actionCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  actionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  actionText: {
-    flex: 1,
-  },
-  actionTitle: {
-    fontSize: 16,
-    fontFamily: 'LeagueSpartan_700Bold',
-    color: '#000000',
-    marginBottom: 2,
-    fontFamily: 'LeagueSpartan_700Bold',
-  },
-  actionSubtitle: {
-    fontSize: 13,
-    color: '#6b7280',
-    fontFamily: 'LeagueSpartan_400Regular',
-  },
-  toolsSection: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 100,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontFamily: 'LeagueSpartan_700Bold',
-    color: '#6b7280',
-    marginBottom: 16,
-    letterSpacing: 1.5,
-    fontFamily: 'LeagueSpartan_700Bold',
-  },
-  toolCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  toolIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  toolText: {
-    flex: 1,
-  },
-  toolTitle: {
-    fontSize: 16,
-    fontFamily: 'LeagueSpartan_700Bold',
-    color: '#000000',
-    marginBottom: 2,
-    fontFamily: 'LeagueSpartan_700Bold',
-  },
-  toolDesc: {
-    fontSize: 13,
-    color: '#6b7280',
-    fontFamily: 'LeagueSpartan_400Regular',
-  },
+  container: { flex: 1, backgroundColor: '#000' },
+  header: { backgroundColor: '#000', paddingTop: 60, paddingBottom: 32, paddingHorizontal: 24 },
+  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  themeToggle: { padding: 8 },
+  greeting: { fontSize: 36, fontFamily: 'LeagueSpartan_700Bold', color: '#fff' },
+  scrollView: { flex: 1 },
+  hero: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24 },
+  heroCard: { height: 240, borderRadius: 24, overflow: 'hidden', position: 'relative', backgroundColor: '#0a0a0a' },
+  heroImage: { width: '100%', height: '100%', opacity: 0.6 },
+  heroOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  heroTitle: { fontSize: 32, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginTop: 12 },
+  heroSubtitle: { fontSize: 16, color: '#a3a3a3', marginTop: 8, textAlign: 'center' },
+  quickActions: { paddingHorizontal: 20, paddingVertical: 8 },
+  actionCard: { backgroundColor: '#0a0a0a', borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#1a1a1a' },
+  actionIcon: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', marginRight: 16, borderWidth: 1, borderColor: '#1a1a1a' },
+  actionText: { flex: 1 },
+  actionTitle: { fontSize: 17, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 4 },
+  actionSubtitle: { fontSize: 14, color: '#a3a3a3' },
+  toolsSection: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 100 },
+  sectionTitle: { fontSize: 13, fontFamily: 'LeagueSpartan_700Bold', color: '#737373', marginBottom: 16, letterSpacing: 2, textTransform: 'uppercase' },
+  toolCard: { backgroundColor: '#0a0a0a', borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#1a1a1a' },
+  toolIcon: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', marginRight: 16, borderWidth: 1, borderColor: '#1a1a1a' },
+  toolText: { flex: 1 },
+  toolTitle: { fontSize: 17, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 4 },
+  toolDesc: { fontSize: 14, color: '#a3a3a3' },
 });

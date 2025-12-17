@@ -1,6 +1,17 @@
-# SSABIRoad ML Models
+# SSABIRoad ML Models v2.0
 
-Machine learning models for enhanced location recognition.
+Production-ready machine learning system with automated training, active learning, and continuous improvement.
+
+## 🆕 What's New in v2.0
+
+- ✅ **2x Faster Training** - Mixed precision (AMP) support
+- ✅ **Automated Data Collection** - OSM + Google Street View integration
+- ✅ **Active Learning** - Continuous improvement from user feedback
+- ✅ **Model Versioning** - Track and compare all model versions
+- ✅ **Real-time Monitoring** - Performance metrics and auto-switching
+- ✅ **One-Command Training** - Complete pipeline automation
+- ✅ **Enhanced Metrics** - Accuracy@1km/5km/25km tracking
+- ✅ **Production Ready** - Enterprise-grade error handling and logging
 
 ## Models
 

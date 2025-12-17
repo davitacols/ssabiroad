@@ -11,9 +11,11 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from utils.fusion_pipeline import FusionPipeline
+from utils.model_monitor import ModelMonitor, ModelVersionManager, auto_model_selection
+from utils.active_learning import ActiveLearningPipeline
 from loguru import logger
 
-app = FastAPI(title="Pic2Nav ML API", version="1.0.0")
+app = FastAPI(title="Pic2Nav ML API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -23,17 +25,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize pipeline
+# Initialize components
 pipeline = None
+monitor = None
+version_manager = None
+active_learning = None
 
 @app.on_event("startup")
 async def startup_event():
-    global pipeline
+    global pipeline, monitor, version_manager, active_learning
     logger.info("Starting ML pipeline...")
+    
     pipeline = FusionPipeline(
         faiss_index_path="faiss_index",
         similarity_threshold=0.75
     )
+    monitor = ModelMonitor()
+    version_manager = ModelVersionManager()
+    active_learning = ActiveLearningPipeline()
+    
+    # Load best model if available
+    best_model = version_manager.get_best_model()
+    if best_model:
+        logger.info(f"Loaded best model: {best_model['version']}")
+    
     logger.info("ML pipeline ready")
 
 class BuildingMetadata(BaseModel):
@@ -87,11 +102,24 @@ async def search_similar(file: UploadFile = File(...), k: int = 5):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/predict_location", response_model=PredictionResponse)
-async def predict_location(file: UploadFile = File(...)):
+async def predict_location(file: UploadFile = File(...), image_id: str = None):
     """Predict location from image using fusion pipeline"""
     try:
-        image = Image.open(io.BytesIO(await file.read())).convert('RGB')
+        content = await file.read()
+        image = Image.open(io.BytesIO(content)).convert('RGB')
         result = pipeline.predict_location(image)
+        
+        # Log prediction for monitoring
+        if image_id:
+            monitor.log_prediction(image_id, result)
+        
+        # Add to active learning if high confidence
+        if result.get("confidence", 0) >= 0.8:
+            # Save image temporarily
+            temp_path = Path("data/temp") / f"{image_id or 'temp'}.jpg"
+            temp_path.parent.mkdir(exist_ok=True)
+            image.save(temp_path)
+            active_learning.add_high_confidence_prediction(str(temp_path), result)
         
         return PredictionResponse(**result)
     except Exception as e:
@@ -145,20 +173,89 @@ async def detect_landmark(file: UploadFile = File(...), top_k: int = 5):
         logger.error(f"Landmark detection error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/feedback")
+async def submit_feedback(image_id: str, predicted: Dict, corrected: Dict):
+    """Submit user feedback for prediction"""
+    try:
+        # Log feedback
+        monitor.log_prediction(image_id, predicted, ground_truth=corrected, user_feedback={"correct": False})
+        
+        # Add to active learning
+        temp_path = Path("data/temp") / f"{image_id}.jpg"
+        if temp_path.exists():
+            active_learning.add_user_correction(str(temp_path), predicted, corrected)
+        
+        return {"success": True, "message": "Feedback recorded"}
+    except Exception as e:
+        logger.error(f"Feedback error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/stats")
 async def get_stats():
-    """Get index statistics"""
+    """Get comprehensive statistics"""
+    metrics = monitor.calculate_metrics(window_hours=24)
+    active_model = version_manager.get_active_model()
+    
     return {
-        "total_buildings": len(pipeline.retriever.metadata),
-        "index_size": pipeline.retriever.index.ntotal if pipeline.retriever.index else 0,
-        "models_loaded": {
-            "clip": True,
-            "geolocation": pipeline.geoloc_model is not None,
-            "landmark": pipeline.landmark_detector is not None,
-            "ocr": pipeline.ocr is not None
+        "index": {
+            "total_buildings": len(pipeline.retriever.metadata),
+            "index_size": pipeline.retriever.index.ntotal if pipeline.retriever.index else 0
+        },
+        "models": {
+            "active_version": active_model["version"] if active_model else None,
+            "total_versions": len(version_manager.list_models()),
+            "loaded": {
+                "clip": True,
+                "geolocation": pipeline.geoloc_model is not None,
+                "landmark": pipeline.landmark_detector is not None,
+                "ocr": pipeline.ocr is not None
+            }
+        },
+        "performance": metrics,
+        "active_learning": {
+            "queue_size": len(active_learning.queue["samples"]),
+            "should_retrain": active_learning.should_retrain(),
+            "last_training": active_learning.queue.get("last_training")
         }
     }
 
+@app.post("/trigger_training")
+async def trigger_training():
+    """Manually trigger model retraining"""
+    try:
+        if not active_learning.should_retrain():
+            return {"success": False, "message": "Not enough samples for training"}
+        
+        from utils.active_learning import ContinuousTrainer
+        trainer = ContinuousTrainer(active_learning)
+        version = trainer.run_training_cycle(None, "data/geolocations")
+        
+        if version:
+            return {"success": True, "version": version, "message": "Training started"}
+        else:
+            return {"success": False, "message": "Training failed"}
+    except Exception as e:
+        logger.error(f"Training trigger error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/models")
+async def list_models():
+    """List all model versions"""
+    return {
+        "models": version_manager.list_models(),
+        "active": version_manager.get_active_model(),
+        "best": version_manager.get_best_model()
+    }
+
+@app.post("/models/{version}/activate")
+async def activate_model(version: str):
+    """Activate a specific model version"""
+    try:
+        version_manager.set_active_model(version)
+        return {"success": True, "active_version": version}
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Model version not found: {version}")
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)

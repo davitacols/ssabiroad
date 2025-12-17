@@ -10,9 +10,14 @@ import * as FileSystem from 'expo-file-system';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { analyzeLocation } from '../services/api';
+import LocationPermissionDisclosure from '../components/LocationPermissionDisclosure';
+import { getMlApiUrl, API_CONFIG } from '../config/api';
+import { useTheme, getColors } from '../contexts/ThemeContext';
 
 export default function ScannerScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const colors = getColors(theme);
   const [permission, requestPermission] = useCameraPermissions();
   const [image, setImage] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
@@ -35,14 +40,32 @@ export default function ScannerScreen() {
   const [elevation, setElevation] = useState<number | null>(null);
   const [showInsights, setShowInsights] = useState(false);
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
+  const [trainingModel, setTrainingModel] = useState(false);
   const cameraRef = useRef<any>(null);
 
+  const [showDisclosure, setShowDisclosure] = useState(false);
+  const [disclosureShown, setDisclosureShown] = useState(false);
+
   useEffect(() => {
-    getCurrentLocation();
+    checkDisclosureStatus();
   }, []);
+
+  const checkDisclosureStatus = async () => {
+    try {
+      await AsyncStorage.removeItem('locationDisclosureShown'); // Force show disclosure
+      const shown = await AsyncStorage.getItem('locationDisclosureShown');
+      setDisclosureShown(shown === 'true');
+    } catch (error) {
+      console.log('Check disclosure error:', error);
+    }
+  };
 
   const getCurrentLocation = async () => {
     try {
+      if (!disclosureShown) {
+        setShowDisclosure(true);
+        return;
+      }
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
         const location = await Location.getCurrentPositionAsync({});
@@ -50,6 +73,63 @@ export default function ScannerScreen() {
       }
     } catch (error) {
       console.log('Location error:', error);
+    }
+  };
+
+  const handleAcceptDisclosure = async () => {
+    try {
+      await AsyncStorage.setItem('locationDisclosureShown', 'true');
+      setDisclosureShown(true);
+      setShowDisclosure(false);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const location = await Location.getCurrentPositionAsync({});
+        setCurrentLocation(location.coords);
+      }
+    } catch (error) {
+      console.log('Accept disclosure error:', error);
+    }
+  };
+
+  const handleDeclineDisclosure = () => {
+    setShowDisclosure(false);
+    Alert.alert('Location Required', 'Location permission is needed to analyze photos and identify locations.');
+  };
+
+  const trainModel = async () => {
+    if (!result?.location || !image) return;
+    
+    setTrainingModel(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', {
+        uri: image,
+        type: 'image/jpeg',
+        name: 'location.jpg',
+      } as any);
+      formData.append('latitude', result.location.latitude.toString());
+      formData.append('longitude', result.location.longitude.toString());
+      formData.append('location_name', result.name || 'Unknown');
+
+      const response = await fetch('http://52.91.173.191:8000/add_to_index', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const text = await response.text();
+      console.log('Response:', text);
+      
+      const data = JSON.parse(text);
+      if (response.ok) {
+        Alert.alert('Success', 'Thank you for improving our AI!');
+      } else {
+        Alert.alert('Error', `${response.status}: ${text}`);
+      }
+    } catch (error: any) {
+      console.error('Training error:', error);
+      Alert.alert('Error', `${error.message}\n\nCheck console for details`);
+    } finally {
+      setTrainingModel(false);
     }
   };
 
@@ -463,17 +543,17 @@ export default function ScannerScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Scanner</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Scanner</Text>
         {(image || result) && (
           <TouchableOpacity onPress={() => { setImage(null); setResult(null); setIsSaved(false); }} style={styles.clearButton}>
-            <Ionicons name="close-circle" size={24} color="#6b7280" />
+            <Ionicons name="close-circle" size={24} color="#9ca3af" />
           </TouchableOpacity>
         )}
       </View>
@@ -482,7 +562,7 @@ export default function ScannerScreen() {
         {!image && !result && (
           <View style={styles.emptyState}>
             <View style={styles.emptyIcon}>
-              <Ionicons name="camera-outline" size={48} color="#9ca3af" />
+              <Ionicons name="camera-outline" size={48} color="#6b7280" />
             </View>
             <Text style={styles.emptyTitle}>Scan a location</Text>
             <Text style={styles.emptySubtitle}>Take a photo or choose from gallery to identify any location</Text>
@@ -514,7 +594,7 @@ export default function ScannerScreen() {
 
         {loading && (
           <View style={styles.loadingCard}>
-            <ActivityIndicator size="small" color="#000" />
+            <ActivityIndicator size="small" color="#fff" />
             <Text style={styles.loadingText}>Analyzing...</Text>
           </View>
         )}
@@ -642,13 +722,23 @@ export default function ScannerScreen() {
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.nearbyScroll}>
                       {result.nearbyPlaces.slice(0, 5).map((place: any, idx: number) => (
-                        <View key={idx} style={styles.nearbyCard}>
+                        <TouchableOpacity key={idx} style={styles.nearbyCard} onPress={() => {
+                          if (place.location) {
+                            Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${place.location.lat},${place.location.lng}`);
+                          }
+                        }}>
+                          {place.photo && (
+                            <Image 
+                              source={{ uri: `https://maps.googleapis.com/maps/api/place/photo?maxwidth=200&photo_reference=${place.photo}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho` }}
+                              style={styles.nearbyImage}
+                            />
+                          )}
                           <Text style={styles.nearbyName} numberOfLines={2}>{place.name || 'Place'}</Text>
                           <Text style={styles.nearbyType}>{place.type || 'Location'}</Text>
                           {place.distance !== undefined && place.distance !== null && (
                             <Text style={styles.nearbyDistance}>{place.distance}m away</Text>
                           )}
-                        </View>
+                        </TouchableOpacity>
                       ))}
                     </ScrollView>
                   </View>
@@ -909,6 +999,20 @@ export default function ScannerScreen() {
                     }}
                   >
                     <Text style={styles.streetViewText}>View Street View</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.trainButton}
+                    onPress={trainModel}
+                    disabled={trainingModel}
+                  >
+                    {trainingModel ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <>
+                        <Ionicons name="school-outline" size={20} color="#fff" />
+                        <Text style={styles.trainButtonText}>Help Train AI</Text>
+                      </>
+                    )}
                   </TouchableOpacity>
                 </View>
 
@@ -1219,162 +1323,171 @@ export default function ScannerScreen() {
           </View>
         </View>
       </Modal>
+
+      <LocationPermissionDisclosure
+        visible={showDisclosure}
+        onAccept={handleAcceptDisclosure}
+        onDecline={handleDeclineDisclosure}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#000' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16, backgroundColor: '#000' },
   backButton: { marginRight: 16, padding: 4 },
-  headerTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', color: '#000', flex: 1 },
+  headerTitle: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', flex: 1 },
   clearButton: { padding: 4 },
   content: { flex: 1 },
   emptyState: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 40 },
-  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  emptyTitle: { fontSize: 22, fontFamily: 'LeagueSpartan_700Bold', color: '#000', marginBottom: 8 },
-  emptySubtitle: { fontSize: 15, color: '#6b7280', textAlign: 'center', lineHeight: 22, fontFamily: 'LeagueSpartan_400Regular' },
+  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center', marginBottom: 20, borderWidth: 1, borderColor: '#333' },
+  emptyTitle: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 8 },
+  emptySubtitle: { fontSize: 15, color: '#9ca3af', textAlign: 'center', lineHeight: 22 },
   actionSection: { padding: 20, gap: 12 },
-  primaryAction: { backgroundColor: '#000', borderRadius: 12, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
-  primaryActionText: { color: '#fff', fontSize: 16, fontFamily: 'LeagueSpartan_700Bold' },
-  secondaryAction: { backgroundColor: '#fff', borderRadius: 12, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#e5e7eb' },
-  secondaryActionText: { color: '#000', fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
+  primaryAction: { backgroundColor: '#fff', borderRadius: 12, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  primaryActionText: { color: '#000', fontSize: 16, fontFamily: 'LeagueSpartan_700Bold' },
+  secondaryAction: { backgroundColor: '#1a1a1a', borderRadius: 12, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#333' },
+  secondaryActionText: { color: '#fff', fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
   actionIconLeft: { marginRight: 8 },
   imageSection: { margin: 20, borderRadius: 16, overflow: 'hidden', position: 'relative' },
-  selectedImage: { width: '100%', height: 280, backgroundColor: '#f3f4f6' },
+  selectedImage: { width: '100%', height: 280, backgroundColor: '#1a1a1a', borderRadius: 16 },
   imageOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' },
-  loadingCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', margin: 20, padding: 16, borderRadius: 12, gap: 12 },
-  loadingText: { fontSize: 15, color: '#000', fontFamily: 'LeagueSpartan_600SemiBold' },
+  loadingCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a1a', margin: 20, padding: 16, borderRadius: 12, gap: 12, borderWidth: 1, borderColor: '#333' },
+  loadingText: { fontSize: 15, color: '#fff', fontFamily: 'LeagueSpartan_600SemiBold' },
   resultSection: { padding: 20 },
-  errorCard: { backgroundColor: '#fff', borderRadius: 16, padding: 24, borderWidth: 1, borderColor: '#fecaca', alignItems: 'center' },
+  errorCard: { backgroundColor: '#1a1a1a', borderRadius: 16, padding: 24, borderWidth: 1, borderColor: '#7f1d1d', alignItems: 'center' },
   errorIcon: { marginBottom: 16 },
-  errorTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', color: '#dc2626', marginBottom: 12, textAlign: 'center' },
-  errorText: { fontSize: 15, color: '#6b7280', fontFamily: 'LeagueSpartan_400Regular', textAlign: 'center', marginBottom: 20, lineHeight: 22 },
-  errorTips: { backgroundColor: '#fef2f2', borderRadius: 12, padding: 16, width: '100%' },
-  errorTipsTitle: { fontSize: 14, fontFamily: 'LeagueSpartan_700Bold', color: '#dc2626', marginBottom: 12 },
-  errorTip: { fontSize: 13, color: '#6b7280', marginBottom: 6, fontFamily: 'LeagueSpartan_400Regular', lineHeight: 20 },
-  locationCard: { backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  errorTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', color: '#ef4444', marginBottom: 12, textAlign: 'center' },
+  errorText: { fontSize: 15, color: '#9ca3af', textAlign: 'center', marginBottom: 20, lineHeight: 22 },
+  errorTips: { backgroundColor: '#450a0a', borderRadius: 12, padding: 16, width: '100%', borderWidth: 1, borderColor: '#7f1d1d' },
+  errorTipsTitle: { fontSize: 14, fontFamily: 'LeagueSpartan_700Bold', color: '#ef4444', marginBottom: 12 },
+  errorTip: { fontSize: 13, color: '#d1d5db', marginBottom: 6, lineHeight: 20 },
+  locationCard: { backgroundColor: '#1a1a1a', borderRadius: 16, padding: 24, marginBottom: 16, borderWidth: 1, borderColor: '#333' },
   locationHeader: { flexDirection: 'row', gap: 16, marginBottom: 20 },
   locationInfo: { flex: 1 },
-  locationName: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', color: '#000', marginBottom: 6 },
-  locationAddress: { fontSize: 15, color: '#6b7280', lineHeight: 22, fontFamily: 'LeagueSpartan_400Regular' },
-  confidenceSection: { backgroundColor: '#f9fafb', borderRadius: 12, padding: 16, marginTop: 16 },
+  locationName: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 6 },
+  locationAddress: { fontSize: 15, color: '#9ca3af', lineHeight: 22 },
+  confidenceSection: { backgroundColor: '#000', borderRadius: 12, padding: 16, marginTop: 16, borderWidth: 1, borderColor: '#333' },
   confidenceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  confidenceLabel: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold', color: '#6b7280' },
-  confidenceValue: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold', color: '#000000' },
-  confidenceBar: { height: 6, backgroundColor: '#e5e7eb', borderRadius: 3, overflow: 'hidden' },
-  confidenceFill: { height: '100%', backgroundColor: '#000000', borderRadius: 3 },
-  detailsCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16 },
-  cardTitle: { fontSize: 14, fontFamily: 'LeagueSpartan_700Bold', color: '#6b7280', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
-  coordinatesBox: { backgroundColor: '#f9fafb', borderRadius: 8, padding: 16, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 8 },
+  confidenceLabel: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold', color: '#9ca3af' },
+  confidenceValue: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold', color: '#fff' },
+  confidenceBar: { height: 6, backgroundColor: '#333', borderRadius: 3, overflow: 'hidden' },
+  confidenceFill: { height: '100%', backgroundColor: '#fff', borderRadius: 3 },
+  detailsCard: { backgroundColor: '#1a1a1a', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#333' },
+  cardTitle: { fontSize: 13, fontFamily: 'LeagueSpartan_700Bold', color: '#6b7280', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  coordinatesBox: { backgroundColor: '#000', borderRadius: 8, padding: 16, borderWidth: 1, borderColor: '#333', marginBottom: 8 },
   dataRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  dataLabel: { fontSize: 12, color: '#6b7280', fontFamily: 'LeagueSpartan_400Regular' },
-  coordinatesText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000000' },
-  dataValue: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000000' },
-  infoBox: { backgroundColor: '#f9fafb', borderRadius: 8, padding: 12, marginBottom: 8 },
-  infoLabel: { fontSize: 12, color: '#6b7280', marginBottom: 4, fontFamily: 'LeagueSpartan_400Regular' },
-  infoValue: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000000' },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  detailLabel: { fontSize: 14, color: '#6b7280', fontFamily: 'LeagueSpartan_400Regular' },
-  detailValue: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000000', flex: 1, textAlign: 'right' },
-  nearbySection: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16 },
+  dataLabel: { fontSize: 12, color: '#9ca3af' },
+  coordinatesText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
+  dataValue: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
+  infoBox: { backgroundColor: '#000', borderRadius: 8, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: '#333' },
+  infoLabel: { fontSize: 12, color: '#9ca3af', marginBottom: 4 },
+  infoValue: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#333' },
+  detailLabel: { fontSize: 14, color: '#9ca3af' },
+  detailValue: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff', flex: 1, textAlign: 'right' },
+  nearbySection: { backgroundColor: '#1a1a1a', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#333' },
   nearbyHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  nearbyBadge: { backgroundColor: '#000000', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
-  nearbyBadgeText: { color: '#ffffff', fontSize: 12, fontFamily: 'LeagueSpartan_600SemiBold' },
+  nearbyBadge: { backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
+  nearbyBadgeText: { color: '#000', fontSize: 12, fontFamily: 'LeagueSpartan_600SemiBold' },
   nearbyScroll: { },
-  nearbyCard: { width: 140, backgroundColor: '#f9fafb', borderRadius: 12, padding: 16, marginRight: 12 },
-  nearbyName: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000000', marginBottom: 4, height: 36 },
-  nearbyType: { fontSize: 12, color: '#6b7280', marginBottom: 8, textTransform: 'capitalize', fontFamily: 'LeagueSpartan_400Regular' },
-  nearbyDistance: { fontSize: 12, color: '#000000', fontFamily: 'LeagueSpartan_600SemiBold' },
-  insightsToggleCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16 },
+  nearbyCard: { width: 140, backgroundColor: '#000', borderRadius: 12, padding: 12, marginRight: 12, borderWidth: 1, borderColor: '#333' },
+  nearbyImage: { width: '100%', height: 80, borderRadius: 8, marginBottom: 8, backgroundColor: '#e5e7eb' },
+  nearbyName: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff', marginBottom: 4, height: 36 },
+  nearbyType: { fontSize: 12, color: '#9ca3af', marginBottom: 8, textTransform: 'capitalize' },
+  nearbyDistance: { fontSize: 12, color: '#fff', fontFamily: 'LeagueSpartan_600SemiBold' },
+  insightsToggleCard: { backgroundColor: '#0a0a0a', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#1a1a1a' },
   insightsToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
   insightsToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  insightsToggleText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000' },
-  placeDetailsCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16 },
-  ratingSection: { marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  insightsToggleText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
+  placeDetailsCard: { backgroundColor: '#0a0a0a', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#1a1a1a' },
+  ratingSection: { marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
   ratingHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  ratingValue: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', color: '#000' },
-  ratingCount: { fontSize: 14, color: '#6b7280', fontFamily: 'LeagueSpartan_400Regular' },
-  hoursSection: { marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  ratingValue: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', color: '#fff' },
+  ratingCount: { fontSize: 14, color: '#a3a3a3', fontFamily: 'LeagueSpartan_400Regular' },
+  hoursSection: { marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
   hoursHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   hoursStatus: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#10b981' },
   hoursDetails: { marginLeft: 28, gap: 4 },
-  hoursText: { fontSize: 13, color: '#6b7280', fontFamily: 'LeagueSpartan_400Regular' },
-  contactRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  contactText: { fontSize: 14, color: '#000', flex: 1, fontFamily: 'LeagueSpartan_400Regular' },
-  photosSection: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#f3f4f6' },
-  placePhoto: { width: 120, height: 120, borderRadius: 12, marginRight: 12, backgroundColor: '#f3f4f6' },
-  reviewsSection: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#f3f4f6' },
-  reviewCard: { backgroundColor: '#f9fafb', borderRadius: 12, padding: 16, marginBottom: 12 },
+  hoursText: { fontSize: 13, color: '#a3a3a3', fontFamily: 'LeagueSpartan_400Regular' },
+  contactRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
+  contactText: { fontSize: 14, color: '#fff', flex: 1, fontFamily: 'LeagueSpartan_400Regular' },
+  photosSection: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#1a1a1a' },
+  placePhoto: { width: 120, height: 120, borderRadius: 12, marginRight: 12, backgroundColor: '#1a1a1a' },
+  reviewsSection: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#1a1a1a' },
+  reviewCard: { backgroundColor: '#000', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#1a1a1a' },
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  reviewAuthor: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000' },
+  reviewAuthor: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
   reviewRating: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  reviewRatingText: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000' },
-  reviewText: { fontSize: 13, color: '#6b7280', lineHeight: 20, marginBottom: 8, fontFamily: 'LeagueSpartan_400Regular' },
-  reviewTime: { fontSize: 11, color: '#9ca3af', fontFamily: 'LeagueSpartan_400Regular' },
+  reviewRatingText: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
+  reviewText: { fontSize: 13, color: '#a3a3a3', lineHeight: 20, marginBottom: 8, fontFamily: 'LeagueSpartan_400Regular' },
+  reviewTime: { fontSize: 11, color: '#737373', fontFamily: 'LeagueSpartan_400Regular' },
   imageModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
   imageModalClose: { position: 'absolute', top: 60, right: 20, zIndex: 10, padding: 8 },
   fullImage: { width: '100%', height: '80%' },
-  weatherCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16 },
+  weatherCard: { backgroundColor: '#0a0a0a', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#1a1a1a' },
   currentWeather: { marginBottom: 16, alignItems: 'center' },
-  currentTemp: { fontSize: 48, fontFamily: 'LeagueSpartan_700Bold', color: '#000' },
-  currentDesc: { fontSize: 16, color: '#6b7280', textTransform: 'capitalize', marginBottom: 12, fontFamily: 'LeagueSpartan_400Regular' },
+  currentTemp: { fontSize: 48, fontFamily: 'LeagueSpartan_700Bold', color: '#fff' },
+  currentDesc: { fontSize: 16, color: '#a3a3a3', textTransform: 'capitalize', marginBottom: 12, fontFamily: 'LeagueSpartan_400Regular' },
   weatherDetails: { flexDirection: 'row', gap: 16 },
-  weatherDetail: { fontSize: 12, color: '#9ca3af', fontFamily: 'LeagueSpartan_400Regular' },
+  weatherDetail: { fontSize: 12, color: '#737373', fontFamily: 'LeagueSpartan_400Regular' },
   forecastScroll: { marginTop: 8 },
-  forecastDay: { width: 100, backgroundColor: '#f9fafb', borderRadius: 12, padding: 12, marginRight: 8, alignItems: 'center' },
-  forecastDate: { fontSize: 11, fontFamily: 'LeagueSpartan_600SemiBold', color: '#6b7280', marginBottom: 8 },
-  forecastTemp: { fontSize: 18, fontFamily: 'LeagueSpartan_700Bold', color: '#000', marginBottom: 4 },
-  forecastDesc: { fontSize: 10, color: '#9ca3af', textAlign: 'center', textTransform: 'capitalize', fontFamily: 'LeagueSpartan_400Regular' },
-  actionsCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 80 },
+  forecastDay: { width: 100, backgroundColor: '#000', borderRadius: 12, padding: 12, marginRight: 8, alignItems: 'center', borderWidth: 1, borderColor: '#1a1a1a' },
+  forecastDate: { fontSize: 11, fontFamily: 'LeagueSpartan_600SemiBold', color: '#a3a3a3', marginBottom: 8 },
+  forecastTemp: { fontSize: 18, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 4 },
+  forecastDesc: { fontSize: 10, color: '#737373', textAlign: 'center', textTransform: 'capitalize', fontFamily: 'LeagueSpartan_400Regular' },
+  actionsCard: { backgroundColor: '#1a1a1a', borderRadius: 16, padding: 20, marginBottom: 80, borderWidth: 1, borderColor: '#333' },
   actionsGrid: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  actionButton: { flex: 1, backgroundColor: '#f9fafb', borderRadius: 10, padding: 14, alignItems: 'center', gap: 4 },
-  actionButtonActive: { backgroundColor: '#000' },
-  actionText: { fontSize: 12, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000000' },
-  actionTextActive: { color: '#fff' },
+  actionButton: { flex: 1, backgroundColor: '#000', borderRadius: 10, padding: 14, alignItems: 'center', gap: 4, borderWidth: 1, borderColor: '#333' },
+  actionButtonActive: { backgroundColor: '#fff', borderColor: '#fff' },
+  actionText: { fontSize: 12, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
+  actionTextActive: { color: '#000' },
   shareOptionsGrid: { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  shareOption: { flex: 1, backgroundColor: '#f9fafb', borderRadius: 10, padding: 12, alignItems: 'center', gap: 6 },
-  shareOptionText: { fontSize: 11, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000' },
+  shareOption: { flex: 1, backgroundColor: '#000', borderRadius: 10, padding: 12, alignItems: 'center', gap: 6, borderWidth: 1, borderColor: '#333' },
+  shareOptionText: { fontSize: 11, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
   notesButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#8b5cf6', borderRadius: 12, padding: 16, gap: 8, marginTop: 4 },
   notesButtonText: { color: '#ffffff', fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold' },
   addCollectionButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#6b7280', borderRadius: 12, padding: 16, gap: 8, marginTop: 8 },
   addCollectionText: { color: '#ffffff', fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold' },
   streetViewButton: { backgroundColor: '#000', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 8 },
   streetViewText: { color: '#ffffff', fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold' },
+  trainButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#8b5cf6', borderRadius: 12, padding: 18, gap: 8, marginTop: 8 },
+  trainButtonText: { color: '#ffffff', fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold' },
   // Enhanced Analysis Styles
-  enhancedAnalysisCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16 },
-  analysisSection: { marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  analysisSectionTitle: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold', color: '#000', marginBottom: 12 },
+  enhancedAnalysisCard: { backgroundColor: '#0a0a0a', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#1a1a1a' },
+  analysisSection: { marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
+  analysisSectionTitle: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 12 },
   analysisItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  analysisLabel: { fontSize: 13, color: '#6b7280', fontFamily: 'LeagueSpartan_400Regular', flex: 1 },
-  analysisValue: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000', flex: 1, textAlign: 'right' },
+  analysisLabel: { fontSize: 13, color: '#a3a3a3', fontFamily: 'LeagueSpartan_400Regular', flex: 1 },
+  analysisValue: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff', flex: 1, textAlign: 'right' },
   // Analysis Summary Styles
-  analysisSummaryCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16 },
+  analysisSummaryCard: { backgroundColor: '#0a0a0a', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#1a1a1a' },
   summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  summaryItem: { width: '48%', backgroundColor: '#f9fafb', borderRadius: 12, padding: 16, marginBottom: 12, alignItems: 'center' },
+  summaryItem: { width: '48%', backgroundColor: '#000', borderRadius: 12, padding: 16, marginBottom: 12, alignItems: 'center', borderWidth: 1, borderColor: '#1a1a1a' },
   summaryIcon: { fontSize: 24, marginBottom: 8 },
-  summaryLabel: { fontSize: 12, color: '#6b7280', fontFamily: 'LeagueSpartan_400Regular', marginBottom: 4, textAlign: 'center' },
+  summaryLabel: { fontSize: 12, color: '#a3a3a3', fontFamily: 'LeagueSpartan_400Regular', marginBottom: 4, textAlign: 'center' },
   summaryValue: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', textAlign: 'center' },
   noDataCard: { alignItems: 'center', paddingVertical: 32, paddingHorizontal: 24 },
-  noDataText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#6b7280', marginTop: 12, textAlign: 'center' },
-  noDataSubtext: { fontSize: 13, fontFamily: 'LeagueSpartan_400Regular', color: '#9ca3af', marginTop: 4, textAlign: 'center' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modal: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '70%' },
+  noDataText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#a3a3a3', marginTop: 12, textAlign: 'center' },
+  noDataSubtext: { fontSize: 13, fontFamily: 'LeagueSpartan_400Regular', color: '#737373', marginTop: 4, textAlign: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'flex-end' },
+  modal: { backgroundColor: '#0a0a0a', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '70%', borderWidth: 1, borderColor: '#1a1a1a' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', color: '#000' },
+  modalTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', color: '#fff' },
   modalEmpty: { paddingVertical: 40, alignItems: 'center' },
-  modalEmptyText: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold', color: '#6b7280', marginBottom: 4 },
-  modalEmptySubtext: { fontSize: 14, color: '#9ca3af', fontFamily: 'LeagueSpartan_400Regular' },
+  modalEmptyText: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold', color: '#a3a3a3', marginBottom: 4 },
+  modalEmptySubtext: { fontSize: 14, color: '#737373', fontFamily: 'LeagueSpartan_400Regular' },
   collectionList: { maxHeight: 400 },
-  collectionItem: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#f9fafb', borderRadius: 12, marginBottom: 8, gap: 12 },
+  collectionItem: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#000', borderRadius: 12, marginBottom: 8, gap: 12, borderWidth: 1, borderColor: '#1a1a1a' },
   collectionItemContent: { flex: 1 },
-  collectionItemName: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#000', marginBottom: 2 },
-  collectionItemCount: { fontSize: 13, color: '#6b7280', fontFamily: 'LeagueSpartan_400Regular' },
+  collectionItemName: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff', marginBottom: 2 },
+  collectionItemCount: { fontSize: 13, color: '#a3a3a3', fontFamily: 'LeagueSpartan_400Regular' },
   notesInputGroup: { marginBottom: 20 },
-  notesLabel: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold', color: '#6b7280', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-  notesInput: { backgroundColor: '#f9fafb', borderRadius: 12, padding: 16, fontSize: 15, color: '#000', borderWidth: 1, borderColor: '#e5e7eb', minHeight: 120, fontFamily: 'LeagueSpartan_400Regular' },
-  saveNotesButton: { backgroundColor: '#000', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 8 },
-  saveNotesButtonText: { color: '#fff', fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
+  notesLabel: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold', color: '#a3a3a3', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  notesInput: { backgroundColor: '#000', borderRadius: 12, padding: 16, fontSize: 15, color: '#fff', borderWidth: 1, borderColor: '#1a1a1a', minHeight: 120, fontFamily: 'LeagueSpartan_400Regular' },
+  saveNotesButton: { backgroundColor: '#fff', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 8 },
+  saveNotesButtonText: { color: '#000', fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
   camera: { flex: 1 },
   cameraContainer: { flex: 1 },
   cameraHeader: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20 },

@@ -1,0 +1,111 @@
+╔══════════════════════════════════════════════════════════════╗
+║         SSABIRoad ML Models - EC2 Deployment Guide          ║
+╚══════════════════════════════════════════════════════════════╝
+
+🚀 QUICK DEPLOY (3 STEPS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. EDIT: deploy_local_to_ec2.bat
+   - Set EC2_HOST=your-ec2-ip
+   - Set KEY_PATH=path\to\your-key.pem
+
+2. RUN: deploy_local_to_ec2.bat
+
+3. OPEN: http://your-ec2-ip:8000/docs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📁 FILES CREATED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Windows Scripts:
+  ✓ deploy_local_to_ec2.bat     - Deploy from Windows
+
+Linux Scripts:
+  ✓ setup_ec2_service.sh        - First-time setup
+  ✓ deploy_to_ec2.sh            - Redeploy/update
+  ✓ check_ec2_health.sh         - Health check
+
+Configuration:
+  ✓ .env.example                - Environment config
+  ✓ utils/model_loader.py       - Model utilities
+
+Documentation:
+  ✓ DEPLOYMENT.md               - Full guide
+  ✓ DEPLOYMENT_SUMMARY.md       - Quick reference
+  ✓ EC2_DEPLOYMENT_CHECKLIST.md - Step-by-step
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔧 FIRST-TIME SETUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SSH to EC2:
+  ssh -i your-key.pem ubuntu@your-ec2-ip
+
+Clone & Setup:
+  cd /home/ubuntu
+  git clone https://github.com/davitacols/ssabiroad.git
+  cd ssabiroad/ml-models
+  chmod +x setup_ec2_service.sh
+  ./setup_ec2_service.sh
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔄 UPDATE DEPLOYMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+From Windows:
+  deploy_local_to_ec2.bat
+
+From EC2:
+  cd /home/ubuntu/ssabiroad/ml-models
+  ./deploy_to_ec2.sh
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ VERIFY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Service Status:
+  sudo systemctl status ssabiroad-ml
+
+View Logs:
+  sudo journalctl -u ssabiroad-ml -f
+
+Test API:
+  curl http://localhost:8000/
+  curl http://localhost:8000/stats
+
+Health Check:
+  ./check_ec2_health.sh localhost
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌐 ACCESS POINTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+API Docs:  http://your-ec2-ip:8000/docs
+Health:    http://your-ec2-ip:8000/
+Stats:     http://your-ec2-ip:8000/stats
+Models:    http://your-ec2-ip:8000/models
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🛡️ SECURITY GROUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Required Ports:
+  ✓ Port 8000 - Inbound (API access)
+  ✓ Port 22   - Inbound (SSH, your IP only)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 DOCUMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Read DEPLOYMENT_SUMMARY.md for complete guide
+Read EC2_DEPLOYMENT_CHECKLIST.md for step-by-step
+Read DEPLOYMENT.md for detailed documentation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

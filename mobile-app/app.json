@@ -2,7 +2,7 @@
   "expo": {
     "name": "Pic2Nav",
     "slug": "pic2nav",
-    "version": "1.0.1",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -26,10 +26,7 @@
       "bundleIdentifier": "com.ssabiroad.pic2nav",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow Pic2Nav to track your location in the background for geofence alerts",
-        "NSLocationWhenInUseUsageDescription": "Allow Pic2Nav to use your location while using the app",
-        "NSLocationAlwaysUsageDescription": "Allow Pic2Nav to track your location in the background for geofence alerts",
-        "UIBackgroundModes": ["location", "fetch", "remote-notification"]
+        "NSLocationWhenInUseUsageDescription": "Allow Pic2Nav to use your location while using the app to analyze photos and identify locations"
       }
     },
     "android": {
@@ -38,7 +35,7 @@
         "backgroundColor": "#000000"
       },
       "package": "com.ssabiroad.pic2nav",
-      "versionCode": 2,
+      "versionCode": 4,
       "targetSdkVersion": 35,
       "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ssabiroad.pic2nav",
       "config": {
@@ -54,9 +51,6 @@
         "ACCESS_MEDIA_LOCATION",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION",
-        "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_LOCATION",
         "POST_NOTIFICATIONS",
         "INTERNET",
         "ACCESS_NETWORK_STATE"
@@ -76,11 +70,9 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Pic2Nav to use your location",
-          "locationAlwaysPermission": "Allow Pic2Nav to track your location in the background for geofence alerts",
-          "locationWhenInUsePermission": "Allow Pic2Nav to use your location while using the app",
-          "isAndroidBackgroundLocationEnabled": true,
-          "isIosBackgroundLocationEnabled": true
+          "locationWhenInUsePermission": "Allow Pic2Nav to use your location while using the app to analyze photos and identify locations",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isIosBackgroundLocationEnabled": false
         }
       ],
       [

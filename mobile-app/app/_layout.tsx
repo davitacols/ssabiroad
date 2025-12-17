@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { ErrorBoundary } from 'react-error-boundary';
+import { ThemeProvider } from '../contexts/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -34,6 +35,7 @@ export default function RootLayout() {
   }
 
   return (
+    <ThemeProvider>
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
@@ -45,7 +47,6 @@ export default function RootLayout() {
       <Stack.Screen name="collection-detail" />
       <Stack.Screen name="ai-search" />
       <Stack.Screen name="activity" />
-      <Stack.Screen name="geofence" />
       <Stack.Screen name="journey" />
       <Stack.Screen name="compare-locations" />
       <Stack.Screen name="discover" />
@@ -57,13 +58,12 @@ export default function RootLayout() {
       <Stack.Screen name="share-journey" />
       <Stack.Screen name="invite-collaborators" />
       <Stack.Screen name="settings" />
-      <Stack.Screen name="tools/exif-editor" />
-      <Stack.Screen name="tools/gps-tagger" />
       <Stack.Screen name="memory-game" />
       <Stack.Screen name="saved-locations" />
       <Stack.Screen name="street-view" />
       </Stack>
     </ErrorBoundary>
+    </ThemeProvider>
   );
 }
 

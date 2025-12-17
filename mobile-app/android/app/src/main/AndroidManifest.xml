@@ -1,8 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
-  <!-- Location permissions for photo GPS extraction and geofence alerts -->
+  <!-- Location permissions for photo GPS extraction -->
   <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
   <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-  <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
   
   <!-- Camera permission for photo capture -->
   <uses-permission android:name="android.permission.CAMERA"/>
@@ -13,9 +12,7 @@
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"/>
   
-  <!-- Foreground service for background location tracking -->
-  <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+
   
   <!-- Network and notifications -->
   <uses-permission android:name="android.permission.INTERNET"/>
@@ -55,14 +52,6 @@
         <data android:scheme="exp+pic2nav"/>
       </intent-filter>
     </activity>
-    
-    <!-- Foreground service for background location tracking -->
-    <service
-      android:name=".LocationTrackingService"
-      android:enabled="true"
-      android:exported="false"
-      android:foregroundServiceType="location">
-    </service>
     
     <uses-library android:name="org.apache.http.legacy" android:required="false"/>
   </application>

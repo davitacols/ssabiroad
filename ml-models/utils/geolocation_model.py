@@ -73,7 +73,8 @@ class GeolocationTrainer:
         self.device = device
         self.model = model.to(device)
         self.criterion = HaversineLoss()
-        self.optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
+        self.optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0.01)
+        self.scaler = torch.cuda.amp.GradScaler() if torch.cuda.is_available() else None
     
     def train_epoch(self, dataloader: DataLoader) -> float:
         self.model.train()
@@ -83,10 +84,19 @@ class GeolocationTrainer:
             images, coords = images.to(self.device), coords.to(self.device)
             
             self.optimizer.zero_grad()
-            pred_coords = self.model(images)
-            loss = self.criterion(pred_coords, coords)
-            loss.backward()
-            self.optimizer.step()
+            
+            if self.scaler:
+                with torch.cuda.amp.autocast():
+                    pred_coords = self.model(images)
+                    loss = self.criterion(pred_coords, coords)
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+            else:
+                pred_coords = self.model(images)
+                loss = self.criterion(pred_coords, coords)
+                loss.backward()
+                self.optimizer.step()
             
             total_loss += loss.item()
         
@@ -108,10 +118,15 @@ class GeolocationTrainer:
                     dist = haversine((pred[0], pred[1]), (true[0], true[1]))
                     distances.append(dist)
         
+        distances = np.array(distances)
         return {
             "loss": total_loss / len(dataloader),
-            "mean_distance_km": np.mean(distances),
-            "median_distance_km": np.median(distances)
+            "mean_distance_km": float(np.mean(distances)),
+            "median_distance_km": float(np.median(distances)),
+            "accuracy_1km": float((distances < 1).mean()),
+            "accuracy_5km": float((distances < 5).mean()),
+            "accuracy_25km": float((distances < 25).mean()),
+            "max_distance_km": float(np.max(distances))
         }
     
     def predict(self, image: Image.Image, transform) -> Tuple[float, float]:
