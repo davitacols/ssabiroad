@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback } from "react"
-import { Camera, Upload, X, MapPin, Loader2, Search, Menu, Share2 } from "lucide-react"
+import { Camera, Upload, X, MapPin, Loader2, Search, Menu, Share2, Sparkles } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface Location {
@@ -401,37 +401,132 @@ export function CameraSimple() {
         {/* Result */}
         {result && result.success && (
           <div className="max-w-7xl mx-auto">
-            <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
+            {/* Success Banner */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <MapPin className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-green-900">Location Found</h3>
+                <p className="text-sm text-green-700">{result.name}</p>
+              </div>
+              {result.confidence && (
+                <div className="text-right">
+                  <p className="text-xs text-green-600">Confidence</p>
+                  <p className="text-lg font-bold text-green-700">{Math.round(result.confidence * 100)}%</p>
+                </div>
+              )}
+            </div>
+
+            <div className="grid lg:grid-cols-3 gap-6">
               {/* Left Column - Image & Map */}
               <div className="lg:col-span-2 space-y-6">
                 {previewImage && (
-                  <div className="bg-stone-100 rounded-md overflow-hidden border border-stone-200">
-                    <img src={previewImage} alt="Preview" className="w-full h-[300px] sm:h-[400px] lg:h-[500px] object-contain bg-stone-100" />
+                  <div className="bg-white rounded-lg overflow-hidden border border-stone-200 shadow-sm">
+                    <img src={previewImage} alt="Preview" className="w-full h-[300px] sm:h-[400px] lg:h-[500px] object-contain bg-stone-50" />
                   </div>
                 )}
                 
                 {result.location && (
-                  <div className="bg-stone-100 h-[250px] sm:h-[300px] lg:h-[400px] rounded-md overflow-hidden border border-stone-200">
+                  <div className="bg-white rounded-lg overflow-hidden border border-stone-200 shadow-sm">
+                    <div className="bg-stone-50 px-4 py-3 border-b border-stone-200 flex items-center justify-between">
+                      <h4 className="font-semibold text-stone-900 text-sm">Map View</h4>
+                      <button
+                        onClick={() => {
+                          const { latitude, longitude } = result.location!
+                          navigator.clipboard.writeText(`${latitude}, ${longitude}`)
+                          toast({ title: "Coordinates copied!" })
+                        }}
+                        className="text-xs text-stone-600 hover:text-stone-900 transition-colors"
+                      >
+                        Copy coordinates
+                      </button>
+                    </div>
                     <iframe
                       src={`https://www.google.com/maps?q=${result.location.latitude},${result.location.longitude}&output=embed`}
-                      className="w-full h-full border-0"
+                      className="w-full h-[300px] sm:h-[350px] lg:h-[450px] border-0"
                       loading="lazy"
                     />
                   </div>
                 )}
+
+                {/* Quick Actions */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <button
+                    onClick={() => {
+                      if (result.location) {
+                        window.open(`https://www.google.com/maps/search/?api=1&query=${result.location.latitude},${result.location.longitude}`, '_blank')
+                      }
+                    }}
+                    className="bg-stone-900 text-white px-4 py-3 rounded-lg hover:bg-stone-800 transition-colors text-sm font-medium"
+                  >
+                    Open in Maps
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (result.location) {
+                        const text = `${result.name}\n${result.address}\n${result.location.latitude}, ${result.location.longitude}`
+                        navigator.clipboard.writeText(text)
+                        toast({ title: "Location details copied!" })
+                      }
+                    }}
+                    className="bg-white border border-stone-300 text-stone-900 px-4 py-3 rounded-lg hover:bg-stone-50 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    Share
+                  </button>
+                  <button
+                    onClick={() => {
+                      setResult(null)
+                      setPreviewImage(null)
+                      setCurrentFile(null)
+                    }}
+                    className="bg-white border border-stone-300 text-stone-900 px-4 py-3 rounded-lg hover:bg-stone-50 transition-colors text-sm font-medium"
+                  >
+                    New Search
+                  </button>
+                </div>
               </div>
 
               {/* Right Column - Info */}
-              <div className="space-y-4 sm:space-y-6">
-                {/* Main Info Card */}
-                <div className="bg-white p-4 sm:p-6 rounded-md border border-stone-200">
-                  <h3 className="text-xl sm:text-2xl font-semibold text-stone-900 mb-2">{result.name}</h3>
-                  {result.address && <p className="text-sm sm:text-base text-stone-600 mb-4">{result.address}</p>}
-                  
-                  {/* AI Training */}
-                  {result.location && currentFile && (
-                    <div className="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200">
-                      <p className="text-xs font-semibold text-blue-900 mb-2">Help train our AI</p>
+              <div className="space-y-4">
+                {/* Location Details */}
+                <div className="bg-white rounded-lg border border-stone-200 shadow-sm overflow-hidden">
+                  <div className="bg-stone-50 px-4 py-3 border-b border-stone-200">
+                    <h4 className="font-semibold text-stone-900 text-sm">Location Details</h4>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {result.address && (
+                      <div>
+                        <p className="text-xs text-stone-500 mb-1">Address</p>
+                        <p className="text-sm text-stone-900">{result.address}</p>
+                      </div>
+                    )}
+                    {result.location && (
+                      <div>
+                        <p className="text-xs text-stone-500 mb-1">Coordinates</p>
+                        <p className="text-sm font-mono text-stone-900">{result.location.latitude.toFixed(6)}, {result.location.longitude.toFixed(6)}</p>
+                      </div>
+                    )}
+                    {result.elevation && (
+                      <div>
+                        <p className="text-xs text-stone-500 mb-1">Elevation</p>
+                        <p className="text-sm text-stone-900">{result.elevation.elevation}m above sea level</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* AI Training */}
+                {result.location && currentFile && (
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200 shadow-sm overflow-hidden">
+                    <div className="p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                          <Sparkles className="w-3 h-3 text-white" />
+                        </div>
+                        <h4 className="font-semibold text-blue-900 text-sm">Help Improve AI</h4>
+                      </div>
                       <p className="text-xs text-blue-700 mb-3">Is this location correct?</p>
                       <div className="flex gap-2">
                         <button
@@ -445,9 +540,9 @@ export function CameraSimple() {
                             await fetch('/api/location-recognition-v2/feedback', { method: 'POST', body: formData })
                             toast({ title: "✅ Thanks! AI improved" })
                           }}
-                          className="flex-1 bg-green-600 text-white px-3 py-1.5 text-xs rounded hover:bg-green-700 transition-colors"
+                          className="flex-1 bg-green-600 text-white px-3 py-2 text-xs font-medium rounded-lg hover:bg-green-700 transition-colors"
                         >
-                          ✓ Yes, correct
+                          ✓ Correct
                         </button>
                         <button
                           onClick={() => {
@@ -462,128 +557,94 @@ export function CameraSimple() {
                                 .then(() => toast({ title: "✅ Correction submitted!" }))
                             }
                           }}
-                          className="flex-1 bg-orange-600 text-white px-3 py-1.5 text-xs rounded hover:bg-orange-700 transition-colors"
+                          className="flex-1 bg-orange-600 text-white px-3 py-2 text-xs font-medium rounded-lg hover:bg-orange-700 transition-colors"
                         >
-                          ✗ Correct it
+                          ✗ Fix it
                         </button>
                       </div>
                     </div>
-                  )}
-                  
-                  <div className="flex flex-col sm:flex-row gap-3 mb-4">
-                    <button
-                      onClick={() => {
-                        if (result.location) {
-                          const { latitude, longitude } = result.location
-                          window.open(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`, '_blank')
-                        }
-                      }}
-                      className="flex-1 bg-stone-900 text-white px-4 py-2 text-sm hover:bg-stone-800 transition-colors rounded-md"
-                    >
-                      Open in Maps
-                    </button>
-                    <button
-                      onClick={() => {
-                        setResult(null)
-                        setPreviewImage(null)
-                      }}
-                      className="flex-1 bg-stone-100 text-stone-900 px-4 py-2 text-sm hover:bg-stone-200 transition-colors rounded-md"
-                    >
-                      New Search
-                    </button>
                   </div>
-                  
-                  {/* Coordinates & Confidence */}
-                  {result.location && (
-                    <div className="space-y-2 text-sm border-t border-stone-200 pt-4">
-                      <div className="flex justify-between">
-                        <span className="text-stone-600">Coordinates</span>
-                        <span className="font-mono text-stone-900 text-xs">{result.location.latitude.toFixed(6)}, {result.location.longitude.toFixed(6)}</span>
-                      </div>
-                      {result.confidence && (
-                        <div className="flex justify-between">
-                          <span className="text-stone-600">Confidence</span>
-                          <span className="font-semibold text-green-600">{Math.round(result.confidence * 100)}%</span>
-                        </div>
-                      )}
-                      {result.elevation && (
-                        <div className="flex justify-between">
-                          <span className="text-stone-600">Elevation</span>
-                          <span className="text-stone-900">{result.elevation.elevation}m</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                )}
 
-                {/* Current Conditions */}
+                {/* Weather */}
                 {result.weather && (
-                  <div className="bg-white p-4 sm:p-6 rounded-md border border-stone-200">
-                    <h4 className="font-semibold text-stone-900 mb-3 text-sm">Current Conditions</h4>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <p className="text-stone-600 text-xs mb-1">Temperature</p>
-                        <p className="text-stone-900 font-semibold">{result.weather.temperature}°C</p>
-                      </div>
-                      {result.weather.humidity && (
+                  <div className="bg-white rounded-lg border border-stone-200 shadow-sm overflow-hidden">
+                    <div className="bg-stone-50 px-4 py-3 border-b border-stone-200">
+                      <h4 className="font-semibold text-stone-900 text-sm">Current Weather</h4>
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-3">
                         <div>
-                          <p className="text-stone-600 text-xs mb-1">Humidity</p>
-                          <p className="text-stone-900 font-semibold">{result.weather.humidity}%</p>
+                          <p className="text-3xl font-bold text-stone-900">{result.weather.temperature}°C</p>
+                          <p className="text-xs text-stone-500">Temperature</p>
                         </div>
-                      )}
+                        {result.weather.humidity && (
+                          <div className="text-right">
+                            <p className="text-2xl font-bold text-stone-900">{result.weather.humidity}%</p>
+                            <p className="text-xs text-stone-500">Humidity</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
 
                 {/* Area Scores */}
                 {result.enhancedAnalysis && (
-                  <div className="bg-white p-4 sm:p-6 rounded-md border border-stone-200">
-                    <h4 className="font-semibold text-stone-900 mb-3 text-sm">Area Scores</h4>
-                    <div className="space-y-2 text-sm">
+                  <div className="bg-white rounded-lg border border-stone-200 shadow-sm overflow-hidden">
+                    <div className="bg-stone-50 px-4 py-3 border-b border-stone-200">
+                      <h4 className="font-semibold text-stone-900 text-sm">Area Scores</h4>
+                    </div>
+                    <div className="p-4 space-y-3">
                       {result.enhancedAnalysis.walkability && (
-                        <div className="flex justify-between items-center">
-                          <span className="text-stone-600">Walkability</span>
-                          <div className="flex items-center gap-2">
-                            <div className="w-20 h-2 bg-stone-200 rounded-full overflow-hidden">
-                              <div className="h-full bg-green-500" style={{width: `${result.enhancedAnalysis.walkability.score}%`}}></div>
-                            </div>
-                            <span className="text-stone-900 font-semibold text-xs">{result.enhancedAnalysis.walkability.score}</span>
+                        <div>
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs text-stone-600">Walkability</span>
+                            <span className="text-sm font-bold text-stone-900">{result.enhancedAnalysis.walkability.score}/100</span>
+                          </div>
+                          <div className="w-full h-2 bg-stone-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-green-500 transition-all" style={{width: `${result.enhancedAnalysis.walkability.score}%`}}></div>
                           </div>
                         </div>
                       )}
                       {result.enhancedAnalysis.bikeability && (
-                        <div className="flex justify-between items-center">
-                          <span className="text-stone-600">Bikeability</span>
-                          <div className="flex items-center gap-2">
-                            <div className="w-20 h-2 bg-stone-200 rounded-full overflow-hidden">
-                              <div className="h-full bg-blue-500" style={{width: `${result.enhancedAnalysis.bikeability.score}%`}}></div>
-                            </div>
-                            <span className="text-stone-900 font-semibold text-xs">{result.enhancedAnalysis.bikeability.score}</span>
+                        <div>
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs text-stone-600">Bikeability</span>
+                            <span className="text-sm font-bold text-stone-900">{result.enhancedAnalysis.bikeability.score}/100</span>
+                          </div>
+                          <div className="w-full h-2 bg-stone-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-500 transition-all" style={{width: `${result.enhancedAnalysis.bikeability.score}%`}}></div>
                           </div>
                         </div>
                       )}
                       {result.enhancedAnalysis.airQuality && (
-                        <div className="flex justify-between">
-                          <span className="text-stone-600">Air Quality</span>
-                          <span className="text-stone-900 font-semibold">{result.enhancedAnalysis.airQuality.category}</span>
+                        <div className="flex justify-between items-center pt-2 border-t border-stone-100">
+                          <span className="text-xs text-stone-600">Air Quality</span>
+                          <span className="text-sm font-semibold text-stone-900">{result.enhancedAnalysis.airQuality.category}</span>
                         </div>
                       )}
                     </div>
                   </div>
                 )}
 
-                {/* Nearby */}
+                {/* Nearby Places */}
                 {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
-                  <div className="bg-white p-4 sm:p-6 rounded-md border border-stone-200">
-                    <h4 className="font-semibold text-stone-900 mb-3 text-sm">Nearby ({result.nearbyPlaces.length})</h4>
-                    <div className="space-y-2">
-                      {result.nearbyPlaces.slice(0, 3).map((place, idx) => (
-                        <div key={idx} className="flex justify-between items-start text-xs">
-                          <div className="flex-1">
-                            <p className="font-medium text-stone-900">{place.name}</p>
-                            <p className="text-stone-500">{place.type}</p>
+                  <div className="bg-white rounded-lg border border-stone-200 shadow-sm overflow-hidden">
+                    <div className="bg-stone-50 px-4 py-3 border-b border-stone-200">
+                      <h4 className="font-semibold text-stone-900 text-sm">Nearby Places</h4>
+                    </div>
+                    <div className="p-4 space-y-3">
+                      {result.nearbyPlaces.slice(0, 5).map((place, idx) => (
+                        <div key={idx} className="flex items-start gap-3 pb-3 border-b border-stone-100 last:border-0 last:pb-0">
+                          <div className="w-8 h-8 bg-stone-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <MapPin className="w-4 h-4 text-stone-600" />
                           </div>
-                          <span className="text-stone-600 ml-2">{place.distance}m</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-stone-900 truncate">{place.name}</p>
+                            <p className="text-xs text-stone-500">{place.type}</p>
+                          </div>
+                          <span className="text-xs text-stone-600 font-medium">{place.distance}m</span>
                         </div>
                       ))}
                     </div>
@@ -592,31 +653,17 @@ export function CameraSimple() {
 
                 {/* Transit */}
                 {result.transit && result.transit.length > 0 && (
-                  <div className="bg-white p-4 sm:p-6 rounded-md border border-stone-200">
-                    <h4 className="font-semibold text-stone-900 mb-3 text-sm">Transit</h4>
-                    <div className="space-y-2">
-                      {result.transit.slice(0, 2).map((station, idx) => (
-                        <div key={idx} className="flex justify-between items-start text-xs">
+                  <div className="bg-white rounded-lg border border-stone-200 shadow-sm overflow-hidden">
+                    <div className="bg-stone-50 px-4 py-3 border-b border-stone-200">
+                      <h4 className="font-semibold text-stone-900 text-sm">Public Transit</h4>
+                    </div>
+                    <div className="p-4 space-y-2">
+                      {result.transit.slice(0, 3).map((station, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-sm">
                           <p className="text-stone-900 flex-1">{station.name}</p>
-                          <span className="text-stone-600 ml-2">{station.distance}m</span>
+                          <span className="text-xs text-stone-600 font-medium">{station.distance}m</span>
                         </div>
                       ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Photo Info */}
-                {result.historicalData && (
-                  <div className="bg-white p-4 sm:p-6 rounded-md border border-stone-200">
-                    <h4 className="font-semibold text-stone-900 mb-3 text-sm">Photo Info</h4>
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-stone-600">Age</span>
-                        <span className="text-stone-900">{result.historicalData.photoAge}</span>
-                      </div>
-                      {result.historicalData.historicalContext && (
-                        <p className="text-stone-600 mt-2">{result.historicalData.historicalContext}</p>
-                      )}
                     </div>
                   </div>
                 )}

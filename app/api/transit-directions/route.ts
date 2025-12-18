@@ -17,13 +17,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.GOOGLE_MAPS_API_KEY || "AIzaSyC56tMVTlDcInBCHog0YqkuQ2cgH9JJuhU"
     const response = await fetch(
-      `https://maps.googleapis.com/maps/api/directions/json?origin=${originLat},${originLng}&destination=${destLat},${destLng}&mode=transit&alternatives=true&key=${process.env.GOOGLE_MAPS_API_KEY}`
+      `https://maps.googleapis.com/maps/api/directions/json?origin=${originLat},${originLng}&destination=${destLat},${destLng}&mode=transit&alternatives=true&key=${apiKey}`
     )
     const data = await response.json()
 
     if (data.status !== 'OK') {
-      return NextResponse.json({ error: data.status, routes: [] }, { status: 200 })
+      const errorMsg = data.status === 'ZERO_RESULTS' 
+        ? 'No transit routes available for this location. Transit directions are only available in select cities with public transportation data.'
+        : data.status
+      return NextResponse.json({ error: errorMsg, routes: [] }, { status: 200 })
     }
 
     const routes = data.routes.map((route: any, idx: number) => {

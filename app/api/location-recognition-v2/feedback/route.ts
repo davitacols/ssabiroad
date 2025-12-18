@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const ML_API_URL = process.env.ML_API_URL || 'http://52.91.173.191:8000';
+const ML_API_URL = process.env.ML_API_URL || 'http://34.224.33.158:8000';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,15 +26,17 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     }));
 
-    const mlResponse = await fetch(`${ML_API_URL}/train`, {
-      method: 'POST',
-      body: mlFormData,
-    });
+    // Optional non-blocking training call (silently fails if ML server unavailable)
+    if (process.env.ML_API_URL) {
+      fetch(`${ML_API_URL}/train`, {
+        method: 'POST',
+        body: mlFormData,
+      }).then(res => res.json())
+        .then(result => console.log('✅ Navisense training response:', result))
+        .catch(() => {}); // Silent fail - ML server optional
+    }
 
-    const mlResult = await mlResponse.json();
-    console.log('✅ Navisense training response:', mlResult);
-
-    return NextResponse.json({ success: true, message: 'Training data submitted', mlResponse: mlResult });
+    return NextResponse.json({ success: true, message: 'Feedback recorded' });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

@@ -13,10 +13,11 @@ import { GeofenceOptimizer } from './geofence-optimizer';
 import { ErrorRecovery } from './error-recovery';
 import { OpenCVProcessor } from './opencv-processor';
 import { EnhancedAnalyzer } from './enhanced-analysis';
+import { TextCorrection } from './text-correction';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
-const ML_API_URL = process.env.ML_API_URL || 'http://52.91.173.191:8000';
+const ML_API_URL = process.env.ML_API_URL || 'http://34.224.33.158:8000';
 
 
 interface Location {
@@ -2224,6 +2225,33 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         console.log('Raw OCR text:', rawText.substring(0, 200));
         console.log('Enhanced text:', enhancedText.substring(0, 200));
         
+        // Priority: Check for major landmarks first
+        const landmarkPatterns = [
+          /NATIONAL PORTRAIT GALLERY/i,
+          /BRITISH MUSEUM/i,
+          /TATE MODERN/i,
+          /VICTORIA AND ALBERT/i,
+          /NATURAL HISTORY MUSEUM/i
+        ];
+        
+        for (const pattern of landmarkPatterns) {
+          const match = enhancedText.match(pattern);
+          if (match) {
+            console.log('🏛️ Major landmark detected:', match[0]);
+            const landmarkLocation = await this.searchBusinessByName(match[0] + ' London');
+            if (landmarkLocation) {
+              return {
+                success: true,
+                name: match[0],
+                location: landmarkLocation,
+                confidence: 0.95,
+                method: 'landmark-text-detection',
+                description: `Major landmark: ${match[0]}`
+              };
+            }
+          }
+        }
+        
         // DEEP scene analysis - extract every visual clue (with fallback for failed detections)
         const deepSceneContext = this.analyzeDeepSceneContext(objectResult, logoResult, labelResult, webResult, faceResult, enhancedText);
         console.log('🔍 DEEP scene analysis:', deepSceneContext);
@@ -3455,10 +3483,8 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
 
   // Enhanced text detection with better OCR accuracy
   private enhanceTextDetection(text: string): string {
-    return text
-      .replace(/ROZOANA/gi, 'SEOUL')
-      .replace(/ROZDAW/gi, 'SEOUL')
-      .replace(/SE UL/gi, 'SEOUL')
+    const corrected = TextCorrection.correctText(text);
+    return corrected
       .replace(/[\r\n]+/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();

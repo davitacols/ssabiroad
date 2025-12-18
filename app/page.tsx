@@ -7,6 +7,7 @@ import { SimpleMap } from "@/components/ui/simple-map"
 import { CookieConsent } from "@/components/CookieConsent"
 import { Camera, MapPin, ArrowRight, Zap, Globe2, Upload, Zap as AnalyzeIcon, MapPin as DiscoverIcon, Sparkles, BookOpen } from "lucide-react"
 import Link from "next/link"
+import Head from "next/head"
 import { seoConfig } from "@/lib/seo-config"
 import { useEffect, useState } from "react"
 import { NewsletterSignup } from "@/components/newsletter-signup"
@@ -61,6 +62,9 @@ export default function HomePage() {
 
   return (
     <>
+      <Head>
+        <link rel="canonical" href="https://pic2nav.com" />
+      </Head>
       {structuredDataArray.map((schema, index) => (
         <script
           key={index}
@@ -139,21 +143,7 @@ export default function HomePage() {
                 </Button>
               </div>
 
-              {/* Trust Signals */}
-              <div className="flex flex-wrap items-center gap-4 pt-4">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-stone-100 border border-stone-200">
-                  <svg className="h-5 w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
-                  <span className="text-sm font-semibold text-stone-900">SOC 2 Type II</span>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-stone-100 border border-stone-200">
-                  <svg className="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
-                  <span className="text-sm font-semibold text-stone-900">GDPR Compliant</span>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-stone-100 border border-stone-200">
-                  <svg className="h-5 w-5 text-stone-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
-                  <span className="text-sm font-semibold text-stone-900">99.9% SLA</span>
-                </div>
-              </div>
+
 
               {/* Stats */}
               <div className="grid grid-cols-4 gap-4 pt-6">
@@ -204,52 +194,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Use Cases Carousel */}
-      <section className="relative py-16 sm:py-24 px-4 sm:px-6 bg-stone-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-stone-900 mb-4">
-              Enterprise Use Cases
-            </h2>
-            <p className="text-lg text-stone-600">
-              Trusted by Fortune 500 companies and government agencies
-            </p>
-          </div>
-          
-          <div className="relative overflow-hidden">
-            <div className="flex transition-transform duration-700 ease-in-out" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
-              {useCases.map((use, i) => (
-                <div key={i} className="w-full flex-shrink-0 px-4">
-                  <div className="group relative max-w-2xl mx-auto">
-                    <div className={`absolute -inset-1 bg-gradient-to-br ${use.color} opacity-50 rounded-2xl blur-xl`}></div>
-                    <div className="relative rounded-2xl border border-white/20 bg-stone-900/50 backdrop-blur-sm overflow-hidden">
-                      <div className="aspect-video overflow-hidden">
-                        <img src={use.image} alt={use.title} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="p-8 text-center">
-                        <h3 className="text-2xl font-bold text-stone-900 mb-3">{use.title}</h3>
-                        <p className="text-lg text-stone-600">{use.desc}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="flex justify-center gap-2 mt-8">
-              {useCases.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentSlide(i)}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    currentSlide === i ? 'bg-stone-900 w-8' : 'bg-stone-300 hover:bg-stone-400'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+
 
       {/* Blog Posts */}
       <section className="relative py-16 sm:py-24 md:py-32 px-4 sm:px-6 bg-white">
@@ -339,29 +284,45 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Pic2Nav Promotion */}
-            <div className="bg-white rounded-lg p-6 border border-stone-200 shadow-lg">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold text-stone-900 mb-1">Pic2Nav</h3>
-                <p className="text-sm text-stone-600">Photo Location Analysis Tool</p>
-              </div>
-              
-              <div className="space-y-2 mb-4 text-sm text-stone-700">
-                <div>• Extract GPS coordinates from photos</div>
-                <div>• Identify buildings and landmarks</div>
-                <div>• Get weather and location data</div>
+            {/* Tools Grid */}
+            <div className="grid gap-6">
+              <div className="bg-white rounded-lg p-6 border border-stone-200 shadow-lg">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-stone-900 mb-1">Pic2Nav</h3>
+                  <p className="text-sm text-stone-600">Photo Location Analysis Tool</p>
+                </div>
+                
+                <div className="space-y-2 mb-4 text-sm text-stone-700">
+                  <div>• Extract GPS coordinates from photos</div>
+                  <div>• Identify buildings and landmarks</div>
+                  <div>• Get weather and location data</div>
+                </div>
+
+                <Button className="w-full" variant="default" asChild>
+                  <Link href="/camera">
+                    Try Tool
+                  </Link>
+                </Button>
               </div>
 
-              <div className="flex items-center justify-between mb-4 text-sm text-stone-600">
-                <span>Free tool</span>
-                <span>No signup required</span>
-              </div>
+              <div className="bg-white rounded-lg p-6 border border-stone-200 shadow-lg">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-stone-900 mb-1">Transit Planner</h3>
+                  <p className="text-sm text-stone-600">Public Transport Journey Planning</p>
+                </div>
+                
+                <div className="space-y-2 mb-4 text-sm text-stone-700">
+                  <div>• Real-time transit directions</div>
+                  <div>• Multi-modal route planning</div>
+                  <div>• Live vehicle tracking</div>
+                </div>
 
-              <Button className="w-full" variant="default" asChild>
-                <Link href="/camera">
-                  Try Tool
-                </Link>
-              </Button>
+                <Button className="w-full" variant="outline" asChild>
+                  <Link href="/transit">
+                    Plan Journey
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         </div>

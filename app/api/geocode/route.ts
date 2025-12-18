@@ -6,15 +6,18 @@ const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIza
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const address = searchParams.get('address');
+  const latlng = searchParams.get('latlng');
   
-  if (!address) {
-    return NextResponse.json({ error: 'address parameter is required' }, { status: 400 });
+  if (!address && !latlng) {
+    return NextResponse.json({ error: 'address or latlng parameter is required' }, { status: 400 });
   }
   
   try {
-    const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}`
-    );
+    const url = address 
+      ? `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}`
+      : `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latlng}&key=${GOOGLE_MAPS_API_KEY}`;
+    
+    const response = await fetch(url);
     
     if (!response.ok) {
       throw new Error(`Geocoding API error: ${response.statusText}`);

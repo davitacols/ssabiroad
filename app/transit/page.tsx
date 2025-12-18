@@ -36,7 +36,7 @@ export default function TransitPage() {
 
   const getCurrency = async (lat: number, lng: number) => {
     try {
-      const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`)
+      const res = await fetch(`/api/geocode?latlng=${lat},${lng}`)
       const data = await res.json()
       const country = data.results[0]?.address_components?.find((c: any) => c.types.includes('country'))?.short_name
       
@@ -125,22 +125,18 @@ export default function TransitPage() {
       let originCoords = origin
       
       if (originInput !== 'Current Location') {
-        const originGeocode = await fetch(
-          `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(originInput)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
-        )
+        const originGeocode = await fetch(`/api/geocode?address=${encodeURIComponent(originInput)}`)
         const originData = await originGeocode.json()
-        if (originData.results[0]) {
-          originCoords = originData.results[0].geometry.location
+        if (originData.location) {
+          originCoords = { lat: originData.location.lat, lng: originData.location.lng }
         }
       }
 
-      const geocodeRes = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(destination)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
-      )
+      const geocodeRes = await fetch(`/api/geocode?address=${encodeURIComponent(destination)}`)
       const geocodeData = await geocodeRes.json()
       
-      if (geocodeData.results[0]) {
-        const destCoords = geocodeData.results[0].geometry.location
+      if (geocodeData.location) {
+        const destCoords = geocodeData.location
         const cacheKey = `${originCoords.lat},${originCoords.lng}-${destCoords.lat},${destCoords.lng}`
         
         const res = await fetch(
@@ -148,11 +144,11 @@ export default function TransitPage() {
         )
         const data = await res.json()
         
-        if (data.routes) {
+        if (data.routes && data.routes.length > 0) {
           setRoutes(data.routes)
           TransitCache.saveRoute(cacheKey, data.routes)
         } else {
-          setError('No transit routes found')
+          setError(data.error || 'No transit routes found for this journey')
         }
       }
     } catch (err) {
@@ -162,198 +158,144 @@ export default function TransitPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-stone-950">
-      <div className="border-b border-stone-200 dark:border-stone-800 bg-white/80 dark:bg-stone-950/80 backdrop-blur-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Transit</h1>
-            <p className="text-sm text-stone-600 dark:text-stone-400">Plan your journey</p>
-          </div>
-          <Link href="/" className="text-sm text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100">
-            Back
+    <div className="min-h-screen bg-stone-50">
+      <nav className="sticky top-0 z-50 border-b border-stone-200 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3">
+            <img src="/pic2nav.png" alt="Pic2Nav" className="h-12 w-auto" />
           </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/camera" className="text-sm text-stone-600 hover:text-stone-900">Camera</Link>
+            <Link href="/blog" className="text-sm text-stone-600 hover:text-stone-900">Blog</Link>
+          </div>
         </div>
-      </div>
+      </nav>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-6">
-              <div className="space-y-4">
-                <div className="relative">
-                  <label className="block text-sm font-medium mb-2 text-stone-700 dark:text-stone-300">From</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-400" />
-                    <input
-                      ref={originRef}
-                      type="text"
-                      value={originInput}
-                      onChange={(e) => setOriginInput(e.target.value)}
-                      placeholder="Your location"
-                      className="w-full pl-11 pr-4 py-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      onFocus={() => originSuggestions.length > 0 && setShowOriginSuggestions(true)}
-                    />
-                  </div>
-                  {showOriginSuggestions && originSuggestions.length > 0 && (
-                    <div className="absolute z-10 w-full mt-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                      {originSuggestions.map((suggestion: any) => (
-                        <button
-                          key={suggestion.place_id}
-                          onClick={() => {
-                            setOriginInput(suggestion.description)
-                            setShowOriginSuggestions(false)
-                          }}
-                          className="w-full text-left p-4 hover:bg-stone-50 dark:hover:bg-stone-700 border-b border-stone-100 dark:border-stone-700 last:border-0 transition-colors"
-                        >
-                          <div className="font-medium text-sm">{suggestion.structured_formatting.main_text}</div>
-                          <div className="text-xs text-stone-500 mt-0.5">{suggestion.structured_formatting.secondary_text}</div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-stone-900 mb-2">Plan Your Journey</h1>
+          <p className="text-lg text-stone-600">Find the best public transport routes</p>
+        </div>
 
-                <div className="flex justify-center">
-                  <button
-                    onClick={swapLocations}
-                    className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
-                    title="Swap locations"
-                  >
-                    <Repeat className="h-5 w-5 text-stone-600 dark:text-stone-400" />
-                  </button>
-                </div>
-
-                <div className="relative">
-                  <label className="block text-sm font-medium mb-2 text-stone-700 dark:text-stone-300">To</label>
-                  <div className="relative">
-                    <Navigation className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-400" />
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={destination}
-                      onChange={(e) => setDestination(e.target.value)}
-                      placeholder="Where to?"
-                      className="w-full pl-11 pr-4 py-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      onKeyPress={(e) => e.key === 'Enter' && searchDestination()}
-                      onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                    />
-                  </div>
-                  {showSuggestions && suggestions.length > 0 && (
-                    <div className="absolute z-10 w-full mt-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                      {suggestions.map((suggestion: any) => (
-                        <button
-                          key={suggestion.place_id}
-                          onClick={() => {
-                            setDestination(suggestion.description)
-                            setShowSuggestions(false)
-                          }}
-                          className="w-full text-left p-4 hover:bg-stone-50 dark:hover:bg-stone-700 border-b border-stone-100 dark:border-stone-700 last:border-0 transition-colors"
-                        >
-                          <div className="font-medium text-sm">{suggestion.structured_formatting.main_text}</div>
-                          <div className="text-xs text-stone-500 mt-0.5">{suggestion.structured_formatting.secondary_text}</div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-stone-700 dark:text-stone-300">Departure</label>
-                  <select
-                    value={departureTime}
-                    onChange={(e) => setDepartureTime(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="now">Leave now</option>
-                    <option value="15">In 15 minutes</option>
-                    <option value="30">In 30 minutes</option>
-                    <option value="60">In 1 hour</option>
-                  </select>
-                </div>
-
-                <button 
-                  onClick={searchDestination} 
-                  disabled={!destination || !originInput || loading}
-                  className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 disabled:bg-stone-300 dark:disabled:bg-stone-700 text-white rounded-xl font-medium transition-colors disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Searching...' : 'Find routes'}
-                </button>
+        <div className="bg-white rounded-2xl shadow-lg border border-stone-200 p-8 mb-8">
+          <div className="space-y-6">
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                <label className="text-sm font-medium text-stone-700">From</label>
               </div>
-
-              {error && (
-                <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm">
-                  {error}
+              <input
+                ref={originRef}
+                type="text"
+                value={originInput}
+                onChange={(e) => setOriginInput(e.target.value)}
+                placeholder="Enter starting location"
+                className="w-full px-4 py-4 rounded-lg border-2 border-stone-200 focus:border-blue-500 focus:outline-none text-base"
+                onFocus={() => originSuggestions.length > 0 && setShowOriginSuggestions(true)}
+              />
+              {showOriginSuggestions && originSuggestions.length > 0 && (
+                <div className="absolute z-10 w-full mt-2 bg-white border border-stone-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                  {originSuggestions.map((suggestion: any) => (
+                    <button
+                      key={suggestion.place_id}
+                      onClick={() => {
+                        setOriginInput(suggestion.description)
+                        setShowOriginSuggestions(false)
+                      }}
+                      className="w-full text-left p-3 hover:bg-stone-50 border-b border-stone-100 last:border-0"
+                    >
+                      <div className="font-medium text-sm">{suggestion.structured_formatting.main_text}</div>
+                      <div className="text-xs text-stone-500">{suggestion.structured_formatting.secondary_text}</div>
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
 
-            {routes.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">{routes.length} route{routes.length > 1 ? 's' : ''} found</h2>
-                  <button
-                    onClick={() => setShowMap(!showMap)}
-                    className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                  >
-                    {showMap ? 'Hide' : 'Show'} map
-                  </button>
+            <div className="flex justify-center">
+              <button
+                onClick={swapLocations}
+                className="p-3 rounded-full bg-stone-100 hover:bg-stone-200 transition-colors"
+              >
+                <Repeat className="h-5 w-5 text-stone-600" />
+              </button>
+            </div>
+
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                <label className="text-sm font-medium text-stone-700">To</label>
+              </div>
+              <input
+                ref={inputRef}
+                type="text"
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                placeholder="Enter destination"
+                className="w-full px-4 py-4 rounded-lg border-2 border-stone-200 focus:border-blue-500 focus:outline-none text-base"
+                onKeyPress={(e) => e.key === 'Enter' && searchDestination()}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+              />
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute z-10 w-full mt-2 bg-white border border-stone-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                  {suggestions.map((suggestion: any) => (
+                    <button
+                      key={suggestion.place_id}
+                      onClick={() => {
+                        setDestination(suggestion.description)
+                        setShowSuggestions(false)
+                      }}
+                      className="w-full text-left p-3 hover:bg-stone-50 border-b border-stone-100 last:border-0"
+                    >
+                      <div className="font-medium text-sm">{suggestion.structured_formatting.main_text}</div>
+                      <div className="text-xs text-stone-500">{suggestion.structured_formatting.secondary_text}</div>
+                    </button>
+                  ))}
                 </div>
+              )}
+            </div>
 
-                {showMap && origin.lat !== 0 && (
-                  <div className="rounded-2xl overflow-hidden border border-stone-200 dark:border-stone-800">
-                    <TransitMap origin={origin} destination={{ lat: 0, lng: 0 }} routes={routes} />
-                  </div>
-                )}
+            <button 
+              onClick={searchDestination} 
+              disabled={!destination || !originInput || loading}
+              className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-stone-300 text-white rounded-lg font-semibold text-lg transition-colors disabled:cursor-not-allowed"
+            >
+              {loading ? 'Searching...' : 'Find Routes'}
+            </button>
+          </div>
 
-                {routes.map((route, i) => (
-                  <div 
-                    key={i} 
-                    className={`bg-white dark:bg-stone-900 border rounded-2xl p-6 transition-all cursor-pointer ${
-                      selectedRoute === i 
-                        ? 'border-blue-500 shadow-lg shadow-blue-500/10' 
-                        : 'border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700'
-                    }`}
-                    onClick={() => setSelectedRoute(selectedRoute === i ? null : i)}
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl font-semibold">{route.duration}</span>
-                          {i === 0 && <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium rounded-full">Fastest</span>}
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-stone-600 dark:text-stone-400">
-                          <span>{route.distance}</span>
-                          <span>•</span>
-                          <span>{currency.symbol}{(parseFloat(route.fare) * currency.rate).toFixed(0)}</span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <Leaf className="h-3.5 w-3.5" />
-                            {route.carbonSaved}kg CO₂
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            toggleFavorite(route, i)
-                          }}
-                          className="p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors"
-                        >
-                          <Star className={`h-5 w-5 ${favoriteRoutes.find(r => r.key === `${originInput}-${destination}-${i}`) ? 'fill-yellow-400 text-yellow-400' : 'text-stone-400'}`} />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            const text = `${originInput} → ${destination}\\n${route.duration} • ${route.distance}\\nVia Pic2Nav`
-                            navigator.share ? navigator.share({ text }) : navigator.clipboard.writeText(text)
-                          }}
-                          className="p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors"
-                        >
-                          <Share2 className="h-5 w-5 text-stone-400" />
-                        </button>
-                      </div>
+          {error && (
+            <div className="mt-4 p-4 bg-red-50 text-red-600 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+        </div>
+
+        {routes.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-stone-900">{routes.length} route{routes.length > 1 ? 's' : ''} found</h2>
+            </div>
+
+            {routes.map((route, i) => (
+              <div 
+                key={i} 
+                className="bg-white border-2 border-stone-200 hover:border-blue-500 rounded-xl p-6 transition-all cursor-pointer"
+                onClick={() => setSelectedRoute(selectedRoute === i ? null : i)}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-3xl font-bold text-stone-900">{route.duration}</span>
+                      {i === 0 && <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">Fastest</span>}
                     </div>
+                    <div className="flex items-center gap-3 text-sm text-stone-600">
+                      <span className="font-medium">{route.distance}</span>
+                      <span>•</span>
+                      <span className="font-medium">{currency.symbol}{(parseFloat(route.fare) * currency.rate).toFixed(0)}</span>
+                    </div>
+                  </div>
+                </div>
 
                     {selectedRoute === i && route.steps.find((s: any) => s.transitDetails) && (
                       <div className="mb-4">
@@ -409,62 +351,6 @@ export default function TransitPage() {
               </div>
             )}
 
-            {routes.length === 0 && !loading && (
-              <div className="bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-8 text-center">
-                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Bus className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Plan your journey</h3>
-                <p className="text-sm text-stone-600 dark:text-stone-400">Enter your destination to see available transit routes</p>
-              </div>
-            )}
-          </div>
-
-          <aside className="space-y-6">
-            {favoriteRoutes.length > 0 && (
-              <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-6">
-                <h3 className="font-semibold mb-4 flex items-center gap-2">
-                  <Star className="h-5 w-5 text-yellow-400" />
-                  Saved routes
-                </h3>
-                <div className="space-y-2">
-                  {favoriteRoutes.slice(0, 3).map((fav, i) => (
-                    <button
-                      key={i}
-                      onClick={() => {
-                        setOriginInput(fav.origin)
-                        setDestination(fav.destination)
-                      }}
-                      className="w-full text-left p-3 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
-                    >
-                      <div className="text-sm font-medium truncate">{fav.origin}</div>
-                      <div className="text-xs text-stone-500 truncate">→ {fav.destination}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-white">
-              <h3 className="font-semibold mb-2">Go green</h3>
-              <p className="text-sm text-blue-100">Public transit reduces CO₂ emissions by up to 95% vs driving</p>
-            </div>
-
-            <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-6">
-              <h3 className="font-semibold mb-4">Quick links</h3>
-              <div className="space-y-2">
-                <Link href="/camera" className="block p-3 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors">
-                  <div className="text-sm font-medium">Photo location</div>
-                  <div className="text-xs text-stone-500">Find places from photos</div>
-                </Link>
-                <Link href="/blog" className="block p-3 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors">
-                  <div className="text-sm font-medium">Blog</div>
-                  <div className="text-xs text-stone-500">Tips and guides</div>
-                </Link>
-              </div>
-            </div>
-          </aside>
-        </div>
       </div>
     </div>
   )

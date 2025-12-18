@@ -64,9 +64,6 @@ export const metadata = {
     yandex: 'your-yandex-verification-code',
     bing: 'your-bing-verification-code',
   },
-  alternates: {
-    canonical: 'https://pic2nav.com',
-  },
   category: 'technology',
   classification: 'AI Photo Analysis Tool',
   referrer: 'strict-origin-when-cross-origin',
