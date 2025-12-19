@@ -264,6 +264,49 @@ async def activate_model(version: str):
         logger.error(f"Model activation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/train")
+async def train_model(file: UploadFile = File(...), latitude: float = None, longitude: float = None, metadata: str = None):
+    """Add training data to active learning queue"""
+    try:
+        content = await file.read()
+        image = Image.open(io.BytesIO(content)).convert('RGB')
+        
+        # Save image
+        import json
+        meta = json.loads(metadata) if metadata else {}
+        image_id = meta.get('userId', 'unknown') + '_' + str(int(time.time()))
+        temp_path = Path("data/training") / f"{image_id}.jpg"
+        temp_path.parent.mkdir(parents=True, exist_ok=True)
+        image.save(temp_path)
+        
+        # Add to active learning queue
+        training_data = {
+            'image_path': str(temp_path),
+            'latitude': latitude,
+            'longitude': longitude,
+            'metadata': meta
+        }
+        active_learning.add_user_correction(str(temp_path), {}, {'latitude': latitude, 'longitude': longitude})
+        
+        logger.info(f"Training data added: {image_id}")
+        return {
+            "success": True,
+            "message": "Training data added to queue",
+            "queue_size": len(active_learning.queue["samples"]),
+            "should_retrain": active_learning.should_retrain()
+        }
+    except Exception as e:
+        logger.error(f"Training data error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)nager.set_active_model(version)
+        return {"success": True, "message": f"Model {version} activated"}
+    except Exception as e:
+        logger.error(f"Model activation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)nager.set_active_model(version)
