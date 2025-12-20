@@ -1,39 +1,21 @@
-# PowerShell deployment script for Windows
-param(
-    [Parameter(Mandatory=$true)]
-    [string]$KeyPath
-)
+# Fix PEM permissions
+$pemPath = "C:\Users\USER\Downloads\pic2nav-ml-key.pem"
+icacls $pemPath /inheritance:r
+icacls $pemPath /grant:r "$env:USERNAME`:R"
 
-$EC2_IP = "34.224.33.158"
-$EC2_USER = "ec2-user"
+# Deploy
+$ec2Host = "ec2-user@34.224.33.158"
+$remotePath = "/home/ec2-user/ml-models"
 
-Write-Host "🚀 Deploying ML Model to EC2..." -ForegroundColor Green
+Write-Host "Copying main.py to EC2..."
+scp -i $pemPath -o StrictHostKeyChecking=no "ml-models\api\main.py" "${ec2Host}:${remotePath}/api/main.py"
 
-# Copy file
-Write-Host "📦 Copying updated files to EC2..."
-scp -i $KeyPath ml-models/api/main.py "${EC2_USER}@${EC2_IP}:~/ml-models/api/"
+Write-Host "Restarting ML server..."
+ssh -i $pemPath -o StrictHostKeyChecking=no $ec2Host "pkill -f 'python.*main.py'; cd $remotePath && nohup python3 -m api.main > ml_server.log 2>&1 &"
 
-# Restart server
-Write-Host "🔄 Restarting ML server..."
-$commands = @"
-cd ~/ml-models/api
-if command -v pm2 &> /dev/null; then
-    pm2 restart navisense || pm2 start main.py --name navisense
-else
-    pkill -f 'python.*main.py'
-    nohup python3 main.py > ml-server.log 2>&1 &
-fi
-echo 'ML server restarted'
-"@
+Start-Sleep -Seconds 5
 
-ssh -i $KeyPath "${EC2_USER}@${EC2_IP}" $commands
+Write-Host "Testing server..."
+curl http://34.224.33.158:8000/health
 
-# Test
-Write-Host "🧪 Testing ML server..."
-Start-Sleep -Seconds 3
-$response = Invoke-RestMethod -Uri "http://${EC2_IP}:8000/"
-$response | ConvertTo-Json
-
-Write-Host ""
-Write-Host "✅ Deployment complete!" -ForegroundColor Green
-Write-Host "🔗 ML Server: http://${EC2_IP}:8000"
+Write-Host "Done!"
