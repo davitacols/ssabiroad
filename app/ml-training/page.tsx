@@ -58,7 +58,7 @@ export default function MLTrainingDashboard() {
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button onClick={triggerTraining} disabled={training || !queue?.queue?.length}>
+          <Button onClick={triggerTraining} disabled={training || !(queue?.samples?.length || queue?.queue?.length)}>
             <Play className="w-4 h-4 mr-2" />
             {training ? 'Training...' : 'Start Training'}
           </Button>
@@ -74,7 +74,7 @@ export default function MLTrainingDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{queue?.queue?.length || 0}</div>
+            <div className="text-3xl font-bold">{queue?.samples?.length || queue?.queue?.length || 0}</div>
             <p className="text-sm text-muted-foreground">Items waiting</p>
             {queue?.last_training && (
               <p className="text-xs mt-2">Last: {new Date(queue.last_training).toLocaleString()}</p>
@@ -112,9 +112,9 @@ export default function MLTrainingDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats?.total_buildings || 0}</div>
+            <div className="text-3xl font-bold">{stats?.index?.total_buildings || stats?.total_buildings || 0}</div>
             <p className="text-sm text-muted-foreground">Total buildings</p>
-            <p className="text-xs mt-2">Index: {stats?.index_size || 0} vectors</p>
+            <p className="text-xs mt-2">Index: {stats?.index?.index_size || stats?.index_size || 0} vectors</p>
           </CardContent>
         </Card>
       </div>
@@ -124,9 +124,9 @@ export default function MLTrainingDashboard() {
           <CardTitle>Training Queue</CardTitle>
         </CardHeader>
         <CardContent>
-          {queue?.queue?.length > 0 ? (
+          {(queue?.samples?.length || queue?.queue?.length) > 0 ? (
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {queue.queue.map((item: any, idx: number) => (
+              {(queue?.samples || queue?.queue || []).map((item: any, idx: number) => (
                 <div key={idx} className="flex justify-between items-center p-3 border rounded">
                   <div className="flex-1">
                     <p className="font-medium text-sm">{item.image_path}</p>
