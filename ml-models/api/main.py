@@ -37,20 +37,23 @@ async def startup_event():
     global pipeline, monitor, version_manager, active_learning
     logger.info("Starting ML pipeline...")
     
-    pipeline = FusionPipeline(
-        faiss_index_path="faiss_index",
-        similarity_threshold=0.75
-    )
-    monitor = ModelMonitor()
-    version_manager = ModelVersionManager()
-    active_learning = ActiveLearningPipeline()
-    
-    # Load best model if available
-    best_model = version_manager.get_best_model()
-    if best_model:
-        logger.info(f"Loaded best model: {best_model['version']}")
-    
-    logger.info("ML pipeline ready")
+    try:
+        pipeline = FusionPipeline(
+            faiss_index_path="faiss_index",
+            similarity_threshold=0.75
+        )
+        monitor = ModelMonitor()
+        version_manager = ModelVersionManager()
+        active_learning = ActiveLearningPipeline()
+        
+        best_model = version_manager.get_best_model()
+        if best_model:
+            logger.info(f"Loaded best model: {best_model['version']}")
+        
+        logger.info("ML pipeline ready")
+    except Exception as e:
+        logger.error(f"Startup failed: {e}")
+        logger.warning("Running in degraded mode")
 
 class BuildingMetadata(BaseModel):
     name: str
@@ -73,8 +76,13 @@ async def root():
         "service": "NaviSense AI",
         "description": "Intelligent Location Recognition System",
         "version": "1.0.0",
-        "powered_by": "SSABIRoad"
+        "powered_by": "SSABIRoad",
+        "pipeline_loaded": pipeline is not None
     }
+
+@app.get("/health")
+async def health():
+    return {"status": "ok", "timestamp": time.time()}
 
 @app.post("/embed", response_model=Dict)
 async def embed_image(file: UploadFile = File(...)):
@@ -271,7 +279,6 @@ async def train_model(file: UploadFile = File(...), latitude: float = None, long
         content = await file.read()
         image = Image.open(io.BytesIO(content)).convert('RGB')
         
-        # Save image
         import json
         meta = json.loads(metadata) if metadata else {}
         image_id = meta.get('userId', 'unknown') + '_' + str(int(time.time()))
@@ -279,13 +286,6 @@ async def train_model(file: UploadFile = File(...), latitude: float = None, long
         temp_path.parent.mkdir(parents=True, exist_ok=True)
         image.save(temp_path)
         
-        # Add to active learning queue
-        training_data = {
-            'image_path': str(temp_path),
-            'latitude': latitude,
-            'longitude': longitude,
-            'metadata': meta
-        }
         active_learning.add_user_correction(str(temp_path), {}, {'latitude': latitude, 'longitude': longitude})
         
         logger.info(f"Training data added: {image_id}")
@@ -301,15 +301,16 @@ async def train_model(file: UploadFile = File(...), latitude: float = None, long
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)nager.set_active_model(version)
-        return {"success": True, "message": f"Model {version} activated"}
-    except Exception as e:
-        logger.error(f"Model activation error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False) version_manager.list_models(),
+        "active": version_manager.get_active_model(),
+        "best": version_manager.get_best_model()
+    }
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)nager.set_active_model(version)
+@app.post("/models/{version}/activate")
+async def activate_model(version: str):
+    """Activate a specific model version"""
+    try:
+        version_manager.set_active_model(version)
         return {"success": True, "message": f"Model {version} activated"}
     except Exception as e:
         logger.error(f"Model activation error: {e}")

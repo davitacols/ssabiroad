@@ -15,6 +15,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Skip ML training if server not configured
+    if (!process.env.ML_API_URL) {
+      console.log('ML_API_URL not configured, skipping training');
+      return NextResponse.json({ success: true, message: 'Feedback recorded (ML training disabled)' });
+    }
+
     const mlFormData = new FormData();
     mlFormData.append('file', file);
     mlFormData.append('latitude', latitude);
@@ -26,15 +32,14 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     }));
 
-    // Optional non-blocking training call (silently fails if ML server unavailable)
-    if (process.env.ML_API_URL) {
-      fetch(`${ML_API_URL}/train`, {
-        method: 'POST',
-        body: mlFormData,
-      }).then(res => res.json())
-        .then(result => console.log('✅ Navisense training response:', result))
-        .catch(() => {}); // Silent fail - ML server optional
-    }
+    // Non-blocking training call with timeout
+    fetch(`${ML_API_URL}/train`, {
+      method: 'POST',
+      body: mlFormData,
+      signal: AbortSignal.timeout(5000)
+    }).then(res => res.json())
+      .then(result => console.log('✅ Navisense training response:', result))
+      .catch(err => console.log('Navisense training failed:', err.message));
 
     return NextResponse.json({ success: true, message: 'Feedback recorded' });
   } catch (error: any) {
