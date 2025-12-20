@@ -537,6 +537,7 @@ export function CameraSimple() {
                             formData.append('latitude', result.location.latitude.toString())
                             formData.append('longitude', result.location.longitude.toString())
                             formData.append('address', result.address)
+                            formData.append('userId', 'anonymous')
                             await fetch('/api/location-recognition-v2/feedback', { method: 'POST', body: formData })
                             toast({ title: "✅ Thanks! AI improved" })
                           }}
@@ -553,6 +554,7 @@ export function CameraSimple() {
                               formData.append('latitude', result.location.latitude.toString())
                               formData.append('longitude', result.location.longitude.toString())
                               formData.append('address', correction)
+                              formData.append('userId', 'anonymous')
                               fetch('/api/location-recognition-v2/feedback', { method: 'POST', body: formData })
                                 .then(() => toast({ title: "✅ Correction submitted!" }))
                             }

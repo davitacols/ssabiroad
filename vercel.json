@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/daily-post",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/ml-training",
+      "schedule": "0 */6 * * *"
     }
   ]
 }

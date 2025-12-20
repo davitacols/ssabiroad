@@ -1,5 +1,5 @@
 """FastAPI Server for ML Models"""
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from PIL import Image
@@ -273,14 +273,13 @@ async def activate_model(version: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/train")
-async def train_model(file: UploadFile = File(...), latitude: float = None, longitude: float = None, metadata: str = None):
+async def train_model(file: UploadFile = File(...), latitude: float = Form(None), longitude: float = Form(None), metadata: str = Form(None)):
     """Add training data to active learning queue"""
     try:
         import json
         meta = json.loads(metadata) if metadata else {}
         image_id = meta.get('userId', 'unknown') + '_' + str(int(time.time()))
         
-        # Save file quickly without processing
         temp_path = Path("data/training") / f"{image_id}.jpg"
         temp_path.parent.mkdir(parents=True, exist_ok=True)
         
@@ -288,14 +287,29 @@ async def train_model(file: UploadFile = File(...), latitude: float = None, long
         with open(temp_path, 'wb') as f:
             f.write(content)
         
-        # Queue for background processing
+        # Add to queue with proper metadata
         try:
-            active_learning.add_user_correction(str(temp_path), {}, {'latitude': latitude, 'longitude': longitude})
+            sample = {
+                "image_path": str(temp_path),
+                "metadata": {
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "address": meta.get('address'),
+                    "userId": meta.get('userId'),
+                    "timestamp": meta.get('timestamp'),
+                    "correction": True
+                },
+                "priority": "high",
+                "added_at": time.strftime("%Y-%m-%dT%H:%M:%S")
+            }
+            active_learning.queue["samples"].append(sample)
+            active_learning.save_queue()
             queue_size = len(active_learning.queue["samples"])
-        except:
+        except Exception as e:
+            logger.error(f"Queue error: {e}")
             queue_size = 0
         
-        logger.info(f"Training data queued: {image_id}")
+        logger.info(f"Training data saved: {image_id} at ({latitude}, {longitude})")
         return {
             "success": True,
             "message": "Training data queued",

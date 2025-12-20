@@ -32,14 +32,14 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     }));
 
-    // Non-blocking training call with timeout
+    // Non-blocking training call with longer timeout
     fetch(`${ML_API_URL}/train`, {
       method: 'POST',
       body: mlFormData,
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(30000)
     }).then(res => res.json())
       .then(result => console.log('✅ Navisense training response:', result))
-      .catch(err => console.log('Navisense training failed:', err.message));
+      .catch(err => console.log('⚠️ Navisense training failed:', err.message));
 
     return NextResponse.json({ success: true, message: 'Feedback recorded' });
   } catch (error: any) {

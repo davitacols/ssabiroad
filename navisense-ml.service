@@ -1,0 +1,16 @@
+[Unit]
+Description=NaviSense ML API Server
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/ssabiroad/ml-models
+ExecStart=/usr/bin/python3 -m api.main
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/ubuntu/ssabiroad/ml-models/ml_server.log
+StandardError=append:/home/ubuntu/ssabiroad/ml-models/ml_server.log
+
+[Install]
+WantedBy=multi-user.target
