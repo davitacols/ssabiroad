@@ -4661,11 +4661,19 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       formData.append('longitude', location.longitude.toString());
       if (metadata) formData.append('metadata', JSON.stringify(metadata));
 
-      await fetch(`${ML_API_URL}/train`, {
+      const response = await fetch(`${ML_API_URL}/train`, {
         method: 'POST',
         body: formData,
       });
-      console.log('✅ Navisense training data submitted');
+      
+      const result = await response.json();
+      console.log('✅ Navisense training data submitted:', result);
+      
+      // Trigger immediate model update if queue is full
+      if (result.queue_size >= 5) {
+        console.log('🔄 Queue size >= 5, triggering model update...');
+        fetch(`${ML_API_URL}/retrain`, { method: 'POST' }).catch(() => {});
+      }
     } catch (error) {
       console.log('Navisense training failed:', error.message);
     }
@@ -4770,15 +4778,24 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         )
       ]);
       
-      if (navisenseResult?.success && navisenseResult.location) {
-        console.log('✅ NAVISENSE SUCCESS - ENRICHING AND RETURNING:', navisenseResult.location);
-        const enrichedResult = await this.enrichLocationData(navisenseResult, buffer, analyzeLandmarks);
-        const recognitionId = await this.saveRecognition(enrichedResult, buffer, userId);
-        if (recognitionId) {
-          enrichedResult.recognitionId = recognitionId;
+      if (navisenseResult?.success && navisenseResult.location && navisenseResult.confidence >= 0.75) {
+        // Validate coordinates aren't obviously wrong
+        const { latitude, longitude } = navisenseResult.location;
+        const isValidRange = latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
+        const notTurkey = !(latitude >= 36 && latitude <= 42 && longitude >= 26 && longitude <= 45);
+        
+        if (isValidRange && (notTurkey || navisenseResult.confidence >= 0.9)) {
+          console.log('✅ NAVISENSE SUCCESS - ENRICHING AND RETURNING:', navisenseResult.location);
+          const enrichedResult = await this.enrichLocationData(navisenseResult, buffer, analyzeLandmarks);
+          const recognitionId = await this.saveRecognition(enrichedResult, buffer, userId);
+          if (recognitionId) {
+            enrichedResult.recognitionId = recognitionId;
+          }
+          this.trainNavisense(buffer, navisenseResult.location, { method: 'navisense-ml', userId }).catch(() => {});
+          return enrichedResult;
+        } else {
+          console.log('⚠️ Navisense prediction rejected - invalid coordinates or low confidence');
         }
-        this.trainNavisense(buffer, navisenseResult.location, { method: 'navisense-ml', userId }).catch(() => {});
-        return enrichedResult;
       }
     } catch (error) {
       console.log('⚠️ Navisense prediction timed out or failed:', error.message);

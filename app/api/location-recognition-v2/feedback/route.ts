@@ -38,7 +38,14 @@ export async function POST(request: NextRequest) {
       body: mlFormData,
       signal: AbortSignal.timeout(30000)
     }).then(res => res.json())
-      .then(result => console.log('✅ Navisense training response:', result))
+      .then(result => {
+        console.log('✅ Navisense training response:', result);
+        // Auto-trigger retrain if queue is large
+        if (result.queue_size >= 5) {
+          console.log('🔄 Triggering model retrain due to queue size:', result.queue_size);
+          fetch(`${ML_API_URL}/retrain`, { method: 'POST' }).catch(() => {});
+        }
+      })
       .catch(err => console.log('⚠️ Navisense training failed:', err.message));
 
     return NextResponse.json({ success: true, message: 'Feedback recorded' });
