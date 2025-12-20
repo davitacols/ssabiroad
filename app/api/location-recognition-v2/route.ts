@@ -4659,12 +4659,24 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       formData.append('file', blob, 'image.jpg');
       formData.append('latitude', location.latitude.toString());
       formData.append('longitude', location.longitude.toString());
-      if (metadata) formData.append('metadata', JSON.stringify(metadata));
+      formData.append('address', metadata?.address || metadata?.name || 'Location detected by AI');
+      if (metadata) {
+        const cleanMetadata = {
+          ...metadata,
+          address: metadata.address || metadata.name || 'Location detected by AI'
+        };
+        formData.append('metadata', JSON.stringify(cleanMetadata));
+      }
 
       const response = await fetch(`${ML_API_URL}/train`, {
         method: 'POST',
         body: formData,
       });
+      
+      if (!response.ok) {
+        console.log('❌ Navisense training failed with status:', response.status);
+        return;
+      }
       
       const result = await response.json();
       console.log('✅ Navisense training data submitted:', result);
@@ -4672,7 +4684,10 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       // Trigger immediate model update if queue is full
       if (result.queue_size >= 5) {
         console.log('🔄 Queue size >= 5, triggering model update...');
-        fetch(`${ML_API_URL}/retrain`, { method: 'POST' }).catch(() => {});
+        fetch(`${ML_API_URL}/retrain`, { method: 'POST' })
+          .then(res => res.json())
+          .then(data => console.log('✅ Retrain triggered:', data))
+          .catch(err => console.log('❌ Retrain failed:', err.message));
       }
     } catch (error) {
       console.log('Navisense training failed:', error.message);
@@ -4866,7 +4881,12 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       if (aiResult?.success && aiResult.location && aiResult.location.latitude && aiResult.location.longitude) {
         console.log('Google Vision found location:', aiResult.location);
         const enrichedResult = await this.enrichLocationData(aiResult, buffer, analyzeLandmarks);
-        this.trainNavisense(buffer, aiResult.location, { method: 'google-vision', name: aiResult.name, userId }).catch(() => {});
+        this.trainNavisense(buffer, aiResult.location, { 
+          method: 'google-vision', 
+          name: aiResult.name,
+          address: enrichedResult.address || aiResult.name || 'AI detected location',
+          userId 
+        }).catch(() => {});
         return enrichedResult;
       } else if (aiResult?.success && !aiResult.location) {
         console.log('Google Vision found business but no coordinates - returning basic result');

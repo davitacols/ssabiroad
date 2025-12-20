@@ -531,15 +531,15 @@ export function CameraSimple() {
                       <div className="flex gap-2">
                         <button
                           onClick={async () => {
-                            if (!currentFile || !result.location || !result.address) return
+                            if (!currentFile || !result.location) return
                             const formData = new FormData()
                             formData.append('file', currentFile)
                             formData.append('latitude', result.location.latitude.toString())
                             formData.append('longitude', result.location.longitude.toString())
-                            formData.append('address', result.address)
+                            formData.append('address', result.address || result.name || 'Unknown Location')
                             formData.append('userId', 'anonymous')
                             await fetch('/api/location-recognition-v2/feedback', { method: 'POST', body: formData })
-                            toast({ title: "✅ Thanks! AI improved" })
+                            toast({ title: "Thanks for your feedback!", description: "You're helping improve our AI" })
                           }}
                           className="flex-1 bg-green-600 text-white px-3 py-2 text-xs font-medium rounded-lg hover:bg-green-700 transition-colors"
                         >
@@ -547,7 +547,7 @@ export function CameraSimple() {
                         </button>
                         <button
                           onClick={() => {
-                            const correction = prompt('Enter correct address:')
+                            const correction = prompt('Enter correct address:', result.address || result.name || '')
                             if (correction && currentFile && result.location) {
                               const formData = new FormData()
                               formData.append('file', currentFile)
@@ -556,7 +556,7 @@ export function CameraSimple() {
                               formData.append('address', correction)
                               formData.append('userId', 'anonymous')
                               fetch('/api/location-recognition-v2/feedback', { method: 'POST', body: formData })
-                                .then(() => toast({ title: "✅ Correction submitted!" }))
+                                .then(() => toast({ title: "Thanks for your feedback!", description: "You're helping improve our AI" }))
                             }
                           }}
                           className="flex-1 bg-orange-600 text-white px-3 py-2 text-xs font-medium rounded-lg hover:bg-orange-700 transition-colors"

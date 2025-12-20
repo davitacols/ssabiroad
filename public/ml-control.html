@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ML Refresh</title>
+<style>
+.toast{position:fixed;top:20px;right:20px;background:#10b981;color:#fff;padding:16px 24px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);animation:slideIn 0.3s ease;z-index:1000}
+@keyframes slideIn{from{transform:translateX(400px);opacity:0}to{transform:translateX(0);opacity:1}}
+</style>
+</head>
+<body>
+<h1>ML Model Control</h1>
+<button onclick="refresh()">Trigger Model Refresh</button>
+<button onclick="stats()">Check Stats</button>
+<pre id="output"></pre>
+<script>
+function showToast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000)}
+async function refresh() {
+  const res = await fetch('/api/ml-refresh', {method: 'POST'});
+  const data = await res.json();
+  document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+  showToast('Thanks for your feedback! 🎉');
+}
+async function stats() {
+  const res = await fetch('/api/ml-stats');
+  const data = await res.json();
+  document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+}
+</script>
+</body>
+</html>

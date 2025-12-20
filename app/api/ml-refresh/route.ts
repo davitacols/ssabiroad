@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🔄 Triggering ML model refresh...');
     
-    const endpoints = ['/retrain', '/refresh', '/update_model', '/train_now'];
+    const endpoints = ['/build_model', '/train_model', '/retrain', '/refresh', '/update_model', '/train_now'];
     
     for (const endpoint of endpoints) {
       try {

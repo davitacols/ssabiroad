@@ -25,10 +25,11 @@ export async function POST(request: NextRequest) {
     mlFormData.append('file', file);
     mlFormData.append('latitude', latitude);
     mlFormData.append('longitude', longitude);
+    mlFormData.append('address', address || 'Unknown');
     mlFormData.append('metadata', JSON.stringify({ 
       method: 'user-correction',
-      address,
-      userId,
+      address: address || 'Unknown',
+      userId: userId || 'anonymous',
       timestamp: new Date().toISOString()
     }));
 
@@ -43,7 +44,10 @@ export async function POST(request: NextRequest) {
         // Auto-trigger retrain if queue is large
         if (result.queue_size >= 5) {
           console.log('🔄 Triggering model retrain due to queue size:', result.queue_size);
-          fetch(`${ML_API_URL}/retrain`, { method: 'POST' }).catch(() => {});
+          fetch(`${ML_API_URL}/retrain`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => console.log('✅ Retrain response:', data))
+            .catch(err => console.log('❌ Retrain failed:', err.message));
         }
       })
       .catch(err => console.log('⚠️ Navisense training failed:', err.message));
