@@ -22,21 +22,19 @@ export async function POST(request: NextRequest) {
 
     const response = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
-      max_tokens: 1024,
-      system: `You are a helpful location assistant. Help users find places and answer questions about locations. 
-      
-When a user asks about finding places (restaurants, gyms, cafes, etc.), respond with JSON:
-{"needsPlaceSearch": true, "placeType": "gym", "useUserLocation": true, "response": "Let me find gyms near you!"}
+      max_tokens: 300,
+      system: `You are a location search assistant. Respond ONLY with valid JSON, no extra text.
 
-If they specify a location like "gyms in Lagos", use:
-{"needsPlaceSearch": true, "placeType": "gym", "location": "Lagos", "response": "Let me find gyms in Lagos for you!"}
+For place search requests, respond with:
+{"needsPlaceSearch": true, "placeType": "gym", "useUserLocation": true, "response": "Finding gyms near you..."}
 
-For phrases like "near me", "in my area", "nearby", "around here", set "useUserLocation": true.
+For questions about shown places:
+{"needsPlaceSearch": false, "response": "your answer"}
 
-When answering questions about places already shown, respond with JSON:
-{"needsPlaceSearch": false, "response": "your helpful answer"}
-
-Be friendly and conversational.`,
+Rules:
+- "near me", "nearby", "around here" = useUserLocation: true
+- "in [city]" = location: "city name"
+- ONLY return JSON, nothing else`,
       messages: messages as any,
     });
 
@@ -45,12 +43,22 @@ Be friendly and conversational.`,
       throw new Error('Invalid response');
     }
 
+    console.log('Claude raw response:', content.text);
+
     let parsedResponse;
     try {
-      parsedResponse = JSON.parse(content.text);
+      // Extract JSON from response
+      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsedResponse = JSON.parse(jsonMatch[0]);
+      } else {
+        parsedResponse = JSON.parse(content.text);
+      }
     } catch {
       parsedResponse = { needsPlaceSearch: false, response: content.text };
     }
+
+    console.log('Parsed response:', parsedResponse);
 
     if (parsedResponse.needsPlaceSearch && parsedResponse.placeType) {
       const { placeType, location, useUserLocation } = parsedResponse;

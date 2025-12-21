@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, SafeAreaView, StatusBar, ActivityIndicator, Linking, KeyboardAvoidingView, Platform, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, SafeAreaView, StatusBar, ActivityIndicator, Linking, KeyboardAvoidingView, Platform, Animated, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,7 +24,9 @@ export default function AISearchScreen() {
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [userLocation, setUserLocation] = useState<any>(null);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const menuTranslateY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -34,6 +36,29 @@ export default function AISearchScreen() {
       useNativeDriver: true,
     }).start();
     getUserLocation();
+
+    const keyboardShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setIsKeyboardVisible(true);
+      Animated.timing(menuTranslateY, {
+        toValue: 100,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    });
+    
+    const keyboardHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setIsKeyboardVisible(false);
+      Animated.timing(menuTranslateY, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    });
+
+    return () => {
+      keyboardShowListener.remove();
+      keyboardHideListener.remove();
+    };
   }, []);
 
   const getUserLocation = async () => {
@@ -71,18 +96,6 @@ export default function AISearchScreen() {
       const url = getApiUrl(API_CONFIG.ENDPOINTS.AI_CHAT);
       console.log('Calling AI API:', url);
       
-      // Temporary mock response until backend is deployed
-      const mockResponse = {
-        success: true,
-        response: `I can help you find places! Try asking me things like:\n\n• "Find restaurants near me"\n• "Best coffee shops in Lagos"\n• "Gyms nearby"\n• "Compare hotels in my area"\n\nWhat would you like to find?`,
-        needsPlaceSearch: false
-      };
-      
-      // Use mock for now
-      const data = mockResponse;
-      console.log('Using mock response');
-      
-      /* Uncomment when backend is deployed:
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -96,28 +109,38 @@ export default function AISearchScreen() {
       console.log('Response status:', response.status);
       const data = await response.json();
       console.log('Response data:', data);
-      */
 
       let responseText = data.success ? data.response : `Sorry, ${data.error || 'something went wrong.'}`;
       
-      // Parse if it's a JSON string
-      if (typeof responseText === 'string') {
-        // Decode HTML entities
-        responseText = responseText.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
-        
-        // Try to parse as JSON
-        try {
-          const parsed = JSON.parse(responseText);
-          responseText = parsed.response || parsed.message || parsed.text || parsed.answer || responseText;
-        } catch {}
-        
-        // Remove remaining JSON formatting
-        responseText = responseText.replace(/```[a-z]*\n?/gi, '').replace(/```/g, '');
-        responseText = responseText.replace(/\{[^}]*needsPlaceSearch[^}]*\}/gi, '');
-        responseText = responseText.replace(/[{}\[\]"]/g, '').replace(/needsPlaceSearch:\s*(true|false),?/gi, '');
-        responseText = responseText.replace(/response:\s*/gi, '');
-        responseText = responseText.replace(/\n{3,}/g, '\n\n').trim();
+      // Decode all HTML entities
+      const decodeHTML = (text: string) => {
+        return text
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/\\&quot;/g, '"')
+          .replace(/\\n/g, '\n')
+          .replace(/\\"/g, '"');
+      };
+      
+      responseText = decodeHTML(responseText);
+      
+      // Extract response from nested JSON if present
+      const jsonPattern = /\{[\s\S]*?"needsPlaceSearch"[\s\S]*?"response"\s*:\s*"([\s\S]*?)"[\s\S]*?\}/;
+      const match = responseText.match(jsonPattern);
+      if (match && match[1]) {
+        responseText = match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
       }
+      
+      // Remove any remaining JSON wrapper
+      responseText = responseText
+        .replace(/^\{[\s\S]*"response"\s*:\s*"/, '')
+        .replace(/"[\s\S]*\}$/, '')
+        .replace(/\\n/g, '\n')
+        .replace(/\\"/g, '"')
+        .trim();
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -323,7 +346,9 @@ export default function AISearchScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-      <MenuBar />
+      <Animated.View style={{ transform: [{ translateY: menuTranslateY }] }}>
+        <MenuBar />
+      </Animated.View>
     </SafeAreaView>
   );
 }
