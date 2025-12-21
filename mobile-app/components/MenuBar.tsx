@@ -1,10 +1,12 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function MenuBar() {
   const router = useRouter();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
 
   const menuItems = [
     { icon: 'home-outline', activeIcon: 'home', label: 'Home', route: '/', key: 'home' },
@@ -23,7 +25,7 @@ export default function MenuBar() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom || 20 }]}>
       {menuItems.map((item) => (
         <TouchableOpacity
           key={item.key}
@@ -48,7 +50,6 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: '#ffffff',
-    paddingBottom: 20,
     paddingTop: 8,
     elevation: 12,
     shadowColor: '#000',

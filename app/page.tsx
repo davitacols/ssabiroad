@@ -87,6 +87,7 @@ export default function HomePage() {
           </Link>
           <div className="hidden lg:flex items-center gap-8">
             <Link href="/blog" className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors">Blog</Link>
+            <Link href="/contribute" className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors">Contribute</Link>
             <Link href="/api-access" className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors">API</Link>
           </div>
           <div className="flex items-center gap-3">

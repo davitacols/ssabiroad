@@ -68,7 +68,22 @@ export default function AISearchScreen() {
     setLoading(true);
 
     try {
-      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.AI_CHAT), {
+      const url = getApiUrl(API_CONFIG.ENDPOINTS.AI_CHAT);
+      console.log('Calling AI API:', url);
+      
+      // Temporary mock response until backend is deployed
+      const mockResponse = {
+        success: true,
+        response: `I can help you find places! Try asking me things like:\n\n• "Find restaurants near me"\n• "Best coffee shops in Lagos"\n• "Gyms nearby"\n• "Compare hotels in my area"\n\nWhat would you like to find?`,
+        needsPlaceSearch: false
+      };
+      
+      // Use mock for now
+      const data = mockResponse;
+      console.log('Using mock response');
+      
+      /* Uncomment when backend is deployed:
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -78,7 +93,10 @@ export default function AISearchScreen() {
         }),
       });
 
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', data);
+      */
 
       let responseText = data.success ? data.response : `Sorry, ${data.error || 'something went wrong.'}`;
       
@@ -110,11 +128,12 @@ export default function AISearchScreen() {
       };
 
       setMessages(prev => [...prev, aiMessage]);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('AI Chat error:', err);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        text: 'Sorry, I\'m having trouble connecting. Please check your internet and try again.',
+        text: `Error: ${err.message || 'Connection failed'}. Please try again.`,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);

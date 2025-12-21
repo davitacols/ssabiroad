@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback } from "react"
-import { Camera, Upload, X, MapPin, Loader2, Search, Menu, Share2, Sparkles } from "lucide-react"
+import { Camera, Upload, X, MapPin, Loader2, Search, Menu, Share2, Heart, HelpCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface Location {
@@ -519,15 +519,27 @@ export function CameraSimple() {
 
                 {/* AI Training */}
                 {result.location && currentFile && (
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200 shadow-sm overflow-hidden">
+                  <div className={`rounded-lg border shadow-sm overflow-hidden ${
+                    result.confidence && result.confidence < 0.7 
+                      ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-300 animate-pulse' 
+                      : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'
+                  }`}>
                     <div className="p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                          <Sparkles className="w-3 h-3 text-white" />
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                          result.confidence && result.confidence < 0.7 ? 'bg-amber-500' : 'bg-blue-500'
+                        }`}>
+                          <Heart className="w-3 h-3 text-white" />
                         </div>
-                        <h4 className="font-semibold text-blue-900 text-sm">Help Improve AI</h4>
+                        <h4 className={`font-semibold text-sm ${
+                          result.confidence && result.confidence < 0.7 ? 'text-amber-900' : 'text-blue-900'
+                        }`}>Help Improve AI</h4>
                       </div>
-                      <p className="text-xs text-blue-700 mb-3">Is this location correct?</p>
+                      {result.confidence && result.confidence < 0.7 ? (
+                        <p className="text-xs text-amber-800 mb-3 font-medium">⚠️ Low confidence - Your feedback is especially valuable!</p>
+                      ) : (
+                        <p className="text-xs text-blue-700 mb-3">Is this location correct?</p>
+                      )}
                       <div className="flex gap-2">
                         <button
                           onClick={async () => {
@@ -675,18 +687,66 @@ export function CameraSimple() {
         )}
 
         {result && !result.success && (
-          <div className="bg-white p-12 text-center rounded-md border border-stone-200">
-            <h3 className="text-2xl font-semibold text-stone-900 mb-2">Location not found</h3>
-            <p className="text-stone-600 mb-6">{result.error || "Unable to identify this location"}</p>
-            <button
-              onClick={() => {
-                setResult(null)
-                setPreviewImage(null)
-              }}
-              className="bg-stone-900 text-white px-6 py-2 hover:bg-stone-800 transition-colors rounded-md"
-            >
-              Try Again
-            </button>
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white p-8 sm:p-12 text-center rounded-md border border-stone-200 mb-6">
+              <h3 className="text-2xl font-semibold text-stone-900 mb-2">Location not found</h3>
+              <p className="text-stone-600 mb-6">{result.error || "Unable to identify this location"}</p>
+              <button
+                onClick={() => {
+                  setResult(null)
+                  setPreviewImage(null)
+                }}
+                className="bg-stone-900 text-white px-6 py-2 hover:bg-stone-800 transition-colors rounded-md"
+              >
+                Try Again
+              </button>
+            </div>
+            
+            {/* Smart Retry with Hints */}
+            {currentFile && (
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200 shadow-sm overflow-hidden">
+                <div className="p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                      <HelpCircle className="w-4 h-4 text-white" />
+                    </div>
+                    <h4 className="font-semibold text-purple-900 text-base">Do you know where this is?</h4>
+                  </div>
+                  <p className="text-sm text-purple-700 mb-4">Help us learn! Tell us the location and we'll improve our AI.</p>
+                  <button
+                    onClick={async () => {
+                      const locationName = prompt('Enter the location name or address:')
+                      if (locationName && currentFile) {
+                        try {
+                          const geoRes = await fetch(`/api/geocode?address=${encodeURIComponent(locationName)}`)
+                          const geoData = await geoRes.json()
+                          if (geoData.location) {
+                            const formData = new FormData()
+                            formData.append('file', currentFile)
+                            formData.append('latitude', geoData.location.lat.toString())
+                            formData.append('longitude', geoData.location.lng.toString())
+                            formData.append('address', geoData.formatted_address || locationName)
+                            formData.append('userId', 'anonymous')
+                            await fetch('/api/location-recognition-v2/feedback', { method: 'POST', body: formData })
+                            toast({ title: "Thanks for teaching us!", description: "AI will learn from this" })
+                            setResult(null)
+                            setPreviewImage(null)
+                            setCurrentFile(null)
+                          } else {
+                            toast({ title: "Location not found", description: "Try a different address", variant: "destructive" })
+                          }
+                        } catch (err) {
+                          toast({ title: "Error", description: "Failed to process location", variant: "destructive" })
+                        }
+                      }
+                    }}
+                    className="w-full bg-purple-600 text-white px-4 py-3 text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    📍 Yes, I'll help train the AI
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

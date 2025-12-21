@@ -67,21 +67,28 @@ model Location {
 }
 
 model User {
-  id                 String        @id
-  email              String        @unique
-  name               String?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime
-  bio                String?
-  avatar             String?
-  emailNotifications Boolean       @default(true)
-  lastEmailSent      DateTime?
-  Bookmark           Bookmark[]
-  Job                Job[]
-  Location           Location[]
-  ApiKey             ApiKey[]
-  BlogPost           BlogPost[]
-  BlogComment        BlogComment[]
+  id                   String        @id
+  email                String        @unique
+  name                 String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime
+  bio                  String?
+  avatar               String?
+  emailNotifications   Boolean       @default(true)
+  lastEmailSent        DateTime?
+  gamificationPoints   Int           @default(0)
+  contributionCount    Int           @default(0)
+  lastContributionDate DateTime?
+  badges               String[]      @default([])
+  streak               Int           @default(0)
+  Bookmark             Bookmark[]
+  Job                  Job[]
+  Location             Location[]
+  ApiKey               ApiKey[]
+  BlogPost             BlogPost[]
+  BlogComment          BlogComment[]
+  
+  @@index([gamificationPoints])
 }
 
 model ApiKey {

@@ -1,7 +1,9 @@
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Image, ScrollView, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState, useEffect } from 'react';
+import * as Location from 'expo-location';
 import MenuBar from '../components/MenuBar';
 import { useTheme, getColors } from '../contexts/ThemeContext';
 
@@ -9,6 +11,29 @@ export default function HomeScreen() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const colors = getColors(theme);
+  const [showDisclosure, setShowDisclosure] = useState(false);
+
+  useEffect(() => {
+    checkLocationDisclosure();
+  }, []);
+
+  const checkLocationDisclosure = async () => {
+    const shown = await AsyncStorage.getItem('locationDisclosureShown');
+    if (!shown) {
+      setShowDisclosure(true);
+    }
+  };
+
+  const handleAcceptDisclosure = async () => {
+    await AsyncStorage.setItem('locationDisclosureShown', 'true');
+    setShowDisclosure(false);
+    const { status } = await Location.requestForegroundPermissionsAsync();
+  };
+
+  const handleDeclineDisclosure = async () => {
+    await AsyncStorage.setItem('locationDisclosureShown', 'true');
+    setShowDisclosure(false);
+  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -86,6 +111,11 @@ export default function HomeScreen() {
     router.push('/transit');
   };
 
+  const handleContributePress = () => {
+    addActivity('Contribute', 'Earned points by contributing', '/contribute');
+    router.push('/contribute');
+  };
+
 
 
 
@@ -93,6 +123,44 @@ export default function HomeScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      
+      {/* Location Disclosure Modal */}
+      <Modal visible={showDisclosure} transparent animationType="fade">
+        <View style={styles.disclosureOverlay}>
+          <View style={styles.disclosureDialog}>
+            <View style={styles.disclosureHeader}>
+              <Ionicons name="location" size={48} color="#3b82f6" />
+              <Text style={styles.disclosureTitle}>Location Permission</Text>
+            </View>
+            <View style={styles.disclosureContent}>
+              <Text style={styles.disclosureHeading}>Why we need your location:</Text>
+              <View style={styles.disclosureItem}>
+                <Ionicons name="navigate" size={20} color="#3b82f6" />
+                <Text style={styles.disclosureItemText}>Identify buildings and landmarks near you</Text>
+              </View>
+              <View style={styles.disclosureItem}>
+                <Ionicons name="map" size={20} color="#3b82f6" />
+                <Text style={styles.disclosureItemText}>Show nearby places (restaurants, banks, hospitals)</Text>
+              </View>
+              <View style={styles.disclosureItem}>
+                <Ionicons name="camera" size={20} color="#3b82f6" />
+                <Text style={styles.disclosureItemText}>Extract GPS data from photos for location recognition</Text>
+              </View>
+              <Text style={styles.disclosurePrivacy}>
+                Your location data is used only for these features and is not shared with third parties.
+              </Text>
+            </View>
+            <View style={styles.disclosureButtons}>
+              <TouchableOpacity style={styles.declineButton} onPress={handleDeclineDisclosure}>
+                <Text style={styles.declineText}>Decline</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.acceptButton} onPress={handleAcceptDisclosure}>
+                <Text style={styles.acceptText}>Accept</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       
       {/* Black Header */}
       <View style={[styles.header, { backgroundColor: colors.background }]}>
@@ -162,6 +230,17 @@ export default function HomeScreen() {
             </View>
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
           </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleContributePress}>
+            <View style={[styles.actionIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <Ionicons name="trophy" size={24} color="#f59e0b" />
+            </View>
+            <View style={styles.actionText}>
+              <Text style={[styles.actionTitle, { color: colors.text }]}>Contribute & Earn</Text>
+              <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Get rewards for photos</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+          </TouchableOpacity>
         </View>
 
         {/* Tools Section */}
@@ -211,6 +290,20 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
+  disclosureOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  disclosureDialog: { backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 400 },
+  disclosureHeader: { alignItems: 'center', padding: 24, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+  disclosureTitle: { fontSize: 24, fontWeight: 'bold', marginTop: 12, color: '#1f2937' },
+  disclosureContent: { padding: 24 },
+  disclosureHeading: { fontSize: 16, fontWeight: 'bold', marginBottom: 16, color: '#1f2937' },
+  disclosureItem: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
+  disclosureItemText: { flex: 1, marginLeft: 12, fontSize: 14, color: '#4b5563', lineHeight: 20 },
+  disclosurePrivacy: { fontSize: 12, color: '#6b7280', marginTop: 16, lineHeight: 18, fontStyle: 'italic' },
+  disclosureButtons: { flexDirection: 'row', padding: 16, borderTopWidth: 1, borderTopColor: '#e5e7eb', gap: 12 },
+  declineButton: { flex: 1, padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#d1d5db', alignItems: 'center' },
+  declineText: { fontSize: 16, fontWeight: '600', color: '#6b7280' },
+  acceptButton: { flex: 1, padding: 16, borderRadius: 8, backgroundColor: '#3b82f6', alignItems: 'center' },
+  acceptText: { fontSize: 16, fontWeight: '600', color: '#fff' },
   header: { backgroundColor: '#000', paddingTop: 60, paddingBottom: 32, paddingHorizontal: 24 },
   headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   themeToggle: { padding: 8 },

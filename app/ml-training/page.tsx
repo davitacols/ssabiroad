@@ -133,6 +133,11 @@ export default function MLTrainingDashboard() {
                     <p className="text-xs text-muted-foreground">
                       {item.metadata?.address || 'No address'}
                     </p>
+                    {item.timestamp && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(item.timestamp * 1000).toLocaleString()}
+                      </p>
+                    )}
                   </div>
                   <div className="flex gap-2 items-center">
                     <Badge variant={item.priority === 'high' ? 'destructive' : 'secondary'}>
