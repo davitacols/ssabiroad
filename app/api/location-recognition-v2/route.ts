@@ -2094,19 +2094,17 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       });
       console.log('✅ OpenCV preprocessing complete');
       
-      // OPTIMIZED image analysis - prioritize essential detections with shorter timeouts
-      const [landmarkResult, textResult, logoResult, labelResult] = await Promise.allSettled([
-        withTimeout(client.landmarkDetection({ image: { content: enhancedBuffer } }), 45000),
-        withTimeout(client.textDetection({ image: { content: enhancedBuffer } }), 45000),
-        withTimeout(client.logoDetection({ image: { content: enhancedBuffer } }), 45000),
-        withTimeout(client.labelDetection({ image: { content: enhancedBuffer }, maxResults: 10 }), 45000)
+      // OPTIMIZED image analysis - prioritize text detection with aggressive timeouts
+      const [textResult, logoResult, labelResult] = await Promise.allSettled([
+        withTimeout(client.textDetection({ image: { content: enhancedBuffer } }), 8000),
+        withTimeout(client.logoDetection({ image: { content: enhancedBuffer } }), 6000),
+        withTimeout(client.labelDetection({ image: { content: enhancedBuffer }, maxResults: 10 }), 6000)
       ]);
       
-      // Optional secondary analysis with even shorter timeouts
-      const [documentResult, objectResult] = await Promise.allSettled([
-        withTimeout(client.documentTextDetection({ image: { content: enhancedBuffer } }), 45000),
-        withTimeout(client.objectLocalization({ image: { content: enhancedBuffer } }), 45000)
-      ]);
+      // Skip landmark and object detection to reduce timeout issues
+      const landmarkResult = { status: 'rejected' as const, reason: new Error('Skipped for performance') };
+      const documentResult = { status: 'rejected' as const, reason: new Error('Skipped for performance') };
+      const objectResult = { status: 'rejected' as const, reason: new Error('Skipped for performance') };
       
       // Skip face and web detection to reduce timeout issues
       const faceResult = { status: 'rejected' as const, reason: new Error('Skipped for performance') };
@@ -4783,11 +4781,11 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     console.log('❌ No valid server EXIF GPS data found - proceeding to AI analysis');
     console.log('🤖 No EXIF GPS data found - trying Navisense ML, Claude AI and Google Vision...');
     
-    // 2. Try Navisense ML prediction
+    // 2. Try Navisense ML prediction with validation
     console.log('🔍 Step 2: Trying Navisense ML prediction...');
-    let navisenseAttempted = false;
+    const navisenseAttempted = true;
+    
     try {
-      navisenseAttempted = true;
       const navisenseResult = await Promise.race([
         this.predictWithNavisense(buffer),
         new Promise<LocationResult | null>((_, reject) => 
@@ -4795,13 +4793,14 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         )
       ]);
       
-      if (navisenseResult?.success && navisenseResult.location && navisenseResult.confidence >= 0.75) {
-        // Validate coordinates aren't obviously wrong
+      if (navisenseResult?.success && navisenseResult.location && navisenseResult.confidence >= 0.85) {
         const { latitude, longitude } = navisenseResult.location;
         const isValidRange = latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
-        const notTurkey = !(latitude >= 36 && latitude <= 42 && longitude >= 26 && longitude <= 45);
         
-        if (isValidRange && (notTurkey || navisenseResult.confidence >= 0.9)) {
+        // Reject known untrained predictions (Windsor, UK coordinates)
+        const isWindsorUK = Math.abs(latitude - 51.4833) < 0.01 && Math.abs(longitude - (-0.6167)) < 0.01;
+        
+        if (isValidRange && !isWindsorUK && navisenseResult.confidence >= 0.9) {
           console.log('✅ NAVISENSE SUCCESS - ENRICHING AND RETURNING:', navisenseResult.location);
           const enrichedResult = await this.enrichLocationData(navisenseResult, buffer, analyzeLandmarks);
           const recognitionId = await this.saveRecognition(enrichedResult, buffer, userId);
@@ -4811,10 +4810,10 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
           this.trainNavisense(buffer, navisenseResult.location, { method: 'navisense-ml', userId }).catch(() => {});
           return enrichedResult;
         } else {
-          console.log('⚠️ Navisense prediction rejected - invalid coordinates or low confidence');
+          console.log('⚠️ Navisense prediction rejected - untrained or low confidence:', { latitude, longitude, confidence: navisenseResult.confidence, isWindsor: isWindsorUK });
         }
       } else {
-        console.log('⚠️ Navisense returned no valid result');
+        console.log('⚠️ Navisense returned no valid result or confidence too low');
       }
     } catch (error) {
       console.log('⚠️ Navisense prediction timed out or failed:', error.message);
@@ -4823,14 +4822,15 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     // If Navisense was attempted but failed, log it clearly
     if (navisenseAttempted) {
       console.log('❌ Navisense ML did NOT provide valid location - continuing with other methods');
+      console.log('⚠️ Any location found from this point forward should NOT be labeled as navisense-ml');
     }
     
-    // 3. Skip Claude AI - misreads special characters like ü, ö, ä
-    console.log('🔍 Step 2: Skipping Claude AI - using Google Vision OCR only');
+    // 3. Try Claude AI for business name and location detection
+    console.log('🔍 Step 2: Trying Claude AI analysis...');
     let claudeBusinessName = null;
     let claudeAreaContext = null;
     
-    if (false) { // Disabled - Claude misreads umlauts and special characters
+    if (true) { // Re-enabled for location detection
       try {
       const claudeResult = await Promise.race([
         this.analyzeWithClaude({}, buffer),
