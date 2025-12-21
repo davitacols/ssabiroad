@@ -69,7 +69,7 @@ export default function ActivityScreen() {
         )}
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
         {recentActivities.length > 0 ? (
           <View style={styles.activityList}>
             {recentActivities.map((activity) => (
@@ -131,11 +131,11 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 24,
   },
   activityList: {
     gap: 12,
+    paddingHorizontal: 24,
+    paddingTop: 24,
   },
   activityItem: {
     paddingVertical: 16,

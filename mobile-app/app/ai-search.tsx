@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, SafeAreaView, StatusBar, ActivityIndicator, Linking, KeyboardAvoidingView, Platform, Animated, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, SafeAreaView, StatusBar, ActivityIndicator, Linking, KeyboardAvoidingView, Platform, Animated, Keyboard, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getApiUrl, API_CONFIG } from '../config/api';
 import { useTheme, getColors } from '../contexts/ThemeContext';
 import MenuBar from '../components/MenuBar';
@@ -14,6 +17,8 @@ interface Message {
   text: string;
   places?: any[];
   timestamp: Date;
+  imageUri?: string;
+  locationData?: any;
 }
 
 export default function AISearchScreen() {
@@ -25,6 +30,8 @@ export default function AISearchScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [userLocation, setUserLocation] = useState<any>(null);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [lastImageData, setLastImageData] = useState<{uri: string, location: any} | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const menuTranslateY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -36,6 +43,7 @@ export default function AISearchScreen() {
       useNativeDriver: true,
     }).start();
     getUserLocation();
+    loadMessages();
 
     const keyboardShowListener = Keyboard.addListener('keyboardDidShow', () => {
       setIsKeyboardVisible(true);
@@ -73,26 +81,163 @@ export default function AISearchScreen() {
     }
   };
 
+  const loadMessages = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('aiChatMessages');
+      if (stored) setMessages(JSON.parse(stored));
+    } catch (err) {
+      console.log('Load error:', err);
+    }
+  };
+
   useEffect(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
+    if (messages.length > 0) {
+      AsyncStorage.setItem('aiChatMessages', JSON.stringify(messages)).catch(e => console.log('Save error:', e));
+    }
   }, [messages]);
 
+  const pickImage = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: 'image/*',
+      copyToCacheDirectory: true,
+    });
+    if (!result.canceled && result.assets?.[0]) {
+      setUploadedImage(result.assets[0].uri);
+    }
+  };
+
   const handleSend = async () => {
-    if (!query.trim()) return;
+    if (!query.trim() && !uploadedImage) return;
+
+    // Check if user is correcting previous location
+    const correctionMatch = query.match(/^(?:correct|actually|it'?s|this is|the address is)\s+(.+)/i);
+    if (correctionMatch && lastImageData) {
+      const correctedAddress = correctionMatch[1].trim();
+      
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        type: 'user',
+        text: query.trim(),
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, userMessage]);
+      setQuery('');
+      setLoading(true);
+
+      try {
+        // Geocode corrected address FIRST
+        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(correctedAddress)}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho`;
+        const geocodeRes = await fetch(geocodeUrl);
+        const geocodeData = await geocodeRes.json();
+        
+        if (!geocodeData.results?.[0]) {
+          throw new Error('Could not geocode address');
+        }
+        
+        const location = geocodeData.results[0].geometry.location;
+        
+        // Retrain model with corrected data
+        const trainFormData = new FormData();
+        trainFormData.append('file', { uri: lastImageData.uri, type: 'image/jpeg', name: 'photo.jpg' } as any);
+        trainFormData.append('label', correctedAddress);
+        trainFormData.append('latitude', location.lat.toString());
+        trainFormData.append('longitude', location.lng.toString());
+        
+        console.log('Training with:', { label: correctedAddress, lat: location.lat, lng: location.lng });
+        const trainResponse = await fetch('http://34.224.33.158:8000/train', { 
+          method: 'POST', 
+          body: trainFormData,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        const trainResult = await trainResponse.text();
+        console.log('Training response status:', trainResponse.status);
+        console.log('Training response:', trainResult);
+        
+        // Show response with GEOCODED coordinates
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          type: 'ai',
+          text: `Thanks for the correction! I've updated the model with:\n\n${correctedAddress}\nLat: ${location.lat}\nLng: ${location.lng}`,
+          locationData: { location: { latitude: location.lat, longitude: location.lng }, address: correctedAddress },
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, aiMessage]);
+        setLastImageData({ uri: lastImageData.uri, location: { latitude: location.lat, longitude: location.lng } });
+      } catch (err: any) {
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          type: 'ai',
+          text: 'Sorry, I couldn\'t process that correction. Please try again.',
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      text: query.trim(),
+      text: uploadedImage ? (query.trim() || 'Analyze this image') : query.trim(),
       timestamp: new Date(),
     };
 
     setMessages(prev => [...prev, userMessage]);
     const currentQuery = query.trim();
+    const currentImage = uploadedImage;
     setQuery('');
+    setUploadedImage(null);
     setLoading(true);
 
     try {
+      if (currentImage) {
+        const formData = new FormData();
+        formData.append('image', { uri: currentImage, type: 'image/jpeg', name: 'photo.jpg' } as any);
+        const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.LOCATION_RECOGNITION), { method: 'POST', body: formData });
+        const data = await response.json();
+        console.log('Image analysis response:', data);
+        
+        // Don't train automatically - wait for user confirmation or correction
+        
+        let responseText = '';
+        if (data.address) {
+          responseText += `${data.address}\n`;
+        }
+        if (data.confidence) {
+          responseText += `Confidence: ${(data.confidence * 100).toFixed(1)}%\n`;
+        }
+        if (data.location) {
+          responseText += `\nCoordinates\nLat: ${data.location.latitude}\nLng: ${data.location.longitude}\n`;
+        }
+        if (data.weather) {
+          responseText += `\nWeather\nTemp: ${data.weather.temperature}°C\nHumidity: ${data.weather.humidity}%\nWind: ${data.weather.windSpeed} km/h\n`;
+        }
+        if (data.elevation) {
+          responseText += `\nElevation: ${data.elevation.elevation}m\n`;
+        }
+        if (data.nearbyPlaces && data.nearbyPlaces.length > 0) {
+          responseText += `\nNearby Places\n`;
+          data.nearbyPlaces.slice(0, 3).forEach((place: any) => {
+            responseText += `• ${place.name} (${place.distance}m)\n`;
+          });
+        }
+        
+        const aiMessage: Message = { 
+          id: (Date.now() + 1).toString(), 
+          type: 'ai', 
+          text: responseText || 'Image analyzed successfully',
+          imageUri: currentImage,
+          locationData: data,
+          timestamp: new Date() 
+        };
+        setMessages(prev => [...prev, aiMessage]);
+        setLastImageData({ uri: currentImage, location: data.location });
+      } else {
       const url = getApiUrl(API_CONFIG.ENDPOINTS.AI_CHAT);
       console.log('Calling AI API:', url);
       
@@ -101,7 +246,7 @@ export default function AISearchScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           query: currentQuery,
-          conversationHistory: messages.slice(-6).map(m => ({ type: m.type, text: m.text })),
+          conversationHistory: messages.slice(-6).filter(m => m.text && m.text.trim()).map(m => ({ type: m.type, text: m.text })),
           userLocation: userLocation ? { latitude: userLocation.latitude, longitude: userLocation.longitude } : null
         }),
       });
@@ -114,6 +259,7 @@ export default function AISearchScreen() {
       
       // Decode all HTML entities
       const decodeHTML = (text: string) => {
+        if (!text || typeof text !== 'string') return '';
         return text
           .replace(/&quot;/g, '"')
           .replace(/&#39;/g, "'")
@@ -125,7 +271,7 @@ export default function AISearchScreen() {
           .replace(/\\"/g, '"');
       };
       
-      responseText = decodeHTML(responseText);
+      responseText = decodeHTML(responseText || '');
       
       // Extract response from nested JSON if present
       const jsonPattern = /\{[\s\S]*?"needsPlaceSearch"[\s\S]*?"response"\s*:\s*"([\s\S]*?)"[\s\S]*?\}/;
@@ -151,6 +297,7 @@ export default function AISearchScreen() {
       };
 
       setMessages(prev => [...prev, aiMessage]);
+      }
     } catch (err: any) {
       console.error('AI Chat error:', err);
       const errorMessage: Message = {
@@ -176,20 +323,20 @@ export default function AISearchScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>AI Assistant</Text>
-          <Text style={styles.headerSubtitle}>Find places instantly</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>NaviSense AI</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Smart location intelligence</Text>
         </View>
       </View>
 
       <KeyboardAvoidingView 
-        style={styles.chatContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={100}
+        style={[styles.chatContainer, { backgroundColor: colors.background }]}
+        behavior="padding"
+        keyboardVerticalOffset={0}
       >
         <ScrollView 
           ref={scrollViewRef}
@@ -200,27 +347,27 @@ export default function AISearchScreen() {
           {messages.length === 0 && (
             <Animated.View style={[styles.emptyState, { opacity: fadeAnim }]}>
               <View style={styles.logoContainer}>
-                <View style={styles.logoGradient}>
-                  <Ionicons name="sparkles" size={36} color="#fff" />
+                <View style={[styles.logoGradient, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Ionicons name="sparkles" size={36} color={colors.text} />
                 </View>
               </View>
-              <Text style={styles.emptyTitle}>Ask me anything</Text>
-              <Text style={styles.emptySubtitle}>I can help you find places, compare locations, get directions, and more</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>Ask me anything</Text>
+              <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>Find places, analyze images, or get location insights with AI-powered intelligence</Text>
               
               <View style={styles.suggestionsGrid}>
                 {suggestedQueries.map((item, idx) => (
                   <TouchableOpacity
                     key={idx}
-                    style={styles.suggestionCard}
+                    style={[styles.suggestionCard, { backgroundColor: colors.card, borderColor: colors.border }]}
                     onPress={() => {
                       setQuery(item.query);
                       setTimeout(() => handleSend(), 100);
                     }}
                   >
-                    <View style={styles.suggestionIcon}>
-                      <Ionicons name={item.icon as any} size={24} color="#fff" />
+                    <View style={[styles.suggestionIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                      <Ionicons name={item.icon as any} size={24} color={colors.text} />
                     </View>
-                    <Text style={styles.suggestionText}>{item.text}</Text>
+                    <Text style={[styles.suggestionText, { color: colors.text }]}>{item.text}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -234,8 +381,8 @@ export default function AISearchScreen() {
                 message.type === 'user' ? styles.userBubble : styles.aiBubble
               ]}>
                 {message.type === 'ai' && (
-                  <View style={styles.aiAvatar}>
-                    <Ionicons name="sparkles" size={12} color="#fff" />
+                  <View style={[styles.aiAvatar, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    <Ionicons name="sparkles" size={12} color={colors.text} />
                   </View>
                 )}
                 <View style={[
@@ -243,12 +390,27 @@ export default function AISearchScreen() {
                   message.type === 'user' && styles.userMessageContent
                 ]}>
                   {message.type === 'user' ? (
-                    <View style={styles.userMessageGradient}>
-                      <Text style={styles.userText}>{message.text}</Text>
+                    <View style={[styles.userMessageGradient, { backgroundColor: theme === 'dark' ? '#fff' : '#000' }]}>
+                      <Text style={[styles.userText, { color: theme === 'dark' ? '#000' : '#fff' }]}>{message.text}</Text>
                     </View>
                   ) : (
-                    <View style={styles.aiMessageBox}>
-                      <Text style={styles.aiText}>{message.text}</Text>
+                    <View style={[styles.aiMessageBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                      <Text style={[styles.aiText, { color: colors.text }]}>{message.text}</Text>
+                      {message.imageUri && (
+                        <Text style={[styles.correctionHint, { color: colors.textSecondary }]}>Not correct? Reply with: "Actually it's [correct address]"</Text>
+                      )}
+                      {message.locationData?.location && (
+                        <TouchableOpacity 
+                          style={[styles.viewMapButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+                          onPress={() => {
+                            const { latitude, longitude } = message.locationData.location;
+                            Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`);
+                          }}
+                        >
+                          <Ionicons name="map" size={16} color={colors.text} />
+                          <Text style={[styles.viewMapText, { color: colors.text }]}>View in Maps</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   )}
                 </View>
@@ -259,7 +421,7 @@ export default function AISearchScreen() {
                   {message.places.map((place, idx) => (
                     <TouchableOpacity
                       key={idx}
-                      style={styles.placeCard}
+                      style={[styles.placeCard, { backgroundColor: colors.card, borderColor: colors.border }]}
                       activeOpacity={0.7}
                       onPress={() => {
                         if (place.location) {
@@ -267,14 +429,14 @@ export default function AISearchScreen() {
                         }
                       }}
                     >
-                      <View style={styles.placeIconContainer}>
-                        <Ionicons name="location-sharp" size={20} color="#fff" />
+                      <View style={[styles.placeIconContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                        <Ionicons name="location-sharp" size={20} color={colors.text} />
                       </View>
                       
                       <View style={styles.placeInfo}>
-                        <Text style={styles.placeName} numberOfLines={1}>{place.name}</Text>
+                        <Text style={[styles.placeName, { color: colors.text }]} numberOfLines={1}>{place.name}</Text>
                         {place.address && (
-                          <Text style={styles.placeAddress} numberOfLines={2}>{place.address}</Text>
+                          <Text style={[styles.placeAddress, { color: colors.textSecondary }]} numberOfLines={2}>{place.address}</Text>
                         )}
                         
                         <View style={styles.placeMetaRow}>
@@ -293,7 +455,7 @@ export default function AISearchScreen() {
                       </View>
 
                       <View style={styles.arrowContainer}>
-                        <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                        <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
                       </View>
                     </TouchableOpacity>
                   ))}
@@ -304,25 +466,37 @@ export default function AISearchScreen() {
 
           {loading && (
             <View style={[styles.messageBubble, styles.aiBubble]}>
-              <View style={styles.aiAvatar}>
-                <Ionicons name="sparkles" size={12} color="#fff" />
+              <View style={[styles.aiAvatar, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Ionicons name="sparkles" size={12} color={colors.text} />
               </View>
-              <View style={styles.loadingContainer}>
-                <View style={styles.typingDot} />
-                <View style={[styles.typingDot, styles.typingDotDelay1]} />
-                <View style={[styles.typingDot, styles.typingDotDelay2]} />
+              <View style={[styles.loadingContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={[styles.typingDot, { backgroundColor: colors.textSecondary }]} />
+                <View style={[styles.typingDot, styles.typingDotDelay1, { backgroundColor: colors.textSecondary }]} />
+                <View style={[styles.typingDot, styles.typingDotDelay2, { backgroundColor: colors.textSecondary }]} />
               </View>
             </View>
           )}
         </ScrollView>
 
-        <View style={styles.inputContainer}>
-          <View style={styles.inputWrapper}>
-            <Ionicons name="search" size={20} color="#9ca3af" style={styles.searchIcon} />
+        <View style={[styles.inputContainer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+          {uploadedImage && (
+            <View style={styles.imagePreview}>
+              <Image source={{ uri: uploadedImage }} style={[styles.previewImage, { backgroundColor: colors.card }]} />
+              <TouchableOpacity onPress={() => setUploadedImage(null)} style={[styles.removeImage, { backgroundColor: colors.background }]}>
+                <Ionicons name="close-circle" size={20} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+          )}
+          <View style={styles.inputRow}>
+            <TouchableOpacity onPress={pickImage} style={[styles.uploadButton, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Ionicons name="image" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
             <TextInput
-              style={styles.input}
-              placeholder="Ask me anything about places..."
-              placeholderTextColor="#9ca3af"
+              style={[styles.input, { color: colors.text }]}
+              placeholder="Ask NaviSense AI anything..."
+              placeholderTextColor={colors.textSecondary}
               value={query}
               onChangeText={setQuery}
               onSubmitEditing={handleSend}
@@ -331,19 +505,20 @@ export default function AISearchScreen() {
             />
             {query.trim() && (
               <TouchableOpacity onPress={() => setQuery('')} style={styles.clearButton}>
-                <Ionicons name="close-circle" size={20} color="#9ca3af" />
+                <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             )}
           </View>
           <TouchableOpacity 
-            style={[styles.sendButton, (!query.trim() || loading) && styles.sendButtonDisabled]} 
+            style={[styles.sendButton, (!query.trim() && !uploadedImage || loading) && styles.sendButtonDisabled]} 
             onPress={handleSend}
-            disabled={!query.trim() || loading}
+            disabled={(!query.trim() && !uploadedImage) || loading}
           >
-            <View style={[styles.sendButtonGradient, { backgroundColor: query.trim() && !loading ? '#fff' : '#333' }]}>
-              <Ionicons name="arrow-up" size={20} color={query.trim() && !loading ? '#000' : '#6b7280'} />
+            <View style={[styles.sendButtonGradient, { backgroundColor: (query.trim() || uploadedImage) && !loading ? (theme === 'dark' ? '#fff' : '#000') : colors.border }]}>
+              <Ionicons name="arrow-up" size={20} color={(query.trim() || uploadedImage) && !loading ? (theme === 'dark' ? '#000' : '#fff') : colors.textSecondary} />
             </View>
           </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
       <Animated.View style={{ transform: [{ translateY: menuTranslateY }] }}>
@@ -382,6 +557,9 @@ const styles = StyleSheet.create({
   userText: { fontSize: 15, lineHeight: 22, color: '#000', fontFamily: 'LeagueSpartan_400Regular' },
   aiMessageBox: { backgroundColor: '#1a1a1a', paddingHorizontal: 18, paddingVertical: 12, borderRadius: 20, borderWidth: 1, borderColor: '#333' },
   aiText: { fontSize: 15, lineHeight: 24, color: '#e5e7eb', fontFamily: 'LeagueSpartan_400Regular' },
+  correctionHint: { fontSize: 12, color: '#6b7280', marginTop: 8, fontStyle: 'italic' },
+  viewMapButton: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#000', borderRadius: 8, alignSelf: 'flex-start', borderWidth: 1, borderColor: '#333' },
+  viewMapText: { fontSize: 13, color: '#fff', fontFamily: 'LeagueSpartan_600SemiBold' },
   loadingContainer: { flexDirection: 'row', backgroundColor: '#1a1a1a', paddingHorizontal: 18, paddingVertical: 12, borderRadius: 20, gap: 6, borderWidth: 1, borderColor: '#333' },
   typingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#6b7280' },
   typingDotDelay1: { opacity: 0.7 },
@@ -400,7 +578,12 @@ const styles = StyleSheet.create({
   closedDot: { backgroundColor: '#450a0a' },
   statusText: { fontSize: 11, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
   arrowContainer: { marginLeft: 8 },
-  inputContainer: { flexDirection: 'row', padding: 16, backgroundColor: '#000', borderTopWidth: 1, borderTopColor: '#1a1a1a', gap: 10, alignItems: 'center' },
+  inputContainer: { padding: 16, backgroundColor: '#000', borderTopWidth: 1, borderTopColor: '#1a1a1a' },
+  imagePreview: { marginBottom: 12, position: 'relative', alignSelf: 'flex-start' },
+  previewImage: { width: 80, height: 80, borderRadius: 12, backgroundColor: '#1a1a1a' },
+  removeImage: { position: 'absolute', top: -8, right: -8, backgroundColor: '#000', borderRadius: 10 },
+  inputRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  uploadButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#333' },
   inputWrapper: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a1a', borderRadius: 24, paddingHorizontal: 16, borderWidth: 1, borderColor: '#333' },
   searchIcon: { marginRight: 10 },
   input: { flex: 1, fontSize: 15, color: '#fff', paddingVertical: 0, height: 44 },

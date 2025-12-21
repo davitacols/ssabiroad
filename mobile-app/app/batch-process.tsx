@@ -260,15 +260,15 @@ export default function BatchProcessScreen() {
       <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       
       <LinearGradient
-        colors={['#000000', '#1a1a1a']}
+        colors={theme === 'dark' ? ['#000000', '#1a1a1a'] : ['#ffffff', '#f9fafb']}
         style={styles.header}
       >
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Batch Process</Text>
-          <Text style={styles.headerSubtitle}>Process multiple photos at once</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Batch Process</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Process multiple photos at once</Text>
         </View>
         {photos.length > 0 && (
           <TouchableOpacity onPress={() => { setPhotos([]); setResults([]); }}>

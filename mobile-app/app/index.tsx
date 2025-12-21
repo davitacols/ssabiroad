@@ -82,7 +82,7 @@ export default function HomeScreen() {
 
 
   const handleAISearchPress = () => {
-    addActivity('AI Search', 'Searched for places', '/ai-search');
+    addActivity('NaviSense AI', 'Used AI location intelligence', '/ai-search');
     router.push('/ai-search');
   };
 
@@ -127,35 +127,35 @@ export default function HomeScreen() {
       {/* Location Disclosure Modal */}
       <Modal visible={showDisclosure} transparent animationType="fade">
         <View style={styles.disclosureOverlay}>
-          <View style={styles.disclosureDialog}>
-            <View style={styles.disclosureHeader}>
+          <View style={[styles.disclosureDialog, { backgroundColor: colors.card }]}>
+            <View style={[styles.disclosureHeader, { borderBottomColor: colors.border }]}>
               <Ionicons name="location" size={48} color="#3b82f6" />
-              <Text style={styles.disclosureTitle}>Location Permission</Text>
+              <Text style={[styles.disclosureTitle, { color: colors.text }]}>Location Permission</Text>
             </View>
             <View style={styles.disclosureContent}>
-              <Text style={styles.disclosureHeading}>Why we need your location:</Text>
+              <Text style={[styles.disclosureHeading, { color: colors.text }]}>Why we need your location:</Text>
               <View style={styles.disclosureItem}>
                 <Ionicons name="navigate" size={20} color="#3b82f6" />
-                <Text style={styles.disclosureItemText}>Identify buildings and landmarks near you</Text>
+                <Text style={[styles.disclosureItemText, { color: colors.textSecondary }]}>Identify buildings and landmarks near you</Text>
               </View>
               <View style={styles.disclosureItem}>
                 <Ionicons name="map" size={20} color="#3b82f6" />
-                <Text style={styles.disclosureItemText}>Show nearby places (restaurants, banks, hospitals)</Text>
+                <Text style={[styles.disclosureItemText, { color: colors.textSecondary }]}>Show nearby places (restaurants, banks, hospitals)</Text>
               </View>
               <View style={styles.disclosureItem}>
                 <Ionicons name="camera" size={20} color="#3b82f6" />
-                <Text style={styles.disclosureItemText}>Extract GPS data from photos for location recognition</Text>
+                <Text style={[styles.disclosureItemText, { color: colors.textSecondary }]}>Extract GPS data from photos for location recognition</Text>
               </View>
-              <Text style={styles.disclosurePrivacy}>
+              <Text style={[styles.disclosurePrivacy, { color: colors.textTertiary }]}>
                 Your location data is used only for these features and is not shared with third parties.
               </Text>
             </View>
-            <View style={styles.disclosureButtons}>
-              <TouchableOpacity style={styles.declineButton} onPress={handleDeclineDisclosure}>
-                <Text style={styles.declineText}>Decline</Text>
+            <View style={[styles.disclosureButtons, { borderTopColor: colors.border }]}>
+              <TouchableOpacity style={[styles.declineButton, { borderColor: colors.border }]} onPress={handleDeclineDisclosure}>
+                <Text style={[styles.declineText, { color: colors.textSecondary }]}>Decline</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.acceptButton} onPress={handleAcceptDisclosure}>
-                <Text style={styles.acceptText}>Accept</Text>
+              <TouchableOpacity style={[styles.acceptButton, { backgroundColor: theme === 'dark' ? '#fff' : '#000' }]} onPress={handleAcceptDisclosure}>
+                <Text style={[styles.acceptText, { color: theme === 'dark' ? '#000' : '#fff' }]}>Accept</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -192,8 +192,8 @@ export default function HomeScreen() {
               <Ionicons name="sparkles" size={24} color={colors.text} />
             </View>
             <View style={styles.actionText}>
-              <Text style={[styles.actionTitle, { color: colors.text }]}>AI Search</Text>
-              <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Ask anything</Text>
+              <Text style={[styles.actionTitle, { color: colors.text }]}>NaviSense AI</Text>
+              <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Smart location intelligence</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
           </TouchableOpacity>
@@ -280,6 +280,17 @@ export default function HomeScreen() {
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
           </TouchableOpacity>
 
+          <TouchableOpacity style={[styles.toolCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => router.push('/help-desk')}>
+            <View style={[styles.toolIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <Ionicons name="help-circle" size={24} color="#8b5cf6" />
+            </View>
+            <View style={styles.toolText}>
+              <Text style={[styles.toolTitle, { color: colors.text }]}>Help & Support</Text>
+              <Text style={[styles.toolDesc, { color: colors.textSecondary }]}>Get help or contact us</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+          </TouchableOpacity>
+
         </View>
       </ScrollView>
       
@@ -291,19 +302,19 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   disclosureOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  disclosureDialog: { backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 400 },
-  disclosureHeader: { alignItems: 'center', padding: 24, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-  disclosureTitle: { fontSize: 24, fontWeight: 'bold', marginTop: 12, color: '#1f2937' },
+  disclosureDialog: { borderRadius: 16, width: '100%', maxWidth: 400 },
+  disclosureHeader: { alignItems: 'center', padding: 24, borderBottomWidth: 1 },
+  disclosureTitle: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', marginTop: 12 },
   disclosureContent: { padding: 24 },
-  disclosureHeading: { fontSize: 16, fontWeight: 'bold', marginBottom: 16, color: '#1f2937' },
+  disclosureHeading: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold', marginBottom: 16 },
   disclosureItem: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
-  disclosureItemText: { flex: 1, marginLeft: 12, fontSize: 14, color: '#4b5563', lineHeight: 20 },
-  disclosurePrivacy: { fontSize: 12, color: '#6b7280', marginTop: 16, lineHeight: 18, fontStyle: 'italic' },
-  disclosureButtons: { flexDirection: 'row', padding: 16, borderTopWidth: 1, borderTopColor: '#e5e7eb', gap: 12 },
-  declineButton: { flex: 1, padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#d1d5db', alignItems: 'center' },
-  declineText: { fontSize: 16, fontWeight: '600', color: '#6b7280' },
-  acceptButton: { flex: 1, padding: 16, borderRadius: 8, backgroundColor: '#3b82f6', alignItems: 'center' },
-  acceptText: { fontSize: 16, fontWeight: '600', color: '#fff' },
+  disclosureItemText: { flex: 1, marginLeft: 12, fontSize: 14, fontFamily: 'LeagueSpartan_400Regular', lineHeight: 20 },
+  disclosurePrivacy: { fontSize: 12, fontFamily: 'LeagueSpartan_400Regular', marginTop: 16, lineHeight: 18, fontStyle: 'italic' },
+  disclosureButtons: { flexDirection: 'row', padding: 16, borderTopWidth: 1, gap: 12 },
+  declineButton: { flex: 1, padding: 16, borderRadius: 8, borderWidth: 1, alignItems: 'center' },
+  declineText: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
+  acceptButton: { flex: 1, padding: 16, borderRadius: 8, alignItems: 'center' },
+  acceptText: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
   header: { backgroundColor: '#000', paddingTop: 60, paddingBottom: 32, paddingHorizontal: 24 },
   headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   themeToggle: { padding: 8 },

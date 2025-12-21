@@ -13,6 +13,7 @@ import { analyzeLocation } from '../services/api';
 import LocationPermissionDisclosure from '../components/LocationPermissionDisclosure';
 import { getMlApiUrl, API_CONFIG } from '../config/api';
 import { useTheme, getColors } from '../contexts/ThemeContext';
+import MenuBar from '../components/MenuBar';
 
 export default function ScannerScreen() {
   const router = useRouter();
@@ -561,29 +562,29 @@ export default function ScannerScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {!image && !result && (
           <View style={styles.emptyState}>
-            <View style={styles.emptyIcon}>
+            <View style={[styles.emptyIcon, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Ionicons name="camera-outline" size={48} color="#6b7280" />
             </View>
-            <Text style={styles.emptyTitle}>Scan a location</Text>
-            <Text style={styles.emptySubtitle}>Take a photo or choose from gallery to identify any location</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>Scan a location</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>Take a photo or choose from gallery to identify any location</Text>
           </View>
         )}
 
         <View style={styles.actionSection}>
-          <TouchableOpacity style={styles.primaryAction} onPress={handleTakePhoto}>
-            <Ionicons name="camera" size={20} color="#fff" style={styles.actionIconLeft} />
-            <Text style={styles.primaryActionText}>Take Photo</Text>
+          <TouchableOpacity style={[styles.primaryAction, { backgroundColor: theme === 'dark' ? '#fff' : '#000' }]} onPress={handleTakePhoto}>
+            <Ionicons name="camera" size={20} color={theme === 'dark' ? '#000' : '#fff'} style={styles.actionIconLeft} />
+            <Text style={[styles.primaryActionText, { color: theme === 'dark' ? '#000' : '#fff' }]}>Take Photo</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.secondaryAction} onPress={handlePickImage}>
-            <Ionicons name="images" size={20} color="#000" style={styles.actionIconLeft} />
-            <Text style={styles.secondaryActionText}>Choose from Gallery</Text>
+          <TouchableOpacity style={[styles.secondaryAction, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handlePickImage}>
+            <Ionicons name="images" size={20} color={colors.text} style={styles.actionIconLeft} />
+            <Text style={[styles.secondaryActionText, { color: colors.text }]}>Choose from Gallery</Text>
           </TouchableOpacity>
         </View>
 
         {image && (
           <View style={styles.imageSection}>
-            <Image source={{ uri: image }} style={styles.selectedImage} />
+            <Image source={{ uri: image }} style={[styles.selectedImage, { backgroundColor: colors.card }]} />
             {!loading && !result && (
               <View style={styles.imageOverlay}>
                 <ActivityIndicator size="large" color="#fff" />
@@ -593,19 +594,19 @@ export default function ScannerScreen() {
         )}
 
         {loading && (
-          <View style={styles.loadingCard}>
-            <ActivityIndicator size="small" color="#fff" />
-            <Text style={styles.loadingText}>Analyzing...</Text>
+          <View style={[styles.loadingCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <ActivityIndicator size="small" color={colors.text} />
+            <Text style={[styles.loadingText, { color: colors.text }]}>Analyzing...</Text>
           </View>
         )}
 
         {result && (
           <View style={styles.resultSection}>
             {result.error ? (
-              <View style={styles.errorCard}>
+              <View style={[styles.errorCard, { backgroundColor: colors.card }]}>
                 <Ionicons name="alert-circle" size={48} color="#ef4444" style={styles.errorIcon} />
                 <Text style={styles.errorTitle}>No Location Data</Text>
-                <Text style={styles.errorText}>{result.error}</Text>
+                <Text style={[styles.errorText, { color: colors.textSecondary }]}>{result.error}</Text>
                 <View style={styles.errorTips}>
                   <Text style={styles.errorTipsTitle}>Tips:</Text>
                   <Text style={styles.errorTip}>• Enable location services on your device</Text>
@@ -615,39 +616,39 @@ export default function ScannerScreen() {
               </View>
             ) : (
               <>
-                <View style={styles.locationCard}>
+                <View style={[styles.locationCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <View style={styles.locationHeader}>
-                    <Ionicons name="location" size={24} color="#000" />
+                    <Ionicons name="location" size={24} color={colors.text} />
                     <View style={styles.locationInfo}>
-                      <Text style={styles.locationName}>{result.name || 'Location Found'}</Text>
+                      <Text style={[styles.locationName, { color: colors.text }]}>{result.name || 'Location Found'}</Text>
                       {result.address && (
-                        <Text style={styles.locationAddress}>{result.address}</Text>
+                        <Text style={[styles.locationAddress, { color: colors.textSecondary }]}>{result.address}</Text>
                       )}
                     </View>
                   </View>
 
                   {result.confidence && (
-                    <View style={styles.confidenceSection}>
+                    <View style={[styles.confidenceSection, { backgroundColor: colors.background, borderColor: colors.border }]}>
                       <View style={styles.confidenceHeader}>
-                        <Text style={styles.confidenceLabel}>Confidence Score</Text>
-                        <Text style={styles.confidenceValue}>{Math.round(result.confidence * 100)}%</Text>
+                        <Text style={[styles.confidenceLabel, { color: colors.textSecondary }]}>Confidence Score</Text>
+                        <Text style={[styles.confidenceValue, { color: colors.text }]}>{Math.round(result.confidence * 100)}%</Text>
                       </View>
-                      <View style={styles.confidenceBar}>
-                        <View style={[styles.confidenceFill, { width: `${result.confidence * 100}%` }]} />
+                      <View style={[styles.confidenceBar, { backgroundColor: colors.border }]}>
+                        <View style={[styles.confidenceFill, { width: `${result.confidence * 100}%`, backgroundColor: theme === 'dark' ? '#fff' : '#000' }]} />
                       </View>
                     </View>
                   )}
                 </View>
 
                 {result.location && (
-                  <View style={styles.detailsCard}>
+                  <View style={[styles.detailsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <Text style={styles.cardTitle}>Location Data</Text>
-                    <View style={styles.coordinatesBox}>
+                    <View style={[styles.coordinatesBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
                       <View style={styles.dataRow}>
                         <Ionicons name="navigate-outline" size={16} color="#6b7280" />
-                        <Text style={styles.dataLabel}>Coordinates</Text>
+                        <Text style={[styles.dataLabel, { color: colors.textSecondary }]}>Coordinates</Text>
                       </View>
-                      <Text style={styles.coordinatesText}>
+                      <Text style={[styles.coordinatesText, { color: colors.text }]}>
                         {result.location.latitude.toFixed(6)}, {result.location.longitude.toFixed(6)}
                       </Text>
                     </View>
@@ -887,11 +888,11 @@ export default function ScannerScreen() {
                   </View>
                 )}
 
-                <View style={styles.actionsCard}>
+                <View style={[styles.actionsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <Text style={styles.cardTitle}>Quick Actions</Text>
                   <View style={styles.actionsGrid}>
                     <TouchableOpacity 
-                      style={styles.actionButton}
+                      style={[styles.actionButton, { backgroundColor: colors.background, borderColor: colors.border }]}
                       onPress={() => {
                         if (result.location) {
                           const url = `https://www.google.com/maps/dir/?api=1&destination=${result.location.latitude},${result.location.longitude}`;
@@ -899,18 +900,18 @@ export default function ScannerScreen() {
                         }
                       }}
                     >
-                      <Ionicons name="navigate" size={18} color="#000" />
-                      <Text style={styles.actionText}>Navigate</Text>
+                      <Ionicons name="navigate" size={18} color={colors.text} />
+                      <Text style={[styles.actionText, { color: colors.text }]}>Navigate</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.actionButton, isSaved && styles.actionButtonActive]}
+                      style={[styles.actionButton, { backgroundColor: isSaved ? (theme === 'dark' ? '#fff' : '#000') : colors.background, borderColor: isSaved ? (theme === 'dark' ? '#fff' : '#000') : colors.border }]}
                       onPress={handleSave}
                     >
-                      <Ionicons name={isSaved ? "bookmark" : "bookmark-outline"} size={18} color={isSaved ? "#fff" : "#000"} />
-                      <Text style={[styles.actionText, isSaved && styles.actionTextActive]}>{isSaved ? 'Saved' : 'Save'}</Text>
+                      <Ionicons name={isSaved ? "bookmark" : "bookmark-outline"} size={18} color={isSaved ? (theme === 'dark' ? '#000' : '#fff') : colors.text} />
+                      <Text style={[styles.actionText, { color: isSaved ? (theme === 'dark' ? '#000' : '#fff') : colors.text }]}>{isSaved ? 'Saved' : 'Save'}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={styles.actionButton}
+                      style={[styles.actionButton, { backgroundColor: colors.background, borderColor: colors.border }]}
                       onPress={() => {
                         if (result.location) {
                           router.push({
@@ -920,11 +921,11 @@ export default function ScannerScreen() {
                         }
                       }}
                     >
-                      <Ionicons name="share-social" size={18} color="#000" />
-                      <Text style={styles.actionText}>Share</Text>
+                      <Ionicons name="share-social" size={18} color={colors.text} />
+                      <Text style={[styles.actionText, { color: colors.text }]}>Share</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={styles.actionButton}
+                      style={[styles.actionButton, { backgroundColor: colors.background, borderColor: colors.border }]}
                       onPress={() => {
                         if (result.location) {
                           const url = `https://www.google.com/maps/@${result.location.latitude},${result.location.longitude},18z`;
@@ -932,8 +933,8 @@ export default function ScannerScreen() {
                         }
                       }}
                     >
-                      <Ionicons name="globe" size={18} color="#000" />
-                      <Text style={styles.actionText}>Satellite</Text>
+                      <Ionicons name="globe" size={18} color={colors.text} />
+                      <Text style={[styles.actionText, { color: colors.text }]}>Satellite</Text>
                     </TouchableOpacity>
                   </View>
                   <View style={styles.shareOptionsGrid}>
@@ -1329,6 +1330,7 @@ export default function ScannerScreen() {
         onAccept={handleAcceptDisclosure}
         onDecline={handleDeclineDisclosure}
       />
+      <MenuBar />
     </SafeAreaView>
   );
 }
@@ -1341,46 +1343,46 @@ const styles = StyleSheet.create({
   clearButton: { padding: 4 },
   content: { flex: 1 },
   emptyState: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 40 },
-  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center', marginBottom: 20, borderWidth: 1, borderColor: '#333' },
-  emptyTitle: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 8 },
-  emptySubtitle: { fontSize: 15, color: '#9ca3af', textAlign: 'center', lineHeight: 22 },
+  emptyIcon: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 20, borderWidth: 1 },
+  emptyTitle: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', marginBottom: 8 },
+  emptySubtitle: { fontSize: 15, textAlign: 'center', lineHeight: 22 },
   actionSection: { padding: 20, gap: 12 },
-  primaryAction: { backgroundColor: '#fff', borderRadius: 12, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  primaryActionText: { color: '#000', fontSize: 16, fontFamily: 'LeagueSpartan_700Bold' },
-  secondaryAction: { backgroundColor: '#1a1a1a', borderRadius: 12, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#333' },
-  secondaryActionText: { color: '#fff', fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
+  primaryAction: { borderRadius: 12, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  primaryActionText: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold' },
+  secondaryAction: { borderRadius: 12, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  secondaryActionText: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
   actionIconLeft: { marginRight: 8 },
   imageSection: { margin: 20, borderRadius: 16, overflow: 'hidden', position: 'relative' },
-  selectedImage: { width: '100%', height: 280, backgroundColor: '#1a1a1a', borderRadius: 16 },
+  selectedImage: { width: '100%', height: 280, borderRadius: 16 },
   imageOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' },
-  loadingCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a1a', margin: 20, padding: 16, borderRadius: 12, gap: 12, borderWidth: 1, borderColor: '#333' },
-  loadingText: { fontSize: 15, color: '#fff', fontFamily: 'LeagueSpartan_600SemiBold' },
+  loadingCard: { flexDirection: 'row', alignItems: 'center', margin: 20, padding: 16, borderRadius: 12, gap: 12, borderWidth: 1 },
+  loadingText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold' },
   resultSection: { padding: 20 },
-  errorCard: { backgroundColor: '#1a1a1a', borderRadius: 16, padding: 24, borderWidth: 1, borderColor: '#7f1d1d', alignItems: 'center' },
+  errorCard: { borderRadius: 16, padding: 24, borderWidth: 1, borderColor: '#7f1d1d', alignItems: 'center' },
   errorIcon: { marginBottom: 16 },
   errorTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', color: '#ef4444', marginBottom: 12, textAlign: 'center' },
-  errorText: { fontSize: 15, color: '#9ca3af', textAlign: 'center', marginBottom: 20, lineHeight: 22 },
+  errorText: { fontSize: 15, textAlign: 'center', marginBottom: 20, lineHeight: 22 },
   errorTips: { backgroundColor: '#450a0a', borderRadius: 12, padding: 16, width: '100%', borderWidth: 1, borderColor: '#7f1d1d' },
   errorTipsTitle: { fontSize: 14, fontFamily: 'LeagueSpartan_700Bold', color: '#ef4444', marginBottom: 12 },
   errorTip: { fontSize: 13, color: '#d1d5db', marginBottom: 6, lineHeight: 20 },
-  locationCard: { backgroundColor: '#1a1a1a', borderRadius: 16, padding: 24, marginBottom: 16, borderWidth: 1, borderColor: '#333' },
+  locationCard: { borderRadius: 16, padding: 24, marginBottom: 16, borderWidth: 1 },
   locationHeader: { flexDirection: 'row', gap: 16, marginBottom: 20 },
   locationInfo: { flex: 1 },
-  locationName: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 6 },
-  locationAddress: { fontSize: 15, color: '#9ca3af', lineHeight: 22 },
-  confidenceSection: { backgroundColor: '#000', borderRadius: 12, padding: 16, marginTop: 16, borderWidth: 1, borderColor: '#333' },
+  locationName: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', marginBottom: 6 },
+  locationAddress: { fontSize: 15, lineHeight: 22 },
+  confidenceSection: { borderRadius: 12, padding: 16, marginTop: 16, borderWidth: 1 },
   confidenceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  confidenceLabel: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold', color: '#9ca3af' },
-  confidenceValue: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold', color: '#fff' },
-  confidenceBar: { height: 6, backgroundColor: '#333', borderRadius: 3, overflow: 'hidden' },
-  confidenceFill: { height: '100%', backgroundColor: '#fff', borderRadius: 3 },
-  detailsCard: { backgroundColor: '#1a1a1a', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#333' },
+  confidenceLabel: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold' },
+  confidenceValue: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold' },
+  confidenceBar: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  confidenceFill: { height: '100%', borderRadius: 3 },
+  detailsCard: { borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1 },
   cardTitle: { fontSize: 13, fontFamily: 'LeagueSpartan_700Bold', color: '#6b7280', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
-  coordinatesBox: { backgroundColor: '#000', borderRadius: 8, padding: 16, borderWidth: 1, borderColor: '#333', marginBottom: 8 },
+  coordinatesBox: { borderRadius: 8, padding: 16, borderWidth: 1, marginBottom: 8 },
   dataRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  dataLabel: { fontSize: 12, color: '#9ca3af' },
-  coordinatesText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
-  dataValue: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
+  dataLabel: { fontSize: 12 },
+  coordinatesText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold' },
+  dataValue: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
   infoBox: { backgroundColor: '#000', borderRadius: 8, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: '#333' },
   infoLabel: { fontSize: 12, color: '#9ca3af', marginBottom: 4 },
   infoValue: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
@@ -1437,12 +1439,12 @@ const styles = StyleSheet.create({
   forecastDate: { fontSize: 11, fontFamily: 'LeagueSpartan_600SemiBold', color: '#a3a3a3', marginBottom: 8 },
   forecastTemp: { fontSize: 18, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 4 },
   forecastDesc: { fontSize: 10, color: '#737373', textAlign: 'center', textTransform: 'capitalize', fontFamily: 'LeagueSpartan_400Regular' },
-  actionsCard: { backgroundColor: '#1a1a1a', borderRadius: 16, padding: 20, marginBottom: 80, borderWidth: 1, borderColor: '#333' },
+  actionsCard: { borderRadius: 16, padding: 20, marginBottom: 80, borderWidth: 1 },
   actionsGrid: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  actionButton: { flex: 1, backgroundColor: '#000', borderRadius: 10, padding: 14, alignItems: 'center', gap: 4, borderWidth: 1, borderColor: '#333' },
-  actionButtonActive: { backgroundColor: '#fff', borderColor: '#fff' },
-  actionText: { fontSize: 12, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
-  actionTextActive: { color: '#000' },
+  actionButton: { flex: 1, borderRadius: 10, padding: 14, alignItems: 'center', gap: 4, borderWidth: 1 },
+  actionButtonActive: { },
+  actionText: { fontSize: 12, fontFamily: 'LeagueSpartan_600SemiBold' },
+  actionTextActive: { },
   shareOptionsGrid: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   shareOption: { flex: 1, backgroundColor: '#000', borderRadius: 10, padding: 12, alignItems: 'center', gap: 6, borderWidth: 1, borderColor: '#333' },
   shareOptionText: { fontSize: 11, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },

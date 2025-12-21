@@ -285,3 +285,21 @@ model CommentLike {
   @@unique([userId, commentId])
   @@index([commentId])
 }
+
+model TrainingQueue {
+  id          String   @id @default(cuid())
+  imageUrl    String
+  address     String
+  latitude    Float
+  longitude   Float
+  deviceId    String
+  status      String   @default("PENDING")
+  processedAt DateTime?
+  error       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([deviceId])
+  @@index([createdAt])
+}

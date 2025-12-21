@@ -8,6 +8,7 @@ import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NearbyPoiService } from '../services/nearbyPoi';
 import LocationPermissionDisclosure from '../components/LocationPermissionDisclosure';
+import MenuBar from '../components/MenuBar';
 import { useTheme, getColors } from '../contexts/ThemeContext';
 
 export default function NearbyPoi() {
@@ -242,7 +243,7 @@ export default function NearbyPoi() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       
       {initialLoading && (
         <View style={styles.loadingOverlay}>
@@ -251,20 +252,20 @@ export default function NearbyPoi() {
         </View>
       )}
 
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>Back</Text>
+          <Text style={[styles.backText, { color: colors.text }]}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nearby</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Nearby</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.searchSection}>
+        <View style={[styles.searchSection, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
           <View style={styles.searchContainer}>
-            <View style={styles.searchInputContainer}>
-              <View style={styles.searchDot} />
+            <View style={[styles.searchInputContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={[styles.searchDot, { backgroundColor: colors.text }]} />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: colors.text }]}
                 placeholder="Search addresses, places..."
                 value={searchQuery}
                 onChangeText={(text) => {
@@ -273,30 +274,30 @@ export default function NearbyPoi() {
                 }}
                 onSubmitEditing={handleSearch}
                 returnKeyType="search"
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.textSecondary}
               />
             </View>
             {searchQuery ? (
               <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
-                <Text style={styles.clearText}>Clear</Text>
+                <Text style={[styles.clearText, { color: colors.textSecondary }]}>Clear</Text>
               </TouchableOpacity>
             ) : null}
           </View>
         </View>
 
         {showAutocomplete && autocompleteSuggestions.length > 0 && (
-          <View style={styles.autocompleteSection}>
+          <View style={[styles.autocompleteSection, { backgroundColor: colors.background }]}>
             {autocompleteSuggestions.slice(0, 5).map((suggestion, index) => (
               <TouchableOpacity
                 key={suggestion.place_id || index}
-                style={styles.autocompleteItem}
+                style={[styles.autocompleteItem, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
                 onPress={() => {
                   setSearchQuery(suggestion.description);
                   setShowAutocomplete(false);
                   searchPlaces(suggestion.description);
                 }}
               >
-                <Text style={styles.autocompleteText}>{suggestion.description}</Text>
+                <Text style={[styles.autocompleteText, { color: colors.text }]}>{suggestion.description}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -304,14 +305,14 @@ export default function NearbyPoi() {
 
         {searchResults.length > 0 && (
           <View style={styles.resultsSection}>
-            <Text style={styles.sectionTitle}>Search Results</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Search Results</Text>
             {searchResults.map((place, index) => (
-              <TouchableOpacity key={place.id || index} style={styles.placeCard} onPress={() => handlePlacePress(place)}>
+              <TouchableOpacity key={place.id || index} style={[styles.placeCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => handlePlacePress(place)}>
                 <View style={styles.placeContent}>
-                  <Text style={styles.placeName}>{place.name}</Text>
-                  <Text style={styles.placeAddress}>{place.vicinity || place.address}</Text>
+                  <Text style={[styles.placeName, { color: colors.text }]}>{place.name}</Text>
+                  <Text style={[styles.placeAddress, { color: colors.textSecondary }]}>{place.vicinity || place.address}</Text>
                   {place.distance && (
-                    <Text style={styles.placeDistance}>{place.distance.toFixed(1)} km away</Text>
+                    <Text style={[styles.placeDistance, { color: colors.text }]}>{place.distance.toFixed(1)} km away</Text>
                   )}
                 </View>
               </TouchableOpacity>
@@ -321,8 +322,8 @@ export default function NearbyPoi() {
 
         {searchResults.length === 0 && (
           <>
-            <View style={styles.categoriesSection}>
-              <Text style={styles.sectionTitle}>Categories</Text>
+            <View style={[styles.categoriesSection, { backgroundColor: colors.background }]}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Categories</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
                 {placeTypes.map((type) => (
                   <TouchableOpacity
@@ -330,12 +331,14 @@ export default function NearbyPoi() {
                     onPress={() => handleTypeChange(type.key)}
                     style={[
                       styles.categoryChip,
-                      selectedType === type.key && styles.categoryChipActive
+                      { backgroundColor: colors.card, borderColor: colors.border },
+                      selectedType === type.key && { backgroundColor: colors.text, borderColor: colors.text }
                     ]}
                   >
                     <Text style={[
                       styles.categoryText,
-                      selectedType === type.key && styles.categoryTextActive
+                      { color: colors.textSecondary },
+                      selectedType === type.key && { color: colors.background }
                     ]}>
                       {type.label}
                     </Text>
@@ -345,20 +348,20 @@ export default function NearbyPoi() {
             </View>
 
             {loading && (
-              <View style={styles.loadingSection}>
-                <ActivityIndicator size="small" color="#fff" />
-                <Text style={styles.loadingText}>Loading places...</Text>
+              <View style={[styles.loadingSection, { backgroundColor: colors.background }]}>
+                <ActivityIndicator size="small" color={colors.text} />
+                <Text style={[styles.loadingText, { color: colors.text }]}>Loading places...</Text>
               </View>
             )}
 
             {!loading && places.length > 0 && (
               <View style={styles.placesSection}>
-                <Text style={styles.sectionTitle}>{places.length} places nearby</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>{places.length} places nearby</Text>
                 {places.map((place, index) => (
-                  <TouchableOpacity key={place.id} style={styles.placeCard} onPress={() => handlePlacePress(place)}>
+                  <TouchableOpacity key={place.id} style={[styles.placeCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => handlePlacePress(place)}>
                     <View style={styles.placeContent}>
                       <View style={styles.placeTop}>
-                        <Text style={styles.placeName}>{place.name}</Text>
+                        <Text style={[styles.placeName, { color: colors.text }]}>{place.name}</Text>
                         {place.openNow !== undefined && (
                           <View style={[styles.statusBadge, { backgroundColor: place.openNow ? '#dcfce7' : '#fef2f2' }]}>
                             <Text style={[styles.statusText, { color: place.openNow ? '#16a34a' : '#dc2626' }]}>
@@ -367,11 +370,11 @@ export default function NearbyPoi() {
                           </View>
                         )}
                       </View>
-                      <Text style={styles.placeAddress}>{place.vicinity}</Text>
+                      <Text style={[styles.placeAddress, { color: colors.textSecondary }]}>{place.vicinity}</Text>
                       <View style={styles.placeMetrics}>
-                        <Text style={styles.placeDistance}>{place.distance.toFixed(1)} km</Text>
+                        <Text style={[styles.placeDistance, { color: colors.text }]}>{place.distance.toFixed(1)} km</Text>
                         {place.rating && (
-                          <Text style={styles.placeRating}>★ {place.rating}</Text>
+                          <Text style={[styles.placeRating, { color: colors.text }]}>★ {place.rating}</Text>
                         )}
                       </View>
                     </View>
@@ -463,6 +466,7 @@ export default function NearbyPoi() {
         onAccept={handleAcceptDisclosure}
         onDecline={handleDeclineDisclosure}
       />
+      <MenuBar />
     </SafeAreaView>
   );
 }

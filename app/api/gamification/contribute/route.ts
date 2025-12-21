@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { put } from '@vercel/blob';
 
 const ML_API_URL = process.env.ML_API_URL || 'http://34.224.33.158:8000';
 
@@ -32,7 +33,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Send to ML API
+    console.log('Upload request:', { latitude, longitude, address, deviceId });
+
+    // Upload image to Vercel Blob
+    console.log('Uploading to blob storage...');
+    const blob = await put(`training/${deviceId}/${Date.now()}-${file.name}`, file, {
+      access: 'public',
+    });
+    console.log('Blob uploaded:', blob.url);
+
+    // Queue for ML training
+    console.log('Creating queue entry...');
+    const queueEntry = await prisma.trainingQueue.create({
+      data: {
+        imageUrl: blob.url,
+        address: address || 'Unknown',
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
+        deviceId,
+        status: 'PENDING'
+      }
+    });
+    console.log('Queue entry created:', queueEntry.id);
+
+    // Send to ML API asynchronously (don't await)
     const mlFormData = new FormData();
     mlFormData.append('file', file);
     mlFormData.append('latitude', latitude);
@@ -44,12 +68,30 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     }));
 
-    await fetch(`${ML_API_URL}/train`, {
+    fetch(`${ML_API_URL}/train`, {
       method: 'POST',
       body: mlFormData
+    }).then(async (res) => {
+      if (res.ok) {
+        await prisma.trainingQueue.update({
+          where: { id: queueEntry.id },
+          data: { status: 'PROCESSED', processedAt: new Date() }
+        });
+      } else {
+        await prisma.trainingQueue.update({
+          where: { id: queueEntry.id },
+          data: { status: 'FAILED', error: await res.text() }
+        });
+      }
+    }).catch(async (err) => {
+      await prisma.trainingQueue.update({
+        where: { id: queueEntry.id },
+        data: { status: 'FAILED', error: err.message }
+      });
     });
 
     // Award points using deviceId
+    console.log('Finding contributor...');
     let contributor = await prisma.user.findFirst({
       where: { email: deviceId },
       select: {
@@ -61,6 +103,7 @@ export async function POST(request: NextRequest) {
         streak: true
       }
     });
+    console.log('Contributor found:', !!contributor);
 
     if (!contributor) {
       contributor = await prisma.user.create({
@@ -148,7 +191,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Upload error:', error);
+    return NextResponse.json({ error: error.message, stack: error.stack }, { status: 500 });
   }
 }
 

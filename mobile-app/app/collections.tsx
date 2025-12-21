@@ -6,9 +6,12 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
+import { useTheme, getColors } from '../contexts/ThemeContext';
 
 export default function CollectionsScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const colors = getColors(theme);
   const [collections, setCollections] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [newName, setNewName] = useState('');
@@ -107,38 +110,38 @@ export default function CollectionsScreen() {
     });
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       
       <LinearGradient
-        colors={['#000000', '#1a1a1a']}
+        colors={theme === 'dark' ? ['#000000', '#1a1a1a'] : ['#ffffff', '#f9fafb']}
         style={styles.header}
       >
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Collections</Text>
-            <Text style={styles.headerSubtitle}>{collections.length} collection{collections.length !== 1 ? 's' : ''}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Collections</Text>
+            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{collections.length} collection{collections.length !== 1 ? 's' : ''}</Text>
           </View>
-          <TouchableOpacity onPress={() => setShowModal(true)} style={styles.addButton}>
-            <Ionicons name="add" size={24} color="#fff" />
+          <TouchableOpacity onPress={() => setShowModal(true)} style={[styles.addButton, { backgroundColor: colors.card }]}>
+            <Ionicons name="add" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
 
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color="#9ca3af" />
+        <View style={[styles.searchBar, { backgroundColor: colors.card }]}>
+          <Ionicons name="search" size={20} color={colors.textSecondary} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search collections..."
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color="#9ca3af" />
+              <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>

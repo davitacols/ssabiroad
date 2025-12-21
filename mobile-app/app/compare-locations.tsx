@@ -3,9 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme, getColors } from '../contexts/ThemeContext';
 
 export default function CompareLocationsScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const colors = getColors(theme);
   const [savedLocations, setSavedLocations] = useState<any[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<any[]>([]);
   const [comparisonData, setComparisonData] = useState<any[]>([]);
@@ -65,14 +68,14 @@ export default function CompareLocationsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.card }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Compare Locations</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Compare Locations</Text>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{selectedLocations.length}/3</Text>
         </View>

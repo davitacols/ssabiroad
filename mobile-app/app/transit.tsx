@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, SafeAreaView, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useFonts, LeagueSpartan_400Regular, LeagueSpartan_700Bold } from '@expo-google-fonts/league-spartan';
 import { useRouter } from 'expo-router';
+import { useTheme, getColors } from '../contexts/ThemeContext';
 
 const API_URL = 'https://ssabiroad.vercel.app/api';
 const GOOGLE_API_KEY = 'AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho';
 
 export default function Transit() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const colors = getColors(theme);
   const [fontsLoaded] = useFonts({ LeagueSpartan_400Regular, LeagueSpartan_700Bold });
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
@@ -126,18 +129,20 @@ export default function Transit() {
   if (!fontsLoaded) return null;
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
+        <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: colors.card }]}>
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <View>
-          <Text style={styles.title}>Transit Directions</Text>
-          <Text style={styles.subtitle}>Plan your journey</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Transit Directions</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Plan your journey</Text>
         </View>
       </View>
 
-      <View style={styles.searchCard}>
+      <View style={[styles.searchCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View>
           <View style={styles.inputContainer}>
             <Ionicons name="location" size={20} color="#666" style={styles.icon} />
@@ -305,6 +310,7 @@ export default function Transit() {
         </View>
       )}
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
