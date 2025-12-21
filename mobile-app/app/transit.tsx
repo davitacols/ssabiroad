@@ -5,6 +5,7 @@ import * as Location from 'expo-location';
 import { useFonts, LeagueSpartan_400Regular, LeagueSpartan_700Bold } from '@expo-google-fonts/league-spartan';
 import { useRouter } from 'expo-router';
 import { useTheme, getColors } from '../contexts/ThemeContext';
+import MenuBar from '../components/MenuBar';
 
 const API_URL = 'https://ssabiroad.vercel.app/api';
 const GOOGLE_API_KEY = 'AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho';
@@ -310,6 +311,7 @@ export default function Transit() {
         </View>
       )}
     </ScrollView>
+    <MenuBar />
     </SafeAreaView>
   );
 }
@@ -431,6 +433,7 @@ const styles = StyleSheet.create({
   },
   routesContainer: {
     padding: 16,
+    paddingBottom: 100,
   },
   routesTitle: {
     fontSize: 18,

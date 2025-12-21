@@ -4638,7 +4638,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       if (data.latitude && data.longitude) {
         return {
           success: true,
-          name: data.location_name || 'ML Predicted Location',
+          name: data.location_name || 'NaviSense - ML',
           location: { latitude: data.latitude, longitude: data.longitude },
           confidence: data.confidence || 0.85,
           method: 'navisense-ml',

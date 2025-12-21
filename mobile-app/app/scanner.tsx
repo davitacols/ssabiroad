@@ -42,6 +42,8 @@ export default function ScannerScreen() {
   const [showInsights, setShowInsights] = useState(false);
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
   const [trainingModel, setTrainingModel] = useState(false);
+  const [showCorrectionModal, setShowCorrectionModal] = useState(false);
+  const [correctedAddress, setCorrectedAddress] = useState('');
   const cameraRef = useRef<any>(null);
 
   const [showDisclosure, setShowDisclosure] = useState(false);
@@ -129,6 +131,55 @@ export default function ScannerScreen() {
     } catch (error: any) {
       console.error('Training error:', error);
       Alert.alert('Error', `${error.message}\n\nCheck console for details`);
+    } finally {
+      setTrainingModel(false);
+    }
+  };
+
+  const handleCorrection = async () => {
+    if (!correctedAddress.trim() || !image) return;
+    
+    setTrainingModel(true);
+    try {
+      // Geocode the corrected address
+      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(correctedAddress)}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho`;
+      const geocodeRes = await fetch(geocodeUrl);
+      const geocodeData = await geocodeRes.json();
+      
+      if (!geocodeData.results?.[0]) {
+        Alert.alert('Invalid Address', 'Could not find coordinates for this address');
+        setTrainingModel(false);
+        return;
+      }
+      
+      const location = geocodeData.results[0].geometry.location;
+      
+      // Train model with corrected data
+      const formData = new FormData();
+      formData.append('file', {
+        uri: image,
+        type: 'image/jpeg',
+        name: 'location.jpg',
+      } as any);
+      formData.append('latitude', location.lat.toString());
+      formData.append('longitude', location.lng.toString());
+      formData.append('label', correctedAddress);
+
+      const response = await fetch('http://34.224.33.158:8000/train', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        Alert.alert('Success', 'Thank you for the correction! Our AI will learn from this.');
+        setShowCorrectionModal(false);
+        setCorrectedAddress('');
+      } else {
+        Alert.alert('Error', 'Failed to submit correction');
+      }
+    } catch (error: any) {
+      console.error('Correction error:', error);
+      Alert.alert('Error', 'Failed to submit correction');
     } finally {
       setTrainingModel(false);
     }
@@ -626,6 +677,14 @@ export default function ScannerScreen() {
                       )}
                     </View>
                   </View>
+
+                  <TouchableOpacity 
+                    style={styles.reportButtonInline}
+                    onPress={() => setShowCorrectionModal(true)}
+                  >
+                    <Ionicons name="flag-outline" size={16} color="#ef4444" />
+                    <Text style={styles.reportButtonInlineText}>Report Incorrect</Text>
+                  </TouchableOpacity>
 
                   {result.confidence && (
                     <View style={[styles.confidenceSection, { backgroundColor: colors.background, borderColor: colors.border }]}>
@@ -1325,6 +1384,45 @@ export default function ScannerScreen() {
         </View>
       </Modal>
 
+      <Modal visible={showCorrectionModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Report Incorrect Location</Text>
+              <TouchableOpacity onPress={() => { setShowCorrectionModal(false); setCorrectedAddress(''); }}>
+                <Ionicons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.notesInputGroup}>
+              <Text style={styles.notesLabel}>Correct Address</Text>
+              <TextInput
+                style={styles.notesInput}
+                placeholder="Enter the correct address..."
+                value={correctedAddress}
+                onChangeText={setCorrectedAddress}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+              <Text style={styles.correctionHint}>This will help train our AI to be more accurate</Text>
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.saveNotesButton, { opacity: !correctedAddress.trim() || trainingModel ? 0.5 : 1 }]}
+              onPress={handleCorrection}
+              disabled={!correctedAddress.trim() || trainingModel}
+            >
+              {trainingModel ? (
+                <ActivityIndicator color="#000" />
+              ) : (
+                <Text style={styles.saveNotesButtonText}>Submit Correction</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <LocationPermissionDisclosure
         visible={showDisclosure}
         onAccept={handleAcceptDisclosure}
@@ -1456,6 +1554,9 @@ const styles = StyleSheet.create({
   streetViewText: { color: '#ffffff', fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold' },
   trainButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#8b5cf6', borderRadius: 12, padding: 18, gap: 8, marginTop: 8 },
   trainButtonText: { color: '#ffffff', fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold' },
+  reportButtonInline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#450a0a', borderRadius: 8, marginTop: 16, borderWidth: 1, borderColor: '#7f1d1d' },
+  reportButtonInlineText: { color: '#ef4444', fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold' },
+  correctionHint: { fontSize: 12, color: '#737373', marginTop: 8, fontFamily: 'LeagueSpartan_400Regular' },
   // Enhanced Analysis Styles
   enhancedAnalysisCard: { backgroundColor: '#0a0a0a', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#1a1a1a' },
   analysisSection: { marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
