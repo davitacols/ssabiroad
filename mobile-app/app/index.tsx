@@ -82,7 +82,7 @@ export default function HomeScreen() {
 
 
   const handleAISearchPress = () => {
-    addActivity('NaviSense AI', 'Used AI location intelligence', '/ai-search');
+    addActivity('NaviSense by Pic2Nav', 'Used AI location intelligence', '/ai-search');
     router.push('/ai-search');
   };
 
@@ -192,7 +192,7 @@ export default function HomeScreen() {
               <Ionicons name="sparkles" size={24} color={colors.text} />
             </View>
             <View style={styles.actionText}>
-              <Text style={[styles.actionTitle, { color: colors.text }]}>NaviSense AI</Text>
+              <Text style={[styles.actionTitle, { color: colors.text }]}>NaviSense by Pic2Nav</Text>
               <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Smart location intelligence</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#d1d5db" />

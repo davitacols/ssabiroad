@@ -246,7 +246,7 @@ export default function AISearchScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           query: currentQuery,
-          conversationHistory: messages.slice(-6).filter(m => m.text && m.text.trim()).map(m => ({ type: m.type, text: m.text })),
+          conversationHistory: messages.slice(-8).filter(m => m.text && m.text.trim()).map(m => ({ type: m.type, text: m.text })),
           userLocation: userLocation ? { latitude: userLocation.latitude, longitude: userLocation.longitude } : null
         }),
       });
@@ -328,7 +328,7 @@ export default function AISearchScreen() {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>NaviSense AI</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>NaviSense by Pic2Nav</Text>
           <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Smart location intelligence</Text>
         </View>
       </View>
@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, flexDirection: 'row', alignItems: 'center', backgroundColor: '#000' },
   backButton: { marginRight: 16, padding: 4 },
   headerContent: { flex: 1 },
-  headerTitle: { fontSize: 28, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 2 },
+  headerTitle: { fontSize: 22, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 2 },
   headerSubtitle: { fontSize: 14, color: '#6b7280' },
   chatContainer: { flex: 1, backgroundColor: '#000' },
   messagesContainer: { flex: 1 },

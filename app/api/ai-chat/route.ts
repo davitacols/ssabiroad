@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Query required' }, { status: 400 });
     }
 
-    const messages = conversationHistory?.map((msg: any) => ({
+    const messages = conversationHistory?.slice(-8).map((msg: any) => ({
       role: msg.type === 'user' ? 'user' : 'assistant',
       content: msg.text
     })) || [];
@@ -22,19 +22,25 @@ export async function POST(request: NextRequest) {
 
     const response = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
-      max_tokens: 300,
-      system: `You are a location search assistant. Respond ONLY with valid JSON, no extra text.
+      max_tokens: 500,
+      system: `You are NaviSense, an intelligent location assistant. Respond ONLY with valid JSON.
 
-For place search requests, respond with:
-{"needsPlaceSearch": true, "placeType": "gym", "useUserLocation": true, "response": "Finding gyms near you..."}
+For place search requests:
+{"needsPlaceSearch": true, "placeType": "hospital", "useUserLocation": true, "response": "I found several hospitals near you. Here are the top options:"}
 
-For questions about shown places:
-{"needsPlaceSearch": false, "response": "your answer"}
+For follow-up questions about shown places (e.g., "which one is closest?", "tell me more about the first one"):
+{"needsPlaceSearch": false, "response": "Based on the results shown, [answer using context from conversation history]"}
+
+For general questions:
+{"needsPlaceSearch": false, "response": "your helpful answer"}
 
 Rules:
 - "near me", "nearby", "around here" = useUserLocation: true
 - "in [city]" = location: "city name"
-- ONLY return JSON, nothing else`,
+- Be conversational and contextual - reference previous messages
+- For follow-ups, use conversation history to provide smart answers
+- ONLY return JSON, nothing else
+- Keep responses natural and helpful`,
       messages: messages as any,
     });
 
