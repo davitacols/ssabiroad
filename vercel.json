@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "app/api/gamification/contribute/route.ts": {
+      "maxDuration": 60
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/daily-post",

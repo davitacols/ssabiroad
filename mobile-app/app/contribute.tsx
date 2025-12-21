@@ -152,7 +152,7 @@ export default function ContributeScreen() {
       console.log('Uploading to:', `${API_URL}/api/gamification/contribute`);
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes
       
       try {
         const res = await fetch(`${API_URL}/api/gamification/contribute`, {
