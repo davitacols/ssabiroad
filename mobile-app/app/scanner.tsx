@@ -782,21 +782,30 @@ export default function ScannerScreen() {
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.nearbyScroll}>
                       {result.nearbyPlaces.slice(0, 5).map((place: any, idx: number) => (
-                        <TouchableOpacity key={idx} style={styles.nearbyCard} onPress={() => {
-                          if (place.location) {
-                            Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${place.location.lat},${place.location.lng}`);
-                          }
-                        }}>
-                          {place.photo && (
+                        <TouchableOpacity 
+                          key={idx} 
+                          style={styles.nearbyCard} 
+                          onPress={() => {
+                            if (place.photoReference) {
+                              setSelectedImageIndex(idx);
+                              setShowImageModal(true);
+                            } else if (place.location) {
+                              Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${place.location.lat},${place.location.lng}`);
+                            }
+                          }}
+                        >
+                          {place.photoReference && (
                             <Image 
-                              source={{ uri: `https://maps.googleapis.com/maps/api/place/photo?maxwidth=200&photo_reference=${place.photo}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho` }}
+                              source={{ uri: `https://maps.googleapis.com/maps/api/place/photo?maxwidth=200&photoreference=${place.photoReference}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho` }}
                               style={styles.nearbyImage}
                             />
                           )}
                           <Text style={styles.nearbyName} numberOfLines={2}>{place.name || 'Place'}</Text>
                           <Text style={styles.nearbyType}>{place.type || 'Location'}</Text>
                           {place.distance !== undefined && place.distance !== null && (
-                            <Text style={styles.nearbyDistance}>{place.distance}m away</Text>
+                            <Text style={styles.nearbyDistance}>
+                              {place.distance < 1000 ? `${place.distance}m` : `${(place.distance / 1000).toFixed(1)}km`} away
+                            </Text>
                           )}
                         </TouchableOpacity>
                       ))}
@@ -1062,17 +1071,10 @@ export default function ScannerScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.trainButton}
-                    onPress={trainModel}
-                    disabled={trainingModel}
+                    onPress={() => router.push('/contribute')}
                   >
-                    {trainingModel ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <>
-                        <Ionicons name="school-outline" size={20} color="#fff" />
-                        <Text style={styles.trainButtonText}>Help Train AI</Text>
-                      </>
-                    )}
+                    <Ionicons name="school-outline" size={20} color="#fff" />
+                    <Text style={styles.trainButtonText}>Help Train AI</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -1336,13 +1338,19 @@ export default function ScannerScreen() {
           >
             <Ionicons name="close" size={32} color="#fff" />
           </TouchableOpacity>
-          {placeDetails?.photos && (
+          {result?.nearbyPlaces?.[selectedImageIndex]?.photoReference ? (
+            <Image 
+              source={{ uri: `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${result.nearbyPlaces[selectedImageIndex].photoReference}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho` }}
+              style={styles.fullImage}
+              resizeMode="contain"
+            />
+          ) : placeDetails?.photos?.[selectedImageIndex] ? (
             <Image 
               source={{ uri: `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${placeDetails.photos[selectedImageIndex]?.photo_reference}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho` }}
               style={styles.fullImage}
               resizeMode="contain"
             />
-          )}
+          ) : null}
         </View>
       </Modal>
 

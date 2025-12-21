@@ -4785,7 +4785,9 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     
     // 2. Try Navisense ML prediction
     console.log('🔍 Step 2: Trying Navisense ML prediction...');
+    let navisenseAttempted = false;
     try {
+      navisenseAttempted = true;
       const navisenseResult = await Promise.race([
         this.predictWithNavisense(buffer),
         new Promise<LocationResult | null>((_, reject) => 
@@ -4811,9 +4813,16 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         } else {
           console.log('⚠️ Navisense prediction rejected - invalid coordinates or low confidence');
         }
+      } else {
+        console.log('⚠️ Navisense returned no valid result');
       }
     } catch (error) {
       console.log('⚠️ Navisense prediction timed out or failed:', error.message);
+    }
+    
+    // If Navisense was attempted but failed, log it clearly
+    if (navisenseAttempted) {
+      console.log('❌ Navisense ML did NOT provide valid location - continuing with other methods');
     }
     
     // 3. Skip Claude AI - misreads special characters like ü, ö, ä
