@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { ErrorBoundary } from 'react-error-boundary';
 import { ThemeProvider } from '../contexts/ThemeContext';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -35,9 +36,15 @@ export default function RootLayout() {
   }
 
   return (
+    <SafeAreaProvider>
     <ThemeProvider>
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ 
+        headerShown: false, 
+        contentStyle: { backgroundColor: 'transparent' },
+        animation: 'slide_from_right',
+        animationDuration: 300
+      }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="scanner" />
@@ -64,6 +71,7 @@ export default function RootLayout() {
       </Stack>
     </ErrorBoundary>
     </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 

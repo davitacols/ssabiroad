@@ -2,8 +2,8 @@
   "expo": {
     "name": "Pic2Nav",
     "slug": "pic2nav",
-    "version": "1.0.3",
-    "orientation": "portrait",
+    "version": "1.0.4",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "description": "Smart location recognition from photos. Analyze buildings, landmarks, and locations using AI-powered image analysis with GPS data extraction.",
@@ -35,7 +35,7 @@
         "backgroundColor": "#000000"
       },
       "package": "com.ssabiroad.pic2nav",
-      "versionCode": 4,
+      "versionCode": 6,
       "targetSdkVersion": 35,
       "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ssabiroad.pic2nav",
       "softwareKeyboardLayoutMode": "pan",
@@ -60,7 +60,8 @@
         "ACCESS_NETWORK_STATE"
       ],
       "usesCleartextTraffic": false,
-      "blockedPermissions": []
+      "blockedPermissions": [],
+      "enableEdgeToEdge": true
     },
     "web": {},
     "plugins": [

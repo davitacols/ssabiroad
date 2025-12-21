@@ -122,7 +122,7 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
       
       {/* Location Disclosure Modal */}
       <Modal visible={showDisclosure} transparent animationType="fade">
@@ -132,24 +132,34 @@ export default function HomeScreen() {
               <Ionicons name="location" size={48} color="#3b82f6" />
               <Text style={[styles.disclosureTitle, { color: colors.text }]}>Location Permission</Text>
             </View>
-            <View style={styles.disclosureContent}>
-              <Text style={[styles.disclosureHeading, { color: colors.text }]}>Why we need your location:</Text>
-              <View style={styles.disclosureItem}>
-                <Ionicons name="navigate" size={20} color="#3b82f6" />
-                <Text style={[styles.disclosureItemText, { color: colors.textSecondary }]}>Identify buildings and landmarks near you</Text>
+            <ScrollView style={styles.disclosureScrollView} showsVerticalScrollIndicator={true}>
+              <View style={styles.disclosureContent}>
+                <Text style={[styles.disclosureHeading, { color: colors.text }]}>Location Data Collection & Usage</Text>
+                <Text style={[styles.disclosureDescription, { color: colors.textSecondary }]}>Pic2Nav collects and uses your location data for:</Text>
+                <View style={styles.disclosureItem}>
+                  <Ionicons name="navigate" size={20} color="#3b82f6" />
+                  <Text style={[styles.disclosureItemText, { color: colors.textSecondary }]}>Identifying buildings and landmarks near your current location</Text>
+                </View>
+                <View style={styles.disclosureItem}>
+                  <Ionicons name="map" size={20} color="#3b82f6" />
+                  <Text style={[styles.disclosureItemText, { color: colors.textSecondary }]}>Displaying nearby places (restaurants, banks, hospitals, etc.)</Text>
+                </View>
+                <View style={styles.disclosureItem}>
+                  <Ionicons name="camera" size={20} color="#3b82f6" />
+                  <Text style={[styles.disclosureItemText, { color: colors.textSecondary }]}>Extracting GPS coordinates from your photos for location recognition and analysis</Text>
+                </View>
+                <View style={styles.disclosureItem}>
+                  <Ionicons name="analytics" size={20} color="#3b82f6" />
+                  <Text style={[styles.disclosureItemText, { color: colors.textSecondary }]}>Providing location-based search results and recommendations</Text>
+                </View>
+                <Text style={[styles.disclosurePrivacy, { color: colors.textTertiary }]}>
+                  Your location data is collected only when you use the app and is used solely for the features described above. We do not share your location data with third parties for advertising or marketing purposes. Location access is required only while using the app (foreground only).
+                </Text>
+                <Text style={[styles.disclosurePrivacy, { color: colors.textTertiary, marginTop: 8 }]}>
+                  You can revoke location permission at any time in your device settings.
+                </Text>
               </View>
-              <View style={styles.disclosureItem}>
-                <Ionicons name="map" size={20} color="#3b82f6" />
-                <Text style={[styles.disclosureItemText, { color: colors.textSecondary }]}>Show nearby places (restaurants, banks, hospitals)</Text>
-              </View>
-              <View style={styles.disclosureItem}>
-                <Ionicons name="camera" size={20} color="#3b82f6" />
-                <Text style={[styles.disclosureItemText, { color: colors.textSecondary }]}>Extract GPS data from photos for location recognition</Text>
-              </View>
-              <Text style={[styles.disclosurePrivacy, { color: colors.textTertiary }]}>
-                Your location data is used only for these features and is not shared with third parties.
-              </Text>
-            </View>
+            </ScrollView>
             <View style={[styles.disclosureButtons, { borderTopColor: colors.border }]}>
               <TouchableOpacity style={[styles.declineButton, { borderColor: colors.border }]} onPress={handleDeclineDisclosure}>
                 <Text style={[styles.declineText, { color: colors.textSecondary }]}>Decline</Text>
@@ -302,11 +312,13 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   disclosureOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  disclosureDialog: { borderRadius: 16, width: '100%', maxWidth: 400 },
+  disclosureDialog: { borderRadius: 16, width: '100%', maxWidth: 400, maxHeight: '80%' },
   disclosureHeader: { alignItems: 'center', padding: 24, borderBottomWidth: 1 },
   disclosureTitle: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', marginTop: 12 },
+  disclosureScrollView: { maxHeight: 400 },
   disclosureContent: { padding: 24 },
-  disclosureHeading: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold', marginBottom: 16 },
+  disclosureHeading: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold', marginBottom: 8 },
+  disclosureDescription: { fontSize: 14, fontFamily: 'LeagueSpartan_400Regular', marginBottom: 16, lineHeight: 20 },
   disclosureItem: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
   disclosureItemText: { flex: 1, marginLeft: 12, fontSize: 14, fontFamily: 'LeagueSpartan_400Regular', lineHeight: 20 },
   disclosurePrivacy: { fontSize: 12, fontFamily: 'LeagueSpartan_400Regular', marginTop: 16, lineHeight: 18, fontStyle: 'italic' },
@@ -315,7 +327,7 @@ const styles = StyleSheet.create({
   declineText: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
   acceptButton: { flex: 1, padding: 16, borderRadius: 8, alignItems: 'center' },
   acceptText: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
-  header: { backgroundColor: '#000', paddingTop: 60, paddingBottom: 32, paddingHorizontal: 24 },
+  header: { backgroundColor: '#000', paddingTop: 20, paddingBottom: 32, paddingHorizontal: 24 },
   headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   themeToggle: { padding: 8 },
   greeting: { fontSize: 36, fontFamily: 'LeagueSpartan_700Bold', color: '#fff' },
