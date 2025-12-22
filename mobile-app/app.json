@@ -49,9 +49,6 @@
       },
       "permissions": [
         "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "READ_MEDIA_IMAGES",
         "ACCESS_MEDIA_LOCATION",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -94,7 +91,7 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow Pic2Nav to access your photos to extract GPS location data and analyze building features for location identification",
+          "photosPermission": false,
           "savePhotosPermission": "Allow Pic2Nav to save processed photos with location tags",
           "isAccessMediaLocationEnabled": true
         }

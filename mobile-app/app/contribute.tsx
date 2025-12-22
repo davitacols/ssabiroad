@@ -77,9 +77,12 @@ export default function ContributeScreen() {
     if (!deviceId) return;
 
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'image/*',
-        copyToCacheDirectory: true,
+      // Use Android photo picker (complies with Google Play policy)
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+        allowsEditing: false,
+        selectionLimit: 1,
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {
@@ -383,7 +386,7 @@ export default function ContributeScreen() {
           <View style={styles.rulesList}>
             <View style={styles.ruleItem}>
               <Ionicons name="checkmark-circle" size={18} color="#10b981" />
-              <Text style={[styles.ruleText, { color: colors.textSecondary }]}>Photos with GPS data auto-submit (no address needed)</Text>
+              <Text style={[styles.ruleText, { color: colors.textSecondary }]}>Camera photos auto-submit with GPS, gallery photos need address</Text>
             </View>
             <View style={styles.ruleItem}>
               <Ionicons name="checkmark-circle" size={18} color="#10b981" />
