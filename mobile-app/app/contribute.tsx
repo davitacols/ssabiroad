@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, SafeAreaView, StatusBar, TextInput, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme, getColors } from '../contexts/ThemeContext';
 import MenuBar from '../components/MenuBar';
+import { checkImageHasGPS, GPSData } from '../utils/gpsExtractor';
 
 const API_URL = 'https://ssabiroad.vercel.app';
 const GOOGLE_API_KEY = 'AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho';
@@ -31,6 +33,7 @@ export default function ContributeScreen() {
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [address, setAddress] = useState('');
+  const [imageGPS, setImageGPS] = useState<GPSData | null>(null);
 
   useEffect(() => {
     loadDeviceId();
@@ -54,6 +57,7 @@ export default function ContributeScreen() {
       const data = await res.json();
       setStats(data);
     } catch (error) {
+      console.error('Stats error:', error);
       setStats({ points: 0, contributions: 0, streak: 0, rank: 0 });
     }
   };
@@ -64,6 +68,7 @@ export default function ContributeScreen() {
       const data = await res.json();
       setLeaderboard(data.leaderboard || []);
     } catch (error) {
+      console.error('Leaderboard error:', error);
       setLeaderboard([]);
     }
   };
@@ -79,6 +84,7 @@ export default function ContributeScreen() {
 
       if (!result.canceled && result.assets && result.assets[0]) {
         setSelectedImage(result.assets[0].uri);
+        setImageGPS({ latitude: 0, longitude: 0, hasGPS: false });
         setAddress('');
       }
     } catch (error) {
@@ -105,8 +111,22 @@ export default function ContributeScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
+      const gpsData = checkImageHasGPS(result.assets[0]);
       setSelectedImage(result.assets[0].uri);
+      setImageGPS(gpsData);
       setAddress('');
+      
+      // Auto-submit if image has GPS data
+      if (gpsData.hasGPS) {
+        Alert.alert(
+          'GPS Data Found',
+          'This image contains GPS location data. Submit automatically?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Submit', onPress: () => uploadPhotoWithGPS(result.assets[0].uri, gpsData) }
+          ]
+        );
+      }
     }
   };
 
@@ -116,6 +136,13 @@ export default function ContributeScreen() {
       return;
     }
 
+    // If image has GPS, submit directly
+    if (imageGPS?.hasGPS) {
+      await uploadPhotoWithGPS(selectedImage, imageGPS);
+      return;
+    }
+
+    // Otherwise require address
     if (!address.trim()) {
       Alert.alert('Address Required', 'Please enter the location address');
       return;
@@ -128,6 +155,13 @@ export default function ContributeScreen() {
     setUploading(true);
     console.log('Starting upload...');
     try {
+      // Compress image
+      const compressed = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 1024 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      
       console.log('Geocoding address:', locationAddress);
       const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationAddress)}&key=${GOOGLE_API_KEY}`;
       const geocodeRes = await fetch(geocodeUrl);
@@ -143,63 +177,93 @@ export default function ContributeScreen() {
       console.log('Geocoded location:', location);
       
       const formData = new FormData();
-      formData.append('file', { uri, type: 'image/jpeg', name: 'photo.jpg' } as any);
+      formData.append('file', { uri: compressed.uri, type: 'image/jpeg', name: 'photo.jpg' } as any);
       formData.append('latitude', location.lat.toString());
       formData.append('longitude', location.lng.toString());
       formData.append('address', locationAddress);
-      formData.append('deviceId', deviceId!);
+      formData.append('userId', deviceId!);
 
-      console.log('Uploading to:', `${API_URL}/api/gamification/contribute`);
+      console.log('Uploading to:', `${API_URL}/api/location-recognition-v2/feedback`);
       
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes
-      
-      try {
-        const res = await fetch(`${API_URL}/api/gamification/contribute`, {
-          method: 'POST',
-          body: formData,
-          signal: controller.signal,
-        });
-        
-        clearTimeout(timeoutId);
-        console.log('Response status:', res.status);
+      const res = await fetch(`${API_URL}/api/location-recognition-v2/feedback`, {
+        method: 'POST',
+        body: formData,
+      });
 
-        if (!res.ok) {
-          const errorText = await res.text();
-          console.log('Error response:', errorText);
-          throw new Error(`Server error: ${res.status}`);
-        }
+      console.log('Response status:', res.status);
 
-        const result = await res.json();
-        console.log('Result:', result);
-        
-        setSelectedImage(null);
-        setAddress('');
-        await fetchStats();
-        await fetchLeaderboard();
-        
-        if (result.success) {
-          Alert.alert('Success', `+${result.points?.earned || 10} points earned!\n\nTotal: ${result.points?.total || 0} points\nRank: #${result.rank || '-'}`);
-        } else {
-          Alert.alert('Upload Complete', 'Photo uploaded successfully! Points will be credited soon.');
-        }
-      } catch (fetchError: any) {
-        clearTimeout(timeoutId);
-        if (fetchError.name === 'AbortError') {
-          console.log('Upload timed out - API endpoint may not be ready');
-          Alert.alert('Photo Submitted', 'Your contribution has been recorded! The gamification system will be available soon.');
-          setSelectedImage(null);
-          setAddress('');
-        } else {
-          throw fetchError;
-        }
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.log('Error response:', errorText);
+        throw new Error(`Server error: ${res.status}`);
       }
+
+      const result = await res.json();
+      console.log('Result:', result);
+      
+      // Update local contribution count
+      const currentCount = stats?.contributions || 0;
+      setStats({ ...stats, contributions: currentCount + 1 });
+      
+      setSelectedImage(null);
+      setAddress('');
+      
+      Alert.alert('Success', 'Thank you for contributing! Your photo will help improve our AI.');
     } catch (error: any) {
       console.error('Upload error:', error);
       Alert.alert('Upload Failed', error.message || 'Failed to upload. Please try again.');
     } finally {
       setUploading(false);
       console.log('Upload finished');
+    }
+  };
+
+  const uploadPhotoWithGPS = async (uri: string, gpsData: GPSData) => {
+    setUploading(true);
+    console.log('Starting GPS upload...', gpsData);
+    try {
+      // Compress image
+      const compressed = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 1024 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      
+      const formData = new FormData();
+      formData.append('file', { uri: compressed.uri, type: 'image/jpeg', name: 'photo.jpg' } as any);
+      formData.append('latitude', gpsData.latitude.toString());
+      formData.append('longitude', gpsData.longitude.toString());
+      formData.append('address', 'GPS Auto-detected');
+      formData.append('userId', deviceId!);
+
+      console.log('Uploading GPS photo to:', `${API_URL}/api/location-recognition-v2/feedback`);
+      
+      const res = await fetch(`${API_URL}/api/location-recognition-v2/feedback`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status}`);
+      }
+
+      const result = await res.json();
+      console.log('GPS upload result:', result);
+      
+      // Update local contribution count
+      const currentCount = stats?.contributions || 0;
+      setStats({ ...stats, contributions: currentCount + 1 });
+      
+      setSelectedImage(null);
+      setImageGPS(null);
+      setAddress('');
+      
+      Alert.alert('Success', 'Photo with GPS data submitted successfully!');
+    } catch (error: any) {
+      console.error('GPS upload error:', error);
+      Alert.alert('Upload Failed', error.message || 'Failed to upload. Please try again.');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -211,11 +275,11 @@ export default function ContributeScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={28} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.text }]}>Contribute</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Help Train AI</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.contentContainer}>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Help map the world and earn rewards</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Contribute photos to improve location recognition</Text>
         
         {selectedImage ? (
           <>
@@ -229,33 +293,59 @@ export default function ContributeScreen() {
               </TouchableOpacity>
             </View>
 
-            <View style={[styles.addressSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Text style={[styles.addressLabel, { color: colors.text }]}>Location Address</Text>
-              <TextInput
-                style={[styles.addressInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-                placeholder="Enter the location address..."
-                placeholderTextColor={colors.textSecondary}
-                value={address}
-                onChangeText={setAddress}
-                multiline
-                numberOfLines={3}
-                textAlignVertical="top"
-              />
-              <TouchableOpacity
-                style={[styles.submitButton, { backgroundColor: theme === 'dark' ? '#fff' : '#000', opacity: (!address.trim() || uploading) ? 0.5 : 1 }]}
-                onPress={handleSubmit}
-                disabled={uploading || !address.trim()}
-              >
-                {uploading ? (
-                  <ActivityIndicator color={theme === 'dark' ? '#000' : '#fff'} />
-                ) : (
-                  <>
-                    <Ionicons name="cloud-upload" size={20} color={theme === 'dark' ? '#000' : '#fff'} />
-                    <Text style={[styles.submitButtonText, { color: theme === 'dark' ? '#000' : '#fff' }]}>Submit Contribution</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
+            {imageGPS?.hasGPS ? (
+              <View style={[styles.gpsSection, { backgroundColor: colors.card, borderColor: '#10b981' }]}>
+                <View style={styles.gpsHeader}>
+                  <Ionicons name="location" size={24} color="#10b981" />
+                  <Text style={[styles.gpsTitle, { color: colors.text }]}>GPS Data Found</Text>
+                </View>
+                <Text style={[styles.gpsCoords, { color: colors.textSecondary }]}>
+                  Lat: {imageGPS.latitude.toFixed(6)}, Lng: {imageGPS.longitude.toFixed(6)}
+                </Text>
+                <TouchableOpacity
+                  style={[styles.submitButton, { backgroundColor: '#10b981', opacity: uploading ? 0.5 : 1 }]}
+                  onPress={handleSubmit}
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name="cloud-upload" size={20} color="#fff" />
+                      <Text style={[styles.submitButtonText, { color: '#fff' }]}>Submit with GPS Data</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={[styles.addressSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Text style={[styles.addressLabel, { color: colors.text }]}>Location Address</Text>
+                <TextInput
+                  style={[styles.addressInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                  placeholder="Enter the location address..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={address}
+                  onChangeText={setAddress}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                />
+                <TouchableOpacity
+                  style={[styles.submitButton, { backgroundColor: theme === 'dark' ? '#fff' : '#000', opacity: (!address.trim() || uploading) ? 0.5 : 1 }]}
+                  onPress={handleSubmit}
+                  disabled={uploading || !address.trim()}
+                >
+                  {uploading ? (
+                    <ActivityIndicator color={theme === 'dark' ? '#000' : '#fff'} />
+                  ) : (
+                    <>
+                      <Ionicons name="cloud-upload" size={20} color={theme === 'dark' ? '#000' : '#fff'} />
+                      <Text style={[styles.submitButtonText, { color: theme === 'dark' ? '#000' : '#fff' }]}>Submit Contribution</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
           </>
         ) : (
           <View style={styles.uploadActions}>
@@ -282,7 +372,7 @@ export default function ContributeScreen() {
         )}
 
         <View style={styles.rewards}>
-          <Text style={styles.rewardsText}>10 points per photo • 20 points daily streak</Text>
+          <Text style={styles.rewardsText}>Help improve our AI with your photos</Text>
         </View>
 
         <View style={[styles.rulesCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -293,7 +383,7 @@ export default function ContributeScreen() {
           <View style={styles.rulesList}>
             <View style={styles.ruleItem}>
               <Ionicons name="checkmark-circle" size={18} color="#10b981" />
-              <Text style={[styles.ruleText, { color: colors.textSecondary }]}>Photos must have GPS location data</Text>
+              <Text style={[styles.ruleText, { color: colors.textSecondary }]}>Photos with GPS data auto-submit (no address needed)</Text>
             </View>
             <View style={styles.ruleItem}>
               <Ionicons name="checkmark-circle" size={18} color="#10b981" />
@@ -316,29 +406,18 @@ export default function ContributeScreen() {
 
         <View style={[styles.statsRow, { backgroundColor: colors.background }]}>
           <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: colors.text }]}>{stats?.points || 0}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Points</Text>
-          </View>
-          <View style={styles.stat}>
             <Text style={[styles.statValue, { color: colors.text }]}>{stats?.contributions || 0}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Photos</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={[styles.statValue, { color: colors.text }]}>#{stats?.rank || '-'}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Rank</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Contributions</Text>
           </View>
         </View>
 
         {leaderboard.length > 0 && (
           <>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Leaderboard</Text>
-            {leaderboard.slice(0, 10).map((user) => (
-              <View key={user.rank} style={[styles.leaderItem, { borderBottomColor: colors.border }]}>
-                <Text style={[styles.leaderRank, { color: colors.textSecondary }]}>{user.rank}</Text>
-                <Text style={[styles.leaderName, { color: colors.text }]}>{user.name}</Text>
-                <Text style={[styles.leaderPoints, { color: colors.text }]}>{user.points}</Text>
-              </View>
-            ))}
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Community</Text>
+            <View style={[styles.emptyLeaderboard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Ionicons name="people-outline" size={48} color={colors.textSecondary} />
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Join others helping train our AI</Text>
+            </View>
           </>
         )}
       </ScrollView>
@@ -383,4 +462,10 @@ const styles = StyleSheet.create({
   leaderRank: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold', width: 40 },
   leaderName: { flex: 1, fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
   leaderPoints: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
+  emptyLeaderboard: { padding: 40, borderRadius: 16, borderWidth: 1, alignItems: 'center', marginBottom: 20 },
+  emptyText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', marginTop: 12 },
+  gpsSection: { padding: 20, borderRadius: 16, borderWidth: 2, marginBottom: 20 },
+  gpsHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
+  gpsTitle: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold' },
+  gpsCoords: { fontSize: 14, fontFamily: 'LeagueSpartan_400Regular', marginBottom: 16 },
 });

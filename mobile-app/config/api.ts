@@ -1,6 +1,6 @@
 export const API_CONFIG = {
   BASE_URL: 'https://ssabiroad.vercel.app',
-  ML_BASE_URL: 'http://34.224.33.158:8000',
+  ML_BASE_URL: 'http://52.91.173.191:8000',
   ENDPOINTS: {
     AI_SEARCH: '/api/ai-search',
     AI_CHAT: '/api/ai-chat',

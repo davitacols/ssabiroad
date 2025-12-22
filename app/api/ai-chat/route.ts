@@ -21,47 +21,78 @@ export async function POST(request: NextRequest) {
     messages.push({ role: 'user', content: query });
 
     const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 500,
-      system: `You are NaviSense, an intelligent location assistant. Respond ONLY with valid JSON.
+      model: 'claude-sonnet-4.5-20250514',
+      max_tokens: 16000,
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 10000
+      },
+      system: `You are NaviSense, an advanced AI location intelligence assistant with deep reasoning capabilities. You help users discover, analyze, and understand locations with sophisticated spatial reasoning.
 
-For place search requests:
-{"needsPlaceSearch": true, "placeType": "hospital", "useUserLocation": true, "response": "I found several hospitals near you. Here are the top options:"}
+Your capabilities:
+- Advanced place search with contextual understanding
+- Multi-criteria location comparison and ranking
+- Spatial reasoning (distances, routes, accessibility)
+- Contextual recommendations based on user preferences
+- Location analysis (safety, amenities, demographics)
+- Smart follow-up handling using conversation context
 
-For follow-up questions about shown places (e.g., "which one is closest?", "tell me more about the first one"):
-{"needsPlaceSearch": false, "response": "Based on the results shown, [answer using context from conversation history]"}
+Response format (JSON only):
+{
+  "needsPlaceSearch": boolean,
+  "placeType": "restaurant|hospital|cafe|gym|etc",
+  "useUserLocation": boolean,
+  "location": "city name" (if specified),
+  "filters": {"rating": 4.0, "open_now": true, "price_level": 2},
+  "response": "your natural, conversational response"
+}
 
-For general questions:
-{"needsPlaceSearch": false, "response": "your helpful answer"}
+Reasoning guidelines:
+- Think deeply about user intent and context
+- Consider multiple factors (distance, quality, convenience)
+- Provide nuanced recommendations with reasoning
+- Reference conversation history for continuity
+- Explain trade-offs when comparing options
+- Be proactive in suggesting related information
 
-Rules:
-- "near me", "nearby", "around here" = useUserLocation: true
-- "in [city]" = location: "city name"
-- Be conversational and contextual - reference previous messages
-- For follow-ups, use conversation history to provide smart answers
-- ONLY return JSON, nothing else
-- Keep responses natural and helpful`,
-      messages: messages as any,
+Examples:
+- "best restaurants near me" → Search with rating filter, explain why top picks are recommended
+- "which one is closest?" → Use conversation context, calculate distances, provide detailed comparison
+- "compare these locations" → Multi-dimensional analysis with pros/cons
+- "is this area safe?" → Comprehensive safety analysis with data points
+
+ALWAYS return ONLY valid JSON.`, messages: messages as any,
     });
 
     const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Invalid response');
+    let responseText = '';
+    
+    // Extract thinking and response
+    for (const block of response.content) {
+      if (block.type === 'thinking') {
+        console.log('🧠 Claude thinking:', block.thinking);
+      } else if (block.type === 'text') {
+        responseText = block.text;
+      }
+    }
+    
+    if (!responseText) {
+      throw new Error('No response text');
     }
 
-    console.log('Claude raw response:', content.text);
+    console.log('Claude raw response:', responseText);
 
     let parsedResponse;
     try {
       // Extract JSON from response
-      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         parsedResponse = JSON.parse(jsonMatch[0]);
       } else {
-        parsedResponse = JSON.parse(content.text);
+        parsedResponse = JSON.parse(responseText);
       }
     } catch {
-      parsedResponse = { needsPlaceSearch: false, response: content.text };
+      parsedResponse = { needsPlaceSearch: false, response: responseText };
     }
 
     console.log('Parsed response:', parsedResponse);
@@ -85,7 +116,14 @@ Rules:
       }
 
       if (coords) {
-        const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${coords.lat},${coords.lng}&radius=5000&type=${encodeURIComponent(placeType)}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
+        const { filters } = parsedResponse;
+        let placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${coords.lat},${coords.lng}&radius=5000&type=${encodeURIComponent(placeType)}&key=${process.env.GOOGLE_PLACES_API_KEY}`;
+        
+        // Apply filters if provided
+        if (filters?.rating) placesUrl += `&minrating=${filters.rating}`;
+        if (filters?.open_now) placesUrl += `&opennow=true`;
+        if (filters?.price_level) placesUrl += `&maxprice=${filters.price_level}`;
+        
         const placesRes = await fetch(placesUrl);
         const placesData = await placesRes.json();
 

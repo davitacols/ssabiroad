@@ -1468,6 +1468,14 @@ Return JSON with the most specific location information you can identify:
       
       const result = JSON.parse(responseText.match(/\{.*\}/s)?.[0] || '{}');
       
+      // Apply text corrections to Claude's response
+      if (result.area) {
+        result.area = TextCorrection.correctText(result.area);
+      }
+      if (result.address) {
+        result.address = TextCorrection.correctText(result.address);
+      }
+      
       // Add UK context if detected in Claude's analysis
       if (hasUKContext) {
         if (!result.area || result.area === '') {
@@ -4800,7 +4808,10 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         // Reject known untrained predictions (Windsor, UK coordinates)
         const isWindsorUK = Math.abs(latitude - 51.4833) < 0.01 && Math.abs(longitude - (-0.6167)) < 0.01;
         
-        if (isValidRange && !isWindsorUK && navisenseResult.confidence >= 0.9) {
+        // Reject obviously wrong ML predictions (add known bad coordinates)
+        const isBadPrediction = Math.abs(latitude - 51.428825) < 0.01 && Math.abs(longitude - (-0.547876)) < 0.01; // Egham
+        
+        if (isValidRange && !isWindsorUK && !isBadPrediction && navisenseResult.confidence >= 0.95) { // Increased threshold
           console.log('✅ NAVISENSE SUCCESS - ENRICHING AND RETURNING:', navisenseResult.location);
           const enrichedResult = await this.enrichLocationData(navisenseResult, buffer, analyzeLandmarks);
           const recognitionId = await this.saveRecognition(enrichedResult, buffer, userId);
@@ -4810,7 +4821,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
           this.trainNavisense(buffer, navisenseResult.location, { method: 'navisense-ml', userId }).catch(() => {});
           return enrichedResult;
         } else {
-          console.log('⚠️ Navisense prediction rejected - untrained or low confidence:', { latitude, longitude, confidence: navisenseResult.confidence, isWindsor: isWindsorUK });
+          console.log('⚠️ Navisense prediction rejected - untrained, low confidence, or known bad prediction:', { latitude, longitude, confidence: navisenseResult.confidence, isWindsor: isWindsorUK, isBad: isBadPrediction });
         }
       } else {
         console.log('⚠️ Navisense returned no valid result or confidence too low');

@@ -22,7 +22,11 @@ export class TextCorrection {
     'HARBOUR': 'HARBOR',
     'RUMOUR': 'RUMOR',
     'SPLENDOUR': 'SPLENDOR',
-    'VAPOUR': 'VAPOR'
+    'VAPOUR': 'VAPOR',
+    'ALBAN ROAD': 'ALBANY ROAD',
+    'ALBAN RD': 'ALBANY RD',
+    "GOHST'S PLAZA HOTEL": 'GOMAYS PLAZA',
+    'GOHST PLAZA': 'GOMAYS PLAZA'
   };
 
   static correctText(text: string): string {

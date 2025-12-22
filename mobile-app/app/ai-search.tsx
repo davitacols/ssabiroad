@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, SafeAreaView, StatusBar, ActivityIndicator, Linking, KeyboardAvoidingView, Platform, Animated, Keyboard, Image } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,6 +26,7 @@ export default function AISearchScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = getColors(theme);
+  const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -47,20 +49,10 @@ export default function AISearchScreen() {
 
     const keyboardShowListener = Keyboard.addListener('keyboardDidShow', () => {
       setIsKeyboardVisible(true);
-      Animated.timing(menuTranslateY, {
-        toValue: 100,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
     });
     
     const keyboardHideListener = Keyboard.addListener('keyboardDidHide', () => {
       setIsKeyboardVisible(false);
-      Animated.timing(menuTranslateY, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
     });
 
     return () => {
@@ -478,7 +470,7 @@ export default function AISearchScreen() {
           )}
         </ScrollView>
 
-        <View style={[styles.inputContainer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+        <View style={[styles.inputContainer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: isKeyboardVisible ? 16 : Math.max(insets.bottom, 8) }]}>
           {uploadedImage && (
             <View style={styles.imagePreview}>
               <Image source={{ uri: uploadedImage }} style={[styles.previewImage, { backgroundColor: colors.card }]} />
@@ -521,9 +513,6 @@ export default function AISearchScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
-      <Animated.View style={{ transform: [{ translateY: menuTranslateY }] }}>
-        <MenuBar />
-      </Animated.View>
     </SafeAreaView>
   );
 }

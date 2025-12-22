@@ -104,6 +104,8 @@ export default function ScannerScreen() {
     
     setTrainingModel(true);
     try {
+      console.log('Training model with:', { lat: result.location.latitude, lng: result.location.longitude, address: result.address || result.name });
+      
       const formData = new FormData();
       formData.append('file', {
         uri: image,
@@ -112,25 +114,27 @@ export default function ScannerScreen() {
       } as any);
       formData.append('latitude', result.location.latitude.toString());
       formData.append('longitude', result.location.longitude.toString());
-      formData.append('location_name', result.name || 'Unknown');
+      formData.append('address', result.address || result.name || 'Unknown');
+      formData.append('userId', 'mobile-app');
 
-      const response = await fetch('http://52.91.173.191:8000/add_to_index', {
+      console.log('Sending to feedback API...');
+      const response = await fetch('https://ssabiroad.vercel.app/api/location-recognition-v2/feedback', {
         method: 'POST',
         body: formData,
       });
 
-      const text = await response.text();
-      console.log('Response:', text);
+      console.log('Feedback response status:', response.status);
+      const data = await response.json();
+      console.log('Feedback response data:', data);
       
-      const data = JSON.parse(text);
-      if (response.ok) {
+      if (response.ok && data.success) {
         Alert.alert('Success', 'Thank you for improving our AI!');
       } else {
-        Alert.alert('Error', `${response.status}: ${text}`);
+        Alert.alert('Error', data.error || 'Failed to submit');
       }
     } catch (error: any) {
       console.error('Training error:', error);
-      Alert.alert('Error', `${error.message}\n\nCheck console for details`);
+      Alert.alert('Error', `Network error: ${error.message}`);
     } finally {
       setTrainingModel(false);
     }
@@ -141,7 +145,6 @@ export default function ScannerScreen() {
     
     setTrainingModel(true);
     try {
-      // Geocode the corrected address
       const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(correctedAddress)}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho`;
       const geocodeRes = await fetch(geocodeUrl);
       const geocodeData = await geocodeRes.json();
@@ -154,7 +157,6 @@ export default function ScannerScreen() {
       
       const location = geocodeData.results[0].geometry.location;
       
-      // Train model with corrected data
       const formData = new FormData();
       formData.append('file', {
         uri: image,
@@ -163,23 +165,25 @@ export default function ScannerScreen() {
       } as any);
       formData.append('latitude', location.lat.toString());
       formData.append('longitude', location.lng.toString());
-      formData.append('label', correctedAddress);
+      formData.append('address', correctedAddress);
+      formData.append('userId', 'mobile-app');
 
-      const response = await fetch('http://34.224.33.158:8000/train', {
+      const response = await fetch('https://ssabiroad.vercel.app/api/location-recognition-v2/feedback', {
         method: 'POST',
         body: formData,
       });
 
-      if (response.ok) {
+      const data = await response.json();
+      if (response.ok && data.success) {
         Alert.alert('Success', 'Thank you for the correction! Our AI will learn from this.');
         setShowCorrectionModal(false);
         setCorrectedAddress('');
       } else {
-        Alert.alert('Error', 'Failed to submit correction');
+        Alert.alert('Error', data.error || 'Failed to submit');
       }
     } catch (error: any) {
       console.error('Correction error:', error);
-      Alert.alert('Error', 'Failed to submit correction');
+      Alert.alert('Error', `Network error: ${error.message}`);
     } finally {
       setTrainingModel(false);
     }
@@ -635,12 +639,20 @@ export default function ScannerScreen() {
 
         {image && (
           <View style={styles.imageSection}>
-            <Image source={{ uri: image }} style={[styles.selectedImage, { backgroundColor: colors.card }]} />
-            {!loading && !result && (
-              <View style={styles.imageOverlay}>
-                <ActivityIndicator size="large" color="#fff" />
-              </View>
-            )}
+            <TouchableOpacity 
+              activeOpacity={0.9}
+              onPress={() => setShowImageModal(true)}
+            >
+              <Image source={{ uri: image }} style={[styles.selectedImage, { backgroundColor: colors.card }]} />
+              {loading && (
+                <View style={styles.imageOverlay}>
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#fff" />
+                    <Text style={styles.loadingOverlayText}>Analyzing location...</Text>
+                  </View>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
         )}
 
@@ -667,29 +679,24 @@ export default function ScannerScreen() {
               </View>
             ) : (
               <>
+                {/* Main Location Card */}
                 <View style={[styles.locationCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <View style={styles.locationHeader}>
-                    <Ionicons name="location" size={24} color={colors.text} />
+                    <View style={styles.locationIconContainer}>
+                      <Ionicons name="location" size={28} color="#fff" />
+                    </View>
                     <View style={styles.locationInfo}>
                       <Text style={[styles.locationName, { color: colors.text }]}>{result.name || 'Location Found'}</Text>
                       {result.address && (
-                        <Text style={[styles.locationAddress, { color: colors.textSecondary }]}>{result.address}</Text>
+                        <Text style={[styles.locationAddress, { color: colors.textSecondary }]} numberOfLines={2}>{result.address}</Text>
                       )}
                     </View>
                   </View>
 
-                  <TouchableOpacity 
-                    style={styles.reportButtonInline}
-                    onPress={() => setShowCorrectionModal(true)}
-                  >
-                    <Ionicons name="flag-outline" size={16} color="#ef4444" />
-                    <Text style={styles.reportButtonInlineText}>Report Incorrect</Text>
-                  </TouchableOpacity>
-
                   {result.confidence && (
                     <View style={[styles.confidenceSection, { backgroundColor: colors.background, borderColor: colors.border }]}>
                       <View style={styles.confidenceHeader}>
-                        <Text style={[styles.confidenceLabel, { color: colors.textSecondary }]}>Confidence Score</Text>
+                        <Text style={[styles.confidenceLabel, { color: colors.textSecondary }]}>Confidence</Text>
                         <Text style={[styles.confidenceValue, { color: colors.text }]}>{Math.round(result.confidence * 100)}%</Text>
                       </View>
                       <View style={[styles.confidenceBar, { backgroundColor: colors.border }]}>
@@ -699,78 +706,133 @@ export default function ScannerScreen() {
                   )}
                 </View>
 
+                {/* Quick Actions */}
+                <View style={[styles.quickActionsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={styles.quickActionsGrid}>
+                    <TouchableOpacity 
+                      style={[styles.quickActionButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+                      onPress={() => {
+                        if (result.location) {
+                          const url = `https://www.google.com/maps/dir/?api=1&destination=${result.location.latitude},${result.location.longitude}`;
+                          Linking.openURL(url);
+                        }
+                      }}
+                    >
+                      <Ionicons name="navigate" size={24} color={colors.text} />
+                      <Text style={[styles.quickActionText, { color: colors.text }]}>Navigate</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.quickActionButton, { backgroundColor: isSaved ? (theme === 'dark' ? '#fff' : '#000') : colors.background, borderColor: isSaved ? (theme === 'dark' ? '#fff' : '#000') : colors.border }]}
+                      onPress={handleSave}
+                    >
+                      <Ionicons name={isSaved ? "bookmark" : "bookmark-outline"} size={24} color={isSaved ? (theme === 'dark' ? '#000' : '#fff') : colors.text} />
+                      <Text style={[styles.quickActionText, { color: isSaved ? (theme === 'dark' ? '#000' : '#fff') : colors.text }]}>{isSaved ? 'Saved' : 'Save'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.quickActionButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+                      onPress={() => {
+                        if (result.location) {
+                          router.push({
+                            pathname: '/share-location',
+                            params: { location: JSON.stringify({ ...result, image }) }
+                          });
+                        }
+                      }}
+                    >
+                      <Ionicons name="share-social" size={24} color={colors.text} />
+                      <Text style={[styles.quickActionText, { color: colors.text }]}>Share</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.quickActionButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+                      onPress={() => {
+                        if (result.location) {
+                          const url = `https://www.google.com/maps/@${result.location.latitude},${result.location.longitude},18z`;
+                          Linking.openURL(url);
+                        }
+                      }}
+                    >
+                      <Ionicons name="map" size={24} color={colors.text} />
+                      <Text style={[styles.quickActionText, { color: colors.text }]}>Map</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Location Details */}
                 {result.location && (
                   <View style={[styles.detailsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                    <Text style={styles.cardTitle}>Location Data</Text>
-                    <View style={[styles.coordinatesBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                      <View style={styles.dataRow}>
-                        <Ionicons name="navigate-outline" size={16} color="#6b7280" />
-                        <Text style={[styles.dataLabel, { color: colors.textSecondary }]}>Coordinates</Text>
+                    <Text style={[styles.cardTitle, { color: colors.textTertiary }]}>LOCATION DETAILS</Text>
+                    <View style={styles.detailRow}>
+                      <View style={styles.detailLeft}>
+                        <Ionicons name="navigate-outline" size={18} color={colors.textSecondary} />
+                        <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Coordinates</Text>
                       </View>
-                      <Text style={[styles.coordinatesText, { color: colors.text }]}>
+                      <Text style={[styles.detailValue, { color: colors.text }]}>
                         {result.location.latitude.toFixed(6)}, {result.location.longitude.toFixed(6)}
                       </Text>
                     </View>
                     {distance !== null && (
-                      <View style={styles.coordinatesBox}>
-                        <View style={styles.dataRow}>
-                          <Ionicons name="location-outline" size={16} color="#6b7280" />
-                          <Text style={styles.dataLabel}>Distance from you</Text>
+                      <View style={styles.detailRow}>
+                        <View style={styles.detailLeft}>
+                          <Ionicons name="location-outline" size={18} color={colors.textSecondary} />
+                          <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Distance</Text>
                         </View>
-                        <Text style={styles.dataValue}>
+                        <Text style={[styles.detailValue, { color: colors.text }]}>
                           {distance < 1 ? `${(distance * 1000).toFixed(0)} m` : `${distance.toFixed(2)} km`}
                         </Text>
                       </View>
                     )}
                     {elevation !== null && (
-                      <View style={styles.coordinatesBox}>
-                        <View style={styles.dataRow}>
-                          <Ionicons name="trending-up-outline" size={16} color="#6b7280" />
-                          <Text style={styles.dataLabel}>Elevation</Text>
+                      <View style={styles.detailRow}>
+                        <View style={styles.detailLeft}>
+                          <Ionicons name="trending-up-outline" size={18} color={colors.textSecondary} />
+                          <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Elevation</Text>
                         </View>
-                        <Text style={styles.dataValue}>{elevation} meters</Text>
+                        <Text style={[styles.detailValue, { color: colors.text }]}>{elevation}m</Text>
                       </View>
                     )}
-                  </View>
-                )}
-
-                {(result.locationDetails?.country || result.locationDetails?.state) && (
-                  <View style={styles.detailsCard}>
-                    <Text style={styles.cardTitle}>Location Info</Text>
-                    {result.locationDetails.country && (
-                      <View style={styles.infoBox}>
-                        <Text style={styles.infoLabel}>Country</Text>
-                        <Text style={styles.infoValue}>{result.locationDetails.country}</Text>
-                      </View>
-                    )}
-                    {result.locationDetails.state && (
-                      <View style={styles.infoBox}>
-                        <Text style={styles.infoLabel}>State</Text>
-                        <Text style={styles.infoValue}>{result.locationDetails.state}</Text>
-                      </View>
-                    )}
-                  </View>
-                )}
-
-                {(result.method || result.deviceAnalysis?.camera?.model) && (
-                  <View style={styles.detailsCard}>
-                    <Text style={styles.cardTitle}>Technical Details</Text>
                     {result.method && (
                       <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Method</Text>
-                        <Text style={styles.detailValue}>{result.method.replace(/-/g, ' ')}</Text>
-                      </View>
-                    )}
-                    {result.deviceAnalysis?.camera?.model && (
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Device</Text>
-                        <Text style={styles.detailValue}>
-                          {result.deviceAnalysis.camera.make} {result.deviceAnalysis.camera.model}
-                        </Text>
+                        <View style={styles.detailLeft}>
+                          <Ionicons name="analytics-outline" size={18} color={colors.textSecondary} />
+                          <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Method</Text>
+                        </View>
+                        <Text style={[styles.detailValue, { color: colors.text }]}>{result.method.replace(/-/g, ' ')}</Text>
                       </View>
                     )}
                   </View>
                 )}
+
+                {/* ML Training Card */}
+                <View style={[styles.mlTrainingCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={styles.mlTrainingHeader}>
+                    <Ionicons name="school" size={24} color="#8b5cf6" />
+                    <Text style={[styles.mlTrainingTitle, { color: colors.text }]}>Help Improve AI</Text>
+                  </View>
+                  <Text style={[styles.mlTrainingDesc, { color: colors.textSecondary }]}>Your feedback helps train our AI to be more accurate</Text>
+                  <View style={styles.mlTrainingButtons}>
+                    <TouchableOpacity 
+                      style={[styles.mlTrainingButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+                      onPress={() => setShowCorrectionModal(true)}
+                    >
+                      <Ionicons name="flag-outline" size={18} color="#ef4444" />
+                      <Text style={[styles.mlTrainingButtonText, { color: colors.text }]}>Report Incorrect</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.mlTrainingButton, { backgroundColor: '#8b5cf6' }]}
+                      onPress={trainModel}
+                      disabled={trainingModel}
+                    >
+                      {trainingModel ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <>
+                          <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                          <Text style={styles.mlTrainingButtonTextWhite}>Confirm Correct</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
 
                 {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
                   <View style={styles.nearbySection}>
@@ -1458,9 +1520,11 @@ const styles = StyleSheet.create({
   secondaryAction: { borderRadius: 12, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   secondaryActionText: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
   actionIconLeft: { marginRight: 8 },
-  imageSection: { margin: 20, borderRadius: 16, overflow: 'hidden', position: 'relative' },
-  selectedImage: { width: '100%', height: 280, borderRadius: 16 },
-  imageOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' },
+  imageSection: { margin: 20, borderRadius: 20, overflow: 'hidden', position: 'relative', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 6 },
+  selectedImage: { width: '100%', height: 320, borderRadius: 20 },
+  imageOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
+  loadingContainer: { alignItems: 'center', gap: 16 },
+  loadingOverlayText: { color: '#fff', fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold' },
   loadingCard: { flexDirection: 'row', alignItems: 'center', margin: 20, padding: 16, borderRadius: 12, gap: 12, borderWidth: 1 },
   loadingText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold' },
   resultSection: { padding: 20 },
@@ -1471,10 +1535,11 @@ const styles = StyleSheet.create({
   errorTips: { backgroundColor: '#450a0a', borderRadius: 12, padding: 16, width: '100%', borderWidth: 1, borderColor: '#7f1d1d' },
   errorTipsTitle: { fontSize: 14, fontFamily: 'LeagueSpartan_700Bold', color: '#ef4444', marginBottom: 12 },
   errorTip: { fontSize: 13, color: '#d1d5db', marginBottom: 6, lineHeight: 20 },
-  locationCard: { borderRadius: 16, padding: 24, marginBottom: 16, borderWidth: 1 },
+  locationCard: { borderRadius: 20, padding: 24, marginBottom: 16, borderWidth: 1, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
   locationHeader: { flexDirection: 'row', gap: 16, marginBottom: 20 },
+  locationIconContainer: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' },
   locationInfo: { flex: 1 },
-  locationName: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', marginBottom: 6 },
+  locationName: { fontSize: 22, fontFamily: 'LeagueSpartan_700Bold', marginBottom: 8 },
   locationAddress: { fontSize: 15, lineHeight: 22 },
   confidenceSection: { borderRadius: 12, padding: 16, marginTop: 16, borderWidth: 1 },
   confidenceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
@@ -1484,17 +1549,24 @@ const styles = StyleSheet.create({
   confidenceFill: { height: '100%', borderRadius: 3 },
   detailsCard: { borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1 },
   cardTitle: { fontSize: 13, fontFamily: 'LeagueSpartan_700Bold', color: '#6b7280', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
-  coordinatesBox: { borderRadius: 8, padding: 16, borderWidth: 1, marginBottom: 8 },
-  dataRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  dataLabel: { fontSize: 12 },
-  coordinatesText: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold' },
-  dataValue: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
-  infoBox: { backgroundColor: '#000', borderRadius: 8, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: '#333' },
-  infoLabel: { fontSize: 12, color: '#9ca3af', marginBottom: 4 },
-  infoValue: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#333' },
-  detailLabel: { fontSize: 14, color: '#9ca3af' },
-  detailValue: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff', flex: 1, textAlign: 'right' },
+  quickActionsCard: { borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1 },
+  quickActionsGrid: { flexDirection: 'row', gap: 12 },
+  quickActionButton: { flex: 1, borderRadius: 16, padding: 16, alignItems: 'center', gap: 8, borderWidth: 1 },
+  quickActionText: { fontSize: 12, fontFamily: 'LeagueSpartan_600SemiBold' },
+  detailsCard: { borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1 },
+  cardTitle: { fontSize: 11, fontFamily: 'LeagueSpartan_700Bold', marginBottom: 16, letterSpacing: 1 },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)' },
+  detailLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  detailLabel: { fontSize: 14, fontFamily: 'LeagueSpartan_400Regular' },
+  detailValue: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', flex: 1, textAlign: 'right' },
+  mlTrainingCard: { borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1 },
+  mlTrainingHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
+  mlTrainingTitle: { fontSize: 18, fontFamily: 'LeagueSpartan_700Bold' },
+  mlTrainingDesc: { fontSize: 14, fontFamily: 'LeagueSpartan_400Regular', marginBottom: 16, lineHeight: 20 },
+  mlTrainingButtons: { flexDirection: 'row', gap: 12 },
+  mlTrainingButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16, borderRadius: 12, borderWidth: 1 },
+  mlTrainingButtonText: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold' },
+  mlTrainingButtonTextWhite: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
   nearbySection: { backgroundColor: '#1a1a1a', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#333' },
   nearbyHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   nearbyBadge: { backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
