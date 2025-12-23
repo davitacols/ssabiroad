@@ -67,7 +67,7 @@ export default function MLTrainingDashboard() {
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button onClick={triggerTraining} disabled={training || !((queue?.items || queue?.samples || queue?.queue)?.length || queue?.total || queue?.queue_size)}>
+          <Button onClick={triggerTraining} disabled={training || !((queue?.queue || queue)?.length || queue?.total || queue?.queue_size)}>
             <Play className="w-4 h-4 mr-2" />
             {training ? 'Training...' : 'Start Training'}
           </Button>
@@ -138,9 +138,9 @@ export default function MLTrainingDashboard() {
               {queue.source === 'database' ? 'Showing database queue (ML API unavailable)' : queue.error}
             </p>
           ) : null}
-          {(queue?.queue)?.length > 0 ? (
+          {(queue?.queue || queue)?.length > 0 ? (
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {(queue?.queue || []).map((item: any, idx: number) => (
+              {(queue?.queue || queue || []).map((item: any, idx: number) => (
                 <div key={idx} className="flex justify-between items-center p-3 border rounded">
                   <div className="flex-1">
                     <p className="font-medium text-sm">{item.imageUrl || item.image_path || item.filename || `Item ${idx + 1}`}</p>
