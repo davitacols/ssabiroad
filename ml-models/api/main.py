@@ -39,12 +39,13 @@ async def startup_event():
     
     try:
         pipeline = FusionPipeline(
-            faiss_index_path="faiss_index",
+            faiss_index_path="../faiss_index",
             similarity_threshold=0.75
         )
         monitor = ModelMonitor()
         version_manager = ModelVersionManager()
-        active_learning = ActiveLearningPipeline()
+        active_learning = ActiveLearningPipeline(data_dir="../data/active_learning")
+        logger.info(f"Active learning queue loaded: {len(active_learning.queue.get('samples', []))} samples")
         
         best_model = version_manager.get_best_model()
         if best_model:
@@ -281,9 +282,19 @@ async def activate_model(version: str):
 async def get_training_queue():
     """Get current training queue"""
     try:
+        import math
+        samples = active_learning.queue.get("samples", [])
+        # Filter out samples with NaN values
+        valid_samples = []
+        for sample in samples:
+            lat = sample.get("metadata", {}).get("latitude")
+            lng = sample.get("metadata", {}).get("longitude")
+            if lat is not None and lng is not None and not (math.isnan(lat) or math.isnan(lng)):
+                valid_samples.append(sample)
+        
         return {
-            "queue": active_learning.queue.get("samples", []),
-            "total": len(active_learning.queue.get("samples", [])),
+            "queue": valid_samples,
+            "total": len(valid_samples),
             "last_training": active_learning.queue.get("last_training"),
             "should_retrain": active_learning.should_retrain()
         }
