@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Image, ScrollView, Modal, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Image, ScrollView, Modal, Animated, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,17 +8,47 @@ import MenuBar from '../components/MenuBar';
 import { useTheme, getColors } from '../contexts/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+const { width } = Dimensions.get('window');
+
+const features = [
+  {
+    id: 1,
+    title: 'Photo Scanner',
+    subtitle: 'Identify locations from photos',
+    image: require('../assets/location.jpg'),
+    icon: 'camera',
+    route: '/scanner',
+    color: '#3b82f6'
+  },
+  {
+    id: 2,
+    title: 'AI Search',
+    subtitle: 'Smart location intelligence',
+    image: require('../assets/ai-search.jpg'),
+    icon: 'sparkles',
+    route: '/ai-search',
+    color: '#8b5cf6'
+  },
+  {
+    id: 3,
+    title: 'Nearby Places',
+    subtitle: 'Discover around you',
+    image: require('../assets/search.jpg'),
+    icon: 'location',
+    route: '/nearby-poi',
+    color: '#10b981'
+  }
+];
+
 export default function HomeScreen() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const colors = getColors(theme);
   const [showDisclosure, setShowDisclosure] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
+  const [currentFeature, setCurrentFeature] = useState(0);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
-  const headerOpacity = useRef(new Animated.Value(1)).current;
-  const searchBarOpacity = useRef(new Animated.Value(0)).current;
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollX = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     checkLocationDisclosure();
@@ -199,44 +229,68 @@ export default function HomeScreen() {
       <Animated.ScrollView 
         style={styles.scrollView} 
         showsVerticalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          {
-            useNativeDriver: false,
-            listener: (event: any) => {
-              const offsetY = event.nativeEvent.contentOffset.y;
-              const greetingOpacity = offsetY > 50 ? 0 : 1 - offsetY / 50;
-              const searchOpacity = offsetY > 50 ? 1 : offsetY / 50;
-              headerOpacity.setValue(greetingOpacity);
-              searchBarOpacity.setValue(searchOpacity);
-              setIsScrolled(offsetY > 50);
-            },
-          }
-        )}
-        scrollEventThrottle={16}
-        contentContainerStyle={{ paddingTop: 140 }}
+        contentContainerStyle={{ paddingTop: 100, paddingBottom: 20 }}
       >
-        {/* Search-like Hero */}
+        {/* Hero Carousel */}
         <Animated.View style={[styles.hero, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-          <TouchableOpacity 
-            style={[styles.searchCard, { backgroundColor: colors.card, shadowColor: '#000' }]} 
-            onPress={handleScannerPress}
-            activeOpacity={0.9}
+          <Text style={[styles.heroTitle, { color: colors.text }]}>What would you like to do?</Text>
+          
+          <Animated.ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+              { useNativeDriver: false }
+            )}
+            onMomentumScrollEnd={(event) => {
+              const index = Math.round(event.nativeEvent.contentOffset.x / (width - 40));
+              setCurrentFeature(index);
+            }}
+            scrollEventThrottle={16}
+            style={styles.carousel}
+            snapToInterval={width - 40}
+            decelerationRate="fast"
           >
-            <Image source={require('../assets/location.jpg')} style={styles.searchCardImage} />
-            <View style={styles.searchCardOverlay}>
-              <View style={styles.searchContent}>
-                <View style={styles.searchIcon}>
-                  <Ionicons name="camera" size={24} color="#fff" />
+            {features.map((feature) => (
+              <TouchableOpacity
+                key={feature.id}
+                style={[styles.featureCard, { backgroundColor: colors.card }]}
+                onPress={() => {
+                  addActivity(feature.title, feature.subtitle, feature.route);
+                  router.push(feature.route);
+                }}
+                activeOpacity={0.9}
+              >
+                <Image source={feature.image} style={styles.featureImage} />
+                <View style={styles.featureOverlay}>
+                  <View style={[styles.featureIcon, { backgroundColor: feature.color }]}>
+                    <Ionicons name={feature.icon as any} size={28} color="#fff" />
+                  </View>
+                  <View style={styles.featureContent}>
+                    <Text style={styles.featureTitle}>{feature.title}</Text>
+                    <Text style={styles.featureSubtitle}>{feature.subtitle}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={24} color="#fff" />
                 </View>
-                <View style={styles.searchText}>
-                  <Text style={styles.searchTitle}>Scan a location</Text>
-                  <Text style={styles.searchSubtitle}>Take a photo to identify places</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#fff" />
-              </View>
-            </View>
-          </TouchableOpacity>
+              </TouchableOpacity>
+            ))}
+          </Animated.ScrollView>
+          
+          {/* Carousel Indicators */}
+          <View style={styles.indicators}>
+            {features.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.indicator,
+                  {
+                    backgroundColor: index === currentFeature ? '#fff' : 'rgba(255,255,255,0.3)',
+                    width: index === currentFeature ? 24 : 8
+                  }
+                ]}
+              />
+            ))}
+          </View>
         </Animated.View>
 
         {/* Suggestions */}
@@ -261,60 +315,44 @@ export default function HomeScreen() {
         {/* Quick Actions */}
         <View style={styles.quickActions}>
           <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>QUICK ACCESS</Text>
-          <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleAISearchPress}>
-            <View style={[styles.actionIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
-              <Ionicons name="sparkles" size={24} color={colors.text} />
-            </View>
-            <View style={styles.actionText}>
-              <Text style={[styles.actionTitle, { color: colors.text }]}>NaviSense by Pic2Nav</Text>
-              <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Smart location intelligence</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleNearbyPress}>
-            <View style={[styles.actionIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
-              <Ionicons name="location" size={24} color={colors.text} />
-            </View>
-            <View style={styles.actionText}>
-              <Text style={[styles.actionTitle, { color: colors.text }]}>Nearby Places</Text>
-              <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Discover around you</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleComparePress}>
-            <View style={[styles.actionIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
-              <Ionicons name="git-compare" size={24} color={colors.text} />
-            </View>
-            <View style={styles.actionText}>
-              <Text style={[styles.actionTitle, { color: colors.text }]}>Compare Locations</Text>
-              <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Side-by-side comparison</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleTransitPress}>
-            <View style={[styles.actionIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
-              <Ionicons name="bus" size={24} color={colors.text} />
-            </View>
-            <View style={styles.actionText}>
-              <Text style={[styles.actionTitle, { color: colors.text }]}>Transit Directions</Text>
-              <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Plan your journey</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleContributePress}>
-            <View style={[styles.actionIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
-              <Ionicons name="school" size={24} color="#8b5cf6" />
-            </View>
-            <View style={styles.actionText}>
-              <Text style={[styles.actionTitle, { color: colors.text }]}>Help Train AI</Text>
-              <Text style={[styles.actionSubtitle, { color: colors.textSecondary }]}>Contribute photos to improve AI</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
+          <View style={styles.actionsGrid}>
+            <TouchableOpacity style={[styles.gridCard, { backgroundColor: colors.card }]} onPress={handleBatchPress}>
+              <View style={[styles.gridIcon, { backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1 }]}>
+                <Ionicons name="images" size={20} color={colors.text} />
+              </View>
+              <Text style={[styles.gridTitle, { color: colors.text }]}>Batch Process</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.gridCard, { backgroundColor: colors.card }]} onPress={() => router.push('/street-view')}>
+              <View style={[styles.gridIcon, { backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1 }]}>
+                <Ionicons name="eye" size={20} color={colors.text} />
+              </View>
+              <Text style={[styles.gridTitle, { color: colors.text }]}>Street View</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.gridCard, { backgroundColor: colors.card }]} onPress={handleCollectionsPress}>
+              <View style={[styles.gridIcon, { backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1 }]}>
+                <Ionicons name="folder" size={20} color={colors.text} />
+              </View>
+              <Text style={[styles.gridTitle, { color: colors.text }]}>Collections</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.gridCard, { backgroundColor: colors.card }]} onPress={handleTransitPress}>
+              <View style={[styles.gridIcon, { backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1 }]}>
+                <Ionicons name="bus" size={20} color={colors.text} />
+              </View>
+              <Text style={[styles.gridTitle, { color: colors.text }]}>Transit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.gridCard, { backgroundColor: colors.card }]} onPress={handleComparePress}>
+              <View style={[styles.gridIcon, { backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1 }]}>
+                <Ionicons name="git-compare" size={20} color={colors.text} />
+              </View>
+              <Text style={[styles.gridTitle, { color: colors.text }]}>Compare</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.gridCard, { backgroundColor: colors.card }]} onPress={handleContributePress}>
+              <View style={[styles.gridIcon, { backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1 }]}>
+                <Ionicons name="school" size={20} color={colors.text} />
+              </View>
+              <Text style={[styles.gridTitle, { color: colors.text }]}>Train AI</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Tools Section */}
@@ -368,41 +406,16 @@ export default function HomeScreen() {
         </View>
       </Animated.ScrollView>
 
-      {/* Floating Header */}
-      <SafeAreaView edges={['top']} style={[styles.floatingHeader, { backgroundColor: colors.background }]}>
-        <View style={styles.headerContainer}>
-          {!isScrolled ? (
-            <Animated.View style={[styles.header, { opacity: headerOpacity }]}>
-              <View style={styles.headerTop}>
-                <View>
-                  <Text style={[styles.greeting, { color: colors.text }]}>{getGreeting()}</Text>
-                  <Text style={[styles.subGreeting, { color: colors.textSecondary }]}>Ready to explore?</Text>
-                </View>
-                <TouchableOpacity onPress={toggleTheme} style={styles.themeToggle}>
-                  <Ionicons name={theme === 'dark' ? 'sunny' : 'moon'} size={22} color={colors.text} />
-                </TouchableOpacity>
-              </View>
-              <TouchableOpacity 
-                style={[styles.searchBar, { backgroundColor: colors.card }]} 
-                onPress={handleSearchPress}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="search" size={20} color="#999" />
-                <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>Search locations...</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          ) : (
-            <View style={styles.compactHeader}>
-              <TouchableOpacity 
-                style={[styles.compactSearchBar, { backgroundColor: colors.card }]} 
-                onPress={handleSearchPress}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="search" size={20} color="#999" />
-                <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>Search locations...</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+      {/* Simple Header */}
+      <SafeAreaView edges={['top']} style={[styles.header, { backgroundColor: colors.background }]}>
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={[styles.greeting, { color: colors.text }]}>{getGreeting()}</Text>
+            <Text style={[styles.subGreeting, { color: colors.textSecondary }]}>Ready to explore?</Text>
+          </View>
+          <TouchableOpacity onPress={toggleTheme} style={styles.themeToggle}>
+            <Ionicons name={theme === 'dark' ? 'sunny' : 'moon'} size={22} color={colors.text} />
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
       
@@ -429,84 +442,75 @@ const styles = StyleSheet.create({
   declineText: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
   acceptButton: { flex: 1, padding: 16, borderRadius: 8, alignItems: 'center' },
   acceptText: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
-  floatingHeader: { 
-    position: 'absolute', 
-    top: 0, 
-    left: 0, 
-    right: 0, 
-    zIndex: 10,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)'
-  },
-  headerContainer: { position: 'relative' },
-  header: { paddingTop: 8, paddingBottom: 8, paddingHorizontal: 20, zIndex: 10 },
-  compactHeader: { position: 'absolute', top: 4, left: 0, right: 0, paddingHorizontal: 20, paddingVertical: 4, zIndex: 20 },
-  compactSearchBar: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: '#fff', 
-    borderRadius: 12, 
-    paddingHorizontal: 16, 
-    paddingVertical: 16,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8
-  },
-  searchBar: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: '#fff', 
-    borderRadius: 12, 
-    paddingHorizontal: 16, 
-    paddingVertical: 18, 
-    marginTop: 12,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8
-  },
-  searchPlaceholder: { marginLeft: 12, fontSize: 16, fontFamily: 'LeagueSpartan_400Regular' },
-  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  header: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, paddingHorizontal: 20, paddingBottom: 16 },
+  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  greeting: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold' },
+  subGreeting: { fontSize: 14, fontFamily: 'LeagueSpartan_400Regular', marginTop: 2 },
   themeToggle: { padding: 8 },
-  greeting: { fontSize: 18, fontFamily: 'LeagueSpartan_700Bold', color: '#fff' },
-  subGreeting: { fontSize: 13, fontFamily: 'LeagueSpartan_400Regular', marginTop: 2 },
   scrollView: { flex: 1 },
-  hero: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 },
-  searchCard: { 
-    backgroundColor: '#fff', 
-    borderRadius: 16, 
+  hero: { paddingHorizontal: 20, paddingBottom: 24 },
+  heroTitle: { fontSize: 18, fontFamily: 'LeagueSpartan_600SemiBold', marginBottom: 20 },
+  carousel: { marginBottom: 16 },
+  featureCard: { 
+    width: width - 60, 
+    height: 200, 
+    marginRight: 20, 
+    borderRadius: 20, 
     overflow: 'hidden',
-    height: 140,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6
   },
-  searchCardImage: { width: '100%', height: '100%', position: 'absolute' },
-  searchCardOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 16 },
-  searchContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  searchIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
-  searchText: { flex: 1 },
-  searchTitle: { fontSize: 18, fontFamily: 'LeagueSpartan_700Bold', marginBottom: 4, color: '#fff' },
-  searchSubtitle: { fontSize: 13, fontFamily: 'LeagueSpartan_400Regular', color: '#fff' },
+  featureImage: { width: '100%', height: '100%', position: 'absolute' },
+  featureOverlay: { 
+    flex: 1, 
+    backgroundColor: 'rgba(0,0,0,0.4)', 
+    padding: 24, 
+    justifyContent: 'space-between',
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  featureIcon: { 
+    width: 56, 
+    height: 56, 
+    borderRadius: 28, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
+  },
+  featureContent: { flex: 1, marginLeft: 16 },
+  featureTitle: { fontSize: 22, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 4 },
+  featureSubtitle: { fontSize: 14, fontFamily: 'LeagueSpartan_400Regular', color: '#fff', opacity: 0.9 },
+  indicators: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
+  indicator: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.3)' },
   suggestions: { paddingHorizontal: 20, paddingBottom: 16 },
   suggestionsTitle: { fontSize: 11, fontFamily: 'LeagueSpartan_700Bold', letterSpacing: 1, marginBottom: 12 },
   suggestionChips: { flexDirection: 'row', gap: 8 },
   chip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1 },
   chipText: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold' },
-  quickActions: { paddingHorizontal: 20, paddingVertical: 8 },
-  sectionTitle: { fontSize: 11, fontFamily: 'LeagueSpartan_700Bold', color: '#737373', marginBottom: 12, letterSpacing: 1 },
-  actionCard: { backgroundColor: '#0a0a0a', borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#1a1a1a' },
-  actionIcon: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', marginRight: 16, borderWidth: 1, borderColor: '#1a1a1a' },
-  actionText: { flex: 1 },
-  actionTitle: { fontSize: 17, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 4 },
-  actionSubtitle: { fontSize: 14, color: '#a3a3a3' },
-  toolsSection: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 100 },
+  quickActions: { paddingHorizontal: 20, paddingBottom: 24 },
+  sectionTitle: { fontSize: 11, fontFamily: 'LeagueSpartan_700Bold', letterSpacing: 1, marginBottom: 16, textTransform: 'uppercase' },
+  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  gridCard: { 
+    width: (width - 56) / 2, 
+    padding: 20, 
+    borderRadius: 16, 
+    alignItems: 'center',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3
+  },
+  gridIcon: { 
+    width: 48, 
+    height: 48, 
+    borderRadius: 24, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    marginBottom: 12
+  },
+  gridTitle: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold', textAlign: 'center' },
+  toolsSection: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 20 },
   sectionTitle: { fontSize: 13, fontFamily: 'LeagueSpartan_700Bold', color: '#737373', marginBottom: 16, letterSpacing: 2, textTransform: 'uppercase' },
   toolCard: { backgroundColor: '#0a0a0a', borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#1a1a1a' },
   toolIcon: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', marginRight: 16, borderWidth: 1, borderColor: '#1a1a1a' },

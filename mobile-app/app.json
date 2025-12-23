@@ -2,7 +2,7 @@
   "expo": {
     "name": "Pic2Nav",
     "slug": "pic2nav",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -35,7 +35,7 @@
         "backgroundColor": "#000000"
       },
       "package": "com.ssabiroad.pic2nav",
-      "versionCode": 14,
+      "versionCode": 15,
       "targetSdkVersion": 35,
       "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ssabiroad.pic2nav",
       "softwareKeyboardLayoutMode": "pan",
@@ -56,7 +56,12 @@
         "ACCESS_NETWORK_STATE"
       ],
       "usesCleartextTraffic": false,
-      "blockedPermissions": [],
+      "blockedPermissions": [
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ],
       "enableEdgeToEdge": true
     },
     "web": {},
@@ -124,6 +129,28 @@
         ],
         "category": [
           "BROWSABLE",
+          "DEFAULT"
+        ]
+      },
+      {
+        "action": "SEND",
+        "data": [
+          {
+            "mimeType": "image/*"
+          }
+        ],
+        "category": [
+          "DEFAULT"
+        ]
+      },
+      {
+        "action": "SEND_MULTIPLE",
+        "data": [
+          {
+            "mimeType": "image/*"
+          }
+        ],
+        "category": [
           "DEFAULT"
         ]
       }

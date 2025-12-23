@@ -14,6 +14,7 @@ import LocationPermissionDisclosure from '../components/LocationPermissionDisclo
 import { getMlApiUrl, API_CONFIG } from '../config/api';
 import { useTheme, getColors } from '../contexts/ThemeContext';
 import MenuBar from '../components/MenuBar';
+import ShareHandler from '../components/ShareHandler';
 
 export default function ScannerScreen() {
   const router = useRouter();
@@ -48,6 +49,21 @@ export default function ScannerScreen() {
 
   const [showDisclosure, setShowDisclosure] = useState(false);
   const [disclosureShown, setDisclosureShown] = useState(false);
+
+  // Handle shared images
+  useEffect(() => {
+    let handled = false;
+    const handleSharedImage = async () => {
+      if (handled) return;
+      handled = true;
+      const url = await Linking.getInitialURL();
+      if (url && url.startsWith('content://')) {
+        setImage(url);
+        await processImage(url);
+      }
+    };
+    handleSharedImage();
+  }, []);
 
   useEffect(() => {
     checkDisclosureStatus();
@@ -623,10 +639,10 @@ export default function ScannerScreen() {
             <Text style={[styles.secondaryActionText, { color: colors.text }]}>Choose from Gallery</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.webUploadAction, { backgroundColor: '#3b82f6', borderColor: '#3b82f6' }]} onPress={() => Linking.openURL('https://ssabiroad.vercel.app/upload.html')}>
-            <Ionicons name="cloud-upload" size={20} color="#fff" style={styles.actionIconLeft} />
-            <Text style={[styles.webUploadText, { color: '#fff' }]}>Web Upload (Keeps GPS)</Text>
-          </TouchableOpacity>
+          <View style={[styles.shareHint, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="share" size={16} color={colors.textSecondary} />
+            <Text style={[styles.shareHintText, { color: colors.textSecondary }]}>Or share photos to Pic2Nav from Gallery app</Text>
+          </View>
         </View>
 
         {image && (
@@ -1494,6 +1510,7 @@ export default function ScannerScreen() {
         onAccept={handleAcceptDisclosure}
         onDecline={handleDeclineDisclosure}
       />
+      <ShareHandler />
       <MenuBar />
     </SafeAreaView>
   );
@@ -1515,8 +1532,6 @@ const styles = StyleSheet.create({
   primaryActionText: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold' },
   secondaryAction: { borderRadius: 12, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   secondaryActionText: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
-  webUploadAction: { borderRadius: 12, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  webUploadText: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
   actionIconLeft: { marginRight: 8 },
   imageSection: { margin: 20, borderRadius: 20, overflow: 'hidden', position: 'relative', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 6 },
   selectedImage: { width: '100%', height: 320, borderRadius: 20 },
@@ -1677,4 +1692,6 @@ const styles = StyleSheet.create({
   cameraControls: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 60 },
   captureButton: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#ffffff', padding: 6 },
   captureInner: { flex: 1, borderRadius: 34, backgroundColor: '#000000' },
+  shareHint: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 8, borderWidth: 1 },
+  shareHintText: { fontSize: 13, fontFamily: 'LeagueSpartan_400Regular', flex: 1 },
 });
