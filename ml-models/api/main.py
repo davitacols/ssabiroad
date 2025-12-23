@@ -253,6 +253,11 @@ async def trigger_training():
         logger.error(f"Training trigger error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/retrain")
+async def retrain():
+    """Alias for trigger_training"""
+    return await trigger_training()
+
 @app.get("/models")
 async def list_models():
     """List all model versions"""
