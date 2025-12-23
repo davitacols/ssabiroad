@@ -58,7 +58,7 @@ export default function MLTrainingDashboard() {
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button onClick={triggerTraining} disabled={training || !(queue?.samples?.length || queue?.queue?.length)}>
+          <Button onClick={triggerTraining} disabled={training || !((queue?.items || queue?.samples || queue?.queue)?.length || queue?.total || queue?.queue_size)}>
             <Play className="w-4 h-4 mr-2" />
             {training ? 'Training...' : 'Start Training'}
           </Button>
@@ -74,7 +74,7 @@ export default function MLTrainingDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{queue?.samples?.length || queue?.queue?.length || 0}</div>
+            <div className="text-3xl font-bold">{queue?.total || queue?.queue_size || queue?.samples?.length || queue?.queue?.length || 0}</div>
             <p className="text-sm text-muted-foreground">Items waiting</p>
             {queue?.last_training && (
               <p className="text-xs mt-2">Last: {new Date(queue.last_training).toLocaleString()}</p>
@@ -124,14 +124,16 @@ export default function MLTrainingDashboard() {
           <CardTitle>Training Queue</CardTitle>
         </CardHeader>
         <CardContent>
-          {(queue?.samples?.length || queue?.queue?.length) > 0 ? (
+          {queue?.error ? (
+            <p className="text-center text-red-500 py-8">{queue.error}</p>
+          ) : (queue?.items || queue?.samples || queue?.queue)?.length > 0 ? (
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {(queue?.samples || queue?.queue || []).map((item: any, idx: number) => (
+              {(queue?.items || queue?.samples || queue?.queue || []).map((item: any, idx: number) => (
                 <div key={idx} className="flex justify-between items-center p-3 border rounded">
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{item.image_path}</p>
+                    <p className="font-medium text-sm">{item.image_path || item.filename || `Item ${idx + 1}`}</p>
                     <p className="text-xs text-muted-foreground">
-                      {item.metadata?.address || 'No address'}
+                      {item.metadata?.address || item.address || 'No address'}
                     </p>
                     {item.timestamp && (
                       <p className="text-xs text-gray-500 mt-1">
@@ -141,13 +143,17 @@ export default function MLTrainingDashboard() {
                   </div>
                   <div className="flex gap-2 items-center">
                     <Badge variant={item.priority === 'high' ? 'destructive' : 'secondary'}>
-                      {item.priority}
+                      {item.priority || 'normal'}
                     </Badge>
                     {item.metadata?.correction && <Badge variant="outline">Correction</Badge>}
                   </div>
                 </div>
               ))}
             </div>
+          ) : (queue?.total || queue?.queue_size) > 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              {queue?.total || queue?.queue_size} items in queue (details not available)
+            </p>
           ) : (
             <p className="text-center text-muted-foreground py-8">No items in queue</p>
           )}

@@ -38,6 +38,7 @@ export async function GET() {
     }
     
     const data = await response.json();
+    console.log('Training queue data:', data);
     return NextResponse.json(data);
   } catch (error: any) {
     console.error('Training queue error:', error.message);
