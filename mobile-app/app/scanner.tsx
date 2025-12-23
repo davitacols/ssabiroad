@@ -411,6 +411,7 @@ export default function ScannerScreen() {
 
   const handlePickImage = async () => {
     try {
+      // Use system file picker (no READ_MEDIA_IMAGES needed)
       const result = await DocumentPicker.getDocumentAsync({
         type: 'image/*',
         copyToCacheDirectory: true,
@@ -418,26 +419,12 @@ export default function ScannerScreen() {
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        
-        if (asset.size && asset.size > 5 * 1024 * 1024) {
-          Alert.alert('Image Too Large', 'Please select smaller image');
-          return;
-        }
-        
-        const filename = asset.name || `image_${Date.now()}.jpg`;
-        const destPath = `${FileSystem.cacheDirectory}${filename}`;
-        
-        await FileSystem.copyAsync({
-          from: asset.uri,
-          to: destPath,
-        });
-        
-        setImage(destPath);
-        await addActivity('Image Selected', 'Chose image from gallery', '/scanner');
-        await processImage(destPath);
+        setImage(asset.uri);
+        await addActivity('Image Selected', 'Chose image from files', '/scanner');
+        await processImage(asset.uri);
       }
     } catch (error: any) {
-      console.error('Document picker error:', error);
+      console.error('File picker error:', error);
       Alert.alert('Error', 'Failed to select image');
     }
   };
@@ -635,6 +622,11 @@ export default function ScannerScreen() {
             <Ionicons name="images" size={20} color={colors.text} style={styles.actionIconLeft} />
             <Text style={[styles.secondaryActionText, { color: colors.text }]}>Choose from Gallery</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.webUploadAction, { backgroundColor: '#3b82f6', borderColor: '#3b82f6' }]} onPress={() => Linking.openURL('https://ssabiroad.vercel.app/upload.html')}>
+            <Ionicons name="cloud-upload" size={20} color="#fff" style={styles.actionIconLeft} />
+            <Text style={[styles.webUploadText, { color: '#fff' }]}>Web Upload (Keeps GPS)</Text>
+          </TouchableOpacity>
         </View>
 
         {image && (
@@ -668,13 +660,17 @@ export default function ScannerScreen() {
             {result.error ? (
               <View style={[styles.errorCard, { backgroundColor: colors.card }]}>
                 <Ionicons name="alert-circle" size={48} color="#ef4444" style={styles.errorIcon} />
-                <Text style={styles.errorTitle}>No Location Data</Text>
-                <Text style={[styles.errorText, { color: colors.textSecondary }]}>{result.error}</Text>
+                <Text style={styles.errorTitle}>{result.error}</Text>
+                {result.helpText ? (
+                  <Text style={[styles.errorText, { color: colors.textSecondary }]}>{result.helpText}</Text>
+                ) : (
+                  <Text style={[styles.errorText, { color: colors.textSecondary }]}>{result.error}</Text>
+                )}
                 <View style={styles.errorTips}>
-                  <Text style={styles.errorTipsTitle}>Tips:</Text>
-                  <Text style={styles.errorTip}>• Enable location services on your device</Text>
-                  <Text style={styles.errorTip}>• Take a new photo with GPS enabled</Text>
-                  <Text style={styles.errorTip}>• Use a photo that was taken with location data</Text>
+                  <Text style={styles.errorTipsTitle}>Quick Fix:</Text>
+                  <Text style={styles.errorTip}>• Use camera instead of gallery</Text>
+                  <Text style={styles.errorTip}>• Take photo with location services on</Text>
+                  <Text style={styles.errorTip}>• Look for clear business signs or addresses</Text>
                 </View>
               </View>
             ) : (
@@ -1519,6 +1515,8 @@ const styles = StyleSheet.create({
   primaryActionText: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold' },
   secondaryAction: { borderRadius: 12, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   secondaryActionText: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
+  webUploadAction: { borderRadius: 12, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  webUploadText: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
   actionIconLeft: { marginRight: 8 },
   imageSection: { margin: 20, borderRadius: 20, overflow: 'hidden', position: 'relative', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 6 },
   selectedImage: { width: '100%', height: 320, borderRadius: 20 },

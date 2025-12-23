@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pic2Nav - Upload Photos</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #000; color: #fff; min-height: 100vh; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .logo { font-size: 32px; font-weight: bold; margin-bottom: 10px; }
+        .subtitle { color: #888; }
+        .upload-area { border: 2px dashed #333; border-radius: 12px; padding: 40px; text-align: center; margin-bottom: 20px; cursor: pointer; transition: all 0.3s; }
+        .upload-area:hover { border-color: #666; background: #111; }
+        .upload-area.dragover { border-color: #fff; background: #222; }
+        .upload-icon { font-size: 48px; margin-bottom: 16px; }
+        .upload-text { font-size: 18px; margin-bottom: 8px; }
+        .upload-hint { color: #888; font-size: 14px; }
+        .file-input { display: none; }
+        .preview { margin: 20px 0; }
+        .preview img { width: 100%; max-width: 300px; border-radius: 8px; }
+        .result { background: #111; border-radius: 12px; padding: 20px; margin: 20px 0; }
+        .loading { text-align: center; padding: 40px; }
+        .spinner { border: 3px solid #333; border-top: 3px solid #fff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .error { background: #330000; border: 1px solid #660000; color: #ff6666; }
+        .success { background: #003300; border: 1px solid #006600; color: #66ff66; }
+        .gps-info { background: #001133; border: 1px solid #003366; color: #66aaff; margin: 10px 0; padding: 15px; border-radius: 8px; }
+        .device-id { background: #222; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 12px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">📸 Pic2Nav</div>
+            <div class="subtitle">Upload photos to analyze locations</div>
+        </div>
+
+        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">Click to upload or drag photos here</div>
+            <div class="upload-hint">Supports JPG, PNG with GPS data</div>
+        </div>
+
+        <input type="file" id="fileInput" class="file-input" accept="image/*" multiple>
+
+        <div id="deviceInfo" class="device-id" style="display: none;">
+            Device ID: <span id="deviceId"></span>
+        </div>
+
+        <div id="preview" class="preview" style="display: none;"></div>
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://ssabiroad.vercel.app';
+        let deviceId = localStorage.getItem('pic2nav_device_id') || generateDeviceId();
+
+        function generateDeviceId() {
+            const id = 'web_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('pic2nav_device_id', id);
+            return id;
+        }
+
+        // Show device ID
+        document.getElementById('deviceId').textContent = deviceId;
+        document.getElementById('deviceInfo').style.display = 'block';
+
+        // File input handler
+        document.getElementById('fileInput').addEventListener('change', handleFiles);
+
+        // Drag and drop
+        const uploadArea = document.querySelector('.upload-area');
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles({ target: { files: e.dataTransfer.files } });
+        });
+
+        async function handleFiles(event) {
+            const files = Array.from(event.target.files);
+            if (files.length === 0) return;
+
+            const preview = document.getElementById('preview');
+            const result = document.getElementById('result');
+            
+            preview.innerHTML = '';
+            result.innerHTML = '<div class="loading"><div class="spinner"></div>Analyzing photos...</div>';
+            result.style.display = 'block';
+
+            for (const file of files) {
+                await processFile(file);
+            }
+        }
+
+        async function processFile(file) {
+            try {
+                // Show preview
+                const preview = document.getElementById('preview');
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                preview.appendChild(img);
+                preview.style.display = 'block';
+
+                // Extract GPS from EXIF
+                const gpsData = await extractGPS(file);
+                
+                if (gpsData.hasGPS) {
+                    showGPSInfo(gpsData);
+                }
+
+                // Upload to API
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('userId', deviceId);
+                if (gpsData.hasGPS) {
+                    formData.append('latitude', gpsData.latitude.toString());
+                    formData.append('longitude', gpsData.longitude.toString());
+                }
+
+                const response = await fetch(`${API_URL}/api/location-recognition-v2`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                showResult(data, file.name);
+
+            } catch (error) {
+                showError('Failed to process: ' + error.message);
+            }
+        }
+
+        async function extractGPS(file) {
+            return new Promise((resolve) => {
+                EXIF.getData(file, function() {
+                    const lat = EXIF.getTag(this, "GPSLatitude");
+                    const lon = EXIF.getTag(this, "GPSLongitude");
+                    const latRef = EXIF.getTag(this, "GPSLatitudeRef");
+                    const lonRef = EXIF.getTag(this, "GPSLongitudeRef");
+
+                    if (lat && lon) {
+                        const latitude = convertDMSToDD(lat, latRef);
+                        const longitude = convertDMSToDD(lon, lonRef);
+                        resolve({ latitude, longitude, hasGPS: true });
+                    } else {
+                        resolve({ latitude: 0, longitude: 0, hasGPS: false });
+                    }
+                });
+            });
+        }
+
+        function convertDMSToDD(dms, ref) {
+            let dd = dms[0] + dms[1]/60 + dms[2]/3600;
+            if (ref === "S" || ref === "W") dd = dd * -1;
+            return dd;
+        }
+
+        function showGPSInfo(gps) {
+            const result = document.getElementById('result');
+            result.innerHTML = `
+                <div class="gps-info">
+                    <strong>📍 GPS Data Found!</strong><br>
+                    Latitude: ${gps.latitude.toFixed(6)}<br>
+                    Longitude: ${gps.longitude.toFixed(6)}
+                </div>
+            `;
+        }
+
+        function showResult(data, filename) {
+            const result = document.getElementById('result');
+            
+            if (data.success && data.location) {
+                result.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Location Found: ${filename}</h3>
+                        <p><strong>Name:</strong> ${data.name || 'Unknown'}</p>
+                        <p><strong>Address:</strong> ${data.address || 'Not available'}</p>
+                        <p><strong>Coordinates:</strong> ${data.location.latitude.toFixed(6)}, ${data.location.longitude.toFixed(6)}</p>
+                        <p><strong>Confidence:</strong> ${Math.round((data.confidence || 0) * 100)}%</p>
+                        <p><strong>Method:</strong> ${data.method || 'Unknown'}</p>
+                    </div>
+                `;
+            } else {
+                result.innerHTML = `
+                    <div class="error">
+                        <h3>❌ No Location Found: ${filename}</h3>
+                        <p>${data.error || 'Could not identify location from this image'}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function showError(message) {
+            const result = document.getElementById('result');
+            result.innerHTML = `<div class="error"><h3>❌ Error</h3><p>${message}</p></div>`;
+        }
+    </script>
+    
+    <!-- EXIF.js library for GPS extraction -->
+    <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.js"></script>
+</body>
+</html>

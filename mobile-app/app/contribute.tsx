@@ -77,12 +77,9 @@ export default function ContributeScreen() {
     if (!deviceId) return;
 
     try {
-      // Use Android photo picker (complies with Google Play policy)
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        quality: 0.8,
-        allowsEditing: false,
-        selectionLimit: 1,
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true,
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {

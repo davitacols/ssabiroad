@@ -35,7 +35,7 @@
         "backgroundColor": "#000000"
       },
       "package": "com.ssabiroad.pic2nav",
-      "versionCode": 6,
+      "versionCode": 14,
       "targetSdkVersion": 35,
       "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ssabiroad.pic2nav",
       "softwareKeyboardLayoutMode": "pan",
@@ -49,7 +49,6 @@
       },
       "permissions": [
         "CAMERA",
-        "ACCESS_MEDIA_LOCATION",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "POST_NOTIFICATIONS",
@@ -85,17 +84,7 @@
           "sounds": []
         }
       ],
-      [
-        "expo-task-manager"
-      ],
-      [
-        "expo-media-library",
-        {
-          "photosPermission": false,
-          "savePhotosPermission": "Allow Pic2Nav to save processed photos with location tags",
-          "isAccessMediaLocationEnabled": true
-        }
-      ],
+      "expo-task-manager",
       "expo-secure-store",
       [
         "expo-build-properties",
