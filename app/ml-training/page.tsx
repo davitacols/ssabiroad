@@ -21,9 +21,18 @@ export default function MLTrainingDashboard() {
         fetch('/api/ml/training-status'),
         fetch('/api/ml-stats')
       ]);
-      setQueue(await queueRes.json());
+      const queueData = await queueRes.json();
+      const statsData = await statsRes.json();
+      
+      // Fallback to stats if queue endpoint fails
+      if (queueData.error && statsData?.active_learning?.queue_size) {
+        queueData.queue_size = statsData.active_learning.queue_size;
+        queueData.last_training = statsData.active_learning.last_training;
+      }
+      
+      setQueue(queueData);
       setStatus(await statusRes.json());
-      setStats(await statsRes.json());
+      setStats(statsData);
     } catch (error) {
       console.error('Failed to fetch data:', error);
     }
@@ -124,28 +133,34 @@ export default function MLTrainingDashboard() {
           <CardTitle>Training Queue</CardTitle>
         </CardHeader>
         <CardContent>
-          {queue?.error ? (
-            <p className="text-center text-red-500 py-8">{queue.error}</p>
-          ) : (queue?.items || queue?.samples || queue?.queue)?.length > 0 ? (
+          {queue?.error || queue?.ml_error ? (
+            <p className="text-center text-yellow-600 py-4 text-sm">
+              {queue.source === 'database' ? 'Showing database queue (ML API unavailable)' : queue.error}
+            </p>
+          ) : null}
+          {(queue?.queue)?.length > 0 ? (
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {(queue?.items || queue?.samples || queue?.queue || []).map((item: any, idx: number) => (
+              {(queue?.queue || []).map((item: any, idx: number) => (
                 <div key={idx} className="flex justify-between items-center p-3 border rounded">
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{item.image_path || item.filename || `Item ${idx + 1}`}</p>
+                    <p className="font-medium text-sm">{item.imageUrl || item.image_path || item.filename || `Item ${idx + 1}`}</p>
                     <p className="text-xs text-muted-foreground">
-                      {item.metadata?.address || item.address || 'No address'}
+                      {item.address || item.metadata?.address || 'No address'}
                     </p>
-                    {item.timestamp && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(item.timestamp * 1000).toLocaleString()}
+                    <p className="text-xs text-gray-500 mt-1">
+                      Lat: {item.latitude?.toFixed(6)}, Lng: {item.longitude?.toFixed(6)}
+                    </p>
+                    {item.createdAt && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        {new Date(item.createdAt).toLocaleString()}
                       </p>
                     )}
                   </div>
                   <div className="flex gap-2 items-center">
-                    <Badge variant={item.priority === 'high' ? 'destructive' : 'secondary'}>
-                      {item.priority || 'normal'}
+                    <Badge variant={item.status === 'FAILED' ? 'destructive' : item.status === 'SENT' ? 'default' : 'secondary'}>
+                      {item.status || 'pending'}
                     </Badge>
-                    {item.metadata?.correction && <Badge variant="outline">Correction</Badge>}
+                    {item.deviceId && <Badge variant="outline">{item.deviceId.slice(0, 8)}</Badge>}
                   </div>
                 </div>
               ))}

@@ -272,6 +272,33 @@ async def activate_model(version: str):
         logger.error(f"Model activation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/training_queue")
+async def get_training_queue():
+    """Get current training queue"""
+    try:
+        return {
+            "queue": active_learning.queue.get("samples", []),
+            "total": len(active_learning.queue.get("samples", [])),
+            "last_training": active_learning.queue.get("last_training"),
+            "should_retrain": active_learning.should_retrain()
+        }
+    except Exception as e:
+        logger.error(f"Training queue error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/training_status")
+async def get_training_status():
+    """Get training status"""
+    try:
+        return {
+            "status": "idle",
+            "queue_size": len(active_learning.queue.get("samples", [])),
+            "last_training": active_learning.queue.get("last_training")
+        }
+    except Exception as e:
+        logger.error(f"Training status error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/train")
 async def train_model(file: UploadFile = File(...), latitude: float = Form(None), longitude: float = Form(None), metadata: str = Form(None)):
     """Add training data to active learning queue"""

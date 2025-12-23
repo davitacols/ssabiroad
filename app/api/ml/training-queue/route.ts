@@ -1,23 +1,29 @@
 import { NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
 
+const prisma = new PrismaClient();
 const ML_API_URL = process.env.ML_API_URL || 'http://34.224.33.158:8000';
 
 export async function GET() {
   try {
-    console.log('Checking ML API at:', ML_API_URL);
-    
-    // Try health check first
+    // Get from database
+    const dbQueue = await prisma.trainingQueue.findMany({
+      where: { status: 'PENDING' },
+      orderBy: { createdAt: 'desc' },
+      take: 100
+    });
+
+    // Try ML API as fallback
     const healthCheck = await fetch(`${ML_API_URL}/health`, { 
       cache: 'no-store',
       signal: AbortSignal.timeout(5000)
     }).catch(() => null);
     
     if (!healthCheck?.ok) {
-      console.error('ML API health check failed');
       return NextResponse.json({ 
-        queue: [], 
-        total: 0, 
-        error: 'ML API is not responding' 
+        queue: dbQueue,
+        total: dbQueue.length,
+        source: 'database'
       });
     }
     
@@ -28,12 +34,11 @@ export async function GET() {
     });
     
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('ML API /training_queue error:', response.status, errorText);
       return NextResponse.json({ 
-        queue: [], 
-        total: 0, 
-        error: `ML API error: ${response.status}` 
+        queue: dbQueue,
+        total: dbQueue.length,
+        source: 'database',
+        ml_error: `ML API error: ${response.status}` 
       });
     }
     
@@ -41,10 +46,17 @@ export async function GET() {
     console.log('Training queue data:', data);
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error('Training queue error:', error.message);
+    // Fallback to database
+    const dbQueue = await prisma.trainingQueue.findMany({
+      where: { status: 'PENDING' },
+      orderBy: { createdAt: 'desc' },
+      take: 100
+    });
+    
     return NextResponse.json({ 
-      queue: [], 
-      total: 0, 
+      queue: dbQueue,
+      total: dbQueue.length,
+      source: 'database',
       error: error.message 
     });
   }

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
 
+const prisma = new PrismaClient();
 const ML_API_URL = process.env.ML_API_URL || 'http://34.224.33.158:8000';
 
 export async function POST(request: NextRequest) {
@@ -14,6 +16,18 @@ export async function POST(request: NextRequest) {
     if (!file || !latitude || !longitude) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    // Save to database queue
+    const queueItem = await prisma.trainingQueue.create({
+      data: {
+        imageUrl: file.name,
+        address: address || 'Unknown',
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
+        deviceId: userId || 'anonymous',
+        status: 'PENDING'
+      }
+    });
 
     // Skip ML training if server not configured
     if (!process.env.ML_API_URL) {
@@ -50,11 +64,20 @@ export async function POST(request: NextRequest) {
     if (!mlResponse.ok) {
       const errorText = await mlResponse.text();
       console.error('❌ ML API error:', mlResponse.status, errorText);
+      await prisma.trainingQueue.update({
+        where: { id: queueItem.id },
+        data: { status: 'FAILED', error: errorText }
+      });
       throw new Error(`ML API error: ${mlResponse.status} - ${errorText}`);
     }
 
     const result = await mlResponse.json();
     console.log('✅ Navisense training response:', result);
+    
+    await prisma.trainingQueue.update({
+      where: { id: queueItem.id },
+      data: { status: 'SENT', processedAt: new Date() }
+    });
     
     if (!result.queue_size && result.queue_size !== 0) {
       console.error('⚠️ ML API did not return queue_size:', result);
