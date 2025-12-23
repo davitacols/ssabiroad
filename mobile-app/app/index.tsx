@@ -46,9 +46,14 @@ export default function HomeScreen() {
   const colors = getColors(theme);
   const [showDisclosure, setShowDisclosure] = useState(false);
   const [currentFeature, setCurrentFeature] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scrollX = useRef(new Animated.Value(0)).current;
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerOpacity = useRef(new Animated.Value(1)).current;
+  const searchOpacity = useRef(new Animated.Value(0)).current;
+  const searchScale = useRef(new Animated.Value(0.95)).current;
 
   useEffect(() => {
     checkLocationDisclosure();
@@ -230,10 +235,47 @@ export default function HomeScreen() {
         style={styles.scrollView} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: 100, paddingBottom: 20 }}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          {
+            useNativeDriver: false,
+            listener: (event: any) => {
+              const offsetY = event.nativeEvent.contentOffset.y;
+              const scrolled = offsetY > 50;
+              
+              if (scrolled !== isScrolled) {
+                setIsScrolled(scrolled);
+                Animated.parallel([
+                  Animated.timing(headerOpacity, {
+                    toValue: scrolled ? 0 : 1,
+                    duration: 200,
+                    useNativeDriver: true,
+                  }),
+                  Animated.timing(searchOpacity, {
+                    toValue: scrolled ? 1 : 0,
+                    duration: 200,
+                    useNativeDriver: true,
+                  }),
+                ]).start();
+              }
+            },
+          }
+        )}
+        scrollEventThrottle={16}
       >
         {/* Hero Carousel */}
         <Animated.View style={[styles.hero, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
           <Text style={[styles.heroTitle, { color: colors.text }]}>What would you like to do?</Text>
+          
+          {/* Search Bar */}
+          <TouchableOpacity 
+            style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={handleSearchPress}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="search" size={20} color={colors.textSecondary} />
+            <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>Search locations...</Text>
+          </TouchableOpacity>
           
           <Animated.ScrollView
             horizontal
@@ -359,60 +401,65 @@ export default function HomeScreen() {
         <View style={styles.toolsSection}>
           <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>TOOLS</Text>
           
-          <TouchableOpacity style={[styles.toolCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleBatchPress}>
-            <View style={[styles.toolIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
-              <Ionicons name="images" size={24} color={colors.text} />
-            </View>
-            <View style={styles.toolText}>
-              <Text style={[styles.toolTitle, { color: colors.text }]}>Batch Process</Text>
-              <Text style={[styles.toolDesc, { color: colors.textSecondary }]}>Process multiple photos at once</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
+          <Animated.ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={width - 80}
+            decelerationRate="fast"
+            contentContainerStyle={{ paddingRight: 20 }}
+          >
+            <TouchableOpacity style={[styles.toolCarouselCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleBatchPress}>
+              <Image source={require('../assets/location.jpg')} style={styles.toolCarouselImage} />
+              <View style={styles.toolTextBox}>
+                <Text style={styles.toolCarouselTitle}>Batch Process</Text>
+              </View>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.toolCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => router.push('/street-view')}>
-            <View style={[styles.toolIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
-              <Ionicons name="eye" size={24} color={colors.text} />
-            </View>
-            <View style={styles.toolText}>
-              <Text style={[styles.toolTitle, { color: colors.text }]}>Street View</Text>
-              <Text style={[styles.toolDesc, { color: colors.textSecondary }]}>360° panoramic views</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
+            <TouchableOpacity style={[styles.toolCarouselCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => router.push('/street-view')}>
+              <Image source={require('../assets/search.jpg')} style={styles.toolCarouselImage} />
+              <View style={styles.toolTextBox}>
+                <Text style={styles.toolCarouselTitle}>Street View</Text>
+              </View>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.toolCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleCollectionsPress}>
-            <View style={[styles.toolIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
-              <Ionicons name="folder" size={24} color={colors.text} />
-            </View>
-            <View style={styles.toolText}>
-              <Text style={[styles.toolTitle, { color: colors.text }]}>Collections</Text>
-              <Text style={[styles.toolDesc, { color: colors.textSecondary }]}>Organize and tag locations</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
+            <TouchableOpacity style={[styles.toolCarouselCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleCollectionsPress}>
+              <Image source={require('../assets/ai-search.jpg')} style={styles.toolCarouselImage} />
+              <View style={styles.toolTextBox}>
+                <Text style={styles.toolCarouselTitle}>Collections</Text>
+              </View>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.toolCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => router.push('/help-desk')}>
-            <View style={[styles.toolIcon, { backgroundColor: colors.background, borderColor: colors.border }]}>
-              <Ionicons name="help-circle" size={24} color="#8b5cf6" />
-            </View>
-            <View style={styles.toolText}>
-              <Text style={[styles.toolTitle, { color: colors.text }]}>Help & Support</Text>
-              <Text style={[styles.toolDesc, { color: colors.textSecondary }]}>Get help or contact us</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
-          </TouchableOpacity>
-
+            <TouchableOpacity style={[styles.toolCarouselCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => router.push('/help-desk')}>
+              <Image source={require('../assets/ar-view.jpg')} style={styles.toolCarouselImage} />
+              <View style={styles.toolTextBox}>
+                <Text style={styles.toolCarouselTitle}>Help & Support</Text>
+              </View>
+            </TouchableOpacity>
+          </Animated.ScrollView>
         </View>
       </Animated.ScrollView>
 
       {/* Simple Header */}
       <SafeAreaView edges={['top']} style={[styles.header, { backgroundColor: colors.background }]}>
         <View style={styles.headerContent}>
-          <View>
-            <Text style={[styles.greeting, { color: colors.text }]}>{getGreeting()}</Text>
-            <Text style={[styles.subGreeting, { color: colors.textSecondary }]}>Ready to explore?</Text>
+          <View style={{ flex: 1 }}>
+            <Animated.View style={{ opacity: headerOpacity }}>
+              <Text style={[styles.greeting, { color: colors.text }]}>{getGreeting()}</Text>
+              <Text style={[styles.subGreeting, { color: colors.textSecondary }]}>Ready to explore?</Text>
+            </Animated.View>
+            
+            <Animated.View style={{ opacity: searchOpacity, position: 'absolute', left: 0, right: 0, top: 4 }}>
+              <TouchableOpacity 
+                style={[styles.compactSearchBar, { backgroundColor: colors.card, borderColor: colors.border }]}
+                onPress={handleSearchPress}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="search" size={20} color={colors.textSecondary} />
+                <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>Search locations...</Text>
+              </TouchableOpacity>
+            </Animated.View>
           </View>
+          
           <TouchableOpacity onPress={toggleTheme} style={styles.themeToggle}>
             <Ionicons name={theme === 'dark' ? 'sunny' : 'moon'} size={22} color={colors.text} />
           </TouchableOpacity>
@@ -449,7 +496,10 @@ const styles = StyleSheet.create({
   themeToggle: { padding: 8 },
   scrollView: { flex: 1 },
   hero: { paddingHorizontal: 20, paddingBottom: 24 },
-  heroTitle: { fontSize: 18, fontFamily: 'LeagueSpartan_600SemiBold', marginBottom: 20 },
+  heroTitle: { fontSize: 18, fontFamily: 'LeagueSpartan_600SemiBold', marginBottom: 16 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12, marginBottom: 20, borderWidth: 1 },
+  searchPlaceholder: { marginLeft: 12, fontSize: 15, fontFamily: 'LeagueSpartan_400Regular' },
+  compactSearchBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1 },
   carousel: { marginBottom: 16 },
   featureCard: { 
     width: width - 60, 
@@ -511,10 +561,33 @@ const styles = StyleSheet.create({
   },
   gridTitle: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold', textAlign: 'center' },
   toolsSection: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 20 },
-  sectionTitle: { fontSize: 13, fontFamily: 'LeagueSpartan_700Bold', color: '#737373', marginBottom: 16, letterSpacing: 2, textTransform: 'uppercase' },
-  toolCard: { backgroundColor: '#0a0a0a', borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#1a1a1a' },
-  toolIcon: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', marginRight: 16, borderWidth: 1, borderColor: '#1a1a1a' },
-  toolText: { flex: 1 },
-  toolTitle: { fontSize: 17, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 4 },
-  toolDesc: { fontSize: 14, color: '#a3a3a3' },
+  toolCarouselCard: { 
+    width: width - 80, 
+    height: 180,
+    marginRight: 16, 
+    borderRadius: 20, 
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6
+  },
+  toolCarouselImage: { width: '100%', height: '100%', position: 'absolute' },
+  toolCarouselOverlay: { 
+    flex: 1, 
+    backgroundColor: 'rgba(0,0,0,0.5)', 
+    padding: 24, 
+    justifyContent: 'flex-end'
+  },
+  toolCarouselTitle: { fontSize: 15, fontFamily: 'LeagueSpartan_700Bold', color: '#000' },
+  toolTextBox: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24
+  },
 });

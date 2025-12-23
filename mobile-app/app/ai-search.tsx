@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, SafeAreaView, StatusBar, ActivityIndicator, Linking, KeyboardAvoidingView, Platform, Animated, Keyboard, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, SafeAreaView, StatusBar, ActivityIndicator, Linking, KeyboardAvoidingView, Platform, Animated, Keyboard, Image, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -8,6 +8,7 @@ import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Markdown from 'react-native-markdown-display';
 import { getApiUrl, API_CONFIG } from '../config/api';
 import { useTheme, getColors } from '../contexts/ThemeContext';
 import MenuBar from '../components/MenuBar';
@@ -34,6 +35,9 @@ export default function AISearchScreen() {
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [lastImageData, setLastImageData] = useState<{uri: string, location: any} | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<any>(null);
+  const [placeDetails, setPlaceDetails] = useState<any>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const menuTranslateY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -304,6 +308,29 @@ export default function AISearchScreen() {
     }
   };
 
+  const fetchPlaceDetails = async (place: any) => {
+    setSelectedPlace(place);
+    setLoadingDetails(true);
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${place.location.lat},${place.location.lng}&radius=50&keyword=${encodeURIComponent(place.name)}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho`
+      );
+      const data = await response.json();
+      if (data.results?.[0]) {
+        const placeId = data.results[0].place_id;
+        const detailsResponse = await fetch(
+          `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_address,formatted_phone_number,opening_hours,rating,website&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho`
+        );
+        const detailsData = await detailsResponse.json();
+        setPlaceDetails(detailsData.result);
+      }
+    } catch (error) {
+      console.error('Error fetching place details:', error);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
   const suggestedQueries = [
     { icon: 'restaurant', text: 'Best restaurants nearby', query: 'What are the best restaurants near me?' },
     { icon: 'cafe', text: 'Coffee shops', query: 'Find me a good coffee shop' },
@@ -327,8 +354,8 @@ export default function AISearchScreen() {
 
       <KeyboardAvoidingView 
         style={[styles.chatContainer, { backgroundColor: colors.background }]}
-        behavior="padding"
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView 
           ref={scrollViewRef}
@@ -387,7 +414,21 @@ export default function AISearchScreen() {
                     </View>
                   ) : (
                     <View style={[styles.aiMessageBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                      <Text style={[styles.aiText, { color: colors.text }]}>{message.text}</Text>
+                      <Markdown
+                        style={{
+                          body: { color: colors.text, fontSize: 15, lineHeight: 24, fontFamily: 'LeagueSpartan_400Regular' },
+                          strong: { fontFamily: 'LeagueSpartan_700Bold', color: colors.text },
+                          em: { fontStyle: 'italic', color: colors.text },
+                          link: { color: '#3b82f6', textDecorationLine: 'underline' },
+                          bullet_list: { color: colors.text },
+                          ordered_list: { color: colors.text },
+                          list_item: { color: colors.text, marginBottom: 4 },
+                          code_inline: { backgroundColor: colors.background, color: colors.text, paddingHorizontal: 4, borderRadius: 4, fontFamily: 'monospace' },
+                          code_block: { backgroundColor: colors.background, color: colors.text, padding: 12, borderRadius: 8, fontFamily: 'monospace' },
+                        }}
+                      >
+                        {message.text}
+                      </Markdown>
                       {message.imageUri && (
                         <Text style={[styles.correctionHint, { color: colors.textSecondary }]}>Not correct? Reply with: "Actually it's [correct address]"</Text>
                       )}
@@ -415,11 +456,7 @@ export default function AISearchScreen() {
                       key={idx}
                       style={[styles.placeCard, { backgroundColor: colors.card, borderColor: colors.border }]}
                       activeOpacity={0.7}
-                      onPress={() => {
-                        if (place.location) {
-                          Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${place.location.lat},${place.location.lng}`);
-                        }
-                      }}
+                      onPress={() => fetchPlaceDetails(place)}
                     >
                       <View style={[styles.placeIconContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                         <Ionicons name="location-sharp" size={20} color={colors.text} />
@@ -470,7 +507,7 @@ export default function AISearchScreen() {
           )}
         </ScrollView>
 
-        <View style={[styles.inputContainer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: isKeyboardVisible ? 16 : Math.max(insets.bottom, 8) }]}>
+        <View style={[styles.inputContainer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: isKeyboardVisible ? 0 : Math.max(insets.bottom, 8) }]}>
           {uploadedImage && (
             <View style={styles.imagePreview}>
               <Image source={{ uri: uploadedImage }} style={[styles.previewImage, { backgroundColor: colors.card }]} />
@@ -513,6 +550,78 @@ export default function AISearchScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Place Details Modal */}
+      <Modal visible={!!selectedPlace} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{selectedPlace?.name}</Text>
+              <TouchableOpacity onPress={() => { setSelectedPlace(null); setPlaceDetails(null); }}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {loadingDetails ? (
+              <View style={styles.modalLoading}>
+                <ActivityIndicator size="large" color={colors.text} />
+              </View>
+            ) : (
+              <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                {placeDetails?.formatted_address && (
+                  <View style={styles.detailRow}>
+                    <Ionicons name="location" size={20} color={colors.textSecondary} />
+                    <Text style={[styles.detailText, { color: colors.text }]}>{placeDetails.formatted_address}</Text>
+                  </View>
+                )}
+                {placeDetails?.formatted_phone_number && (
+                  <TouchableOpacity style={styles.detailRow} onPress={() => Linking.openURL(`tel:${placeDetails.formatted_phone_number}`)}>
+                    <Ionicons name="call" size={20} color={colors.textSecondary} />
+                    <Text style={[styles.detailText, { color: '#3b82f6' }]}>{placeDetails.formatted_phone_number}</Text>
+                  </TouchableOpacity>
+                )}
+                {placeDetails?.opening_hours && (
+                  <View style={styles.detailRow}>
+                    <Ionicons name="time" size={20} color={colors.textSecondary} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.detailText, { color: placeDetails.opening_hours.open_now ? '#10b981' : '#ef4444' }]}>
+                        {placeDetails.opening_hours.open_now ? 'Open now' : 'Closed'}
+                      </Text>
+                      {placeDetails.opening_hours.weekday_text?.slice(0, 3).map((day: string, idx: number) => (
+                        <Text key={idx} style={[styles.hoursText, { color: colors.textSecondary }]}>{day}</Text>
+                      ))}
+                    </View>
+                  </View>
+                )}
+                {placeDetails?.rating && (
+                  <View style={styles.detailRow}>
+                    <Ionicons name="star" size={20} color="#fbbf24" />
+                    <Text style={[styles.detailText, { color: colors.text }]}>{placeDetails.rating} / 5</Text>
+                  </View>
+                )}
+                {placeDetails?.website && (
+                  <TouchableOpacity style={styles.detailRow} onPress={() => Linking.openURL(placeDetails.website)}>
+                    <Ionicons name="globe" size={20} color={colors.textSecondary} />
+                    <Text style={[styles.detailText, { color: '#3b82f6' }]} numberOfLines={1}>Visit website</Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  style={[styles.viewMapButtonLarge, { backgroundColor: theme === 'dark' ? '#fff' : '#000' }]}
+                  onPress={() => {
+                    if (selectedPlace?.location) {
+                      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${selectedPlace.location.lat},${selectedPlace.location.lng}`);
+                    }
+                  }}
+                >
+                  <Ionicons name="map" size={20} color={theme === 'dark' ? '#000' : '#fff'} />
+                  <Text style={[styles.viewMapButtonText, { color: theme === 'dark' ? '#000' : '#fff' }]}>View in Maps</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -567,7 +676,7 @@ const styles = StyleSheet.create({
   closedDot: { backgroundColor: '#450a0a' },
   statusText: { fontSize: 11, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
   arrowContainer: { marginLeft: 8 },
-  inputContainer: { padding: 16, backgroundColor: '#000', borderTopWidth: 1, borderTopColor: '#1a1a1a' },
+  inputContainer: { paddingHorizontal: 12, paddingTop: 8, backgroundColor: '#000', borderTopWidth: 1, borderTopColor: '#1a1a1a' },
   imagePreview: { marginBottom: 12, position: 'relative', alignSelf: 'flex-start' },
   previewImage: { width: 80, height: 80, borderRadius: 12, backgroundColor: '#1a1a1a' },
   removeImage: { position: 'absolute', top: -8, right: -8, backgroundColor: '#000', borderRadius: 10 },
@@ -580,4 +689,15 @@ const styles = StyleSheet.create({
   sendButton: { width: 48, height: 48, borderRadius: 24 },
   sendButtonGradient: { width: '100%', height: '100%', borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   sendButtonDisabled: { opacity: 1 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'flex-end' },
+  modalContent: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', flex: 1, marginRight: 12 },
+  modalLoading: { paddingVertical: 40, alignItems: 'center' },
+  modalScroll: { maxHeight: 400 },
+  detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 16 },
+  detailText: { fontSize: 15, fontFamily: 'LeagueSpartan_400Regular', flex: 1 },
+  hoursText: { fontSize: 13, fontFamily: 'LeagueSpartan_400Regular', marginTop: 4 },
+  viewMapButtonLarge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16, borderRadius: 12, marginTop: 20 },
+  viewMapButtonText: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold' },
 });

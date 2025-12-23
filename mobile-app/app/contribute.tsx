@@ -201,6 +201,10 @@ export default function ContributeScreen() {
       const result = await res.json();
       console.log('Result:', result);
       
+      if (result.queue_size !== undefined) {
+        console.log('✅ Added to training queue. Queue size:', result.queue_size);
+      }
+      
       // Update local contribution count
       const currentCount = stats?.contributions || 0;
       setStats({ ...stats, contributions: currentCount + 1 });

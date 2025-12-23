@@ -18,7 +18,11 @@ export async function POST(request: NextRequest) {
     // Skip ML training if server not configured
     if (!process.env.ML_API_URL) {
       console.log('ML_API_URL not configured, skipping training');
-      return NextResponse.json({ success: true, message: 'Feedback recorded (ML training disabled)' });
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Feedback recorded (ML training disabled)',
+        warning: 'ML_API_URL not configured'
+      });
     }
 
     const mlFormData = new FormData();
@@ -33,26 +37,44 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     }));
 
-    // Non-blocking training call with longer timeout
-    fetch(`${ML_API_URL}/train`, {
+    // Send to ML API and wait for response
+    console.log('📤 Sending to ML API /train:', { latitude, longitude, address, userId });
+    const mlResponse = await fetch(`${ML_API_URL}/train`, {
       method: 'POST',
       body: mlFormData,
       signal: AbortSignal.timeout(30000)
-    }).then(res => res.json())
-      .then(result => {
-        console.log('✅ Navisense training response:', result);
-        // Auto-trigger retrain if queue is large
-        if (result.queue_size >= 5) {
-          console.log('🔄 Triggering model retrain due to queue size:', result.queue_size);
-          fetch(`${ML_API_URL}/retrain`, { method: 'POST' })
-            .then(res => res.json())
-            .then(data => console.log('✅ Retrain response:', data))
-            .catch(err => console.log('❌ Retrain failed:', err.message));
-        }
-      })
-      .catch(err => console.log('⚠️ Navisense training failed:', err.message));
+    });
 
-    return NextResponse.json({ success: true, message: 'Feedback recorded' });
+    console.log('📥 ML API response status:', mlResponse.status);
+
+    if (!mlResponse.ok) {
+      const errorText = await mlResponse.text();
+      console.error('❌ ML API error:', mlResponse.status, errorText);
+      throw new Error(`ML API error: ${mlResponse.status} - ${errorText}`);
+    }
+
+    const result = await mlResponse.json();
+    console.log('✅ Navisense training response:', result);
+    
+    if (!result.queue_size && result.queue_size !== 0) {
+      console.error('⚠️ ML API did not return queue_size:', result);
+    }
+    
+    // Auto-trigger retrain if queue is large
+    if (result.queue_size >= 5) {
+      console.log('🔄 Triggering model retrain due to queue size:', result.queue_size);
+      fetch(`${ML_API_URL}/retrain`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => console.log('✅ Retrain response:', data))
+        .catch(err => console.log('❌ Retrain failed:', err.message));
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Feedback recorded',
+      queue_size: result.queue_size,
+      ml_response: result
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
