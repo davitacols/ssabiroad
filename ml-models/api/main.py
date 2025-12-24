@@ -132,7 +132,7 @@ async def predict_location(file: UploadFile = File(...), image_id: str = None):
         # Add to active learning if high confidence
         if result.get("confidence", 0) >= 0.8:
             # Save image temporarily
-            temp_path = Path("data/temp") / f"{image_id or 'temp'}.jpg"
+            temp_path = Path("../data/temp") / f"{image_id or 'temp'}.jpg"
             temp_path.parent.mkdir(exist_ok=True)
             image.save(temp_path)
             active_learning.add_high_confidence_prediction(str(temp_path), result)
@@ -197,7 +197,7 @@ async def submit_feedback(image_id: str, predicted: Dict, corrected: Dict):
         monitor.log_prediction(image_id, predicted, ground_truth=corrected, user_feedback={"correct": False})
         
         # Add to active learning
-        temp_path = Path("data/temp") / f"{image_id}.jpg"
+        temp_path = Path("../data/temp") / f"{image_id}.jpg"
         if temp_path.exists():
             active_learning.add_user_correction(str(temp_path), predicted, corrected)
         
@@ -323,7 +323,7 @@ async def train_model(file: UploadFile = File(...), latitude: float = Form(None)
         meta = json.loads(metadata) if metadata else {}
         image_id = meta.get('userId', 'unknown') + '_' + str(int(time.time()))
         
-        temp_path = Path("data/training") / f"{image_id}.jpg"
+        temp_path = Path("../data/training") / f"{image_id}.jpg"
         temp_path.parent.mkdir(parents=True, exist_ok=True)
         
         content = await file.read()
