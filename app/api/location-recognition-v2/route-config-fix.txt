@@ -1,0 +1,5 @@
+Add these lines after line 5030 (after export const maxDuration = 300;):
+
+export const bodyParser = {
+  sizeLimit: '50mb'
+};

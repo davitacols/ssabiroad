@@ -1,9 +1,10 @@
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Image, ScrollView, Modal, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Image, ScrollView, Modal, Animated, Dimensions, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState, useEffect, useRef } from 'react';
 import * as Location from 'expo-location';
+import * as Speech from 'expo-speech';
 import MenuBar from '../components/MenuBar';
 import { useTheme, getColors } from '../contexts/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -47,6 +48,10 @@ export default function HomeScreen() {
   const [showDisclosure, setShowDisclosure] = useState(false);
   const [currentFeature, setCurrentFeature] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isListening, setIsListening] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -116,6 +121,51 @@ export default function HomeScreen() {
     }
   };
 
+  const handleSearchPress = () => {
+    if (searchQuery.trim()) {
+      addActivity('Search', `Searched for "${searchQuery}"`, '/nearby-poi');
+      router.push(`/nearby-poi?query=${encodeURIComponent(searchQuery)}`);
+    } else {
+      addActivity('Search', 'Searched for locations', '/nearby-poi');
+      router.push('/nearby-poi');
+    }
+    setSuggestions([]);
+  };
+
+  const handleSearchChange = async (text: string) => {
+    setSearchQuery(text);
+    if (text.length > 2) {
+      try {
+        const response = await fetch(
+          `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho`
+        );
+        const data = await response.json();
+        if (data.predictions) {
+          setSuggestions(data.predictions.map((p: any) => p.description).slice(0, 5));
+        }
+      } catch (error) {
+        console.log('Autocomplete error:', error);
+      }
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  const handleSuggestionSelect = (suggestion: string) => {
+    console.log('Suggestion selected:', suggestion);
+    setSearchQuery(suggestion);
+    setIsSearchFocused(false);
+    setSuggestions([]);
+    addActivity('Search', `Searched for "${suggestion}"`, '/nearby-poi');
+    router.push(`/nearby-poi?query=${encodeURIComponent(suggestion)}`);
+  };
+
+  const handleVoiceSearch = () => {
+    setIsListening(true);
+    Speech.speak('Voice search coming soon. Please type your search.', { language: 'en' });
+    setTimeout(() => setIsListening(false), 2000);
+  };
+
   const handleScannerPress = () => {
     addActivity('Photo Scanner', 'Scanned location from photo', '/scanner');
     router.push('/scanner');
@@ -126,18 +176,9 @@ export default function HomeScreen() {
     router.push('/nearby-poi');
   };
 
-
-
   const handleCollectionsPress = () => {
     addActivity('Collections', 'Organized saved locations', '/collections');
     router.push('/collections');
-  };
-
-
-
-  const handleSearchPress = () => {
-    addActivity('Search', 'Searched for locations', '/nearby-poi');
-    router.push('/nearby-poi');
   };
 
   const handleBatchPress = () => {
@@ -267,16 +308,58 @@ export default function HomeScreen() {
         <Animated.View style={[styles.hero, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
           <Text style={[styles.heroTitle, { color: colors.text }]}>What would you like to do?</Text>
           
-          {/* Search Bar */}
-          <TouchableOpacity 
-            style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={handleSearchPress}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="search" size={20} color={colors.textSecondary} />
-            <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>Search locations...</Text>
-          </TouchableOpacity>
-          
+          {/* Advanced Search Bar */}
+          <View>
+            <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.searchIconContainer}>
+                <Ionicons name="search" size={20} color="#3b82f6" />
+              </View>
+              <View style={styles.searchContent}>
+                <TextInput
+                  style={[styles.searchInput, { color: colors.text }]}
+                  placeholder="Search locations..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={searchQuery}
+                  onChangeText={handleSearchChange}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => {/* Don't auto-close on blur */}}
+                  onSubmitEditing={handleSearchPress}
+                  returnKeyType="search"
+                />
+                {!isSearchFocused && !searchQuery && (
+                  <Text style={[styles.searchHint, { color: colors.textTertiary }]}>Try "restaurants near me"</Text>
+                )}
+              </View>
+              <View style={styles.searchActions}>
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity style={styles.voiceButton} onPress={() => { setSearchQuery(''); setSuggestions([]); }}>
+                    <Ionicons name="close" size={18} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity style={styles.voiceButton} onPress={handleVoiceSearch}>
+                  <Ionicons name={isListening ? "mic" : "mic-outline"} size={18} color={isListening ? "#3b82f6" : colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            
+            {/* Autocomplete Suggestions */}
+            {isSearchFocused && suggestions.length > 0 && (
+              <View style={[styles.suggestionsDropdown, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                {suggestions.map((suggestion, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.suggestionItem, index === suggestions.length - 1 && { borderBottomWidth: 0 }]}
+                    onPress={() => handleSuggestionSelect(suggestion)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="location-outline" size={18} color={colors.textSecondary} />
+                    <Text style={[styles.suggestionText, { color: colors.text }]} numberOfLines={2}>{suggestion}</Text>
+                    <Ionicons name="arrow-forward" size={16} color={colors.textTertiary} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
           <Animated.ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -497,8 +580,75 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   hero: { paddingHorizontal: 20, paddingBottom: 24 },
   heroTitle: { fontSize: 18, fontFamily: 'LeagueSpartan_600SemiBold', marginBottom: 16 },
-  searchBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12, marginBottom: 20, borderWidth: 1 },
-  searchPlaceholder: { marginLeft: 12, fontSize: 15, fontFamily: 'LeagueSpartan_400Regular' },
+  searchBar: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingHorizontal: 16, 
+    paddingVertical: 16, 
+    borderRadius: 16, 
+    marginBottom: 20, 
+    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3
+  },
+  searchIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  searchContent: {
+    flex: 1,
+    marginLeft: 12,
+    justifyContent: 'center'
+  },
+  searchInput: {
+    fontSize: 15,
+    fontFamily: 'LeagueSpartan_600SemiBold',
+    padding: 0,
+    margin: 0
+  },
+  searchPlaceholder: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold' },
+  searchHint: { fontSize: 12, fontFamily: 'LeagueSpartan_400Regular', marginTop: 2 },
+  searchActions: {
+    flexDirection: 'row',
+    gap: 8
+  },
+  voiceButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  suggestionsDropdown: {
+    marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    maxHeight: 250,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)'
+  },
+  suggestionText: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: 'LeagueSpartan_400Regular'
+  },
   compactSearchBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1 },
   carousel: { marginBottom: 16 },
   featureCard: { 

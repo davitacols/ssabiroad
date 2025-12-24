@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, StatusBar, Alert, Modal, Linking, TextInput, Image, ActivityIndicator, SafeAreaView, Animated, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Location from 'expo-location';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,6 +13,7 @@ import { useTheme, getColors } from '../contexts/ThemeContext';
 
 export default function NearbyPoi() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { theme } = useTheme();
   const colors = getColors(theme);
   const [location, setLocation] = useState<any>(null);
@@ -28,6 +29,7 @@ export default function NearbyPoi() {
   const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<any[]>([]);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [showImageModal, setShowImageModal] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [radius, setRadius] = useState(2000);
   const [showFilters, setShowFilters] = useState(false);
@@ -62,6 +64,10 @@ export default function NearbyPoi() {
 
   useEffect(() => {
     checkDisclosureStatus();
+    if (params.query && typeof params.query === 'string') {
+      setSearchQuery(params.query);
+      setTimeout(() => searchPlaces(params.query as string), 500);
+    }
   }, []);
 
   const checkDisclosureStatus = async () => {
@@ -201,6 +207,7 @@ export default function NearbyPoi() {
     try {
       const response = await fetch(`https://pic2nav.com/api/place-details?placeId=${place.placeId}`);
       const details = await response.json();
+      console.log('Place details:', details);
       setPlaceDetails(details);
     } catch (error) {
       Alert.alert('Error', 'Failed to get details');
@@ -242,62 +249,118 @@ export default function NearbyPoi() {
   });
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
       
       {initialLoading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#fff" />
-          <Text style={styles.loadingText}>Finding places near you</Text>
+        <View style={[styles.loadingOverlay, { backgroundColor: colors.background }]}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text style={[styles.loadingText, { color: colors.text }]}>Finding places near you</Text>
         </View>
       )}
 
-      <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={[styles.backText, { color: colors.text }]}>Back</Text>
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Nearby</Text>
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.searchSection, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-          <View style={styles.searchContainer}>
-            <View style={[styles.searchInputContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <View style={[styles.searchDot, { backgroundColor: colors.text }]} />
-              <TextInput
-                style={[styles.searchInput, { color: colors.text }]}
-                placeholder="Search addresses, places..."
-                value={searchQuery}
-                onChangeText={(text) => {
-                  setSearchQuery(text);
-                  fetchAutocomplete(text);
-                }}
-                onSubmitEditing={handleSearch}
-                returnKeyType="search"
-                placeholderTextColor={colors.textSecondary}
-              />
-            </View>
+      <SafeAreaView edges={['top']} style={[styles.header, { backgroundColor: colors.background }]}>
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Nearby Places</Text>
+          <TouchableOpacity onPress={() => setShowFilters(!showFilters)} style={styles.filterButton}>
+            <Ionicons name="options-outline" size={24} color={colors.text} />
+          </TouchableOpacity>
+        </View>
+        
+        <View style={styles.searchContainer}>
+          <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="search" size={20} color="#3b82f6" />
+            <TextInput
+              style={[styles.searchInput, { color: colors.text }]}
+              placeholder="Search places, addresses..."
+              value={searchQuery}
+              onChangeText={(text) => {
+                setSearchQuery(text);
+                fetchAutocomplete(text);
+              }}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+              placeholderTextColor={colors.textSecondary}
+            />
             {searchQuery ? (
-              <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
-                <Text style={[styles.clearText, { color: colors.textSecondary }]}>Clear</Text>
+              <TouchableOpacity onPress={clearSearch} style={styles.clearIcon}>
+                <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             ) : null}
           </View>
         </View>
+      </SafeAreaView>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        {showFilters && (
+          <View style={[styles.filtersPanel, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.filterHeader}>
+              <Text style={[styles.filterTitle, { color: colors.text }]}>Filters</Text>
+              <TouchableOpacity onPress={() => setShowFilters(false)}>
+                <Ionicons name="close" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.filterItem}>
+              <View style={styles.filterLeft}>
+                <Text style={[styles.filterLabel, { color: colors.text }]}>Open Now</Text>
+                <Text style={[styles.filterHint, { color: colors.textSecondary }]}>Show only open places</Text>
+              </View>
+              <Switch value={openNowOnly} onValueChange={setOpenNowOnly} trackColor={{ true: colors.text, false: colors.border }} thumbColor="#fff" />
+            </View>
+            <View style={[styles.filterDivider, { backgroundColor: colors.border }]} />
+            <View style={styles.filterItem}>
+              <Text style={[styles.filterLabel, { color: colors.text }]}>Minimum Rating</Text>
+              <View style={styles.filterOptions}>
+                {[0, 3, 4, 4.5].map((rating) => (
+                  <TouchableOpacity
+                    key={rating}
+                    style={[styles.optionChip, { backgroundColor: colors.background, borderColor: colors.border }, minRating === rating && { backgroundColor: colors.text, borderColor: colors.text }]}
+                    onPress={() => setMinRating(rating)}
+                  >
+                    <Text style={[styles.optionText, { color: colors.text }, minRating === rating && { color: colors.background }]}>{rating === 0 ? 'Any' : `${rating}★`}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            <View style={[styles.filterDivider, { backgroundColor: colors.border }]} />
+            <View style={styles.filterItem}>
+              <Text style={[styles.filterLabel, { color: colors.text }]}>Search Radius</Text>
+              <View style={styles.filterOptions}>
+                {[1000, 2000, 5000].map((r) => (
+                  <TouchableOpacity
+                    key={r}
+                    style={[styles.optionChip, { backgroundColor: colors.background, borderColor: colors.border }, radius === r && { backgroundColor: colors.text, borderColor: colors.text }]}
+                    onPress={() => {
+                      setRadius(r);
+                      if (location) searchNearbyPlaces(location.latitude, location.longitude, selectedType);
+                    }}
+                  >
+                    <Text style={[styles.optionText, { color: colors.text }, radius === r && { color: colors.background }]}>{r / 1000} km</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+        )}
 
         {showAutocomplete && autocompleteSuggestions.length > 0 && (
-          <View style={[styles.autocompleteSection, { backgroundColor: colors.background }]}>
+          <View style={[styles.autocompleteDropdown, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {autocompleteSuggestions.slice(0, 5).map((suggestion, index) => (
               <TouchableOpacity
                 key={suggestion.place_id || index}
-                style={[styles.autocompleteItem, { backgroundColor: colors.card, borderBottomColor: colors.border }]}
+                style={[styles.suggestionItem, index < autocompleteSuggestions.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border }]}
                 onPress={() => {
                   setSearchQuery(suggestion.description);
                   setShowAutocomplete(false);
                   searchPlaces(suggestion.description);
                 }}
               >
-                <Text style={[styles.autocompleteText, { color: colors.text }]}>{suggestion.description}</Text>
+                <Ionicons name="location-outline" size={18} color={colors.textSecondary} />
+                <Text style={[styles.suggestionText, { color: colors.text }]} numberOfLines={2}>{suggestion.description}</Text>
+                <Ionicons name="arrow-forward" size={16} color={colors.textTertiary} />
               </TouchableOpacity>
             ))}
           </View>
@@ -305,16 +368,33 @@ export default function NearbyPoi() {
 
         {searchResults.length > 0 && (
           <View style={styles.resultsSection}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Search Results</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Search Results</Text>
+              <Text style={[styles.resultCount, { color: colors.textSecondary }]}>{searchResults.length} found</Text>
+            </View>
             {searchResults.map((place, index) => (
-              <TouchableOpacity key={place.id || index} style={[styles.placeCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => handlePlacePress(place)}>
-                <View style={styles.placeContent}>
-                  <Text style={[styles.placeName, { color: colors.text }]}>{place.name}</Text>
-                  <Text style={[styles.placeAddress, { color: colors.textSecondary }]}>{place.vicinity || place.address}</Text>
-                  {place.distance && (
-                    <Text style={[styles.placeDistance, { color: colors.text }]}>{place.distance.toFixed(1)} km away</Text>
-                  )}
+              <TouchableOpacity key={place.id || index} style={[styles.placeCard, { backgroundColor: colors.card }]} onPress={() => handlePlacePress(place)}>
+                <View style={styles.placeInfo}>
+                  <View style={styles.placeHeader}>
+                    <Text style={[styles.placeName, { color: colors.text }]} numberOfLines={1}>{place.name}</Text>
+                    {place.rating && (
+                      <View style={styles.ratingBadge}>
+                        <Ionicons name="star" size={14} color="#fbbf24" />
+                        <Text style={styles.ratingValue}>{place.rating}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[styles.placeAddress, { color: colors.textSecondary }]} numberOfLines={2}>{place.vicinity || place.address}</Text>
+                  <View style={styles.placeFooter}>
+                    {place.distance && (
+                      <View style={styles.distanceTag}>
+                        <Ionicons name="navigate" size={14} color="#3b82f6" />
+                        <Text style={[styles.distanceText, { color: colors.text }]}>{place.distance.toFixed(1)} km</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
               </TouchableOpacity>
             ))}
           </View>
@@ -322,9 +402,9 @@ export default function NearbyPoi() {
 
         {searchResults.length === 0 && (
           <>
-            <View style={[styles.categoriesSection, { backgroundColor: colors.background }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Categories</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
+            <View style={styles.categoriesSection}>
+              <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>CATEGORIES</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
                 {placeTypes.map((type) => (
                   <TouchableOpacity
                     key={type.key}
@@ -332,13 +412,13 @@ export default function NearbyPoi() {
                     style={[
                       styles.categoryChip,
                       { backgroundColor: colors.card, borderColor: colors.border },
-                      selectedType === type.key && { backgroundColor: colors.text, borderColor: colors.text }
+                      selectedType === type.key && styles.categoryChipActive
                     ]}
                   >
                     <Text style={[
                       styles.categoryText,
                       { color: colors.textSecondary },
-                      selectedType === type.key && { color: colors.background }
+                      selectedType === type.key && styles.categoryTextActive
                     ]}>
                       {type.label}
                     </Text>
@@ -348,36 +428,47 @@ export default function NearbyPoi() {
             </View>
 
             {loading && (
-              <View style={[styles.loadingSection, { backgroundColor: colors.background }]}>
-                <ActivityIndicator size="small" color={colors.text} />
-                <Text style={[styles.loadingText, { color: colors.text }]}>Loading places...</Text>
+              <View style={styles.loadingSection}>
+                <ActivityIndicator size="small" color="#3b82f6" />
+                <Text style={[styles.loadingSubtext, { color: colors.textSecondary }]}>Finding places...</Text>
               </View>
             )}
 
-            {!loading && places.length > 0 && (
+            {!loading && filteredPlaces.length > 0 && (
               <View style={styles.placesSection}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>{places.length} places nearby</Text>
-                {places.map((place, index) => (
-                  <TouchableOpacity key={place.id} style={[styles.placeCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => handlePlacePress(place)}>
-                    <View style={styles.placeContent}>
-                      <View style={styles.placeTop}>
-                        <Text style={[styles.placeName, { color: colors.text }]}>{place.name}</Text>
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Nearby</Text>
+                  <Text style={[styles.resultCount, { color: colors.textSecondary }]}>{filteredPlaces.length} places</Text>
+                </View>
+                {filteredPlaces.map((place, index) => (
+                  <TouchableOpacity key={place.id} style={[styles.placeCard, { backgroundColor: colors.card }]} onPress={() => handlePlacePress(place)}>
+                    <View style={styles.placeInfo}>
+                      <View style={styles.placeHeader}>
+                        <Text style={[styles.placeName, { color: colors.text }]} numberOfLines={1}>{place.name}</Text>
                         {place.openNow !== undefined && (
-                          <View style={[styles.statusBadge, { backgroundColor: place.openNow ? '#dcfce7' : '#fef2f2' }]}>
-                            <Text style={[styles.statusText, { color: place.openNow ? '#16a34a' : '#dc2626' }]}>
+                          <View style={[styles.openBadge, { backgroundColor: place.openNow ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)' }]}>
+                            <View style={[styles.openDot, { backgroundColor: place.openNow ? '#22c55e' : '#ef4444' }]} />
+                            <Text style={[styles.openText, { color: place.openNow ? '#22c55e' : '#ef4444' }]}>
                               {place.openNow ? 'Open' : 'Closed'}
                             </Text>
                           </View>
                         )}
                       </View>
-                      <Text style={[styles.placeAddress, { color: colors.textSecondary }]}>{place.vicinity}</Text>
-                      <View style={styles.placeMetrics}>
-                        <Text style={[styles.placeDistance, { color: colors.text }]}>{place.distance.toFixed(1)} km</Text>
+                      <Text style={[styles.placeAddress, { color: colors.textSecondary }]} numberOfLines={2}>{place.vicinity}</Text>
+                      <View style={styles.placeFooter}>
+                        <View style={styles.distanceTag}>
+                          <Ionicons name="navigate" size={14} color="#3b82f6" />
+                          <Text style={[styles.distanceText, { color: colors.text }]}>{place.distance.toFixed(1)} km</Text>
+                        </View>
                         {place.rating && (
-                          <Text style={[styles.placeRating, { color: colors.text }]}>★ {place.rating}</Text>
+                          <View style={styles.ratingBadge}>
+                            <Ionicons name="star" size={14} color="#fbbf24" />
+                            <Text style={styles.ratingValue}>{place.rating}</Text>
+                          </View>
                         )}
                       </View>
                     </View>
+                    <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -386,7 +477,7 @@ export default function NearbyPoi() {
         )}
       </ScrollView>
 
-      <Modal visible={!!selectedPlace} animationType="slide" presentationStyle="pageSheet">
+      <Modal visible={!!selectedPlace} animationType="slide" onRequestClose={closeModal}>
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{selectedPlace?.name}</Text>
@@ -400,7 +491,7 @@ export default function NearbyPoi() {
               <ActivityIndicator size="large" color="#fff" />
             </View>
           ) : (
-            <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
               <View style={styles.placeHero}>
                 <Text style={styles.heroTitle}>{selectedPlace?.name}</Text>
                 <Text style={styles.heroSubtitle}>{placeDetails?.address || selectedPlace?.vicinity}</Text>
@@ -456,9 +547,40 @@ export default function NearbyPoi() {
                   ))}
                 </View>
               )}
+
+              {placeDetails?.photos && placeDetails.photos.length > 0 && (
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoTitle}>Photos</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosScroll}>
+                    {placeDetails.photos.slice(0, 10).map((photo: any, idx: number) => (
+                      <TouchableOpacity key={idx} onPress={() => {
+                        setPreviewImage(`https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photo.photo_reference}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho`);
+                        setShowImageModal(true);
+                      }}>
+                        <Image 
+                          source={{ uri: `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photo.photo_reference}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho` }}
+                          style={styles.photoThumbnail}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                  <Text style={styles.googleCredit}>Photos from Google</Text>
+                </View>
+              )}
             </ScrollView>
           )}
         </SafeAreaView>
+      </Modal>
+
+      <Modal visible={showImageModal} transparent animationType="fade" onRequestClose={() => setShowImageModal(false)}>
+        <View style={styles.imageModalOverlay}>
+          <TouchableOpacity style={styles.imageModalClose} onPress={() => setShowImageModal(false)}>
+            <Ionicons name="close" size={32} color="#fff" />
+          </TouchableOpacity>
+          {previewImage && (
+            <Image source={{ uri: previewImage }} style={styles.fullImage} resizeMode="contain" />
+          )}
+        </View>
       </Modal>
 
       <LocationPermissionDisclosure
@@ -467,50 +589,66 @@ export default function NearbyPoi() {
         onDecline={handleDeclineDisclosure}
       />
       <MenuBar />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  loadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-  loadingText: { marginTop: 16, fontSize: 16, color: '#fff', fontFamily: 'LeagueSpartan_600SemiBold' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
-  backButton: { marginRight: 16 },
-  backText: { fontSize: 16, color: '#fff', fontFamily: 'LeagueSpartan_600SemiBold' },
-  headerTitle: { fontSize: 28, fontFamily: 'LeagueSpartan_700Bold', color: '#fff' },
+  container: { flex: 1 },
+  loadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
+  loadingText: { marginTop: 16, fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
+  loadingSubtext: { fontSize: 14, fontFamily: 'LeagueSpartan_400Regular', marginLeft: 8 },
+  header: { paddingHorizontal: 20, paddingBottom: 16, paddingTop: 32 },
+  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  backButton: { padding: 8 },
+  headerTitle: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', flex: 1, marginLeft: 8 },
+  filterButton: { padding: 8 },
+  searchContainer: { },
+  searchBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12, borderWidth: 1 },
+  searchInput: { flex: 1, fontSize: 15, fontFamily: 'LeagueSpartan_400Regular', marginLeft: 12 },
+  clearIcon: { padding: 4 },
   content: { flex: 1 },
-  searchSection: { padding: 24, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  searchInputContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a1a', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: '#333' },
-  searchDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff', marginRight: 12 },
-  searchInput: { flex: 1, fontSize: 16, color: '#fff' },
-  clearButton: { paddingHorizontal: 16, paddingVertical: 12 },
-  clearText: { fontSize: 16, color: '#9ca3af', fontFamily: 'LeagueSpartan_600SemiBold' },
-  autocompleteSection: { paddingHorizontal: 24, paddingBottom: 12 },
-  autocompleteItem: { backgroundColor: '#1a1a1a', padding: 12, borderBottomWidth: 1, borderBottomColor: '#333' },
-  autocompleteText: { fontSize: 14, color: '#fff' },
-  resultsSection: { padding: 24 },
-  sectionTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 16 },
-  categoriesSection: { padding: 24, backgroundColor: '#000' },
-  categoriesScroll: { marginTop: 16 },
-  categoryChip: { backgroundColor: '#1a1a1a', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, marginRight: 12, borderWidth: 1, borderColor: '#333' },
-  categoryChipActive: { backgroundColor: '#fff', borderColor: '#fff' },
-  categoryText: { fontSize: 15, color: '#9ca3af', fontFamily: 'LeagueSpartan_600SemiBold' },
-  categoryTextActive: { color: '#000' },
-  loadingSection: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
-  placesSection: { padding: 24 },
-  placeCard: { backgroundColor: '#1a1a1a', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#333' },
-  placeContent: { },
-  placeTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
-  placeName: { fontSize: 18, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 6, flex: 1 },
-  placeAddress: { fontSize: 15, color: '#9ca3af', marginBottom: 12, lineHeight: 20 },
-  placeMetrics: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  placeDistance: { fontSize: 15, color: '#fff', fontFamily: 'LeagueSpartan_600SemiBold' },
-  placeRating: { fontSize: 15, color: '#fff', fontFamily: 'LeagueSpartan_600SemiBold' },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  statusText: { fontSize: 12, fontFamily: 'LeagueSpartan_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.5 },
-  placeHero: { padding: 24, backgroundColor: '#0a0a0a', borderRadius: 16, marginBottom: 24, borderWidth: 1, borderColor: '#1a1a1a' },
+  autocompleteDropdown: { marginHorizontal: 20, marginTop: 8, borderRadius: 12, borderWidth: 1, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
+  suggestionItem: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+  suggestionText: { flex: 1, fontSize: 14, fontFamily: 'LeagueSpartan_400Regular' },
+  resultsSection: { paddingHorizontal: 20, paddingTop: 20 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  sectionTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_700Bold' },
+  sectionLabel: { fontSize: 11, fontFamily: 'LeagueSpartan_700Bold', letterSpacing: 1, marginBottom: 12 },
+  resultCount: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold' },
+  categoriesSection: { paddingHorizontal: 20, paddingTop: 20 },
+  categoriesScroll: { paddingRight: 20 },
+  categoryChip: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, marginRight: 12, borderWidth: 1 },
+  categoryChipActive: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
+  categoryText: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold' },
+  categoryTextActive: { color: '#fff' },
+  loadingSection: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 12 },
+  placesSection: { paddingHorizontal: 20, paddingTop: 20 },
+  placeCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, marginBottom: 12, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
+  placeInfo: { flex: 1 },
+  placeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+  placeName: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold', flex: 1, marginRight: 8 },
+  placeAddress: { fontSize: 14, fontFamily: 'LeagueSpartan_400Regular', marginBottom: 10, lineHeight: 20 },
+  placeFooter: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  distanceTag: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  distanceText: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold' },
+  ratingBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(251, 191, 36, 0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  ratingValue: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fbbf24' },
+  openBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  openDot: { width: 6, height: 6, borderRadius: 3 },
+  openText: { fontSize: 11, fontFamily: 'LeagueSpartan_600SemiBold', textTransform: 'uppercase', letterSpacing: 0.5 },
+  filtersPanel: { marginHorizontal: 20, marginTop: 12, padding: 20, borderRadius: 16, borderWidth: 1, marginBottom: 12 },
+  filterHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  filterTitle: { fontSize: 18, fontFamily: 'LeagueSpartan_700Bold' },
+  filterItem: { marginBottom: 20 },
+  filterLeft: { marginBottom: 12 },
+  filterLabel: { fontSize: 15, fontFamily: 'LeagueSpartan_600SemiBold', marginBottom: 4 },
+  filterHint: { fontSize: 13, fontFamily: 'LeagueSpartan_400Regular' },
+  filterOptions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  optionChip: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, borderWidth: 1 },
+  optionText: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold' },
+  filterDivider: { height: 1, marginBottom: 20 },
+  placeHero: { padding: 24, backgroundColor: 'rgba(59, 130, 246, 0.05)', borderRadius: 16, marginBottom: 24, borderWidth: 1, borderColor: 'rgba(59, 130, 246, 0.2)' },
   heroTitle: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 8 },
   heroSubtitle: { fontSize: 16, color: '#a3a3a3', marginBottom: 16, lineHeight: 24 },
   ratingContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -525,13 +663,19 @@ const styles = StyleSheet.create({
   infoTitle: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff', marginBottom: 12 },
   statusIndicator: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
   hoursText: { fontSize: 14, color: '#a3a3a3', marginBottom: 4, lineHeight: 20 },
+  photosScroll: { marginBottom: 12 },
+  photoThumbnail: { width: 120, height: 120, borderRadius: 12, marginRight: 12, backgroundColor: '#1a1a1a' },
+  googleCredit: { fontSize: 11, color: '#6b7280', fontFamily: 'LeagueSpartan_400Regular', marginTop: 4 },
+  imageModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
+  imageModalClose: { position: 'absolute', top: 60, right: 20, zIndex: 10, padding: 8 },
+  fullImage: { width: '100%', height: '80%' },
   modalContainer: { flex: 1, backgroundColor: '#000' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
   modalTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff', flex: 1 },
   modalClose: { },
   modalCloseText: { fontSize: 16, color: '#fff', fontFamily: 'LeagueSpartan_600SemiBold' },
   modalLoading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
-  modalContent: { padding: 24, paddingBottom: 40 },
+  modalContent: { flex: 1, padding: 24 },
   detailSection: { marginBottom: 24 },
   detailLabel: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', color: '#737373', marginBottom: 4, textTransform: 'uppercase' },
   detailValue: { fontSize: 16, color: '#fff', lineHeight: 24 },

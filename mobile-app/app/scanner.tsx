@@ -144,7 +144,11 @@ export default function ScannerScreen() {
       console.log('Feedback response data:', data);
       
       if (response.ok && data.success) {
-        Alert.alert('Success', 'Thank you for improving our AI!');
+        Alert.alert(
+          '✓ Success',
+          'Thank you for helping improve our AI! Your contribution makes location recognition more accurate for everyone.',
+          [{ text: 'Done', style: 'default' }]
+        );
       } else {
         Alert.alert('Error', data.error || 'Failed to submit');
       }
@@ -191,7 +195,11 @@ export default function ScannerScreen() {
 
       const data = await response.json();
       if (response.ok && data.success) {
-        Alert.alert('Success', 'Thank you for the correction! Our AI will learn from this.');
+        Alert.alert(
+          '✓ Success',
+          'Thank you for the correction! Our AI will learn from this and become more accurate.',
+          [{ text: 'Done', style: 'default' }]
+        );
         setShowCorrectionModal(false);
         setCorrectedAddress('');
       } else {
@@ -605,17 +613,20 @@ export default function ScannerScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       
-      <View style={[styles.header, { backgroundColor: colors.background }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Scanner</Text>
-        {(image || result) && (
-          <TouchableOpacity onPress={() => { setImage(null); setResult(null); setIsSaved(false); }} style={styles.clearButton}>
-            <Ionicons name="close-circle" size={24} color="#9ca3af" />
+      <SafeAreaView edges={['top']} style={[styles.header, { backgroundColor: colors.background }]}>
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-        )}
-      </View>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Photo Scanner</Text>
+          {(image || result) && (
+            <TouchableOpacity onPress={() => { setImage(null); setResult(null); setIsSaved(false); }} style={styles.clearButton}>
+              <Ionicons name="close-circle" size={24} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+          {!image && !result && <View style={{ width: 24 }} />}
+        </View>
+      </SafeAreaView>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {!image && !result && (
@@ -692,10 +703,10 @@ export default function ScannerScreen() {
             ) : (
               <>
                 {/* Main Location Card */}
-                <View style={[styles.locationCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={[styles.locationCard, { backgroundColor: colors.card }]}>
                   <View style={styles.locationHeader}>
-                    <View style={styles.locationIconContainer}>
-                      <Ionicons name="location" size={28} color="#fff" />
+                    <View style={[styles.locationIconContainer, { backgroundColor: theme === 'dark' ? '#fff' : '#000' }]}>
+                      <Ionicons name="location" size={28} color={theme === 'dark' ? '#000' : '#fff'} />
                     </View>
                     <View style={styles.locationInfo}>
                       <Text style={[styles.locationName, { color: colors.text }]}>{result.name || 'Location Found'}</Text>
@@ -706,7 +717,7 @@ export default function ScannerScreen() {
                   </View>
 
                   {result.confidence && (
-                    <View style={[styles.confidenceSection, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                    <View style={[styles.confidenceSection, { backgroundColor: colors.background }]}>
                       <View style={styles.confidenceHeader}>
                         <Text style={[styles.confidenceLabel, { color: colors.textSecondary }]}>Confidence</Text>
                         <Text style={[styles.confidenceValue, { color: colors.text }]}>{Math.round(result.confidence * 100)}%</Text>
@@ -719,10 +730,10 @@ export default function ScannerScreen() {
                 </View>
 
                 {/* Quick Actions */}
-                <View style={[styles.quickActionsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={[styles.quickActionsCard, { backgroundColor: colors.card }]}>
                   <View style={styles.quickActionsGrid}>
                     <TouchableOpacity 
-                      style={[styles.quickActionButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+                      style={[styles.quickActionButton, { backgroundColor: colors.background }]}
                       onPress={() => {
                         if (result.location) {
                           const url = `https://www.google.com/maps/dir/?api=1&destination=${result.location.latitude},${result.location.longitude}`;
@@ -734,14 +745,14 @@ export default function ScannerScreen() {
                       <Text style={[styles.quickActionText, { color: colors.text }]}>Navigate</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.quickActionButton, { backgroundColor: isSaved ? (theme === 'dark' ? '#fff' : '#000') : colors.background, borderColor: isSaved ? (theme === 'dark' ? '#fff' : '#000') : colors.border }]}
+                      style={[styles.quickActionButton, { backgroundColor: isSaved ? (theme === 'dark' ? '#fff' : '#000') : colors.background }]}
                       onPress={handleSave}
                     >
                       <Ionicons name={isSaved ? "bookmark" : "bookmark-outline"} size={24} color={isSaved ? (theme === 'dark' ? '#000' : '#fff') : colors.text} />
                       <Text style={[styles.quickActionText, { color: isSaved ? (theme === 'dark' ? '#000' : '#fff') : colors.text }]}>{isSaved ? 'Saved' : 'Save'}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.quickActionButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+                      style={[styles.quickActionButton, { backgroundColor: colors.background }]}
                       onPress={() => {
                         if (result.location) {
                           router.push({
@@ -755,7 +766,7 @@ export default function ScannerScreen() {
                       <Text style={[styles.quickActionText, { color: colors.text }]}>Share</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.quickActionButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+                      style={[styles.quickActionButton, { backgroundColor: colors.background }]}
                       onPress={() => {
                         if (result.location) {
                           const url = `https://www.google.com/maps/@${result.location.latitude},${result.location.longitude},18z`;
@@ -771,9 +782,9 @@ export default function ScannerScreen() {
 
                 {/* Location Details */}
                 {result.location && (
-                  <View style={[styles.detailsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={[styles.detailsCard, { backgroundColor: colors.card }]}>
                     <Text style={[styles.cardTitle, { color: colors.textTertiary }]}>LOCATION DETAILS</Text>
-                    <View style={styles.detailRow}>
+                    <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
                       <View style={styles.detailLeft}>
                         <Ionicons name="navigate-outline" size={18} color={colors.textSecondary} />
                         <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Coordinates</Text>
@@ -783,7 +794,7 @@ export default function ScannerScreen() {
                       </Text>
                     </View>
                     {distance !== null && (
-                      <View style={styles.detailRow}>
+                      <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
                         <View style={styles.detailLeft}>
                           <Ionicons name="location-outline" size={18} color={colors.textSecondary} />
                           <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Distance</Text>
@@ -794,7 +805,7 @@ export default function ScannerScreen() {
                       </View>
                     )}
                     {elevation !== null && (
-                      <View style={styles.detailRow}>
+                      <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
                         <View style={styles.detailLeft}>
                           <Ionicons name="trending-up-outline" size={18} color={colors.textSecondary} />
                           <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Elevation</Text>
@@ -803,7 +814,7 @@ export default function ScannerScreen() {
                       </View>
                     )}
                     {result.method && (
-                      <View style={styles.detailRow}>
+                      <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
                         <View style={styles.detailLeft}>
                           <Ionicons name="analytics-outline" size={18} color={colors.textSecondary} />
                           <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Method</Text>
@@ -815,31 +826,31 @@ export default function ScannerScreen() {
                 )}
 
                 {/* ML Training Card */}
-                <View style={[styles.mlTrainingCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={[styles.mlTrainingCard, { backgroundColor: colors.card }]}>
                   <View style={styles.mlTrainingHeader}>
-                    <Ionicons name="school" size={24} color="#8b5cf6" />
+                    <Ionicons name="school" size={24} color={colors.text} />
                     <Text style={[styles.mlTrainingTitle, { color: colors.text }]}>Help Improve AI</Text>
                   </View>
                   <Text style={[styles.mlTrainingDesc, { color: colors.textSecondary }]}>Your feedback helps train our AI to be more accurate</Text>
                   <View style={styles.mlTrainingButtons}>
                     <TouchableOpacity 
-                      style={[styles.mlTrainingButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+                      style={[styles.mlTrainingButton, { backgroundColor: colors.background }]}
                       onPress={() => setShowCorrectionModal(true)}
                     >
                       <Ionicons name="flag-outline" size={18} color="#ef4444" />
-                      <Text style={[styles.mlTrainingButtonText, { color: colors.text }]}>Report Incorrect</Text>
+                      <Text style={[styles.mlTrainingButtonText, { color: colors.text }]}>Report</Text>
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={[styles.mlTrainingButton, { backgroundColor: '#8b5cf6' }]}
+                      style={[styles.mlTrainingButton, { backgroundColor: theme === 'dark' ? '#fff' : '#000' }]}
                       onPress={trainModel}
                       disabled={trainingModel}
                     >
                       {trainingModel ? (
-                        <ActivityIndicator size="small" color="#fff" />
+                        <ActivityIndicator size="small" color={theme === 'dark' ? '#000' : '#fff'} />
                       ) : (
                         <>
-                          <Ionicons name="checkmark-circle" size={18} color="#fff" />
-                          <Text style={styles.mlTrainingButtonTextWhite}>Confirm Correct</Text>
+                          <Ionicons name="checkmark-circle" size={18} color={theme === 'dark' ? '#000' : '#fff'} />
+                          <Text style={[styles.mlTrainingButtonTextWhite, { color: theme === 'dark' ? '#000' : '#fff' }]}>Confirm</Text>
                         </>
                       )}
                     </TouchableOpacity>
@@ -869,10 +880,15 @@ export default function ScannerScreen() {
                           }}
                         >
                           {place.photoReference && (
-                            <Image 
-                              source={{ uri: `https://maps.googleapis.com/maps/api/place/photo?maxwidth=200&photoreference=${place.photoReference}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho` }}
-                              style={styles.nearbyImage}
-                            />
+                            <View>
+                              <Image 
+                                source={{ uri: `https://maps.googleapis.com/maps/api/place/photo?maxwidth=200&photoreference=${place.photoReference}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho` }}
+                                style={styles.nearbyImage}
+                              />
+                              <View style={styles.nearbyPhotoAttribution}>
+                                <Text style={styles.nearbyPhotoAttributionText}>Google</Text>
+                              </View>
+                            </View>
                           )}
                           <Text style={styles.nearbyName} numberOfLines={2}>{place.name || 'Place'}</Text>
                           <Text style={styles.nearbyType}>{place.type || 'Location'}</Text>
@@ -884,11 +900,17 @@ export default function ScannerScreen() {
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
+                    <TouchableOpacity onPress={() => Linking.openURL('https://www.google.com/intl/en/help/terms_maps/')} style={styles.termsLink}>
+                      <Text style={styles.termsLinkText}>Google Maps Terms of Service</Text>
+                    </TouchableOpacity>
                   </View>
                 )}
 
                 {placeDetails && (
                   <View style={styles.placeDetailsCard}>
+                    <View style={styles.googleAttribution}>
+                      <Text style={styles.googleAttributionText}>Powered by Google</Text>
+                    </View>
                     {placeDetails.rating && (
                       <View style={styles.ratingSection}>
                         <View style={styles.ratingHeader}>
@@ -951,10 +973,15 @@ export default function ScannerScreen() {
                                 setShowImageModal(true);
                               }}
                             >
-                              <Image 
-                                source={{ uri: `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photo.photo_reference}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho` }}
-                                style={styles.placePhoto}
-                              />
+                              <View>
+                                <Image 
+                                  source={{ uri: `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photo.photo_reference}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho` }}
+                                  style={styles.placePhoto}
+                                />
+                                <View style={styles.photoAttribution}>
+                                  <Text style={styles.photoAttributionText}>Google</Text>
+                                </View>
+                              </View>
                             </TouchableOpacity>
                           ))}
                         </ScrollView>
@@ -1517,13 +1544,14 @@ export default function ScannerScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16, backgroundColor: '#000' },
-  backButton: { marginRight: 16, padding: 4 },
-  headerTitle: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', flex: 1 },
-  clearButton: { padding: 4 },
+  container: { flex: 1 },
+  header: { paddingHorizontal: 20, paddingBottom: 16, paddingTop: 32 },
+  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  backButton: { padding: 8 },
+  headerTitle: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', flex: 1, marginLeft: 8 },
+  clearButton: { padding: 8 },
   content: { flex: 1 },
-  emptyState: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 40 },
+  emptyState: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 40 },
   emptyIcon: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 20, borderWidth: 1 },
   emptyTitle: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', marginBottom: 8 },
   emptySubtitle: { fontSize: 15, textAlign: 'center', lineHeight: 22 },
@@ -1548,38 +1576,38 @@ const styles = StyleSheet.create({
   errorTips: { backgroundColor: '#450a0a', borderRadius: 12, padding: 16, width: '100%', borderWidth: 1, borderColor: '#7f1d1d' },
   errorTipsTitle: { fontSize: 14, fontFamily: 'LeagueSpartan_700Bold', color: '#ef4444', marginBottom: 12 },
   errorTip: { fontSize: 13, color: '#d1d5db', marginBottom: 6, lineHeight: 20 },
-  locationCard: { borderRadius: 20, padding: 24, marginBottom: 16, borderWidth: 1, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
+  locationCard: { borderRadius: 20, padding: 24, marginBottom: 16, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
   locationHeader: { flexDirection: 'row', gap: 16, marginBottom: 20 },
-  locationIconContainer: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' },
+  locationIconContainer: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   locationInfo: { flex: 1 },
   locationName: { fontSize: 22, fontFamily: 'LeagueSpartan_700Bold', marginBottom: 8 },
   locationAddress: { fontSize: 15, lineHeight: 22 },
-  confidenceSection: { borderRadius: 12, padding: 16, marginTop: 16, borderWidth: 1 },
+  confidenceSection: { borderRadius: 12, padding: 16, marginTop: 16 },
   confidenceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   confidenceLabel: { fontSize: 13, fontFamily: 'LeagueSpartan_600SemiBold' },
   confidenceValue: { fontSize: 16, fontFamily: 'LeagueSpartan_700Bold' },
   confidenceBar: { height: 6, borderRadius: 3, overflow: 'hidden' },
   confidenceFill: { height: '100%', borderRadius: 3 },
-  detailsCard: { borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1 },
+  detailsCard: { borderRadius: 20, padding: 20, marginBottom: 16, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
   cardTitle: { fontSize: 13, fontFamily: 'LeagueSpartan_700Bold', color: '#6b7280', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
-  quickActionsCard: { borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1 },
+  quickActionsCard: { borderRadius: 20, padding: 20, marginBottom: 16, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
   quickActionsGrid: { flexDirection: 'row', gap: 12 },
-  quickActionButton: { flex: 1, borderRadius: 16, padding: 16, alignItems: 'center', gap: 8, borderWidth: 1 },
+  quickActionButton: { flex: 1, borderRadius: 16, padding: 16, alignItems: 'center', gap: 8 },
   quickActionText: { fontSize: 12, fontFamily: 'LeagueSpartan_600SemiBold' },
   detailsCard: { borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1 },
   cardTitle: { fontSize: 11, fontFamily: 'LeagueSpartan_700Bold', marginBottom: 16, letterSpacing: 1 },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)' },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1 },
   detailLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   detailLabel: { fontSize: 14, fontFamily: 'LeagueSpartan_400Regular' },
   detailValue: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', flex: 1, textAlign: 'right' },
-  mlTrainingCard: { borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1 },
+  mlTrainingCard: { borderRadius: 20, padding: 20, marginBottom: 16, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
   mlTrainingHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
   mlTrainingTitle: { fontSize: 18, fontFamily: 'LeagueSpartan_700Bold' },
   mlTrainingDesc: { fontSize: 14, fontFamily: 'LeagueSpartan_400Regular', marginBottom: 16, lineHeight: 20 },
   mlTrainingButtons: { flexDirection: 'row', gap: 12 },
-  mlTrainingButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16, borderRadius: 12, borderWidth: 1 },
+  mlTrainingButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16, borderRadius: 12 },
   mlTrainingButtonText: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold' },
-  mlTrainingButtonTextWhite: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
+  mlTrainingButtonTextWhite: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold' },
   nearbySection: { backgroundColor: '#1a1a1a', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#333' },
   nearbyHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   nearbyBadge: { backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
@@ -1590,6 +1618,14 @@ const styles = StyleSheet.create({
   nearbyName: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff', marginBottom: 4, height: 36 },
   nearbyType: { fontSize: 12, color: '#9ca3af', marginBottom: 8, textTransform: 'capitalize' },
   nearbyDistance: { fontSize: 12, color: '#fff', fontFamily: 'LeagueSpartan_600SemiBold' },
+  googleAttribution: { paddingVertical: 8, paddingHorizontal: 12, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 8, alignSelf: 'flex-start', marginBottom: 16 },
+  googleAttributionText: { fontSize: 11, fontFamily: 'LeagueSpartan_600SemiBold', color: '#a3a3a3' },
+  photoAttribution: { position: 'absolute', bottom: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  photoAttributionText: { fontSize: 9, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
+  nearbyPhotoAttribution: { position: 'absolute', bottom: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 3 },
+  nearbyPhotoAttributionText: { fontSize: 8, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff' },
+  termsLink: { marginTop: 12, paddingVertical: 8 },
+  termsLinkText: { fontSize: 11, fontFamily: 'LeagueSpartan_400Regular', color: '#6b7280', textDecorationLine: 'underline' },
   insightsToggleCard: { backgroundColor: '#0a0a0a', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#1a1a1a' },
   insightsToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
   insightsToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },

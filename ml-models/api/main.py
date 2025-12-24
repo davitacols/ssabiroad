@@ -44,7 +44,7 @@ async def startup_event():
         )
         monitor = ModelMonitor()
         version_manager = ModelVersionManager()
-        active_learning = ActiveLearningPipeline(data_dir="../data/active_learning")
+        active_learning = ActiveLearningPipeline(data_dir="../data/active_learning", min_samples=5)
         logger.info(f"Active learning queue loaded: {len(active_learning.queue.get('samples', []))} samples")
         
         best_model = version_manager.get_best_model()

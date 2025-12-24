@@ -53,6 +53,11 @@ const nextConfig = {
     parallelServerCompiles: true,
   },
   serverExternalPackages: ['@google-cloud/vision'],
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '50mb',
+    },
+  },
   api: {
     responseLimit: false,
     bodyParser: {
