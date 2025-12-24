@@ -1566,10 +1566,17 @@ Return JSON with the most specific location information you can identify:
           return null;
         }
         
-        // Validate business name quality
+        // Validate business name quality - reject generic single words
         const cleanBusinessName = result.businessName.replace(/\b(not visible|undefined|appears to|unable to read|partial|unclear)\b/gi, '').trim();
         if (cleanBusinessName.length < 3 || cleanBusinessName.includes('not ') || cleanBusinessName.includes('unable')) {
           console.log('Business name quality too low:', cleanBusinessName);
+          return null;
+        }
+        
+        // Skip generic single-word business names that could match anywhere
+        const businessWords = cleanBusinessName.trim().split(' ');
+        if (businessWords.length === 1 && ['Boulevard', 'Restaurant', 'Cafe', 'Bar', 'Shop', 'Store', 'Hotel', 'Market'].includes(businessWords[0])) {
+          console.log('❌ Skipping generic single-word business name:', cleanBusinessName);
           return null;
         }
         
@@ -4848,7 +4855,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const navisenseResult = await Promise.race([
         this.predictWithNavisense(buffer),
         new Promise<LocationResult | null>((_, reject) => 
-          setTimeout(() => reject(new Error('Navisense timeout')), 30000)
+          setTimeout(() => reject(new Error('Navisense timeout')), 10000)
         )
       ]);
       
