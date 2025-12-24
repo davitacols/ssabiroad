@@ -5,8 +5,7 @@
     },
     "app/api/location-recognition-v2/route.ts": {
       "maxDuration": 300,
-      "memory": 3008,
-      "maxRequestBodySize": "50mb"
+      "memory": 3008
     }
   },
   "crons": [
