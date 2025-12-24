@@ -26,7 +26,9 @@ export class TextCorrection {
     'ALBAN ROAD': 'ALBANY ROAD',
     'ALBAN RD': 'ALBANY RD',
     "GOHST'S PLAZA HOTEL": 'GOMAYS PLAZA',
-    'GOHST PLAZA': 'GOMAYS PLAZA'
+    'GOHST PLAZA': 'GOMAYS PLAZA',
+    'GOWERS': 'GOMAYS',
+    'GOWERS PLAZA': 'GOMAYS PLAZA'
   };
 
   static correctText(text: string): string {

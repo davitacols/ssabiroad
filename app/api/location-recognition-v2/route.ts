@@ -1436,27 +1436,54 @@ Return JSON with the most specific location information you can identify:
       const responseText = response.content[0].text;
       console.log('Claude analysis response:', responseText);
       
-      // Check if Claude identified a landmark without JSON
-      if (!responseText.includes('{') && (responseText.toLowerCase().includes('landmark') || responseText.toLowerCase().includes('colosseum') || responseText.toLowerCase().includes('tower') || responseText.toLowerCase().includes('monument'))) {
-        console.log('Claude identified landmark in text format, extracting...');
-        const landmarkMatch = responseText.match(/(?:shows?|depicts?|captures?)\s+(?:the\s+)?([A-Z][^.,]+(?:Colosseum|Tower|Bridge|Monument|Cathedral|Palace|Temple|Statue)[^.,]*)/i);
-        if (landmarkMatch) {
-          const landmarkName = landmarkMatch[1].trim();
-          const locationMatch = responseText.match(/in\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),?\s+([A-Z][a-z]+)/i);
-          const location = locationMatch ? `${locationMatch[1]}, ${locationMatch[2]}` : '';
-          console.log('Extracted landmark:', landmarkName, 'Location:', location);
-          
-          // Search for the landmark
-          const landmarkLocation = await this.searchBusinessByName(`${landmarkName} ${location}`);
-          if (landmarkLocation) {
-            return {
-              success: true,
-              name: landmarkName,
-              location: landmarkLocation,
-              confidence: 0.95,
-              method: 'claude-landmark-text',
-              description: `Famous landmark: ${landmarkName}`
-            };
+      // Parse landmark information from Claude's text response
+      if (!responseText.includes('{')) {
+        // Extract landmark name and location from natural language response
+        const landmarkPatterns = [
+          /(?:shows?|depicts?|captures?|features?)\s+(?:the\s+)?([^.,]+(?:Sphinx|Pyramid|Tower|Bridge|Monument|Cathedral|Palace|Temple|Statue|Colosseum)[^.,]*)/i,
+          /(?:This is|This image shows)\s+(?:the\s+)?([^.,]+)/i
+        ];
+        
+        for (const pattern of landmarkPatterns) {
+          const match = responseText.match(pattern);
+          if (match) {
+            const landmarkName = match[1].trim();
+            const locationMatch = responseText.match(/(?:in|located in|at)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),?\s*([A-Z][a-z]+)/i);
+            const location = locationMatch ? `${landmarkName}, ${locationMatch[1]}, ${locationMatch[2]}` : landmarkName;
+            
+            console.log('🏛️ Claude identified landmark:', landmarkName);
+            
+            // Search for the landmark with lower ML threshold
+            const candidates = await this.getLocationCandidates(location);
+            if (candidates && candidates.length > 0) {
+              // For landmarks, use lower threshold (0.4 instead of 0.7)
+              let bestCandidate = null;
+              let bestScore = 0;
+              
+              for (const candidate of candidates.slice(0, 3)) {
+                const score = await this.mlModel.predict(location, candidate);
+                console.log(`Landmark candidate: ${candidate.formatted_address} - Score: ${score.toFixed(3)}`);
+                
+                if (score > bestScore && score > 0.4) {
+                  bestScore = score;
+                  bestCandidate = candidate;
+                }
+              }
+              
+              if (bestCandidate?.geometry?.location) {
+                const lat = bestCandidate.geometry.location.lat;
+                const lng = bestCandidate.geometry.location.lng;
+                
+                return {
+                  success: true,
+                  name: landmarkName,
+                  location: { latitude: lat, longitude: lng },
+                  confidence: 0.95,
+                  method: 'claude-landmark-text',
+                  description: `Famous landmark identified: ${landmarkName}`
+                };
+              }
+            }
           }
         }
       }
@@ -1778,8 +1805,16 @@ Return JSON with the most specific location information you can identify:
           if (candidates && candidates.length > 0) {
             console.log(`Found ${candidates.length} candidates for: ${searchQuery}`);
             
-            const filteredCandidates = this.filterByGeography(candidates.slice(0, 3), cleanBusinessName, 'UK');
-            console.log(`Filtered to ${filteredCandidates.length} UK candidates`);
+            // Only filter by geography if we have explicit UK context
+            const hasExplicitUK = result.area?.toLowerCase().includes('uk') || 
+                                 result.area?.toLowerCase().includes('london') ||
+                                 result.area?.toLowerCase().includes('britain');
+            
+            const filteredCandidates = hasExplicitUK 
+              ? this.filterByGeography(candidates.slice(0, 3), cleanBusinessName, 'UK')
+              : candidates.slice(0, 3);
+            
+            console.log(`Filtered to ${filteredCandidates.length} candidates${hasExplicitUK ? ' (UK only)' : ' (global)'}`);
             
             if (filteredCandidates.length > 0) {
               const candidate = filteredCandidates[0];
@@ -2102,15 +2137,15 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       });
       console.log('✅ OpenCV preprocessing complete');
       
-      // OPTIMIZED image analysis - prioritize text detection with aggressive timeouts
-      const [textResult, logoResult, labelResult] = await Promise.allSettled([
+      // OPTIMIZED image analysis - prioritize landmark detection for famous sites
+      const [landmarkResult, textResult, logoResult, labelResult] = await Promise.allSettled([
+        withTimeout(client.landmarkDetection({ image: { content: enhancedBuffer } }), 8000),
         withTimeout(client.textDetection({ image: { content: enhancedBuffer } }), 8000),
         withTimeout(client.logoDetection({ image: { content: enhancedBuffer } }), 6000),
         withTimeout(client.labelDetection({ image: { content: enhancedBuffer }, maxResults: 10 }), 6000)
       ]);
       
-      // Skip landmark and object detection to reduce timeout issues
-      const landmarkResult = { status: 'rejected' as const, reason: new Error('Skipped for performance') };
+      // Skip document and object detection to reduce timeout issues
       const documentResult = { status: 'rejected' as const, reason: new Error('Skipped for performance') };
       const objectResult = { status: 'rejected' as const, reason: new Error('Skipped for performance') };
       
@@ -2167,12 +2202,14 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       // Check landmark results first
       if (landmarkResult.status === 'fulfilled') {
         const landmarks = landmarkResult.value[0].landmarkAnnotations || [];
+        console.log(`Landmark detection returned ${landmarks.length} results`);
+        
         if (landmarks.length > 0) {
           const landmark = landmarks[0];
           const location = landmark.locations?.[0]?.latLng;
+          console.log('Top landmark:', landmark.description, 'Score:', landmark.score, 'Has location:', !!location);
+          
           if (location && landmark.description) {
-            console.log('Found landmark:', landmark.description, 'Score:', landmark.score);
-            
             const lat = location.latitude || 0;
             const lng = location.longitude || 0;
             
@@ -2189,6 +2226,20 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
               };
             } else {
               console.log(`❌ Invalid landmark coordinates: ${landmark.description} (${lat}, ${lng})`);
+            }
+          } else if (landmark.description) {
+            // Landmark detected but no coordinates - search for it
+            console.log('🔍 Landmark detected without coordinates, searching:', landmark.description);
+            const landmarkLocation = await this.searchBusinessByName(landmark.description);
+            if (landmarkLocation) {
+              return {
+                success: true,
+                name: landmark.description,
+                location: landmarkLocation,
+                confidence: (landmark.score || 0.9),
+                method: 'ai-landmark-search',
+                description: `Landmark found via search: ${landmark.description}`
+              };
             }
           }
         }
