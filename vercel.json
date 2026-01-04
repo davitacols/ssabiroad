@@ -4,8 +4,7 @@
       "maxDuration": 60
     },
     "app/api/location-recognition-v2/route.ts": {
-      "maxDuration": 300,
-      "memory": 3008
+      "maxDuration": 300
     }
   },
   "crons": [
