@@ -72,26 +72,28 @@ export default function HomePage() {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
         />
       ))}
-      <div className="min-h-screen bg-white overflow-x-hidden">
+      <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
 
       {/* Announcement Banner */}
-      <div className="bg-stone-900 text-white py-2.5 px-4 text-center text-sm">
-        <span className="font-medium">🚀 New:</span> AI-powered location detection now available <Link href="/camera" className="underline ml-2 font-semibold hover:text-stone-300">Try it →</Link>
+      <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-2.5 px-4 text-center text-sm font-medium">
+        <span className="font-bold">New:</span> Satellite imagery integration coming soon <Link href="/camera" className="underline ml-2 font-semibold hover:text-blue-100">Learn More →</Link>
       </div>
 
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-stone-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between relative">
-          <Link href="/" className="flex items-center gap-3 group">
-            <img src="/pic2nav.png" alt="Pic2Nav" className="h-12 sm:h-14 md:h-16 w-auto object-contain drop-shadow-lg" />
+      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100">
+        <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center">
+            <img src="/pic2nav.png" alt="Pic2Nav" className="h-8 w-auto" />
           </Link>
-          <div className="hidden lg:flex items-center gap-8">
-            <Link href="/blog" className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors">Blog</Link>
-            <Link href="/contribute" className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors">Contribute</Link>
-            <Link href="/api-access" className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors">API</Link>
+          
+          <div className="hidden md:flex items-center space-x-8">
+            <Link href="/blog" className="text-sm text-gray-700 hover:text-gray-900 font-medium">Insights</Link>
+            <Link href="/contribute" className="text-sm text-gray-700 hover:text-gray-900 font-medium">Solutions</Link>
+            <Link href="/api-access" className="text-sm text-gray-700 hover:text-gray-900 font-medium">API</Link>
           </div>
-          <div className="flex items-center gap-3">
-            <Button className="bg-stone-900 hover:bg-stone-800 text-white text-sm font-semibold px-6" asChild>
+          
+          <div className="flex items-center">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2" asChild>
               <Link href="/camera">Get Started</Link>
             </Button>
           </div>
@@ -99,43 +101,37 @@ export default function HomePage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative pt-4 sm:pt-8 md:pt-12 lg:pt-16 pb-8 sm:pb-12 md:pb-16 lg:pb-20 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center">
+      <section className="relative pt-20 pb-32 px-4 sm:px-6 overflow-hidden">
+        {/* Background */}
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1519302959554-a75be0afc82a?w=1920&h=1080&fit=crop')] bg-cover bg-center opacity-30"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent"></div>
+        
+        <div className="max-w-[1400px] mx-auto relative z-10">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
-            <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-blue-50 border border-blue-200">
+            <div className="space-y-8">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-200 backdrop-blur-sm">
                 <Sparkles className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-semibold text-blue-900">SOC 2 Compliant • Enterprise SLA • 99.9% Uptime</span>
+                <span className="text-sm font-semibold text-blue-700">Enterprise-Grade • SOC 2 Compliant • 99.9% SLA</span>
               </div>
               
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight text-stone-900">
-                Enterprise Location Intelligence At Scale
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1]">
+                <span className="bg-gradient-to-r from-gray-900 via-blue-800 to-cyan-700 bg-clip-text text-transparent">
+                  Geospatial Intelligence
+                </span>
+                <br />
+                <span className="text-gray-900">At Scale</span>
               </h1>
               
-              <p className="text-base sm:text-lg md:text-xl text-stone-600 leading-relaxed max-w-xl">
-                Transform visual data into actionable location intelligence. Our AI-powered platform delivers GPS coordinates, address verification, and geospatial analytics with enterprise-grade security and 99.9% SLA.
+              <p className="text-xl text-gray-600 leading-relaxed max-w-xl">
+                Transform visual data into actionable location intelligence. Enterprise-grade AI platform delivering GPS coordinates, address verification, and geospatial analytics with 99.9% uptime.
               </p>
               
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <Button 
-                  size="lg" 
-                  className="h-12 px-6 text-base bg-stone-900 hover:bg-stone-800 text-white" 
-                  asChild
-                  onClick={() => {
-                    if (typeof window !== 'undefined' && (window as any).gtag) {
-                      (window as any).gtag('event', 'cta_click', { location: 'hero', action: 'start_scanning' })
-                    }
-                  }}
-                >
-                  <Link href="/api-access">
-                    Request Demo
-                  </Link>
-                </Button>
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Button 
                   size="lg" 
                   variant="outline"
-                  className="h-12 px-6 text-base border-2 border-stone-300 text-stone-900 hover:bg-stone-50" 
+                  className="h-14 px-8 text-base border-2 border-gray-300 text-gray-700 hover:bg-gray-50 backdrop-blur-sm" 
                   asChild
                 >
                   <Link href="/camera">
@@ -144,10 +140,8 @@ export default function HomePage() {
                 </Button>
               </div>
 
-
-
               {/* Stats */}
-              <div className="grid grid-cols-4 gap-4 pt-6">
+              <div className="grid grid-cols-4 gap-6 pt-8">
                 {[
                   { value: "10M+", label: "API Calls" },
                   { value: "500+", label: "Enterprises" },
@@ -155,32 +149,32 @@ export default function HomePage() {
                   { value: "99.9%", label: "Uptime" }
                 ].map((stat, i) => (
                   <div key={i} className="text-center">
-                    <div className="text-2xl sm:text-3xl font-bold text-stone-900 mb-1">{stat.value}</div>
-                    <div className="text-xs text-stone-600">{stat.label}</div>
+                    <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-1">{stat.value}</div>
+                    <div className="text-xs text-gray-500 uppercase tracking-wider">{stat.label}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Right Video */}
+            {/* Right Visual */}
             <div className="relative mt-6 lg:mt-0">
-              <div className="rounded-lg overflow-hidden border border-stone-200 bg-white shadow-xl">
-                <div className="bg-stone-50 px-4 py-3 flex items-center gap-3 border-b border-stone-200">
+              <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-gradient-to-br from-blue-50 to-cyan-50 backdrop-blur-xl shadow-2xl shadow-blue-500/10">
+                <div className="bg-white/80 backdrop-blur-sm px-4 py-3 flex items-center gap-3 border-b border-gray-200">
                   <div className="flex gap-1.5">
                     <div className="w-3 h-3 rounded-full bg-red-500"></div>
                     <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                     <div className="w-3 h-3 rounded-full bg-green-500"></div>
                   </div>
                   <div className="flex-1 text-center">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-white rounded-md border border-stone-200">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-xs font-medium text-stone-600">pic2nav.app</span>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-md border border-gray-200">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-xs font-medium text-gray-700">pic2nav.app</span>
                     </div>
                   </div>
                 </div>
-                <div className="aspect-[16/10] bg-stone-100">
+                <div className="aspect-[16/10] bg-gradient-to-br from-blue-50 to-white">
                   <video 
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover mix-blend-multiply"
                     autoPlay 
                     loop 
                     muted 
@@ -190,6 +184,8 @@ export default function HomePage() {
                   </video>
                 </div>
               </div>
+              {/* Glow effect */}
+              <div className="absolute -inset-4 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl blur-3xl opacity-20 -z-10"></div>
             </div>
           </div>
         </div>
@@ -198,18 +194,18 @@ export default function HomePage() {
 
 
       {/* Blog Posts */}
-      <section className="relative py-16 sm:py-24 md:py-32 px-4 sm:px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-12 sm:mb-16">
+      <section className="relative py-24 px-4 sm:px-6 bg-gradient-to-b from-white via-blue-50 to-white">
+        <div className="max-w-[1200px] mx-auto">
+          <div className="flex items-center justify-between mb-16">
             <div>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-stone-900 mb-3 sm:mb-4">
-                Latest from our blog
+              <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+                Latest Insights
               </h2>
-              <p className="text-base sm:text-lg md:text-xl text-stone-600">
-                Tips, guides, and insights
+              <p className="text-xl text-gray-600">
+                Industry trends and technical deep-dives
               </p>
             </div>
-            <Button variant="outline" className="rounded-full" asChild>
+            <Button variant="outline" className="rounded-full border-gray-300 text-gray-700 hover:bg-gray-50" asChild>
               <Link href="/blog">
                 View All
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -217,32 +213,33 @@ export default function HomePage() {
             </Button>
           </div>
 
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
             {posts.map((post) => (
               <Link key={post.id} href={'/blog/' + post.slug} className="group">
-                <article className="h-full rounded-lg bg-white border border-stone-200 overflow-hidden hover:shadow-lg hover:border-stone-300 transition-all">
+                <article className="h-full rounded-xl bg-white border border-gray-200 overflow-hidden hover:border-blue-400 hover:shadow-lg transition-all backdrop-blur-sm">
                   {post.coverImage && (
-                    <div className="aspect-video overflow-hidden">
+                    <div className="aspect-video overflow-hidden relative">
                       <img 
                         src={post.coverImage} 
                         alt={post.title} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
                     </div>
                   )}
                   <div className="p-6">
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="px-3 py-1 bg-stone-100 rounded-full text-xs font-medium text-stone-700">
+                      <span className="px-3 py-1 bg-blue-100 rounded-full text-xs font-medium text-blue-700 border border-blue-200">
                         {post.category}
                       </span>
-                      <span className="text-xs text-stone-500">
+                      <span className="text-xs text-gray-500">
                         {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
-                    <h3 className="text-lg font-bold text-stone-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
                       {post.title}
                     </h3>
-                    <p className="text-sm text-stone-600 line-clamp-2">
+                    <p className="text-sm text-gray-600 line-clamp-2">
                       {post.excerpt}
                     </p>
                   </div>
@@ -254,144 +251,76 @@ export default function HomePage() {
       </section>
 
       {/* Blog CTA */}
-      <section className="py-16 bg-stone-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <section className="py-24 bg-gradient-to-br from-blue-50 via-white to-cyan-50 border-y border-gray-200">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Blog Promotion */}
             <div className="text-center lg:text-left">
               <div className="flex items-center justify-center lg:justify-start gap-2 mb-4">
                 <BookOpen className="h-6 w-6 text-blue-600" />
-                <span className="text-sm font-medium text-blue-600">LATEST INSIGHTS</span>
+                <span className="text-sm font-medium text-blue-600 uppercase tracking-wider">Latest Insights</span>
               </div>
-              <h2 className="text-3xl font-bold mb-4 text-stone-900">
-                Discover Location Technology Insights
+              <h2 className="text-4xl font-bold mb-4 text-gray-900">
+                Geospatial Intelligence Resources
               </h2>
-              <p className="text-lg text-stone-600 mb-6">
-                Explore our blog for tutorials, guides, and insights about navigation technology, 
-                photo location analysis, and building recognition.
+              <p className="text-lg text-gray-600 mb-6">
+                Technical guides, industry insights, and best practices for location intelligence platforms.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-                <Button size="lg" asChild>
-                  <Link href="/blog" className="flex items-center gap-2">
-                    Read Our Blog
-                    <ArrowRight className="h-4 w-4" />
+                <Button size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 border-0" asChild>
+                  <Link href="/blog">
+                    Explore Resources
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
-                <Button size="lg" variant="outline" asChild>
+                <Button size="lg" variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50" asChild>
                   <Link href="/blog/pic2nav-photo-location-scanner-professionals">
-                    Learn About Pic2Nav
+                    Platform Overview
                   </Link>
                 </Button>
               </div>
             </div>
-
-            {/* Tools Grid */}
             <div className="grid gap-6">
-              <div className="bg-white rounded-lg p-6 border border-stone-200 shadow-lg">
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-stone-900 mb-1">Pic2Nav</h3>
-                  <p className="text-sm text-stone-600">Photo Location Analysis Tool</p>
+              <div className="bg-white backdrop-blur-sm rounded-2xl p-8 border border-gray-200 hover:border-blue-400 hover:shadow-lg transition-all">
+                <div className="mb-6">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Pic2Nav API</h3>
+                  <p className="text-sm text-gray-600">Enterprise Location Intelligence</p>
                 </div>
-                
-                <div className="space-y-2 mb-4 text-sm text-stone-700">
-                  <div>• Extract GPS coordinates from photos</div>
-                  <div>• Identify buildings and landmarks</div>
-                  <div>• Get weather and location data</div>
+                <div className="space-y-2 mb-6 text-sm text-gray-700">
+                  <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div><span>GPS extraction from imagery</span></div>
+                  <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div><span>Building & landmark recognition</span></div>
+                  <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div><span>Real-time geospatial analytics</span></div>
                 </div>
-
-                <Button className="w-full" variant="default" asChild>
-                  <Link href="/camera">
-                    Try Tool
-                  </Link>
+                <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 border-0" asChild>
+                  <Link href="/camera">Try Platform</Link>
                 </Button>
               </div>
-
-              <div className="bg-white rounded-lg p-6 border border-stone-200 shadow-lg">
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-stone-900 mb-1">Transit Planner</h3>
-                  <p className="text-sm text-stone-600">Public Transport Journey Planning</p>
+              <div className="bg-white backdrop-blur-sm rounded-2xl p-8 border border-gray-200 hover:border-blue-400 hover:shadow-lg transition-all">
+                <div className="mb-6">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Transit Intelligence</h3>
+                  <p className="text-sm text-gray-600">Multi-Modal Route Planning</p>
                 </div>
-                
-                <div className="space-y-2 mb-4 text-sm text-stone-700">
-                  <div>• Real-time transit directions</div>
-                  <div>• Multi-modal route planning</div>
-                  <div>• Live vehicle tracking</div>
+                <div className="space-y-2 mb-6 text-sm text-gray-700">
+                  <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-cyan-600"></div><span>Real-time transit directions</span></div>
+                  <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-cyan-600"></div><span>Multi-modal optimization</span></div>
+                  <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-cyan-600"></div><span>Live vehicle tracking</span></div>
                 </div>
-
-                <Button className="w-full" variant="outline" asChild>
-                  <Link href="/transit">
-                    Plan Journey
-                  </Link>
+                <Button className="w-full border-gray-300 text-gray-700 hover:bg-gray-50" variant="outline" asChild>
+                  <Link href="/transit">Plan Route</Link>
                 </Button>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Social Proof */}
-      <section className="relative py-16 px-4 sm:px-6 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8 text-center">
-            <div className="p-8 rounded-lg bg-white border border-stone-200 hover:border-stone-300 transition-all shadow-sm hover:shadow-md">
-              <div className="text-5xl font-bold text-stone-900 mb-2">10M+</div>
-              <div className="text-stone-600">Monthly API Requests</div>
-            </div>
-            <div className="p-8 rounded-lg bg-white border border-stone-200 hover:border-stone-300 transition-all shadow-sm hover:shadow-md">
-              <div className="text-5xl font-bold text-stone-900 mb-2">500+</div>
-              <div className="text-stone-600">Enterprise Customers</div>
-            </div>
-            <div className="p-8 rounded-lg bg-white border border-stone-200 hover:border-stone-300 transition-all shadow-sm hover:shadow-md">
-              <div className="text-5xl font-bold text-stone-900 mb-2">99.9%</div>
-              <div className="text-stone-600">Guaranteed Uptime SLA</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section id="how-it-works" className="relative py-16 sm:py-24 md:py-32 px-4 sm:px-6 bg-stone-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-stone-900 mb-4">
-              How It Works
-            </h2>
-            <p className="text-lg text-stone-600">
-              Three simple steps to find any location
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { icon: Upload, num: '01', title: "Upload Photo", desc: "Take or upload any building photo", color: "from-blue-500 to-cyan-500" },
-              { icon: AnalyzeIcon, num: '02', title: "AI Analysis", desc: "Our AI extracts GPS and visual data", color: "from-purple-500 to-pink-500" },
-              { icon: DiscoverIcon, num: '03', title: "Get Location", desc: "Receive exact address and map", color: "from-orange-500 to-red-500" }
-            ].map((feature, i) => (
-              <div key={i} className="relative group">
-                <div className="relative p-8 rounded-lg bg-white border border-stone-200 hover:border-stone-300 transition-all shadow-sm hover:shadow-md">
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-stone-900 flex items-center justify-center">
-                      <feature.icon className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="text-5xl font-bold text-stone-200">{feature.num}</div>
-                  </div>
-                  <h3 className="text-2xl font-bold text-stone-900 mb-3">{feature.title}</h3>
-                  <p className="text-stone-600 leading-relaxed">{feature.desc}</p>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>
 
       {/* Newsletter */}
-      <section className="relative py-16 sm:py-24 md:py-32 px-4 sm:px-6 bg-white">
+      <section className="relative py-32 px-4 sm:px-6 bg-white">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-stone-900 mb-4">
-            Stay updated with our newsletter
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            Stay Ahead of Geospatial Innovation
           </h2>
-          <p className="text-base sm:text-lg text-stone-600 mb-8">
-            Get the latest blog posts, tips, and updates delivered to your inbox
+          <p className="text-lg text-gray-600 mb-8">
+            Get technical insights, product updates, and industry trends delivered monthly
           </p>
           <div className="flex justify-center">
             <NewsletterSignup />
@@ -400,45 +329,44 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section className="relative py-24 px-4 sm:px-6 bg-stone-900">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
+      <section className="relative py-32 px-4 sm:px-6 bg-gradient-to-br from-blue-600 via-blue-700 to-cyan-600 overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1519302959554-a75be0afc82a?w=1920&h=1080&fit=crop')] bg-cover bg-center opacity-20"></div>
+        <div className="max-w-4xl mx-auto text-center relative z-10">
+          <h2 className="text-5xl font-bold text-white mb-6">
             Ready to Scale Your Location Intelligence?
           </h2>
           <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
-            Join 500+ enterprises processing millions of location requests monthly
+            Join 500+ enterprises processing millions of location requests with 99.9% uptime
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="h-12 px-6 text-base bg-white hover:bg-stone-100 text-stone-900" asChild>
+            <Button size="lg" className="h-14 px-8 text-base bg-white hover:bg-gray-100 text-blue-600 border-0 shadow-xl" asChild>
               <Link href="/api-access">
                 Schedule Demo
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button size="lg" variant="outline" className="h-12 px-6 text-base border-2 border-white text-white hover:bg-white/10" asChild>
-              <Link href="/camera">
-                Start Free Trial
-              </Link>
+            <Button size="lg" variant="outline" className="h-14 px-8 text-base border-2 border-white text-white hover:bg-white/10 backdrop-blur-sm" asChild>
+              <Link href="/camera">Start Free Trial</Link>
             </Button>
           </div>
-          <p className="mt-6 text-sm text-blue-200">Enterprise SLA • Dedicated Support • Custom Integration</p>
+          <p className="mt-8 text-sm text-blue-100">Enterprise SLA • Dedicated Support • Custom Integration • SOC 2 Compliant</p>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="relative border-t border-stone-200 py-8 sm:py-12 px-4 sm:px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6">
+      <footer className="relative border-t border-gray-200 py-12 px-4 sm:px-6 bg-white">
+        <div className="max-w-[1200px] mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-3">
-              <img src="/pic2nav.png" alt="Pic2Nav" className="h-10 sm:h-12 md:h-14 w-auto object-contain drop-shadow-lg" />
+              <img src="/pic2nav.png" alt="Pic2Nav" className="h-14 w-auto object-contain drop-shadow-lg" />
             </div>
-            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-xs sm:text-sm text-stone-600">
-              <div className="flex gap-4">
-                <Link href="/blog" className="hover:text-stone-900">Blog</Link>
-                <Link href="/privacy" className="hover:text-stone-900">Privacy</Link>
-                <Link href="/cookies" className="hover:text-stone-900">Cookies</Link>
+            <div className="flex flex-col sm:flex-row items-center gap-4 text-sm text-gray-600">
+              <div className="flex gap-6">
+                <Link href="/blog" className="hover:text-gray-900 transition-colors">Insights</Link>
+                <Link href="/privacy" className="hover:text-gray-900 transition-colors">Privacy</Link>
+                <Link href="/cookies" className="hover:text-gray-900 transition-colors">Cookies</Link>
               </div>
-              <p>© 2024 Pic2Nav</p>
+              <p>© 2026 Pic2Nav. All rights reserved.</p>
             </div>
           </div>
         </div>
