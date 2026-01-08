@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
-import { ThumbsUp, ThumbsDown } from 'lucide-react';
 
 interface LocationFeedbackProps {
   query: string;
@@ -43,27 +42,23 @@ export function LocationFeedback({ query, result, onFeedback }: LocationFeedback
   }
 
   return (
-    <Card className="p-3 border-gray-200">
-      <p className="text-sm text-gray-600 mb-2">Was this location result accurate?</p>
+    <Card className="p-4 border-gray-200">
+      <p className="text-sm text-gray-700 font-medium mb-3">Is this location correct?</p>
       <div className="flex gap-2">
         <Button
-          size="sm"
-          variant="outline"
+          size="lg"
           onClick={() => handleFeedback(true)}
           disabled={loading}
-          className="flex items-center gap-1"
+          className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold"
         >
-          <ThumbsUp className="w-4 h-4" />
           Yes
         </Button>
         <Button
-          size="sm"
-          variant="outline"
+          size="lg"
           onClick={() => handleFeedback(false)}
           disabled={loading}
-          className="flex items-center gap-1"
+          className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold"
         >
-          <ThumbsDown className="w-4 h-4" />
           No
         </Button>
       </div>

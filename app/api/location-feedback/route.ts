@@ -1,18 +1,76 @@
-import { recordFeedback } from '../../../lib/location-smart';
 import { NextRequest, NextResponse } from 'next/server';
+import { saveFeedback, trainModelWithFeedback, getFeedbackStats } from './training';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
-    const { query, result, isCorrect } = await request.json();
-    
-    if (!query || !result || typeof isCorrect !== 'boolean') {
-      return NextResponse.json({ error: 'Invalid feedback data' }, { status: 400 });
+    const body = await request.json();
+    const { recognitionId, correctLocation, correctAddress, feedback, userId } = body;
+
+    if (!recognitionId) {
+      return NextResponse.json({ error: 'Missing recognitionId' }, { status: 400 });
     }
 
-    recordFeedback(query, result, isCorrect);
+    // If user clicked "Yes" (correct), fetch original recognition data
+    let location = correctLocation;
+    let address = correctAddress;
     
-    return NextResponse.json({ success: true });
+    if (feedback === 'correct' && !location) {
+      try {
+        const recognition = await prisma.location_recognitions.findUnique({
+          where: { id: recognitionId }
+        });
+        if (recognition) {
+          location = { latitude: recognition.latitude, longitude: recognition.longitude };
+          address = recognition.detectedAddress || undefined;
+          console.log('✅ Using original recognition data for positive feedback');
+        }
+      } catch (err) {
+        console.error('Failed to fetch recognition:', err);
+      }
+    }
+
+    // Save feedback
+    const feedbackRecord = await saveFeedback(
+      recognitionId,
+      location,
+      address,
+      feedback,
+      userId
+    );
+
+    // Train model if location provided
+    if (location) {
+      await trainModelWithFeedback(location, address);
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      feedbackId: feedbackRecord?.id,
+      message: 'Feedback recorded and model training initiated'
+    });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to record feedback' }, { status: 500 });
+    console.error('Feedback submission error:', error);
+    return NextResponse.json({ error: 'Failed to process feedback' }, { status: 500 });
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    const stats = searchParams.get('stats') === 'true';
+
+    if (stats) {
+      const statsData = await getFeedbackStats(userId || undefined);
+      return NextResponse.json(statsData);
+    }
+
+    return NextResponse.json({ message: 'Use ?stats=true for feedback statistics' });
+  } catch (error) {
+    console.error('Feedback retrieval error:', error);
+    return NextResponse.json({ error: 'Failed to retrieve feedback' }, { status: 500 });
   }
 }

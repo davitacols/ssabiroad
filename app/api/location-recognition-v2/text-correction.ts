@@ -45,40 +45,19 @@ export class TextCorrection {
       corrected = corrected.replace(regex, right);
     }
     
-    // Fix common OCR character confusions
+    // Fix common OCR character confusions - but preserve lowercase 'l'
     corrected = corrected
-      .replace(/[Il1|]/g, (match, offset) => {
-        // Context-aware replacement
+      .replace(/[I1|]/g, (match, offset) => {
+        // Only fix uppercase I, 1, and pipe - NOT lowercase l
         const before = corrected[offset - 1] || '';
         const after = corrected[offset + 1] || '';
         
-        // If surrounded by letters, likely 'I'
-        if (/[a-zA-Z]/.test(before) && /[a-zA-Z]/.test(after)) {
-          return 'I';
-        }
-        // If at start of word, likely 'I'
-        if (/\s/.test(before) && /[a-zA-Z]/.test(after)) {
-          return 'I';
-        }
         // If surrounded by numbers, likely '1'
         if (/\d/.test(before) || /\d/.test(after)) {
           return '1';
         }
-        return match;
-      })
-      .replace(/[O0]/g, (match, offset) => {
-        const before = corrected[offset - 1] || '';
-        const after = corrected[offset + 1] || '';
-        
-        // If surrounded by letters, likely 'O'
-        if (/[a-zA-Z]/.test(before) && /[a-zA-Z]/.test(after)) {
-          return 'O';
-        }
-        // If surrounded by numbers, likely '0'
-        if (/\d/.test(before) || /\d/.test(after)) {
-          return '0';
-        }
-        return match;
+        // Otherwise keep as 'I'
+        return 'I';
       });
     
     return corrected;

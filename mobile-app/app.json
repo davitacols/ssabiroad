@@ -5,7 +5,7 @@
     "version": "1.0.5",
     "orientation": "default",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "description": "Smart location recognition from photos. Analyze buildings, landmarks, and locations using AI-powered image analysis with GPS data extraction.",
     "privacy": "public",
     "primaryColor": "#000000",

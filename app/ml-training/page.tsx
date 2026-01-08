@@ -148,7 +148,7 @@ export default function MLTrainingDashboard() {
                       {item.address || item.metadata?.address || 'No address'}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      Lat: {item.latitude?.toFixed(6)}, Lng: {item.longitude?.toFixed(6)}
+                      Lat: {(item.latitude || item.metadata?.latitude)?.toFixed(6)}, Lng: {(item.longitude || item.metadata?.longitude)?.toFixed(6)}
                     </p>
                     {item.createdAt && (
                       <p className="text-xs text-gray-400 mt-1">

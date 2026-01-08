@@ -2,104 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-.prose {
-  --tw-prose-body: #242424;
-  --tw-prose-headings: #242424;
-  --tw-prose-links: #242424;
-}
-
-.prose p {
-  margin-bottom: 2.5rem;
-  font-size: 20px;
-  line-height: 1.8;
-}
-
-.prose h1, .prose h2, .prose h3 {
-  font-weight: 700;
-  margin-top: 4rem;
-  margin-bottom: 1.5rem;
-}
-
-.prose h1 { font-size: 2.5rem; line-height: 1.3; }
-.prose h2 { font-size: 2.25rem; line-height: 1.35; }
-.prose h3 { font-size: 1.75rem; line-height: 1.4; }
-
-.prose a {
-  color: #0066cc;
-  text-decoration: none;
-  background: linear-gradient(to bottom, rgba(0,102,204,0.1) 0%, rgba(0,102,204,0.1) 100%);
-  background-size: 100% 100%;
-  background-position: 0 100%;
-  background-repeat: no-repeat;
-  padding: 2px 4px;
-  border-radius: 3px;
-  transition: all 0.2s ease;
-  font-weight: 500;
-}
-
-.prose a:hover {
-  background: linear-gradient(to bottom, rgba(0,102,204,0.2) 0%, rgba(0,102,204,0.2) 100%);
-  color: #0052a3;
-}
-
-.prose a[target="_blank"]::after {
-  content: "↗";
-  font-size: 0.75em;
-  margin-left: 3px;
-  opacity: 0.6;
-}
-
-.prose strong {
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
-.prose ul, .prose ol {
-  margin: 2rem 0;
-  padding-left: 2.5rem;
-}
-
-.prose ul {
-  list-style-type: disc;
-}
-
-.prose ol {
-  list-style-type: decimal;
-}
-
-.prose li {
-  font-size: 20px;
-  line-height: 1.8;
-  margin-bottom: 1rem;
-  display: list-item;
-}
-
-.prose li::marker {
-  color: #242424;
-}
-
-.prose img {
-  width: 100%;
-  max-width: 900px;
-  height: auto;
-  margin: 3rem auto;
-  border-radius: 12px;
-  display: block;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-@media (max-width: 640px) {
-  .prose p { font-size: 18px; margin-bottom: 2rem; }
-  .prose h1 { font-size: 1.875rem; margin-top: 3rem; }
-  .prose h2 { font-size: 1.625rem; margin-top: 3rem; }
-  .prose h3 { font-size: 1.375rem; margin-top: 2.5rem; }
-  .prose li { font-size: 18px; margin-bottom: 0.75rem; }
-  .prose img { margin: 2rem auto; border-radius: 8px; }
-  .prose ul, .prose ol { padding-left: 1.5rem; }
-}
-
-/* Custom animations for advanced UI */
-@keyframes gradient {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+@layer utilities {
+  @keyframes gradient {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  
+  .animate-gradient {
+    background-size: 200% auto;
+    animation: gradient 8s ease infinite;
+  }
 }

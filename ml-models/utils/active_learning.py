@@ -93,10 +93,11 @@ class ActiveLearningPipeline:
         total_samples = len(self.queue["samples"])
         high_priority = sum(1 for s in self.queue["samples"] if s["priority"] == "high")
         
-        # Retrain if enough samples or many corrections
         if total_samples >= self.min_samples:
             return True
-        if high_priority >= 20:  # Many user corrections
+        if high_priority >= 5:
+            return True
+        if total_samples >= 10:
             return True
         
         return False

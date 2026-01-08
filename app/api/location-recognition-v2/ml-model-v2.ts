@@ -1,14 +1,16 @@
-// Comprehensive ML Model for Location Recognition (Lightweight Implementation)
+// Enhanced ML Model with Ensemble Scoring, Geographic Validation, and Continuous Learning
+
 export class LocationMLModel {
   private weights: number[];
   private trainingData: TrainingExample[];
   private featureExtractor: FeatureExtractor;
   private geoValidator: GeographicValidator;
   private predictionCache: Map<string, CachedPrediction>;
-  private ensembleWeights: number[] = [0.4, 0.3, 0.2, 0.1]; // Weights for 4 models
+  private ensembleWeights: number[] = [0.4, 0.3, 0.2, 0.1];
+  private feedbackQueue: FeedbackItem[] = [];
 
   constructor() {
-    this.weights = this.initializeWeights(50); // 50 features
+    this.weights = this.initializeWeights(50);
     this.trainingData = [];
     this.featureExtractor = new FeatureExtractor();
     this.geoValidator = new GeographicValidator();
@@ -16,17 +18,15 @@ export class LocationMLModel {
     console.log('Initialized enhanced ML model with ensemble scoring');
   }
 
-  // Initialize random weights
   private initializeWeights(size: number): number[] {
     return Array.from({ length: size }, () => (Math.random() - 0.5) * 0.1);
   }
 
-  // Sigmoid activation function
   private sigmoid(x: number): number {
     return 1 / (1 + Math.exp(-Math.max(-500, Math.min(500, x))));
   }
 
-  // Ensemble prediction combining multiple scoring methods
+  // Ensemble prediction combining 4 scoring methods
   async predict(businessName: string, candidate: any, phoneNumber?: string, address?: string, area?: string): Promise<number> {
     const cacheKey = `${businessName}|${candidate.place_id}`;
     const cached = this.predictionCache.get(cacheKey);
@@ -53,7 +53,6 @@ export class LocationMLModel {
     }
   }
 
-  // Primary ML model prediction
   private async predictWithML(businessName: string, candidate: any, phoneNumber?: string, address?: string, area?: string): Promise<number> {
     const features = this.featureExtractor.extract(businessName, candidate, phoneNumber, address, area);
     let sum = 0;
@@ -63,64 +62,28 @@ export class LocationMLModel {
     return this.sigmoid(sum);
   }
 
-  // Phone validation scoring
   private async predictWithPhoneValidation(phoneNumber: string | undefined, candidate: any): Promise<number> {
     if (!phoneNumber) return 0.5;
     const candidateAddr = candidate.formatted_address?.toLowerCase() || '';
-    const phoneScore = this.validatePhone(phoneNumber, candidateAddr);
-    return phoneScore;
+    return this.validatePhone(phoneNumber, candidateAddr);
   }
 
-  // Address validation scoring
   private async predictWithAddressValidation(address: string | undefined, candidate: any): Promise<number> {
     if (!address) return 0.5;
     const candidateAddr = candidate.formatted_address?.toLowerCase() || '';
-    const addressScore = this.validateAddress(address, candidateAddr);
-    return addressScore;
+    return this.validateAddress(address, candidateAddr);
   }
 
-  // Geographic validation scoring
   private async predictWithGeoValidation(candidate: any, area?: string): Promise<number> {
     const lat = candidate.geometry?.location?.lat;
     const lng = candidate.geometry?.location?.lng;
     if (!lat || !lng) return 0.5;
-    
-    const geoScore = await this.geoValidator.validateLocation(lat, lng, area);
-    return geoScore;
+    return await this.geoValidator.validateLocation(lat, lng, area);
   }
 
-  // Apply business logic boosts
-  private applyBusinessLogic(businessName: string, candidate: any, phoneNumber?: string, address?: string, area?: string, baseScore: number): number {
-    let score = baseScore;
-    const candidateAddr = candidate.formatted_address?.toLowerCase() || '';
-    
-    // Phone-location consistency boost
-    if (phoneNumber) {
-      const phoneBoost = this.validatePhone(phoneNumber, candidateAddr);
-      if (phoneBoost > 0.8) score += 0.2;
-      else if (phoneBoost < 0.2) score -= 0.3;
-    }
-    
-    // Address consistency boost
-    if (address) {
-      const addressBoost = this.validateAddress(address, candidateAddr);
-      if (addressBoost > 0.7) score += 0.15;
-    }
-    
-    // Area consistency boost
-    if (area) {
-      const areaBoost = this.validateArea(area, candidateAddr);
-      if (areaBoost > 0.8) score += 0.1;
-    }
-    
-    return score;
-  }
-
-  // Search for similar locations in training data
   async searchSimilar(text: string, limit: number = 5): Promise<Array<{name: string, latitude: number, longitude: number, confidence: number}>> {
     const results: Array<{name: string, latitude: number, longitude: number, confidence: number, similarity: number}> = [];
     
-    // Search through training data for similar text
     for (const example of this.trainingData) {
       if (example.label === 1 && example.metadata) {
         const similarity = this.calculateTextSimilarity(text, example.metadata.name);
@@ -136,14 +99,12 @@ export class LocationMLModel {
       }
     }
     
-    // Sort by similarity and return top results
     return results
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, limit)
       .map(r => ({ name: r.name, latitude: r.latitude, longitude: r.longitude, confidence: r.confidence }));
   }
-  
-  // Calculate text similarity using Levenshtein distance
+
   private calculateTextSimilarity(text1: string, text2: string): number {
     const s1 = text1.toLowerCase();
     const s2 = text2.toLowerCase();
@@ -175,7 +136,7 @@ export class LocationMLModel {
     return maxLen > 0 ? 1 - (distance / maxLen) : 0;
   }
 
-  // Train model with new data (simplified gradient descent)
+  // Continuous learning with feedback queue
   async trainWithFeedback(businessName: string, candidate: any, isCorrect: boolean, phoneNumber?: string, address?: string, area?: string) {
     const features = this.featureExtractor.extract(businessName, candidate, phoneNumber, address, area);
     const label = isCorrect ? 1 : 0;
@@ -187,52 +148,75 @@ export class LocationMLModel {
       metadata: { name: businessName, latitude: candidate.geometry?.location?.lat, longitude: candidate.geometry?.location?.lng }
     });
     
-    // Keep only recent training data (last 100 examples)
+    // Queue feedback for batch processing
+    this.feedbackQueue.push({
+      businessName,
+      candidate,
+      isCorrect,
+      timestamp: Date.now()
+    });
+
     if (this.trainingData.length > 100) {
       this.trainingData = this.trainingData.slice(-100);
     }
     
-    // Update weights using simple gradient descent
     this.updateWeights(features, label);
     
-    console.log(`ML model updated with feedback: ${businessName} -> ${isCorrect ? 'CORRECT' : 'INCORRECT'}`);
+    // Process feedback queue if it reaches threshold
+    if (this.feedbackQueue.length >= 10) {
+      await this.processFeedbackQueue();
+    }
+    
+    console.log(`ML model updated: ${businessName} -> ${isCorrect ? 'CORRECT' : 'INCORRECT'}`);
   }
 
-  // Simple gradient descent weight update
+  private async processFeedbackQueue() {
+    console.log(`Processing feedback queue with ${this.feedbackQueue.length} items`);
+    
+    // Adjust ensemble weights based on feedback accuracy
+    const correctCount = this.feedbackQueue.filter(f => f.isCorrect).length;
+    const accuracy = correctCount / this.feedbackQueue.length;
+    
+    if (accuracy > 0.85) {
+      this.ensembleWeights[0] += 0.05; // Boost ML model weight
+    } else if (accuracy < 0.7) {
+      this.ensembleWeights[0] -= 0.05; // Reduce ML model weight
+    }
+    
+    // Normalize weights
+    const sum = this.ensembleWeights.reduce((a, b) => a + b, 0);
+    this.ensembleWeights = this.ensembleWeights.map(w => w / sum);
+    
+    this.feedbackQueue = [];
+  }
+
   private updateWeights(features: number[], label: number) {
     const learningRate = 0.01;
     
-    // Compute current prediction
     let prediction = 0;
     for (let i = 0; i < features.length && i < this.weights.length; i++) {
       prediction += features[i] * this.weights[i];
     }
     prediction = this.sigmoid(prediction);
     
-    // Compute error
     const error = label - prediction;
     
-    // Update weights
     for (let i = 0; i < features.length && i < this.weights.length; i++) {
       this.weights[i] += learningRate * error * features[i] * prediction * (1 - prediction);
     }
   }
 
-  // Fallback scoring when ML fails
   private fallbackScoring(businessName: string, candidate: any, phoneNumber?: string, address?: string, area?: string): number {
     let score = 0.5;
     
-    // Phone validation
     if (phoneNumber) {
       score += this.validatePhone(phoneNumber, candidate.formatted_address) * 0.4;
     }
     
-    // Address validation
     if (address) {
       score += this.validateAddress(address, candidate.formatted_address) * 0.3;
     }
     
-    // Area validation
     if (area) {
       score += this.validateArea(area, candidate.formatted_address) * 0.2;
     }
@@ -244,23 +228,19 @@ export class LocationMLModel {
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     const addr = address.toUpperCase();
     
-    // US phone validation
     if (cleanPhone.length === 10 || (cleanPhone.length === 11 && cleanPhone.startsWith('1'))) {
       const areaCode = cleanPhone.length === 10 ? cleanPhone.substring(0, 3) : cleanPhone.substring(1, 4);
       
-      // Florida codes
       if (['305', '321', '352', '386', '407', '561', '727', '754', '772', '786', '813', '850', '863', '904', '941', '954'].includes(areaCode)) {
         return addr.includes('FLORIDA') || addr.includes('FL') ? 1.0 : 0.0;
       }
       
-      // Other US codes
       if (parseInt(areaCode) >= 200) {
         return addr.includes('UNITED STATES') || addr.includes('USA') ? 0.9 : 0.0;
       }
     }
     
-    // UK phone validation
-    if (phone.match(/^((\+44|0)?20|(\+44|0)?7|(\+44|0)?1)/)) {
+    if (phone.match(/^((\\+44|0)?20|(\\+44|0)?7|(\\+44|0)?1)/)) {
       return addr.includes('UK') || addr.includes('UNITED KINGDOM') || addr.includes('LONDON') ? 1.0 : 0.0;
     }
     
@@ -294,84 +274,127 @@ export class LocationMLModel {
   }
 }
 
-// Feature extraction for ML model
-class FeatureExtractor {
+// Geographic Validation Layer
+export class GeographicValidator {
+  private regionBoundaries: Map<string, RegionBoundary> = new Map();
+
+  constructor() {
+    this.initializeRegions();
+  }
+
+  private initializeRegions() {
+    this.regionBoundaries.set('UK', {
+      name: 'United Kingdom',
+      bounds: { north: 55.8, south: 50.0, east: 2.0, west: -8.0 },
+      cities: ['London', 'Manchester', 'Birmingham', 'Leeds', 'Liverpool']
+    });
+    
+    this.regionBoundaries.set('Florida', {
+      name: 'Florida, USA',
+      bounds: { north: 30.8, south: 24.5, east: -80.0, west: -87.6 },
+      cities: ['Miami', 'Orlando', 'Tampa', 'Jacksonville', 'Fort Lauderdale']
+    });
+    
+    this.regionBoundaries.set('California', {
+      name: 'California, USA',
+      bounds: { north: 42.0, south: 32.5, east: -114.1, west: -124.4 },
+      cities: ['Los Angeles', 'San Francisco', 'San Diego', 'Sacramento']
+    });
+  }
+
+  async validateLocation(lat: number, lng: number, area?: string): Promise<number> {
+    if (!area) return 0.5;
+
+    for (const [key, region] of this.regionBoundaries) {
+      if (area.toLowerCase().includes(key.toLowerCase()) || area.toLowerCase().includes(region.name.toLowerCase())) {
+        const inBounds = this.isWithinBounds(lat, lng, region.bounds);
+        return inBounds ? 0.95 : 0.2;
+      }
+    }
+
+    return 0.5;
+  }
+
+  private isWithinBounds(lat: number, lng: number, bounds: Bounds): boolean {
+    return lat >= bounds.south && lat <= bounds.north && 
+           lng >= bounds.west && lng <= bounds.east;
+  }
+}
+
+// Enhanced Feature Extraction
+export class FeatureExtractor {
   extract(businessName: string, candidate: any, phoneNumber?: string, address?: string, area?: string): number[] {
     const features: number[] = [];
     const candidateAddr = candidate.formatted_address?.toLowerCase() || '';
     const businessLower = businessName.toLowerCase();
     
-    // Business name features (10 features)
-    features.push(businessLower.length / 50); // Normalized length
-    features.push(businessLower.split(' ').length / 10); // Word count
+    // Business name features (10)
+    features.push(businessLower.length / 50);
+    features.push(businessLower.split(' ').length / 10);
     features.push(businessLower.includes('restaurant') ? 1 : 0);
     features.push(businessLower.includes('coffee') ? 1 : 0);
     features.push(businessLower.includes('bank') ? 1 : 0);
     features.push(businessLower.includes('shop') ? 1 : 0);
     features.push(businessLower.includes('market') ? 1 : 0);
     features.push(businessLower.includes('hotel') ? 1 : 0);
-    features.push(/\d/.test(businessLower) ? 1 : 0); // Contains numbers
-    features.push(/[&']/.test(businessLower) ? 1 : 0); // Contains special chars
+    features.push(/\d/.test(businessLower) ? 1 : 0);
+    features.push(/[&']/.test(businessLower) ? 1 : 0);
     
-    // Phone features (15 features)
+    // Phone features (15)
     if (phoneNumber) {
       const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
-      features.push(1); // Has phone
-      features.push(cleanPhone.length / 15); // Normalized length
-      features.push(cleanPhone.startsWith('1') ? 1 : 0); // US format
-      features.push(cleanPhone.startsWith('44') ? 1 : 0); // UK format
-      features.push(cleanPhone.length === 10 ? 1 : 0); // US local format
+      features.push(1);
+      features.push(cleanPhone.length / 15);
+      features.push(cleanPhone.startsWith('1') ? 1 : 0);
+      features.push(cleanPhone.startsWith('44') ? 1 : 0);
+      features.push(cleanPhone.length === 10 ? 1 : 0);
       
-      // Area code analysis
       if (cleanPhone.length >= 3) {
         const areaCode = cleanPhone.length === 10 ? cleanPhone.substring(0, 3) : cleanPhone.substring(1, 4);
-        features.push(['305', '561', '954', '786', '813', '407', '321', '727', '850', '904'].includes(areaCode) ? 1 : 0); // Florida
-        features.push(['212', '718', '646', '917', '347', '929'].includes(areaCode) ? 1 : 0); // NYC
-        features.push(['213', '323', '310', '424', '661', '818', '626', '747'].includes(areaCode) ? 1 : 0); // LA
-        features.push(parseInt(areaCode) >= 200 && parseInt(areaCode) <= 999 ? 1 : 0); // Valid US
+        features.push(['305', '561', '954', '786', '813', '407', '321', '727', '850', '904'].includes(areaCode) ? 1 : 0);
+        features.push(['212', '718', '646', '917', '347', '929'].includes(areaCode) ? 1 : 0);
+        features.push(['213', '323', '310', '424', '661', '818', '626', '747'].includes(areaCode) ? 1 : 0);
+        features.push(parseInt(areaCode) >= 200 && parseInt(areaCode) <= 999 ? 1 : 0);
       } else {
         features.push(0, 0, 0, 0);
       }
       
-      // Phone-address consistency
       features.push(candidateAddr.includes('florida') && ['305', '561', '954', '786', '813', '407', '321', '727', '850', '904'].includes(cleanPhone.substring(0, 3)) ? 1 : 0);
       features.push(candidateAddr.includes('new york') && ['212', '718', '646', '917', '347', '929'].includes(cleanPhone.substring(0, 3)) ? 1 : 0);
       features.push(candidateAddr.includes('california') && ['213', '323', '310', '424', '661', '818', '626', '747'].includes(cleanPhone.substring(0, 3)) ? 1 : 0);
-      features.push(candidateAddr.includes('uk') && phoneNumber.match(/^((\+44|0)?20|(\+44|0)?7|(\+44|0)?1)/) ? 1 : 0);
+      features.push(candidateAddr.includes('uk') && phoneNumber.match(/^((\\+44|0)?20|(\\+44|0)?7|(\\+44|0)?1)/) ? 1 : 0);
       features.push(candidateAddr.includes('london') && phoneNumber.includes('020') ? 1 : 0);
     } else {
-      // No phone - fill with zeros
       for (let i = 0; i < 15; i++) features.push(0);
     }
     
-    // Address features (10 features)
+    // Address features (10)
     if (address) {
       const addrLower = address.toLowerCase();
-      features.push(1); // Has address
-      features.push(addrLower.length / 100); // Normalized length
+      features.push(1);
+      features.push(addrLower.length / 100);
       features.push(addrLower.includes('street') || addrLower.includes('st') ? 1 : 0);
       features.push(addrLower.includes('road') || addrLower.includes('rd') ? 1 : 0);
       features.push(addrLower.includes('avenue') || addrLower.includes('ave') ? 1 : 0);
       features.push(addrLower.includes('boulevard') || addrLower.includes('blvd') ? 1 : 0);
-      features.push(/\d+/.test(addrLower) ? 1 : 0); // Contains numbers
+      features.push(/\d+/.test(addrLower) ? 1 : 0);
       
-      // Address-candidate consistency
       const streetWords = addrLower.match(/\b\w+\s+(street|st|road|rd|avenue|ave|boulevard|blvd)\b/gi) || [];
       let matches = 0;
       for (const street of streetWords) {
         if (candidateAddr.includes(street.toLowerCase())) matches++;
       }
       features.push(streetWords.length > 0 ? matches / streetWords.length : 0);
-      features.push(streetWords.length / 5); // Normalized street count
-      features.push(0); // Reserved
+      features.push(streetWords.length / 5);
+      features.push(0);
     } else {
       for (let i = 0; i < 10; i++) features.push(0);
     }
     
-    // Area features (10 features)
+    // Area features (10)
     if (area) {
       const areaLower = area.toLowerCase();
-      features.push(1); // Has area
+      features.push(1);
       features.push(areaLower.includes('london') ? 1 : 0);
       features.push(areaLower.includes('florida') ? 1 : 0);
       features.push(areaLower.includes('california') ? 1 : 0);
@@ -379,36 +402,59 @@ class FeatureExtractor {
       features.push(areaLower.includes('uk') ? 1 : 0);
       features.push(areaLower.includes('usa') ? 1 : 0);
       
-      // Area-candidate consistency
       const keywords = areaLower.match(/\b(london|manchester|birmingham|florida|california|texas|new york|chicago|miami)\b/gi) || [];
       let areaMatches = 0;
       for (const keyword of keywords) {
         if (candidateAddr.includes(keyword.toLowerCase())) areaMatches++;
       }
       features.push(keywords.length > 0 ? areaMatches / keywords.length : 0);
-      features.push(keywords.length / 5); // Normalized keyword count
-      features.push(0); // Reserved
+      features.push(keywords.length / 5);
+      features.push(0);
     } else {
       for (let i = 0; i < 10; i++) features.push(0);
     }
     
-    // Candidate quality features (5 features)
-    features.push(candidateAddr.length / 100); // Address length
-    features.push(candidateAddr.split(',').length / 10); // Address components
+    // Candidate quality features (5)
+    features.push(candidateAddr.length / 100);
+    features.push(candidateAddr.split(',').length / 10);
     features.push(candidateAddr.includes('united states') ? 1 : 0);
     features.push(candidateAddr.includes('united kingdom') ? 1 : 0);
     features.push(candidate.name ? (candidate.name.toLowerCase().includes(businessLower.split(' ')[0]) ? 1 : 0) : 0);
     
-    // Ensure exactly 50 features
     while (features.length < 50) features.push(0);
     return features.slice(0, 50);
   }
 }
 
-// Training example interface
-interface TrainingExample {
+// Type definitions
+export interface TrainingExample {
   features: number[];
   label: number;
   timestamp: number;
   metadata?: { name: string; latitude: number; longitude: number };
+}
+
+export interface CachedPrediction {
+  score: number;
+  timestamp: number;
+}
+
+export interface FeedbackItem {
+  businessName: string;
+  candidate: any;
+  isCorrect: boolean;
+  timestamp: number;
+}
+
+export interface RegionBoundary {
+  name: string;
+  bounds: Bounds;
+  cities: string[];
+}
+
+export interface Bounds {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
 }

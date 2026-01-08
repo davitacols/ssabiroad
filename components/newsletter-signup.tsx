@@ -41,9 +41,9 @@ export function NewsletterSignup() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="flex-1"
+          className="flex-1 bg-white border-2 border-stone-200 text-stone-900 placeholder:text-stone-500"
         />
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading} className="bg-stone-900 hover:bg-stone-800 text-white font-semibold">
           <Mail className="h-4 w-4 mr-2" />
           {loading ? 'Subscribing...' : 'Subscribe'}
         </Button>

@@ -1,8 +1,10 @@
 "use client"
 
 import { useState, useRef, useCallback } from "react"
-import { Camera, Upload, X, MapPin, Loader2, Search, Menu, Share2, Heart, HelpCircle } from "lucide-react"
+import { Camera, Upload, X, MapPin, Loader2, Search, Menu, Share2, Heart, HelpCircle, Globe2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { InteractiveGlobe } from "@/components/ui/interactive-globe"
+import { ResultFeedback } from "@/components/result-feedback"
 
 interface Location {
   latitude: number
@@ -34,6 +36,7 @@ interface RecognitionResult {
   demographics?: any
   historicalData?: any
   enhancedAnalysis?: any
+  recognitionId?: string
 }
 
 export function CameraSimple() {
@@ -91,8 +94,6 @@ export function CameraSimple() {
       setIsProcessing(false)
     }
   }, [toast])
-
-
 
   const handleFileSelect = useCallback((file: File) => {
     if (!file) return
@@ -226,7 +227,7 @@ export function CameraSimple() {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <nav className="sticky top-0 z-50 border-b border-stone-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <a href="/" className="flex items-center gap-3 group">
             <img src="/pic2nav.png" alt="Pic2Nav" className="h-12 sm:h-14 md:h-16 w-auto object-contain drop-shadow-lg" />
           </a>
@@ -267,21 +268,22 @@ export function CameraSimple() {
       )}
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 sm:py-12">
         {/* Hero Section */}
         {!previewImage && !isProcessing && !result && (
           <div>
-            <div className="max-w-4xl mx-auto text-center mb-8 sm:mb-16">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-stone-900 mb-4 sm:mb-6 leading-tight px-4">Discover locations through images</h2>
-              <p className="text-base sm:text-lg md:text-xl text-stone-600 mb-8 sm:mb-12 px-4">Upload photos, search by address, or use GPS coordinates to find any location</p>
-              
-              {/* Search Bar */}
-              <div className="max-w-2xl mx-auto mb-8 sm:mb-12 relative px-4">
+            <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
+              {/* Left: Content */}
+              <div className="space-y-6">
+                <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black text-stone-900 leading-tight">Find any location on Earth</h2>
+                <p className="text-xl text-stone-600 leading-relaxed">Upload images, search addresses, or drop GPS coordinates. Get instant intelligence on any location worldwide.</p>
+                
+                {/* Search Bar */}
                 <div className="relative">
                   <input
                     ref={searchInputRef}
                     type="text"
-                    placeholder="Search by address, postcode, or coordinates..."
+                    placeholder="Search address, postcode, or coordinates..."
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value)
@@ -289,101 +291,89 @@ export function CameraSimple() {
                     }}
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                     onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                    className="w-full bg-white border border-stone-300 text-stone-900 px-4 sm:px-6 py-3 sm:py-4 pr-12 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-stone-900 focus:border-transparent transition-colors rounded-md"
+                    className="w-full bg-white border-2 border-stone-300 text-stone-900 px-6 py-4 pr-14 text-base focus:outline-none focus:ring-2 focus:ring-stone-900 focus:border-transparent transition-all rounded-xl"
                   />
                   <button
                     onClick={() => handleSearch()}
                     disabled={isSearching}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-stone-900 text-white p-2 hover:bg-stone-800 transition-colors disabled:opacity-50 rounded-md"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-stone-900 text-white p-3 hover:bg-stone-800 transition-colors disabled:opacity-50 rounded-lg"
                   >
                     {isSearching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
                   </button>
+                  
+                  {/* Autocomplete */}
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 bg-white border-2 border-stone-300 mt-2 z-50 shadow-xl rounded-xl overflow-hidden">
+                      {suggestions.map((suggestion) => (
+                        <button
+                          key={suggestion.place_id}
+                          onClick={() => selectSuggestion(suggestion)}
+                          className="w-full text-left px-6 py-4 text-stone-900 hover:bg-stone-50 transition-colors border-b border-stone-200 last:border-b-0 flex items-start gap-3"
+                        >
+                          <MapPin className="w-4 h-4 text-stone-500 mt-1 flex-shrink-0" />
+                          <span className="text-sm">{suggestion.description}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 
-                {/* Autocomplete Suggestions */}
-                {showSuggestions && suggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 bg-white border border-stone-300 mt-1 z-50 shadow-lg rounded-md">
-                    {suggestions.map((suggestion, idx) => (
-                      <button
-                        key={suggestion.place_id}
-                        onClick={() => selectSuggestion(suggestion)}
-                        className="w-full text-left px-6 py-3 text-stone-900 hover:bg-stone-50 transition-colors border-b border-stone-200 last:border-b-0"
-                      >
-                        <div className="flex items-start gap-3">
-                          <MapPin className="w-4 h-4 text-stone-500 mt-1 flex-shrink-0" />
-                          <div>
-                            <p className="text-sm">{suggestion.description}</p>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                
-                <p className="text-sm text-stone-500 mt-3 text-left">Try: "New York", "SW1A 1AA", "10001", or "51.5074, -0.1278"</p>
-              </div>
-            </div>
-            
-            {/* Upload Section */}
-            <div className="max-w-4xl mx-auto mb-12 sm:mb-20 px-4">
-              <div className="bg-stone-50 border-2 border-dashed border-stone-300 p-8 sm:p-12 lg:p-20 text-center hover:border-stone-400 transition-colors rounded-md">
-                <MapPin className="w-16 h-16 text-stone-400 mx-auto mb-6" />
-                <h3 className="text-xl sm:text-2xl font-semibold text-stone-900 mb-6 sm:mb-8">Or upload an image</h3>
-                
-                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                {/* Upload Buttons */}
+                <div className="flex flex-col sm:flex-row gap-4">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full sm:w-auto bg-stone-900 text-white px-6 sm:px-10 py-3 sm:py-4 font-medium hover:bg-stone-800 transition-colors rounded-md text-sm sm:text-base"
+                    className="flex-1 bg-stone-900 text-white px-8 py-4 font-semibold hover:bg-stone-800 transition-colors rounded-xl flex items-center justify-center gap-3 text-base"
                   >
-                    Choose file
+                    <Upload className="w-5 h-5" />
+                    Upload Image
                   </button>
-                  <span className="text-stone-500 text-sm sm:text-base">or</span>
                   <button
                     onClick={startCamera}
-                    className="w-full sm:w-auto border border-stone-300 text-stone-900 px-6 sm:px-10 py-3 sm:py-4 font-medium hover:bg-stone-50 transition-colors flex items-center justify-center gap-2 rounded-md text-sm sm:text-base"
+                    className="flex-1 border-2 border-stone-300 text-stone-900 px-8 py-4 font-semibold hover:bg-stone-50 transition-colors rounded-xl flex items-center justify-center gap-3 text-base"
                   >
-                    <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
-                    Take photo
+                    <Camera className="w-5 h-5" />
+                    Take Photo
                   </button>
                 </div>
               </div>
+
+              {/* Right: Globe */}
+              <div className="relative h-[400px] lg:h-[500px]">
+                <InteractiveGlobe />
+              </div>
             </div>
             
-            {/* Features Grid */}
-            <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-12 sm:mb-20 px-4">
-              <div className="border-t border-stone-200 pt-4 sm:pt-6">
-                <h3 className="text-lg sm:text-xl font-semibold text-stone-900 mb-2 sm:mb-3">Image Recognition</h3>
-                <p className="text-sm sm:text-base text-stone-600">Upload any photo and our AI will identify the location, landmarks, and points of interest</p>
-              </div>
-              <div className="border-t border-stone-200 pt-4 sm:pt-6">
-                <h3 className="text-lg sm:text-xl font-semibold text-stone-900 mb-2 sm:mb-3">Text Search</h3>
-                <p className="text-sm sm:text-base text-stone-600">Search using addresses, postcodes, zip codes, or GPS coordinates from anywhere in the world</p>
-              </div>
-              <div className="border-t border-stone-200 pt-4 sm:pt-6">
-                <h3 className="text-lg sm:text-xl font-semibold text-stone-900 mb-2 sm:mb-3">Instant Results</h3>
-                <p className="text-sm sm:text-base text-stone-600">Get detailed location information, coordinates, and direct links to view on maps</p>
-              </div>
+            {/* Features */}
+            <div className="grid md:grid-cols-3 gap-8 mb-16">
+              {[
+                { icon: MapPin, title: 'GPS Extraction', desc: 'Extract precise coordinates from any photo with EXIF data' },
+                { icon: Globe2, title: 'Global Coverage', desc: 'Search and analyze locations across 195 countries' },
+                { icon: Search, title: 'AI Recognition', desc: 'Identify landmarks and buildings using computer vision' }
+              ].map((feature, i) => (
+                <div key={i} className="group">
+                  <div className="w-12 h-12 bg-stone-900 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <feature.icon className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-stone-900 mb-2">{feature.title}</h3>
+                  <p className="text-stone-600">{feature.desc}</p>
+                </div>
+              ))}
             </div>
             
             {/* Stats */}
-            <div className="max-w-6xl mx-auto border-t border-stone-200 pt-8 sm:pt-12 px-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 text-center">
-                <div>
-                  <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-stone-900 mb-1 sm:mb-2">1M+</p>
-                  <p className="text-xs sm:text-sm text-stone-500">Locations identified</p>
-                </div>
-                <div>
-                  <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-stone-900 mb-1 sm:mb-2">195</p>
-                  <p className="text-xs sm:text-sm text-stone-500">Countries covered</p>
-                </div>
-                <div>
-                  <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-stone-900 mb-1 sm:mb-2">99%</p>
-                  <p className="text-xs sm:text-sm text-stone-500">Accuracy rate</p>
-                </div>
-                <div>
-                  <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-stone-900 mb-1 sm:mb-2">24/7</p>
-                  <p className="text-xs sm:text-sm text-stone-500">Always available</p>
-                </div>
+            <div className="border-t border-stone-200 pt-12">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                {[
+                  { value: '1M+', label: 'Locations' },
+                  { value: '195', label: 'Countries' },
+                  { value: '99%', label: 'Accuracy' },
+                  { value: '<2s', label: 'Response' }
+                ].map((stat, i) => (
+                  <div key={i}>
+                    <p className="text-4xl font-black text-stone-900 mb-2">{stat.value}</p>
+                    <p className="text-sm text-stone-500">{stat.label}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -400,242 +390,166 @@ export function CameraSimple() {
 
         {/* Result */}
         {result && result.success && (
-          <div className="max-w-7xl mx-auto">
-            {/* Success Banner */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                <MapPin className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-green-900">Location Found</h3>
-                <p className="text-sm text-green-700">{result.name}</p>
-              </div>
-              {result.confidence && (
-                <div className="text-right">
-                  <p className="text-xs text-green-600">Confidence</p>
-                  <p className="text-lg font-bold text-green-700">{Math.round(result.confidence * 100)}%</p>
+          <div className="max-w-[1600px] mx-auto">
+            {/* Header */}
+            <div className="mb-8">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h2 className="text-4xl font-black text-stone-900 mb-2">{result.name}</h2>
+                  <p className="text-lg text-stone-600">{result.address}</p>
                 </div>
-              )}
+                {result.confidence && (
+                  <div className="text-right">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-xl">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-sm font-bold text-green-700">{Math.round(result.confidence * 100)}% Match</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Feedback */}
+              <div className="mb-4">
+                <ResultFeedback recognitionId={result.recognitionId} address={result.address} />
+              </div>
+              
+              {/* Actions */}
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => {
+                    if (result.location) {
+                      window.open(`https://www.google.com/maps/search/?api=1&query=${result.location.latitude},${result.location.longitude}`, '_blank')
+                    }
+                  }}
+                  className="bg-stone-900 text-white px-6 py-3 rounded-xl hover:bg-stone-800 transition-colors font-semibold flex items-center gap-2"
+                >
+                  <MapPin className="w-4 h-4" />
+                  Open in Maps
+                </button>
+                <button
+                  onClick={() => {
+                    if (result.location) {
+                      const text = `${result.name}\n${result.address}\n${result.location.latitude}, ${result.location.longitude}`
+                      navigator.clipboard.writeText(text)
+                      toast({ title: "Copied to clipboard" })
+                    }
+                  }}
+                  className="border-2 border-stone-300 text-stone-900 px-6 py-3 rounded-xl hover:bg-stone-50 transition-colors font-semibold flex items-center gap-2"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Share
+                </button>
+                <button
+                  onClick={() => {
+                    setResult(null)
+                    setPreviewImage(null)
+                    setCurrentFile(null)
+                  }}
+                  className="border-2 border-stone-300 text-stone-900 px-6 py-3 rounded-xl hover:bg-stone-50 transition-colors font-semibold"
+                >
+                  New Search
+                </button>
+              </div>
             </div>
 
             <div className="grid lg:grid-cols-3 gap-6">
-              {/* Left Column - Image & Map */}
+              {/* Left Column - Map & Image */}
               <div className="lg:col-span-2 space-y-6">
-                {previewImage && (
-                  <div className="bg-white rounded-lg overflow-hidden border border-stone-200 shadow-sm">
-                    <img src={previewImage} alt="Preview" className="w-full h-[300px] sm:h-[400px] lg:h-[500px] object-contain bg-stone-50" />
-                  </div>
-                )}
-                
                 {result.location && (
-                  <div className="bg-white rounded-lg overflow-hidden border border-stone-200 shadow-sm">
-                    <div className="bg-stone-50 px-4 py-3 border-b border-stone-200 flex items-center justify-between">
-                      <h4 className="font-semibold text-stone-900 text-sm">Map View</h4>
-                      <button
-                        onClick={() => {
-                          const { latitude, longitude } = result.location!
-                          navigator.clipboard.writeText(`${latitude}, ${longitude}`)
-                          toast({ title: "Coordinates copied!" })
-                        }}
-                        className="text-xs text-stone-600 hover:text-stone-900 transition-colors"
-                      >
-                        Copy coordinates
-                      </button>
-                    </div>
+                  <div className="bg-white rounded-2xl overflow-hidden border-2 border-stone-200 shadow-lg">
                     <iframe
                       src={`https://www.google.com/maps?q=${result.location.latitude},${result.location.longitude}&output=embed`}
-                      className="w-full h-[300px] sm:h-[350px] lg:h-[450px] border-0"
+                      className="w-full h-[400px] lg:h-[500px] border-0"
                       loading="lazy"
                     />
                   </div>
                 )}
-
-                {/* Quick Actions */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <button
-                    onClick={() => {
-                      if (result.location) {
-                        window.open(`https://www.google.com/maps/search/?api=1&query=${result.location.latitude},${result.location.longitude}`, '_blank')
-                      }
-                    }}
-                    className="bg-stone-900 text-white px-4 py-3 rounded-lg hover:bg-stone-800 transition-colors text-sm font-medium"
-                  >
-                    Open in Maps
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (result.location) {
-                        const text = `${result.name}\n${result.address}\n${result.location.latitude}, ${result.location.longitude}`
-                        navigator.clipboard.writeText(text)
-                        toast({ title: "Location details copied!" })
-                      }
-                    }}
-                    className="bg-white border border-stone-300 text-stone-900 px-4 py-3 rounded-lg hover:bg-stone-50 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    Share
-                  </button>
-                  <button
-                    onClick={() => {
-                      setResult(null)
-                      setPreviewImage(null)
-                      setCurrentFile(null)
-                    }}
-                    className="bg-white border border-stone-300 text-stone-900 px-4 py-3 rounded-lg hover:bg-stone-50 transition-colors text-sm font-medium"
-                  >
-                    New Search
-                  </button>
-                </div>
+                
+                {previewImage && (
+                  <div className="bg-white rounded-2xl overflow-hidden border-2 border-stone-200 shadow-lg">
+                    <img src={previewImage} alt="Preview" className="w-full h-[300px] object-cover bg-stone-50" />
+                  </div>
+                )}
               </div>
 
               {/* Right Column - Info */}
-              <div className="space-y-4">
-                {/* Location Details */}
-                <div className="bg-white rounded-lg border border-stone-200 shadow-sm overflow-hidden">
-                  <div className="bg-stone-50 px-4 py-3 border-b border-stone-200">
-                    <h4 className="font-semibold text-stone-900 text-sm">Location Details</h4>
-                  </div>
-                  <div className="p-4 space-y-3">
-                    {result.address && (
+              <div className="space-y-6">
+                {/* Coordinates */}
+                {result.location && (
+                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 border-2 border-blue-200">
+                    <h4 className="font-bold text-stone-900 mb-4 flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-blue-600" />
+                      Coordinates
+                    </h4>
+                    <div className="space-y-3">
                       <div>
-                        <p className="text-xs text-stone-500 mb-1">Address</p>
-                        <p className="text-sm text-stone-900">{result.address}</p>
+                        <p className="text-xs text-stone-600 mb-1">Latitude</p>
+                        <p className="text-lg font-mono font-bold text-stone-900">{result.location.latitude.toFixed(6)}</p>
                       </div>
-                    )}
-                    {result.location && (
                       <div>
-                        <p className="text-xs text-stone-500 mb-1">Coordinates</p>
-                        <p className="text-sm font-mono text-stone-900">{result.location.latitude.toFixed(6)}, {result.location.longitude.toFixed(6)}</p>
+                        <p className="text-xs text-stone-600 mb-1">Longitude</p>
+                        <p className="text-lg font-mono font-bold text-stone-900">{result.location.longitude.toFixed(6)}</p>
                       </div>
-                    )}
-                    {result.elevation && (
-                      <div>
-                        <p className="text-xs text-stone-500 mb-1">Elevation</p>
-                        <p className="text-sm text-stone-900">{result.elevation.elevation}m above sea level</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* AI Training */}
-                {result.location && currentFile && (
-                  <div className={`rounded-lg border shadow-sm overflow-hidden ${
-                    result.confidence && result.confidence < 0.7 
-                      ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-300 animate-pulse' 
-                      : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'
-                  }`}>
-                    <div className="p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                          result.confidence && result.confidence < 0.7 ? 'bg-amber-500' : 'bg-blue-500'
-                        }`}>
-                          <Heart className="w-3 h-3 text-white" />
+                      {result.elevation && (
+                        <div>
+                          <p className="text-xs text-stone-600 mb-1">Elevation</p>
+                          <p className="text-lg font-bold text-stone-900">{result.elevation.elevation}m</p>
                         </div>
-                        <h4 className={`font-semibold text-sm ${
-                          result.confidence && result.confidence < 0.7 ? 'text-amber-900' : 'text-blue-900'
-                        }`}>Help Improve AI</h4>
-                      </div>
-                      {result.confidence && result.confidence < 0.7 ? (
-                        <p className="text-xs text-amber-800 mb-3 font-medium">⚠️ Low confidence - Your feedback is especially valuable!</p>
-                      ) : (
-                        <p className="text-xs text-blue-700 mb-3">Is this location correct?</p>
                       )}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={async () => {
-                            if (!currentFile || !result.location) return
-                            const formData = new FormData()
-                            formData.append('file', currentFile)
-                            formData.append('latitude', result.location.latitude.toString())
-                            formData.append('longitude', result.location.longitude.toString())
-                            formData.append('address', result.address || result.name || 'Unknown Location')
-                            formData.append('userId', 'anonymous')
-                            await fetch('/api/location-recognition-v2/feedback', { method: 'POST', body: formData })
-                            toast({ title: "Thanks for your feedback!", description: "You're helping improve our AI" })
-                          }}
-                          className="flex-1 bg-green-600 text-white px-3 py-2 text-xs font-medium rounded-lg hover:bg-green-700 transition-colors"
-                        >
-                          ✓ Correct
-                        </button>
-                        <button
-                          onClick={() => {
-                            const correction = prompt('Enter correct address:', result.address || result.name || '')
-                            if (correction && currentFile && result.location) {
-                              const formData = new FormData()
-                              formData.append('file', currentFile)
-                              formData.append('latitude', result.location.latitude.toString())
-                              formData.append('longitude', result.location.longitude.toString())
-                              formData.append('address', correction)
-                              formData.append('userId', 'anonymous')
-                              fetch('/api/location-recognition-v2/feedback', { method: 'POST', body: formData })
-                                .then(() => toast({ title: "Thanks for your feedback!", description: "You're helping improve our AI" }))
-                            }
-                          }}
-                          className="flex-1 bg-orange-600 text-white px-3 py-2 text-xs font-medium rounded-lg hover:bg-orange-700 transition-colors"
-                        >
-                          ✗ Fix it
-                        </button>
-                      </div>
                     </div>
                   </div>
                 )}
 
                 {/* Weather */}
                 {result.weather && (
-                  <div className="bg-white rounded-lg border border-stone-200 shadow-sm overflow-hidden">
-                    <div className="bg-stone-50 px-4 py-3 border-b border-stone-200">
-                      <h4 className="font-semibold text-stone-900 text-sm">Current Weather</h4>
-                    </div>
-                    <div className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <p className="text-3xl font-bold text-stone-900">{result.weather.temperature}°C</p>
-                          <p className="text-xs text-stone-500">Temperature</p>
-                        </div>
-                        {result.weather.humidity && (
-                          <div className="text-right">
-                            <p className="text-2xl font-bold text-stone-900">{result.weather.humidity}%</p>
-                            <p className="text-xs text-stone-500">Humidity</p>
-                          </div>
-                        )}
+                  <div className="bg-white rounded-2xl border-2 border-stone-200 p-6">
+                    <h4 className="font-bold text-stone-900 mb-4">Weather</h4>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-4xl font-black text-stone-900">{result.weather.temperature}°</p>
+                        <p className="text-sm text-stone-600">Celsius</p>
                       </div>
+                      {result.weather.humidity && (
+                        <div className="text-right">
+                          <p className="text-3xl font-black text-stone-900">{result.weather.humidity}%</p>
+                          <p className="text-sm text-stone-600">Humidity</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
 
                 {/* Area Scores */}
                 {result.enhancedAnalysis && (
-                  <div className="bg-white rounded-lg border border-stone-200 shadow-sm overflow-hidden">
-                    <div className="bg-stone-50 px-4 py-3 border-b border-stone-200">
-                      <h4 className="font-semibold text-stone-900 text-sm">Area Scores</h4>
-                    </div>
-                    <div className="p-4 space-y-3">
+                  <div className="bg-white rounded-2xl border-2 border-stone-200 p-6">
+                    <h4 className="font-bold text-stone-900 mb-4">Area Scores</h4>
+                    <div className="space-y-4">
                       {result.enhancedAnalysis.walkability && (
                         <div>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs text-stone-600">Walkability</span>
-                            <span className="text-sm font-bold text-stone-900">{result.enhancedAnalysis.walkability.score}/100</span>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm text-stone-600">Walkability</span>
+                            <span className="text-lg font-black text-stone-900">{result.enhancedAnalysis.walkability.score}</span>
                           </div>
-                          <div className="w-full h-2 bg-stone-100 rounded-full overflow-hidden">
+                          <div className="w-full h-3 bg-stone-100 rounded-full overflow-hidden">
                             <div className="h-full bg-green-500 transition-all" style={{width: `${result.enhancedAnalysis.walkability.score}%`}}></div>
                           </div>
                         </div>
                       )}
                       {result.enhancedAnalysis.bikeability && (
                         <div>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs text-stone-600">Bikeability</span>
-                            <span className="text-sm font-bold text-stone-900">{result.enhancedAnalysis.bikeability.score}/100</span>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm text-stone-600">Bikeability</span>
+                            <span className="text-lg font-black text-stone-900">{result.enhancedAnalysis.bikeability.score}</span>
                           </div>
-                          <div className="w-full h-2 bg-stone-100 rounded-full overflow-hidden">
+                          <div className="w-full h-3 bg-stone-100 rounded-full overflow-hidden">
                             <div className="h-full bg-blue-500 transition-all" style={{width: `${result.enhancedAnalysis.bikeability.score}%`}}></div>
                           </div>
                         </div>
                       )}
                       {result.enhancedAnalysis.airQuality && (
-                        <div className="flex justify-between items-center pt-2 border-t border-stone-100">
-                          <span className="text-xs text-stone-600">Air Quality</span>
-                          <span className="text-sm font-semibold text-stone-900">{result.enhancedAnalysis.airQuality.category}</span>
+                        <div className="flex justify-between items-center pt-3 border-t-2 border-stone-100">
+                          <span className="text-sm text-stone-600">Air Quality</span>
+                          <span className="text-base font-bold text-stone-900">{result.enhancedAnalysis.airQuality.category}</span>
                         </div>
                       )}
                     </div>
@@ -644,21 +558,16 @@ export function CameraSimple() {
 
                 {/* Nearby Places */}
                 {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
-                  <div className="bg-white rounded-lg border border-stone-200 shadow-sm overflow-hidden">
-                    <div className="bg-stone-50 px-4 py-3 border-b border-stone-200">
-                      <h4 className="font-semibold text-stone-900 text-sm">Nearby Places</h4>
-                    </div>
-                    <div className="p-4 space-y-3">
+                  <div className="bg-white rounded-2xl border-2 border-stone-200 p-6">
+                    <h4 className="font-bold text-stone-900 mb-4">Nearby</h4>
+                    <div className="space-y-3">
                       {result.nearbyPlaces.slice(0, 5).map((place, idx) => (
-                        <div key={idx} className="flex items-start gap-3 pb-3 border-b border-stone-100 last:border-0 last:pb-0">
-                          <div className="w-8 h-8 bg-stone-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <MapPin className="w-4 h-4 text-stone-600" />
-                          </div>
+                        <div key={idx} className="flex items-center justify-between py-2 border-b border-stone-100 last:border-0">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-stone-900 truncate">{place.name}</p>
+                            <p className="text-sm font-semibold text-stone-900 truncate">{place.name}</p>
                             <p className="text-xs text-stone-500">{place.type}</p>
                           </div>
-                          <span className="text-xs text-stone-600 font-medium">{place.distance}m</span>
+                          <span className="text-xs text-stone-600 font-bold ml-3">{place.distance}m</span>
                         </div>
                       ))}
                     </div>
@@ -667,15 +576,13 @@ export function CameraSimple() {
 
                 {/* Transit */}
                 {result.transit && result.transit.length > 0 && (
-                  <div className="bg-white rounded-lg border border-stone-200 shadow-sm overflow-hidden">
-                    <div className="bg-stone-50 px-4 py-3 border-b border-stone-200">
-                      <h4 className="font-semibold text-stone-900 text-sm">Public Transit</h4>
-                    </div>
-                    <div className="p-4 space-y-2">
+                  <div className="bg-white rounded-2xl border-2 border-stone-200 p-6">
+                    <h4 className="font-bold text-stone-900 mb-4">Transit</h4>
+                    <div className="space-y-3">
                       {result.transit.slice(0, 3).map((station, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-sm">
-                          <p className="text-stone-900 flex-1">{station.name}</p>
-                          <span className="text-xs text-stone-600 font-medium">{station.distance}m</span>
+                        <div key={idx} className="flex justify-between items-center">
+                          <p className="text-sm font-semibold text-stone-900 flex-1">{station.name}</p>
+                          <span className="text-xs text-stone-600 font-bold">{station.distance}m</span>
                         </div>
                       ))}
                     </div>
@@ -688,65 +595,22 @@ export function CameraSimple() {
 
         {result && !result.success && (
           <div className="max-w-2xl mx-auto">
-            <div className="bg-white p-8 sm:p-12 text-center rounded-md border border-stone-200 mb-6">
-              <h3 className="text-2xl font-semibold text-stone-900 mb-2">Location not found</h3>
-              <p className="text-stone-600 mb-6">{result.error || "Unable to identify this location"}</p>
+            <div className="bg-white p-12 text-center rounded-2xl border-2 border-stone-200">
+              <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <X className="w-8 h-8 text-stone-600" />
+              </div>
+              <h3 className="text-3xl font-black text-stone-900 mb-3">Location not found</h3>
+              <p className="text-lg text-stone-600 mb-8">{result.error || "Unable to identify this location"}</p>
               <button
                 onClick={() => {
                   setResult(null)
                   setPreviewImage(null)
                 }}
-                className="bg-stone-900 text-white px-6 py-2 hover:bg-stone-800 transition-colors rounded-md"
+                className="bg-stone-900 text-white px-8 py-4 hover:bg-stone-800 transition-colors rounded-xl font-semibold"
               >
                 Try Again
               </button>
             </div>
-            
-            {/* Smart Retry with Hints */}
-            {currentFile && (
-              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200 shadow-sm overflow-hidden">
-                <div className="p-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
-                      <HelpCircle className="w-4 h-4 text-white" />
-                    </div>
-                    <h4 className="font-semibold text-purple-900 text-base">Do you know where this is?</h4>
-                  </div>
-                  <p className="text-sm text-purple-700 mb-4">Help us learn! Tell us the location and we'll improve our AI.</p>
-                  <button
-                    onClick={async () => {
-                      const locationName = prompt('Enter the location name or address:')
-                      if (locationName && currentFile) {
-                        try {
-                          const geoRes = await fetch(`/api/geocode?address=${encodeURIComponent(locationName)}`)
-                          const geoData = await geoRes.json()
-                          if (geoData.location) {
-                            const formData = new FormData()
-                            formData.append('file', currentFile)
-                            formData.append('latitude', geoData.location.lat.toString())
-                            formData.append('longitude', geoData.location.lng.toString())
-                            formData.append('address', geoData.formatted_address || locationName)
-                            formData.append('userId', 'anonymous')
-                            await fetch('/api/location-recognition-v2/feedback', { method: 'POST', body: formData })
-                            toast({ title: "Thanks for teaching us!", description: "AI will learn from this" })
-                            setResult(null)
-                            setPreviewImage(null)
-                            setCurrentFile(null)
-                          } else {
-                            toast({ title: "Location not found", description: "Try a different address", variant: "destructive" })
-                          }
-                        } catch (err) {
-                          toast({ title: "Error", description: "Failed to process location", variant: "destructive" })
-                        }
-                      }
-                    }}
-                    className="w-full bg-purple-600 text-white px-4 py-3 text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
-                  >
-                    📍 Yes, I'll help train the AI
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>

@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const ML_API_URL = process.env.ML_API_URL || 'http://52.91.173.191:8000';
+const ML_API_URL = process.env.ML_API_URL || 'http://34.224.33.158:8000';
 
 export async function POST(request: NextRequest) {
   try {
-    const response = await fetch(`${ML_API_URL}/trigger_training`, {
+    // First, download Street View images for pending items
+    console.log('📥 Downloading Street View images for training...');
+    const downloadRes = await fetch(`${request.nextUrl.origin}/api/ml/download-streetview`, {
+      method: 'POST'
+    });
+    
+    if (downloadRes.ok) {
+      const downloadData = await downloadRes.json();
+      console.log('✅ Downloaded:', downloadData);
+    }
+
+    // Then trigger training
+    const response = await fetch(`${ML_API_URL}/retrain`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(60000)
     });
 
     if (!response.ok) {

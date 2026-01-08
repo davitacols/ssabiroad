@@ -478,34 +478,34 @@ export default function NearbyPoi() {
       </ScrollView>
 
       <Modal visible={!!selectedPlace} animationType="slide" onRequestClose={closeModal}>
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{selectedPlace?.name}</Text>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{selectedPlace?.name}</Text>
             <TouchableOpacity onPress={closeModal} style={styles.modalClose}>
-              <Text style={styles.modalCloseText}>Done</Text>
+              <Text style={[styles.modalCloseText, { color: colors.text }]}>Done</Text>
             </TouchableOpacity>
           </View>
 
           {detailsLoading ? (
-            <View style={styles.modalLoading}>
-              <ActivityIndicator size="large" color="#fff" />
+            <View style={[styles.modalLoading, { backgroundColor: colors.background }]}>
+              <ActivityIndicator size="large" color="#3b82f6" />
             </View>
           ) : (
             <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
               <View style={styles.placeHero}>
-                <Text style={styles.heroTitle}>{selectedPlace?.name}</Text>
-                <Text style={styles.heroSubtitle}>{placeDetails?.address || selectedPlace?.vicinity}</Text>
+                <Text style={[styles.heroTitle, { color: colors.text }]}>{selectedPlace?.name}</Text>
+                <Text style={[styles.heroSubtitle, { color: colors.textSecondary }]}>{placeDetails?.address || selectedPlace?.vicinity}</Text>
                 {selectedPlace?.rating && (
                   <View style={styles.ratingContainer}>
                     <Text style={styles.ratingText}>★ {selectedPlace.rating}</Text>
-                    <Text style={styles.ratingLabel}>Rating</Text>
+                    <Text style={[styles.ratingLabel, { color: colors.textSecondary }]}>Rating</Text>
                   </View>
                 )}
               </View>
 
               <View style={styles.quickActions}>
                 <TouchableOpacity 
-                  style={styles.actionButton}
+                  style={[styles.actionButton, { backgroundColor: theme === 'dark' ? '#fff' : '#000' }]}
                   onPress={() => {
                     if (placeDetails?.location || selectedPlace?.location) {
                       const loc = placeDetails?.location || selectedPlace?.location;
@@ -518,21 +518,21 @@ export default function NearbyPoi() {
                     }
                   }}
                 >
-                  <Text style={styles.actionButtonText}>Get Directions</Text>
+                  <Text style={[styles.actionButtonText, { color: theme === 'dark' ? '#000' : '#fff' }]}>Get Directions</Text>
                 </TouchableOpacity>
                 {placeDetails?.phoneNumber && (
                   <TouchableOpacity 
-                    style={[styles.actionButton, styles.secondaryAction]}
+                    style={[styles.secondaryAction, { backgroundColor: colors.card, borderColor: colors.border }]}
                     onPress={() => Linking.openURL(`tel:${placeDetails.phoneNumber}`)}
                   >
-                    <Text style={[styles.actionButtonText, styles.secondaryActionText]}>Call</Text>
+                    <Text style={[styles.secondaryActionText, { color: colors.text }]}>Call</Text>
                   </TouchableOpacity>
                 )}
               </View>
 
               {placeDetails?.openingHours !== undefined && (
-                <View style={styles.infoCard}>
-                  <Text style={styles.infoTitle}>Current Status</Text>
+                <View style={[styles.infoCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Text style={[styles.infoTitle, { color: colors.text }]}>Current Status</Text>
                   <Text style={[styles.statusIndicator, { color: placeDetails.openingHours ? '#16a34a' : '#dc2626' }]}>
                     {placeDetails.openingHours ? '● Open Now' : '● Closed'}
                   </Text>
@@ -540,17 +540,17 @@ export default function NearbyPoi() {
               )}
 
               {placeDetails?.weekdayText && placeDetails.weekdayText.length > 0 && (
-                <View style={styles.infoCard}>
-                  <Text style={styles.infoTitle}>Opening Hours</Text>
+                <View style={[styles.infoCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Text style={[styles.infoTitle, { color: colors.text }]}>Opening Hours</Text>
                   {placeDetails.weekdayText.map((hours: string, index: number) => (
-                    <Text key={index} style={styles.hoursText}>{hours}</Text>
+                    <Text key={index} style={[styles.hoursText, { color: colors.textSecondary }]}>{hours}</Text>
                   ))}
                 </View>
               )}
 
               {placeDetails?.photos && placeDetails.photos.length > 0 && (
-                <View style={styles.infoCard}>
-                  <Text style={styles.infoTitle}>Photos</Text>
+                <View style={[styles.infoCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Text style={[styles.infoTitle, { color: colors.text }]}>Photos</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosScroll}>
                     {placeDetails.photos.slice(0, 10).map((photo: any, idx: number) => (
                       <TouchableOpacity key={idx} onPress={() => {
@@ -559,7 +559,7 @@ export default function NearbyPoi() {
                       }}>
                         <Image 
                           source={{ uri: `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${photo.photo_reference}&key=AIzaSyBXLKbWmpZpE9wm7hEZ6PVEYR6y9ewR5ho` }}
-                          style={styles.photoThumbnail}
+                          style={[styles.photoThumbnail, { backgroundColor: colors.card }]}
                         />
                       </TouchableOpacity>
                     ))}
@@ -649,32 +649,32 @@ const styles = StyleSheet.create({
   optionText: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold' },
   filterDivider: { height: 1, marginBottom: 20 },
   placeHero: { padding: 24, backgroundColor: 'rgba(59, 130, 246, 0.05)', borderRadius: 16, marginBottom: 24, borderWidth: 1, borderColor: 'rgba(59, 130, 246, 0.2)' },
-  heroTitle: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', color: '#fff', marginBottom: 8 },
-  heroSubtitle: { fontSize: 16, color: '#a3a3a3', marginBottom: 16, lineHeight: 24 },
+  heroTitle: { fontSize: 24, fontFamily: 'LeagueSpartan_700Bold', marginBottom: 8 },
+  heroSubtitle: { fontSize: 16, marginBottom: 16, lineHeight: 24 },
   ratingContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   ratingText: { fontSize: 18, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fbbf24' },
-  ratingLabel: { fontSize: 14, color: '#a3a3a3' },
+  ratingLabel: { fontSize: 14 },
   quickActions: { flexDirection: 'row', gap: 12, marginBottom: 24 },
-  actionButton: { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 16, alignItems: 'center' },
-  secondaryAction: { backgroundColor: '#0a0a0a', borderWidth: 1, borderColor: '#1a1a1a' },
-  actionButtonText: { color: '#000', fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
-  secondaryActionText: { color: '#fff' },
-  infoCard: { backgroundColor: '#0a0a0a', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#1a1a1a' },
-  infoTitle: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff', marginBottom: 12 },
+  actionButton: { flex: 1, borderRadius: 12, padding: 16, alignItems: 'center' },
+  secondaryAction: { borderWidth: 1 },
+  actionButtonText: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
+  secondaryActionText: { },
+  infoCard: { borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1 },
+  infoTitle: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold', marginBottom: 12 },
   statusIndicator: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
-  hoursText: { fontSize: 14, color: '#a3a3a3', marginBottom: 4, lineHeight: 20 },
+  hoursText: { fontSize: 14, marginBottom: 4, lineHeight: 20 },
   photosScroll: { marginBottom: 12 },
-  photoThumbnail: { width: 120, height: 120, borderRadius: 12, marginRight: 12, backgroundColor: '#1a1a1a' },
+  photoThumbnail: { width: 120, height: 120, borderRadius: 12, marginRight: 12 },
   googleCredit: { fontSize: 11, color: '#6b7280', fontFamily: 'LeagueSpartan_400Regular', marginTop: 4 },
   imageModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
   imageModalClose: { position: 'absolute', top: 60, right: 20, zIndex: 10, padding: 8 },
   fullImage: { width: '100%', height: '80%' },
-  modalContainer: { flex: 1, backgroundColor: '#000' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
-  modalTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_600SemiBold', color: '#fff', flex: 1 },
+  modalContainer: { flex: 1 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, borderBottomWidth: 1 },
+  modalTitle: { fontSize: 20, fontFamily: 'LeagueSpartan_600SemiBold', flex: 1 },
   modalClose: { },
-  modalCloseText: { fontSize: 16, color: '#fff', fontFamily: 'LeagueSpartan_600SemiBold' },
-  modalLoading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
+  modalCloseText: { fontSize: 16, fontFamily: 'LeagueSpartan_600SemiBold' },
+  modalLoading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   modalContent: { flex: 1, padding: 24 },
   detailSection: { marginBottom: 24 },
   detailLabel: { fontSize: 14, fontFamily: 'LeagueSpartan_600SemiBold', color: '#737373', marginBottom: 4, textTransform: 'uppercase' },
