@@ -227,20 +227,21 @@ export function CameraSimple() {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <nav className="sticky top-0 z-50 border-b border-stone-200 bg-white">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-3 group">
-            <img src="/pic2nav.png" alt="Pic2Nav" className="h-12 sm:h-14 md:h-16 w-auto object-contain drop-shadow-lg" />
+        <div className="max-w-[1600px] mx-auto px-3 sm:px-6 h-14 sm:h-16 md:h-20 flex items-center justify-between">
+          <a href="/" className="flex items-center gap-2 group">
+            <img src="/pic2nav.png" alt="Pic2Nav" className="h-8 sm:h-12 md:h-14 lg:h-16 w-auto object-contain drop-shadow-lg" />
           </a>
           <div className="flex items-center gap-2 sm:gap-4">
-            <a href="/api-access" className="hidden md:inline-flex px-4 py-2 text-sm text-stone-600 hover:text-stone-900 transition-colors">API</a>
+            <a href="/api-access" className="hidden md:inline-flex px-3 py-1.5 text-sm text-stone-600 hover:text-stone-900 transition-colors">API</a>
             <button 
               onClick={() => {
                 setResult(null)
                 setPreviewImage(null)
               }}
-              className="bg-stone-900 hover:bg-stone-800 text-white text-sm px-4 py-2 rounded-md"
+              className="bg-stone-900 hover:bg-stone-800 text-white text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-md"
             >
-              New Search
+              <span className="hidden sm:inline">New Search</span>
+              <span className="sm:hidden">New</span>
             </button>
           </div>
         </div>
@@ -268,15 +269,15 @@ export function CameraSimple() {
       )}
 
       {/* Main Content */}
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 sm:py-12">
+      <div className="max-w-[1600px] mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-12">
         {/* Hero Section */}
         {!previewImage && !isProcessing && !result && (
           <div>
-            <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
+            <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center mb-8 sm:mb-12 md:mb-16">
               {/* Left: Content */}
-              <div className="space-y-6">
-                <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black text-stone-900 leading-tight">Find any location on Earth</h2>
-                <p className="text-xl text-stone-600 leading-relaxed">Upload images, search addresses, or drop GPS coordinates. Get instant intelligence on any location worldwide.</p>
+              <div className="space-y-4 sm:space-y-6">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-stone-900 leading-tight">Find any location on Earth</h2>
+                <p className="text-base sm:text-lg md:text-xl text-stone-600 leading-relaxed">Upload images, search addresses, or drop GPS coordinates. Get instant intelligence on any location worldwide.</p>
                 
                 {/* Search Bar */}
                 <div className="relative">
@@ -291,27 +292,27 @@ export function CameraSimple() {
                     }}
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                     onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                    className="w-full bg-white border-2 border-stone-300 text-stone-900 px-6 py-4 pr-14 text-base focus:outline-none focus:ring-2 focus:ring-stone-900 focus:border-transparent transition-all rounded-xl"
+                    className="w-full bg-white border-2 border-stone-300 text-stone-900 px-4 sm:px-6 py-3 sm:py-4 pr-12 sm:pr-14 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-stone-900 focus:border-transparent transition-all rounded-lg sm:rounded-xl"
                   />
                   <button
                     onClick={() => handleSearch()}
                     disabled={isSearching}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-stone-900 text-white p-3 hover:bg-stone-800 transition-colors disabled:opacity-50 rounded-lg"
+                    className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 bg-stone-900 text-white p-2 sm:p-3 hover:bg-stone-800 transition-colors disabled:opacity-50 rounded-lg"
                   >
-                    {isSearching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+                    {isSearching ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <Search className="w-4 h-4 sm:w-5 sm:h-5" />}
                   </button>
                   
                   {/* Autocomplete */}
                   {showSuggestions && suggestions.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 bg-white border-2 border-stone-300 mt-2 z-50 shadow-xl rounded-xl overflow-hidden">
+                    <div className="absolute top-full left-0 right-0 bg-white border-2 border-stone-300 mt-2 z-50 shadow-xl rounded-lg sm:rounded-xl overflow-hidden">
                       {suggestions.map((suggestion) => (
                         <button
                           key={suggestion.place_id}
                           onClick={() => selectSuggestion(suggestion)}
-                          className="w-full text-left px-6 py-4 text-stone-900 hover:bg-stone-50 transition-colors border-b border-stone-200 last:border-b-0 flex items-start gap-3"
+                          className="w-full text-left px-4 sm:px-6 py-3 sm:py-4 text-stone-900 hover:bg-stone-50 transition-colors border-b border-stone-200 last:border-b-0 flex items-start gap-2 sm:gap-3"
                         >
-                          <MapPin className="w-4 h-4 text-stone-500 mt-1 flex-shrink-0" />
-                          <span className="text-sm">{suggestion.description}</span>
+                          <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-stone-500 mt-1 flex-shrink-0" />
+                          <span className="text-xs sm:text-sm">{suggestion.description}</span>
                         </button>
                       ))}
                     </div>
@@ -319,50 +320,60 @@ export function CameraSimple() {
                 </div>
                 
                 {/* Upload Buttons */}
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 bg-stone-900 text-white px-8 py-4 font-semibold hover:bg-stone-800 transition-colors rounded-xl flex items-center justify-center gap-3 text-base"
+                    disabled={isProcessing}
+                    className="flex-1 bg-stone-900 text-white px-6 sm:px-8 py-3 sm:py-4 font-semibold hover:bg-stone-800 transition-colors rounded-lg sm:rounded-xl flex items-center justify-center gap-2 sm:gap-3 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Upload className="w-5 h-5" />
-                    Upload Image
+                    {isProcessing ? (
+                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
+                    )}
+                    {isProcessing ? 'Processing...' : 'Upload Image'}
                   </button>
                   <button
                     onClick={startCamera}
-                    className="flex-1 border-2 border-stone-300 text-stone-900 px-8 py-4 font-semibold hover:bg-stone-50 transition-colors rounded-xl flex items-center justify-center gap-3 text-base"
+                    disabled={isProcessing || cameraActive}
+                    className="flex-1 border-2 border-stone-300 text-stone-900 px-6 sm:px-8 py-3 sm:py-4 font-semibold hover:bg-stone-50 transition-colors rounded-lg sm:rounded-xl flex items-center justify-center gap-2 sm:gap-3 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Camera className="w-5 h-5" />
-                    Take Photo
+                    {cameraActive ? (
+                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                    ) : (
+                      <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
+                    )}
+                    {cameraActive ? 'Opening...' : 'Take Photo'}
                   </button>
                 </div>
               </div>
 
               {/* Right: Globe */}
-              <div className="relative h-[400px] lg:h-[500px]">
+              <div className="relative h-[300px] sm:h-[350px] md:h-[400px] lg:h-[500px]">
                 <InteractiveGlobe />
               </div>
             </div>
             
             {/* Features */}
-            <div className="grid md:grid-cols-3 gap-8 mb-16">
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 mb-8 sm:mb-12 md:mb-16">
               {[
                 { icon: MapPin, title: 'GPS Extraction', desc: 'Extract precise coordinates from any photo with EXIF data' },
                 { icon: Globe2, title: 'Global Coverage', desc: 'Search and analyze locations across 195 countries' },
                 { icon: Search, title: 'AI Recognition', desc: 'Identify landmarks and buildings using computer vision' }
               ].map((feature, i) => (
                 <div key={i} className="group">
-                  <div className="w-12 h-12 bg-stone-900 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <feature.icon className="w-6 h-6 text-white" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-stone-900 rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
+                    <feature.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold text-stone-900 mb-2">{feature.title}</h3>
-                  <p className="text-stone-600">{feature.desc}</p>
+                  <h3 className="text-lg sm:text-xl font-bold text-stone-900 mb-2">{feature.title}</h3>
+                  <p className="text-sm sm:text-base text-stone-600">{feature.desc}</p>
                 </div>
               ))}
             </div>
             
             {/* Stats */}
-            <div className="border-t border-stone-200 pt-12">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div className="border-t border-stone-200 pt-8 sm:pt-12">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8 text-center">
                 {[
                   { value: '1M+', label: 'Locations' },
                   { value: '195', label: 'Countries' },
@@ -370,8 +381,8 @@ export function CameraSimple() {
                   { value: '<2s', label: 'Response' }
                 ].map((stat, i) => (
                   <div key={i}>
-                    <p className="text-4xl font-black text-stone-900 mb-2">{stat.value}</p>
-                    <p className="text-sm text-stone-500">{stat.label}</p>
+                    <p className="text-2xl sm:text-3xl md:text-4xl font-black text-stone-900 mb-1 sm:mb-2">{stat.value}</p>
+                    <p className="text-xs sm:text-sm text-stone-500">{stat.label}</p>
                   </div>
                 ))}
               </div>
@@ -392,17 +403,17 @@ export function CameraSimple() {
         {result && result.success && (
           <div className="max-w-[1600px] mx-auto">
             {/* Header */}
-            <div className="mb-8">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h2 className="text-4xl font-black text-stone-900 mb-2">{result.name}</h2>
-                  <p className="text-lg text-stone-600">{result.address}</p>
+            <div className="mb-6 sm:mb-8">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-stone-900 mb-2 break-words">{result.name}</h2>
+                  <p className="text-sm sm:text-base md:text-lg text-stone-600 break-words">{result.address}</p>
                 </div>
                 {result.confidence && (
-                  <div className="text-right">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-xl">
+                  <div className="text-left sm:text-right flex-shrink-0">
+                    <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-50 border border-green-200 rounded-lg sm:rounded-xl">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm font-bold text-green-700">{Math.round(result.confidence * 100)}% Match</span>
+                      <span className="text-xs sm:text-sm font-bold text-green-700">{Math.round(result.confidence * 100)}% Match</span>
                     </div>
                   </div>
                 )}
@@ -414,17 +425,19 @@ export function CameraSimple() {
               </div>
               
               {/* Actions */}
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2 sm:gap-3">
                 <button
                   onClick={() => {
                     if (result.location) {
                       window.open(`https://www.google.com/maps/search/?api=1&query=${result.location.latitude},${result.location.longitude}`, '_blank')
                     }
                   }}
-                  className="bg-stone-900 text-white px-6 py-3 rounded-xl hover:bg-stone-800 transition-colors font-semibold flex items-center gap-2"
+                  disabled={isProcessing}
+                  className="bg-stone-900 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl hover:bg-stone-800 transition-colors font-semibold flex items-center gap-2 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <MapPin className="w-4 h-4" />
-                  Open in Maps
+                  <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">Open in Maps</span>
+                  <span className="xs:hidden">Maps</span>
                 </button>
                 <button
                   onClick={() => {
@@ -434,9 +447,10 @@ export function CameraSimple() {
                       toast({ title: "Copied to clipboard" })
                     }
                   }}
-                  className="border-2 border-stone-300 text-stone-900 px-6 py-3 rounded-xl hover:bg-stone-50 transition-colors font-semibold flex items-center gap-2"
+                  disabled={isProcessing}
+                  className="border-2 border-stone-300 text-stone-900 px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl hover:bg-stone-50 transition-colors font-semibold flex items-center gap-2 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Share2 className="w-4 h-4" />
+                  <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   Share
                 </button>
                 <button
@@ -445,55 +459,57 @@ export function CameraSimple() {
                     setPreviewImage(null)
                     setCurrentFile(null)
                   }}
-                  className="border-2 border-stone-300 text-stone-900 px-6 py-3 rounded-xl hover:bg-stone-50 transition-colors font-semibold"
+                  disabled={isProcessing}
+                  className="border-2 border-stone-300 text-stone-900 px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl hover:bg-stone-50 transition-colors font-semibold text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  New Search
+                  <span className="hidden xs:inline">New Search</span>
+                  <span className="xs:hidden">New</span>
                 </button>
               </div>
             </div>
 
-            <div className="grid lg:grid-cols-3 gap-6">
+            <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
               {/* Left Column - Map & Image */}
-              <div className="lg:col-span-2 space-y-6">
+              <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                 {result.location && (
-                  <div className="bg-white rounded-2xl overflow-hidden border-2 border-stone-200 shadow-lg">
+                  <div className="bg-white rounded-xl sm:rounded-2xl overflow-hidden border-2 border-stone-200 shadow-lg">
                     <iframe
                       src={`https://www.google.com/maps?q=${result.location.latitude},${result.location.longitude}&output=embed`}
-                      className="w-full h-[400px] lg:h-[500px] border-0"
+                      className="w-full h-[300px] sm:h-[400px] lg:h-[500px] border-0"
                       loading="lazy"
                     />
                   </div>
                 )}
                 
                 {previewImage && (
-                  <div className="bg-white rounded-2xl overflow-hidden border-2 border-stone-200 shadow-lg">
-                    <img src={previewImage} alt="Preview" className="w-full h-[300px] object-cover bg-stone-50" />
+                  <div className="bg-white rounded-xl sm:rounded-2xl overflow-hidden border-2 border-stone-200 shadow-lg">
+                    <img src={previewImage} alt="Preview" className="w-full h-[200px] sm:h-[250px] md:h-[300px] object-cover bg-stone-50" />
                   </div>
                 )}
               </div>
 
               {/* Right Column - Info */}
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Coordinates */}
                 {result.location && (
-                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 border-2 border-blue-200">
-                    <h4 className="font-bold text-stone-900 mb-4 flex items-center gap-2">
-                      <MapPin className="w-5 h-5 text-blue-600" />
+                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border-2 border-blue-200">
+                    <h4 className="font-bold text-stone-900 mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+                      <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                       Coordinates
                     </h4>
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                       <div>
                         <p className="text-xs text-stone-600 mb-1">Latitude</p>
-                        <p className="text-lg font-mono font-bold text-stone-900">{result.location.latitude.toFixed(6)}</p>
+                        <p className="text-base sm:text-lg font-mono font-bold text-stone-900">{result.location.latitude.toFixed(6)}</p>
                       </div>
                       <div>
                         <p className="text-xs text-stone-600 mb-1">Longitude</p>
-                        <p className="text-lg font-mono font-bold text-stone-900">{result.location.longitude.toFixed(6)}</p>
+                        <p className="text-base sm:text-lg font-mono font-bold text-stone-900">{result.location.longitude.toFixed(6)}</p>
                       </div>
                       {result.elevation && (
                         <div>
                           <p className="text-xs text-stone-600 mb-1">Elevation</p>
-                          <p className="text-lg font-bold text-stone-900">{result.elevation.elevation}m</p>
+                          <p className="text-base sm:text-lg font-bold text-stone-900">{result.elevation.elevation}m</p>
                         </div>
                       )}
                     </div>
@@ -502,17 +518,17 @@ export function CameraSimple() {
 
                 {/* Weather */}
                 {result.weather && (
-                  <div className="bg-white rounded-2xl border-2 border-stone-200 p-6">
-                    <h4 className="font-bold text-stone-900 mb-4">Weather</h4>
+                  <div className="bg-white rounded-xl sm:rounded-2xl border-2 border-stone-200 p-4 sm:p-6">
+                    <h4 className="font-bold text-stone-900 mb-3 sm:mb-4 text-sm sm:text-base">Weather</h4>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-4xl font-black text-stone-900">{result.weather.temperature}°</p>
-                        <p className="text-sm text-stone-600">Celsius</p>
+                        <p className="text-3xl sm:text-4xl font-black text-stone-900">{result.weather.temperature}°</p>
+                        <p className="text-xs sm:text-sm text-stone-600">Celsius</p>
                       </div>
                       {result.weather.humidity && (
                         <div className="text-right">
-                          <p className="text-3xl font-black text-stone-900">{result.weather.humidity}%</p>
-                          <p className="text-sm text-stone-600">Humidity</p>
+                          <p className="text-2xl sm:text-3xl font-black text-stone-900">{result.weather.humidity}%</p>
+                          <p className="text-xs sm:text-sm text-stone-600">Humidity</p>
                         </div>
                       )}
                     </div>
@@ -521,9 +537,9 @@ export function CameraSimple() {
 
                 {/* Area Scores */}
                 {result.enhancedAnalysis && (
-                  <div className="bg-white rounded-2xl border-2 border-stone-200 p-6">
-                    <h4 className="font-bold text-stone-900 mb-4">Area Scores</h4>
-                    <div className="space-y-4">
+                  <div className="bg-white rounded-xl sm:rounded-2xl border-2 border-stone-200 p-4 sm:p-6">
+                    <h4 className="font-bold text-stone-900 mb-3 sm:mb-4 text-sm sm:text-base">Area Scores</h4>
+                    <div className="space-y-3 sm:space-y-4">
                       {result.enhancedAnalysis.walkability && (
                         <div>
                           <div className="flex justify-between items-center mb-2">
@@ -558,9 +574,9 @@ export function CameraSimple() {
 
                 {/* Nearby Places */}
                 {result.nearbyPlaces && result.nearbyPlaces.length > 0 && (
-                  <div className="bg-white rounded-2xl border-2 border-stone-200 p-6">
-                    <h4 className="font-bold text-stone-900 mb-4">Nearby</h4>
-                    <div className="space-y-3">
+                  <div className="bg-white rounded-xl sm:rounded-2xl border-2 border-stone-200 p-4 sm:p-6">
+                    <h4 className="font-bold text-stone-900 mb-3 sm:mb-4 text-sm sm:text-base">Nearby</h4>
+                    <div className="space-y-2 sm:space-y-3">
                       {result.nearbyPlaces.slice(0, 5).map((place, idx) => (
                         <div key={idx} className="flex items-center justify-between py-2 border-b border-stone-100 last:border-0">
                           <div className="flex-1 min-w-0">
@@ -576,9 +592,9 @@ export function CameraSimple() {
 
                 {/* Transit */}
                 {result.transit && result.transit.length > 0 && (
-                  <div className="bg-white rounded-2xl border-2 border-stone-200 p-6">
-                    <h4 className="font-bold text-stone-900 mb-4">Transit</h4>
-                    <div className="space-y-3">
+                  <div className="bg-white rounded-xl sm:rounded-2xl border-2 border-stone-200 p-4 sm:p-6">
+                    <h4 className="font-bold text-stone-900 mb-3 sm:mb-4 text-sm sm:text-base">Transit</h4>
+                    <div className="space-y-2 sm:space-y-3">
                       {result.transit.slice(0, 3).map((station, idx) => (
                         <div key={idx} className="flex justify-between items-center">
                           <p className="text-sm font-semibold text-stone-900 flex-1">{station.name}</p>
@@ -606,9 +622,17 @@ export function CameraSimple() {
                   setResult(null)
                   setPreviewImage(null)
                 }}
-                className="bg-stone-900 text-white px-8 py-4 hover:bg-stone-800 transition-colors rounded-xl font-semibold"
+                disabled={isProcessing}
+                className="bg-stone-900 text-white px-8 py-4 hover:bg-stone-800 transition-colors rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mx-auto"
               >
-                Try Again
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  'Try Again'
+                )}
               </button>
             </div>
           </div>

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { put } from '@vercel/blob';
 
 const ML_API_URL = process.env.ML_API_URL || 'http://34.224.33.158:8000';
 
@@ -35,23 +34,43 @@ export async function POST(request: NextRequest) {
 
     console.log('Upload request:', { latitude, longitude, address, deviceId });
 
-    // Upload image to Vercel Blob
-    console.log('Uploading to blob storage...');
-    const blob = await put(`training/${deviceId}/${Date.now()}-${file.name}`, file, {
-      access: 'public',
-    });
-    console.log('Blob uploaded:', blob.url);
+    // Fetch OSM data
+    const osmRes = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+      { headers: { 'User-Agent': 'Pic2Nav-Research/1.0' } }
+    );
+    const osmData = await osmRes.json();
 
-    // Queue for ML training
+    // Convert file to base64 for database storage
+    console.log('Converting file to base64...');
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const base64 = buffer.toString('base64');
+    const imageUrl = `data:${file.type};base64,${base64}`;
+    console.log('File converted, size:', base64.length);
+
+    // Queue for ML training with OSM metadata
     console.log('Creating queue entry...');
     const queueEntry = await prisma.trainingQueue.create({
       data: {
-        imageUrl: blob.url,
-        address: address || 'Unknown',
+        imageUrl,
+        address: osmData.display_name || address || 'Unknown',
         latitude: parseFloat(latitude),
         longitude: parseFloat(longitude),
         deviceId,
-        status: 'PENDING'
+        status: 'PENDING',
+        metadata: {
+          osm: {
+            place_id: osmData.place_id,
+            osm_type: osmData.osm_type,
+            osm_id: osmData.osm_id,
+            category: osmData.category,
+            type: osmData.type,
+            addresstype: osmData.addresstype,
+            name: osmData.name,
+            address: osmData.address
+          }
+        }
       }
     });
     console.log('Queue entry created:', queueEntry.id);
@@ -114,7 +133,8 @@ export async function POST(request: NextRequest) {
           gamificationPoints: 0,
           contributionCount: 0,
           badges: [],
-          streak: 0
+          streak: 0,
+          updatedAt: new Date()
         },
         select: {
           id: true,

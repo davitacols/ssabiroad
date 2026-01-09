@@ -45,6 +45,13 @@ async def startup_event():
         monitor = ModelMonitor()
         version_manager = ModelVersionManager()
         active_learning = ActiveLearningPipeline(data_dir="../data/active_learning", min_samples=5)
+        
+        # Ensure queue file exists
+        active_learning.load_queue()
+        if not active_learning.queue.get("samples"):
+            active_learning.queue = {"samples": [], "last_training": None}
+            active_learning.save_queue()
+        
         logger.info(f"Active learning queue loaded: {len(active_learning.queue.get('samples', []))} samples")
         
         best_model = version_manager.get_best_model()
@@ -190,18 +197,57 @@ async def detect_landmark(file: UploadFile = File(...), top_k: int = 5):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/feedback")
-async def submit_feedback(image_id: str, predicted: Dict, corrected: Dict):
+async def submit_feedback(file: UploadFile = File(None), latitude: float = Form(None), longitude: float = Form(None), address: str = Form(None), businessName: str = Form(None), metadata: str = Form(None)):
     """Submit user feedback for prediction"""
     try:
-        # Log feedback
-        monitor.log_prediction(image_id, predicted, ground_truth=corrected, user_feedback={"correct": False})
+        import json
+        meta = json.loads(metadata) if metadata else {}
+        image_id = meta.get('userId', 'unknown') + '_' + str(int(time.time()))
         
-        # Add to active learning
-        temp_path = Path("../data/temp") / f"{image_id}.jpg"
-        if temp_path.exists():
-            active_learning.add_user_correction(str(temp_path), predicted, corrected)
+        if file:
+            temp_path = Path("../data/active_learning") / f"{image_id}.jpg"
+            temp_path.parent.mkdir(parents=True, exist_ok=True)
+            content = await file.read()
+            with open(temp_path, 'wb') as f:
+                f.write(content)
+        else:
+            temp_path = None
         
-        return {"success": True, "message": "Feedback recorded"}
+        if latitude is not None and longitude is not None:
+            # Ensure queue directory exists
+            queue_dir = Path("../data/active_learning")
+            queue_dir.mkdir(parents=True, exist_ok=True)
+            
+            sample = {
+                "image_path": str(temp_path) if temp_path else "",
+                "metadata": {
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "address": address,
+                    "businessName": businessName,
+                    "userId": meta.get('userId'),
+                    "timestamp": meta.get('timestamp'),
+                    "correction": True
+                },
+                "priority": "high",
+                "added_at": time.strftime("%Y-%m-%dT%H:%M:%S")
+            }
+            
+            # Load existing queue
+            active_learning.load_queue()
+            active_learning.queue["samples"].append(sample)
+            active_learning.save_queue()
+            queue_size = len(active_learning.queue["samples"])
+            
+            logger.info(f"Feedback recorded: {image_id} at ({latitude}, {longitude}), queue size: {queue_size}")
+            return {
+                "success": True,
+                "message": "Feedback recorded",
+                "queue_size": queue_size,
+                "should_retrain": active_learning.should_retrain()
+            }
+        
+        return {"success": False, "message": "Missing location data"}
     except Exception as e:
         logger.error(f"Feedback error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -209,31 +255,46 @@ async def submit_feedback(image_id: str, predicted: Dict, corrected: Dict):
 @app.get("/stats")
 async def get_stats():
     """Get comprehensive statistics"""
-    metrics = monitor.calculate_metrics(window_hours=24)
-    active_model = version_manager.get_active_model()
-    
-    return {
-        "index": {
-            "total_buildings": len(pipeline.retriever.metadata),
-            "index_size": pipeline.retriever.index.ntotal if pipeline.retriever.index else 0
-        },
-        "models": {
-            "active_version": active_model["version"] if active_model else None,
-            "total_versions": len(version_manager.list_models()),
-            "loaded": {
-                "clip": True,
-                "geolocation": pipeline.geoloc_model is not None,
-                "landmark": pipeline.landmark_detector is not None,
-                "ocr": pipeline.ocr is not None
+    try:
+        # Reload queue from disk to get latest data
+        if active_learning:
+            active_learning.load_queue()
+            queue_size = len(active_learning.queue.get("samples", []))
+            should_retrain = active_learning.should_retrain()
+        else:
+            queue_size = 0
+            should_retrain = False
+        
+        return {
+            "index": {
+                "total_buildings": len(pipeline.retriever.metadata) if pipeline and pipeline.retriever else 0,
+                "index_size": pipeline.retriever.index.ntotal if pipeline and pipeline.retriever and pipeline.retriever.index else 0
+            },
+            "models": {
+                "active_version": None,
+                "total_versions": 0,
+                "loaded": {
+                    "clip": True,
+                    "geolocation": False,
+                    "landmark": False,
+                    "ocr": False
+                }
+            },
+            "performance": {},
+            "active_learning": {
+                "queue_size": queue_size,
+                "should_retrain": should_retrain,
+                "last_training": active_learning.queue.get("last_training") if active_learning else None
             }
-        },
-        "performance": metrics,
-        "active_learning": {
-            "queue_size": len(active_learning.queue["samples"]),
-            "should_retrain": active_learning.should_retrain(),
-            "last_training": active_learning.queue.get("last_training")
         }
-    }
+    except Exception as e:
+        logger.error(f"Stats error: {e}")
+        return {
+            "index": {"total_buildings": 0, "index_size": 0},
+            "models": {"active_version": None, "total_versions": 0, "loaded": {}},
+            "performance": {},
+            "active_learning": {"queue_size": 0, "should_retrain": False, "last_training": None}
+        }
 
 @app.post("/trigger_training")
 async def trigger_training():
@@ -256,8 +317,19 @@ async def trigger_training():
 
 @app.post("/retrain")
 async def retrain():
-    """Alias for trigger_training"""
-    return await trigger_training()
+    """Force retrain regardless of sample count"""
+    try:
+        from utils.active_learning import ContinuousTrainer
+        trainer = ContinuousTrainer(active_learning)
+        version = trainer.run_training_cycle(None, "data/geolocations")
+        
+        if version:
+            return {"success": True, "version": version, "message": "Training started", "queue_size": len(active_learning.queue["samples"])}
+        else:
+            return {"success": False, "message": "Training failed", "queue_size": len(active_learning.queue["samples"])}
+    except Exception as e:
+        logger.error(f"Retrain error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/models")
 async def list_models():
