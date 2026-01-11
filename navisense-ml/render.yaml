@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: navisense-ml
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: PINECONE_INDEX_NAME
+        value: navisense-locations
+      - key: DATABASE_URL
+        sync: false
