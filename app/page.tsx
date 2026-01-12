@@ -44,7 +44,7 @@ export default function HomePage() {
       {/* Video Background */}
       <div className="fixed top-0 left-0 w-full h-screen pointer-events-none z-0">
         {/* Video by niko Jimsheleishvili from Pixabay */}
-        <video autoPlay loop muted playsInline className="w-full h-full object-cover">
+        <video autoPlay loop muted playsInline className="w-full h-full object-cover" preload="auto">
           <source src="/hero-video.mp4" type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/70 to-white"></div>
