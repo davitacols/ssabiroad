@@ -10,6 +10,9 @@ export async function trainModelWithFeedback(
   businessName?: string
 ): Promise<void> {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    
     const formData = new FormData();
     formData.append('latitude', location.latitude.toString());
     formData.append('longitude', location.longitude.toString());
@@ -19,8 +22,10 @@ export async function trainModelWithFeedback(
     const response = await fetch(`${ML_API_URL}/feedback`, {
       method: 'POST',
       body: formData,
-      signal: AbortSignal.timeout(5000)
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
 
     if (response.ok) {
       const result = await response.json();
@@ -48,8 +53,7 @@ async function geocodeAddress(address: string): Promise<{ latitude: number; long
     if (!GOOGLE_MAPS_KEY) return null;
 
     const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_KEY}`,
-      { signal: AbortSignal.timeout(5000) }
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_KEY}`
     );
     const data = await response.json();
     
@@ -70,7 +74,8 @@ export async function saveFeedback(
   correctLocation?: { latitude: number; longitude: number },
   correctAddress?: string,
   feedback?: string,
-  userId?: string
+  userId?: string,
+  imageBuffer?: Buffer
 ) {
   try {
     // If address provided but no coordinates, geocode it
@@ -109,10 +114,14 @@ export async function saveFeedback(
     });
 
     // Add to training queue for ML dashboard
-    if (location) {
+    if (location && imageBuffer) {
+      // Save image to ML server
+      const imagePath = `${recognitionId}_${Date.now()}.jpg`;
+      
+      // Add to TrainingQueue (existing)
       const queueItem = await prisma.trainingQueue.create({
         data: {
-          imageUrl: recognitionId,
+          imageUrl: imagePath,
           address: correctAddress || 'User Correction',
           latitude: location.latitude,
           longitude: location.longitude,
@@ -124,40 +133,39 @@ export async function saveFeedback(
         return null;
       });
       
+      // Add to NavisenseTraining (new - for Phase 2 ML)
+      const crypto = require('crypto');
+      const imageHash = crypto.createHash('sha256').update(imagePath).digest('hex');
+      
+      await prisma.navisenseTraining.upsert({
+        where: { imageHash },
+        update: {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          address: correctAddress || null,
+          verified: true,
+          userCorrected: feedback !== 'correct',
+        },
+        create: {
+          imageUrl: imagePath,
+          imageHash,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          address: correctAddress || null,
+          verified: true,
+          userCorrected: feedback !== 'correct',
+          userId: userId || null,
+        }
+      }).catch(err => {
+        console.error('Failed to add to NavisenseTraining:', err);
+      });
+      
       if (queueItem) {
-        console.log('✅ Added to training queue');
+        console.log('✅ Added to training queue & NavisenseTraining');
         
-        // Send to ML API immediately
-        const formData = new FormData();
-        formData.append('latitude', location.latitude.toString());
-        formData.append('longitude', location.longitude.toString());
-        formData.append('address', correctAddress || 'Unknown');
-        formData.append('metadata', JSON.stringify({
-          source: 'user_feedback',
-          deviceId: userId || 'anonymous',
-          queueId: queueItem.id
-        }));
-
-        fetch(`${ML_API_URL}/feedback`, {
-          method: 'POST',
-          body: formData,
-          signal: AbortSignal.timeout(10000)
-        })
-          .then(res => res.json())
-          .then(() => {
-            prisma.trainingQueue.update({
-              where: { id: queueItem.id },
-              data: { status: 'SENT', processedAt: new Date() }
-            }).catch(err => console.error('DB update error:', err));
-            console.log('✅ Sent to ML API');
-          })
-          .catch(err => {
-            console.error('❌ ML API error:', err.message);
-            prisma.trainingQueue.update({
-              where: { id: queueItem.id },
-              data: { status: 'FAILED', error: err.message }
-            }).catch(e => console.error('DB update error:', e));
-          });
+        // Send to ML API with image (disabled for now)
+        // ML API is disabled, skip sending
+        console.log('ℹ️ ML API disabled, data saved for future training');
       }
     }
 

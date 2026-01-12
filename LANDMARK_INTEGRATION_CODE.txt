@@ -1,0 +1,61 @@
+// Add this after GPS extraction fails (around line 400)
+// Step 1.5: Try Landmark Recognition (Google Landmarks Dataset v2)
+console.log('🏛️ Step 1.5: Trying landmark recognition...');
+try {
+  const landmarkFormData = new FormData();
+  landmarkFormData.append('image', new Blob([buffer]), 'image.jpg');
+  
+  const landmarkResponse = await axios.post(
+    `${ML_API_URL}/recognize-landmark`,
+    landmarkFormData,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 15000,
+    }
+  ).catch(err => {
+    console.log('Landmark API error:', err.message);
+    return null;
+  });
+  
+  if (landmarkResponse?.data?.success && landmarkResponse.data.top_match) {
+    const landmark = landmarkResponse.data.top_match;
+    
+    if (landmark.confidence > 0.7) {
+      console.log('✅ Landmark recognized:', landmark.category);
+      
+      // Get coordinates from landmark metadata or search
+      let landmarkLocation = null;
+      
+      // Try to get location from landmark category (Wikimedia URL)
+      if (landmark.category) {
+        const landmarkName = landmark.category.split('/').pop()?.replace(/_/g, ' ');
+        if (landmarkName) {
+          landmarkLocation = await recognizer.searchBusinessByName(landmarkName);
+        }
+      }
+      
+      if (landmarkLocation) {
+        const enriched = await recognizer.enrichLocationData({
+          success: true,
+          name: landmark.category.split('/').pop()?.replace(/_/g, ' ') || 'Landmark',
+          location: landmarkLocation,
+          confidence: landmark.confidence,
+          method: 'google_landmarks_v2',
+          description: `${landmark.type} landmark: ${landmark.hierarchical_label}`,
+          metadata: {
+            landmarkId: landmark.landmark_id,
+            category: landmark.category,
+            type: landmark.type,
+            hierarchicalLabel: landmark.hierarchical_label
+          }
+        }, buffer, analyzeLandmarks);
+        
+        return NextResponse.json(enriched);
+      }
+    } else {
+      console.log('⚠️ Landmark confidence too low:', landmark.confidence);
+    }
+  }
+} catch (landmarkError) {
+  console.log('Landmark recognition failed:', landmarkError.message);
+}

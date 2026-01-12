@@ -107,7 +107,7 @@ export default function LandmarkRecognitionPage() {
           </h1>
 
           <p className="text-xl text-stone-600 leading-relaxed mb-10 max-w-[800px]">
-            A curated dataset of 50,000 landmark images with GPS coordinates, building names, and architectural metadata for training landmark recognition models.
+            A curated dataset of 50,000 landmark images with GPS coordinates, building names, and architectural metadata for training landmark recognition models. Now integrated with Pic2Nav's location recognition system using Google Vision API.
           </p>
 
           <div className="flex items-center gap-4">
@@ -246,6 +246,42 @@ export default function LandmarkRecognitionPage() {
 
       <section className="py-32 border-t border-stone-200 bg-white">
         <div className="max-w-[1400px] mx-auto px-6">
+          <h2 className="text-4xl font-bold mb-12 tracking-tight text-stone-900">
+            API Integration Status
+          </h2>
+
+          <div className="grid md:grid-cols-3 gap-8 mb-16">
+            <div className="bg-green-50 border-2 border-green-200 p-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
+                <h3 className="text-xl font-semibold text-green-900">Live Detection</h3>
+              </div>
+              <p className="text-green-800">
+                Landmark recognition is now live in Pic2Nav using Google Vision API for real-time landmark identification.
+              </p>
+            </div>
+
+            <div className="bg-blue-50 border-2 border-blue-200 p-8">
+              <div className="flex items-center gap-3 mb-4">
+                <Building2 className="h-6 w-6 text-blue-600" />
+                <h3 className="text-xl font-semibold text-blue-900">Dataset Growing</h3>
+              </div>
+              <p className="text-blue-800">
+                Currently collecting landmark images to build a comprehensive 50K dataset for training custom models.
+              </p>
+            </div>
+
+            <div className="bg-amber-50 border-2 border-amber-200 p-8">
+              <div className="flex items-center gap-3 mb-4">
+                <Trophy className="h-6 w-6 text-amber-600" />
+                <h3 className="text-xl font-semibold text-amber-900">Contribute</h3>
+              </div>
+              <p className="text-amber-800">
+                Help us reach 50,000 images by uploading geotagged photos of landmarks from around the world.
+              </p>
+            </div>
+          </div>
+
           <h2 className="text-4xl font-bold mb-12 tracking-tight text-stone-900">
             Dataset Structure
           </h2>

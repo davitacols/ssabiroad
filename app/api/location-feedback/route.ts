@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { recognitionId, correctLocation, correctAddress, feedback, userId } = body;
+    const { recognitionId, correctLocation, correctAddress, feedback, userId, imageData } = body;
 
     if (!recognitionId) {
       return NextResponse.json({ error: 'Missing recognitionId' }, { status: 400 });
@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
     // If user clicked "Yes" (correct), fetch original recognition data
     let location = correctLocation;
     let address = correctAddress;
+    let imageBuffer: Buffer | undefined;
     
     if (feedback === 'correct' && !location) {
       try {
@@ -31,6 +32,16 @@ export async function POST(request: NextRequest) {
         console.error('Failed to fetch recognition:', err);
       }
     }
+    
+    // Convert base64 image to buffer if provided
+    if (imageData) {
+      try {
+        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+        imageBuffer = Buffer.from(base64Data, 'base64');
+      } catch (err) {
+        console.error('Failed to decode image:', err);
+      }
+    }
 
     // Save feedback
     const feedbackRecord = await saveFeedback(
@@ -38,11 +49,12 @@ export async function POST(request: NextRequest) {
       location,
       address,
       feedback,
-      userId
+      userId,
+      imageBuffer
     );
 
-    // Train model if location provided
-    if (location) {
+    // Train model if location and image provided
+    if (location && imageBuffer) {
       await trainModelWithFeedback(location, address);
     }
 

@@ -96,6 +96,16 @@ class LocationRecognizer {
       const crypto = require('crypto');
       const imageHash = crypto.createHash('md5').update(buffer).digest('hex');
       
+      // Upload image to S3
+      let imageUrl: string | null = null;
+      try {
+        const { uploadImageToS3 } = await import('../../../lib/s3-upload');
+        imageUrl = await uploadImageToS3(buffer, crypto.randomUUID());
+        console.log('Image uploaded to S3:', imageUrl);
+      } catch (err) {
+        console.error('S3 upload failed:', err);
+      }
+      
       console.log('Attempting to save recognition to database:', {
         businessName: result.name,
         latitude: result.location.latitude,
@@ -114,6 +124,7 @@ class LocationRecognizer {
           confidence: result.confidence,
           method: result.method,
           imageHash,
+          imageUrl: imageUrl,
           userId
         }
       });
@@ -1631,7 +1642,7 @@ Return JSON with the most specific location information you can identify:
       
       // CRITICAL: Reject when both address AND area are N/A (even if phone is valid)
       if (isPlaceholder(result.address) && isPlaceholder(result.area)) {
-        console.log('⚠️ Claude returned N/A for both address and area - insufficient data, falling back to Vision API');
+        console.log('?? Claude returned N/A for both address and area - insufficient data, falling back to Vision API');
         return null;
       }
       
@@ -1696,7 +1707,7 @@ Return JSON with the most specific location information you can identify:
                           const candidateDigits = details.formatted_phone_number.replace(/\D/g, '');
                           if (candidateDigits.includes(phoneDigits.slice(-8)) || phoneDigits.includes(candidateDigits.slice(-8))) {
                             bestMatch = candidate;
-                            console.log('✓ Phone number matched:', details.formatted_phone_number);
+                            console.log('? Phone number matched:', details.formatted_phone_number);
                             break;
                           }
                         }
@@ -2917,7 +2928,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
             
             // CRITICAL: Korean restaurants in UK - force UK search
             if (businessNameValue.toLowerCase().includes('seoul') || businessNameValue.toLowerCase().includes('korean')) {
-              console.log('🇰🇷 Korean restaurant detected - forcing UK search');
+              console.log('???? Korean restaurant detected - forcing UK search');
               const ukQueries = [
                 `${businessNameValue} UK`,
                 `${businessNameValue} London`,
@@ -2930,7 +2941,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
                   2000
                 ).catch(() => null);
                 if (businessLocation) {
-                  console.log('✓ Found UK Korean restaurant:', ukQuery);
+                  console.log('? Found UK Korean restaurant:', ukQuery);
                   break;
                 }
               }
@@ -4220,6 +4231,10 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
                 console.log(`Rejecting non-US location for US phone: ${address}`);
                 continue;
               }
+              if (phoneCountry === 'UK' && !addressUpper.includes('UK') && !addressUpper.includes('UNITED KINGDOM') && !addressUpper.includes('ENGLAND') && !addressUpper.includes('LONDON') && !addressUpper.includes('SCOTLAND') && !addressUpper.includes('WALES')) {
+                console.log(`Rejecting non-UK location for UK phone: ${address}`);
+                continue;
+              }
             }
             
             console.log(`Found phone-verified location: ${address}`);
@@ -5184,11 +5199,12 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
   // Navisense ML prediction
   private async predictWithNavisense(buffer: Buffer): Promise<LocationResult | null> {
     try {
+      const NAVISENSE_URL = process.env.NAVISENSE_ML_URL || 'http://localhost:8000';
       const blob = new Blob([buffer], { type: 'image/jpeg' });
       const formData = new FormData();
       formData.append('file', blob, 'image.jpg');
 
-      const response = await fetch(`${ML_API_URL}/predict`, {
+      const response = await fetch(`${NAVISENSE_URL}/predict`, {
         method: 'POST',
         body: formData,
       });
@@ -5196,14 +5212,19 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       if (!response.ok) return null;
 
       const data = await response.json();
-      if (data.latitude && data.longitude && data.confidence >= 0.7) {
+      
+      if (data.success && data.location && data.confidence >= 0.7) {
         return {
           success: true,
-          name: data.location_name || 'NaviSense ML',
-          location: { latitude: data.latitude, longitude: data.longitude },
+          name: data.location.businessName || 'NaviSense ML',
+          location: { 
+            latitude: data.location.latitude, 
+            longitude: data.location.longitude 
+          },
+          address: data.location.address,
           confidence: data.confidence,
           method: 'navisense-ml',
-          description: data.description || 'Location predicted by ML model'
+          description: 'Location predicted by Navisense V2 ML model'
         };
       }
     } catch (error) {
@@ -5221,6 +5242,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       formData.append('latitude', location.latitude.toString());
       formData.append('longitude', location.longitude.toString());
      formData.append('address', metadata?.address || metadata?.name || 'Location detected by AI');
+      formData.append('businessName', metadata?.businessName || metadata?.name || 'Unknown Business');
       if (metadata) {
         const cleanMetadata = {
           ...metadata,
@@ -5295,7 +5317,17 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         setTimeout(() => reject(new Error('Recognition timeout')), 240000); // 4 minute timeout
       });
       
-      return await Promise.race([recognitionPromise, timeoutPromise]);
+      const result = await Promise.race([recognitionPromise, timeoutPromise]);
+      
+      // CRITICAL FIX: Always save recognition to database if successful and not already saved
+      if (result.success && result.location && !result.recognitionId) {
+        const recognitionId = await this.saveRecognition(result, buffer, userId);
+        if (recognitionId) {
+          result.recognitionId = recognitionId;
+        }
+      }
+      
+      return result;
     } catch (error) {
       console.error('Recognition failed:', error);
       
@@ -5332,118 +5364,206 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     // 1. Try EXIF GPS extraction from server-side (fallback only)
     const gpsResult = this.extractGPS(buffer);
     if (gpsResult?.success && gpsResult.location) {
-      console.log('Ã¢Å“â€¦ SERVER EXIF GPS FOUND - RETURNING:', gpsResult.location);
-      const enrichedResult = await this.enrichLocationData(gpsResult, buffer, analyzeLandmarks);
-      const recognitionId = await this.saveRecognition(enrichedResult, buffer, userId);
+      console.log('SERVER EXIF GPS FOUND - RETURNING:', gpsResult.location);
+
+      const enrichedResult = await this.enrichLocationData(
+        gpsResult,
+        buffer,
+        analyzeLandmarks
+      );
+
+      const recognitionId = await this.saveRecognition(
+        enrichedResult,
+        buffer,
+        userId
+      );
+
       if (recognitionId) {
         enrichedResult.recognitionId = recognitionId;
       }
+
       return enrichedResult;
     }
-    
-    console.log('Ã¢ÂÅ’ No valid server EXIF GPS data found - proceeding to AI analysis');
-    console.log('Ã°Å¸Â¤â€“ No EXIF GPS data found - trying Navisense ML, Claude AI and Google Vision...');
-    
+
+    console.log('No valid server EXIF GPS data found - proceeding to AI analysis');
+    console.log('No EXIF GPS data found - trying Navisense ML, Claude AI and Google Vision...');
+
     // 2. Try Navisense ML prediction with validation
-    console.log('Ã°Å¸â€Â Step 2: Trying Navisense ML prediction...');
+    console.log('Step 2: Trying Navisense ML prediction...');
     const navisenseAttempted = true;
-    
+
     try {
       const navisenseResult = await Promise.race([
         this.predictWithNavisense(buffer),
-        new Promise<LocationResult | null>((_, reject) => 
+        new Promise<LocationResult | null>((_, reject) =>
           setTimeout(() => reject(new Error('Navisense timeout')), 10000)
         )
       ]);
-      
-      if (navisenseResult?.success && navisenseResult.location && navisenseResult.confidence >= 0.85) {
+
+      if (
+        navisenseResult?.success &&
+        navisenseResult.location &&
+        navisenseResult.confidence >= 0.85
+      ) {
         const { latitude, longitude } = navisenseResult.location;
-        const isValidRange = latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
-        
+        const isValidRange =
+          latitude >= -90 &&
+          latitude <= 90 &&
+          longitude >= -180 &&
+          longitude <= 180;
+
         // Reject known untrained predictions (Windsor, UK coordinates)
-        const isWindsorUK = Math.abs(latitude - 51.4833) < 0.01 && Math.abs(longitude - (-0.6167)) < 0.01;
-        
-        // Reject obviously wrong ML predictions (add known bad coordinates)
+        const isWindsorUK =
+          Math.abs(latitude - 51.4833) < 0.01 &&
+          Math.abs(longitude - -0.6167) < 0.01;
+
+        // Reject obviously wrong ML predictions
         const isBadPrediction = false;
-        
+
         if (isValidRange && navisenseResult.confidence >= 0.7) {
-          console.log('Ã¢Å“â€¦ NAVISENSE SUCCESS - ENRICHING AND RETURNING:', navisenseResult.location);
-          const enrichedResult = await this.enrichLocationData(navisenseResult, buffer, analyzeLandmarks);
-          const recognitionId = await this.saveRecognition(enrichedResult, buffer, userId);
+          console.log(
+            'NAVISENSE SUCCESS - ENRICHING AND RETURNING:',
+            navisenseResult.location
+          );
+
+          const enrichedResult = await this.enrichLocationData(
+            navisenseResult,
+            buffer,
+            analyzeLandmarks
+          );
+
+          const recognitionId = await this.saveRecognition(
+            enrichedResult,
+            buffer,
+            userId
+          );
+
           if (recognitionId) {
             enrichedResult.recognitionId = recognitionId;
           }
-          this.trainNavisense(buffer, navisenseResult.location, { method: 'navisense-ml', userId }).catch(() => {});
+
+          this.trainNavisense(buffer, navisenseResult.location, {
+            method: 'navisense-ml',
+            userId
+          }).catch(() => {});
+
           return enrichedResult;
         } else {
-          console.log('Ã¢Å¡Â Ã¯Â¸Â Navisense prediction rejected - untrained, low confidence, or known bad prediction:', { latitude, longitude, confidence: navisenseResult.confidence, isWindsor: isWindsorUK, isBad: isBadPrediction });
+          console.log(
+            'Navisense prediction rejected - untrained, low confidence, or bad prediction:',
+            {
+              latitude,
+              longitude,
+              confidence: navisenseResult.confidence,
+              isWindsor: isWindsorUK,
+              isBad: isBadPrediction
+            }
+          );
         }
       } else {
-        console.log('Ã¢Å¡Â Ã¯Â¸Â Navisense returned no valid result or confidence too low');
+        console.log('Navisense returned no valid result or confidence too low');
+        console.log(
+          'Navisense result:',
+          JSON.stringify({
+            success: navisenseResult?.success,
+            hasLocation: !!navisenseResult?.location,
+            confidence: navisenseResult?.confidence,
+            method: navisenseResult?.method
+          })
+        );
       }
-    } catch (error) {
-      console.log('Ã¢Å¡Â Ã¯Â¸Â Navisense prediction timed out or failed:', error.message);
+    } catch (error: any) {
+      console.log(
+        'Navisense prediction timed out or failed:',
+        error.message
+      );
     }
-    
+
     // If Navisense was attempted but failed, log it clearly
     if (navisenseAttempted) {
-      console.log('Ã¢ÂÅ’ Navisense ML did NOT provide valid location - continuing with other methods');
-      console.log('Ã¢Å¡Â Ã¯Â¸Â Any location found from this point forward should NOT be labeled as navisense-ml');
+      console.log(
+        'Navisense ML did NOT provide valid location - continuing with other methods'
+      );
+      console.log(
+        'Any location found from this point forward should NOT be labeled as navisense-ml'
+      );
     }
-    
+
     // 3. Try Claude AI for business name and location detection
-    console.log('Ã°Å¸â€Â Step 2: Trying Claude AI analysis...');
+    console.log('Step 3: Trying Claude AI analysis...');
     let claudeBusinessName = null;
     let claudeAreaContext = null;
-    
-    if (true) { // Re-enabled for location detection
+
+    if (true) {
       try {
-      const claudeResult = await Promise.race([
-        this.analyzeWithClaude({}, buffer),
-        new Promise<LocationResult | null>((_, reject) => 
-          setTimeout(() => reject(new Error('Claude analysis timeout')), 180000)
-        )
-      ]);
-      
-      if (claudeResult?.success && claudeResult.location) {
-        // Reject generic Queensway location for Fortune Cookie franchise
-        if (claudeResult.address?.includes('Queensway, London') && 
-            (claudeResult.name?.toLowerCase().includes('fortune cookie') || 
-             claudeResult.address?.toLowerCase().includes('fortune cookie'))) {
-          console.log('Ã¢ÂÅ’ Rejecting generic Queensway location for Fortune Cookie franchise');
-          // Continue to next method
-        } else {
-          console.log('Ã¢Å“â€¦ CLAUDE SUCCESS - ENRICHING AND RETURNING:', claudeResult.address);
-          const enrichedResult = await this.enrichLocationData(claudeResult, buffer, analyzeLandmarks);
-          
-          // Check for franchise and enhance
-          if (claudeResult.name) {
-            const franchiseInfo = await FranchiseDetector.detectFranchise(
+        const claudeResult = await Promise.race([
+          this.analyzeWithClaude({}, buffer),
+          new Promise<LocationResult | null>((_, reject) =>
+            setTimeout(() => reject(new Error('Claude analysis timeout')), 180000)
+          )
+        ]);
+
+    if (claudeResult?.success && claudeResult.location) {
+      // Reject generic Queensway location for Fortune Cookie franchise
+      if (
+        claudeResult.address?.includes('Queensway, London') &&
+        (claudeResult.name?.toLowerCase().includes('fortune cookie') ||
+          claudeResult.address?.toLowerCase().includes('fortune cookie'))
+      ) {
+        console.log(
+          'Rejecting generic Queensway location for Fortune Cookie franchise'
+        );
+      } else {
+        console.log(
+          'CLAUDE SUCCESS - ENRICHING AND RETURNING:',
+          claudeResult.address
+        );
+
+        const enrichedResult = await this.enrichLocationData(
+          claudeResult,
+          buffer,
+          analyzeLandmarks
+        );
+
+        if (claudeResult.name) {
+          const franchiseInfo =
+            await FranchiseDetector.detectFranchise(
               claudeResult.name,
               { text: claudeResult.description },
               undefined,
               claudeResult.address
             );
-            if (franchiseInfo.isFranchise) {
-              enrichedResult.franchiseId = franchiseInfo.franchiseId;
-              enrichedResult.franchiseConfidence = franchiseInfo.confidence;
-            }
+
+          if (franchiseInfo.isFranchise) {
+            enrichedResult.franchiseId =
+              franchiseInfo.franchiseId;
+            enrichedResult.franchiseConfidence =
+              franchiseInfo.confidence;
           }
-          
-          const recognitionId = await this.saveRecognition(enrichedResult, buffer, userId);
-          if (recognitionId) {
-            enrichedResult.recognitionId = recognitionId;
-          }
-          return enrichedResult;
         }
-      }
-    } catch (error) {
+
+        const recognitionId = await this.saveRecognition(
+          enrichedResult,
+          buffer,
+          userId
+        );
+
+        if (recognitionId) {
+          enrichedResult.recognitionId = recognitionId;
+        }
+
+        return enrichedResult;
       }
     }
-    
-    // 4. Always try Google Vision analysis for better accuracy
-    console.log('Ã°Å¸â€Â Step 4: Trying Google Vision analysis...');
-    let extractedAreaContext = null;
+  } catch (error) {
+    // Claude failed silently
+  }
+}
+
+// 4. Always try Google Vision analysis for better accuracy
+console.log('Step 4: Trying Google Vision analysis...');
+let extractedAreaContext = null;
+
     
     try {
       const aiResult = await Promise.race([
@@ -5758,3 +5878,8 @@ export async function OPTIONS(request: NextRequest) {
     },
   });
 }
+
+
+
+
+

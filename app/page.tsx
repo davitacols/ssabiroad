@@ -41,25 +41,34 @@ export default function HomePage() {
       ))}
       <div className="min-h-screen bg-white">
 
+      {/* Video Background */}
+      <div className="fixed top-0 left-0 w-full h-screen pointer-events-none z-0">
+        {/* Video by niko Jimsheleishvili from Pixabay */}
+        <video autoPlay loop muted playsInline className="w-full h-full object-cover">
+          <source src="/hero-video.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/70 to-white"></div>
+      </div>
+
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-stone-200">
+      <nav className="sticky top-0 z-50 bg-transparent backdrop-blur-sm">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 sm:gap-3">
+          <Link href="/" className="flex items-center gap-2 sm:gap-3 relative z-10">
             <img src="/pic2nav.png" alt="Pic2Nav" className="h-7 sm:h-9" />
-            <span className="text-sm sm:text-base font-mono tracking-wide text-stone-900 hidden sm:inline">
+            <span className="text-sm sm:text-base font-mono tracking-wide text-white font-bold hidden sm:inline">
               Pic2Nav Research
             </span>
           </Link>
 
-          <div className="hidden lg:flex items-center gap-8 xl:gap-12 text-sm font-medium">
-            <Link href="/blog" className="text-stone-700 hover:text-stone-900 transition-colors">Publications</Link>
-            <Link href="/datasets" className="text-stone-700 hover:text-stone-900 transition-colors">Datasets</Link>
-            <Link href="/research" className="text-stone-700 hover:text-stone-900 transition-colors">Research</Link>
+          <div className="hidden lg:flex items-center gap-8 xl:gap-12 text-sm font-bold relative z-10">
+            <Link href="/blog" className="text-white hover:text-stone-200 transition-colors">Publications</Link>
+            <Link href="/datasets" className="text-white hover:text-stone-200 transition-colors">Datasets</Link>
+            <Link href="/research" className="text-white hover:text-stone-200 transition-colors">Research</Link>
           </div>
 
           <Button
             variant="outline"
-            className="border-stone-900 text-stone-900 hover:bg-stone-900 hover:text-white transition-all font-medium text-sm px-3 sm:px-4"
+            className="border-white text-white hover:bg-white hover:text-stone-900 transition-all font-bold text-sm px-3 sm:px-4 relative z-10"
             asChild
           >
             <Link href="/camera">Run Model</Link>
@@ -68,97 +77,115 @@ export default function HomePage() {
       </nav>
 
       {/* Hero */}
-      <section className="py-16 sm:py-24 lg:py-32 bg-gradient-to-b from-white to-stone-50">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
-          <p className="text-xs sm:text-sm uppercase tracking-[0.2em] text-stone-500 mb-4 sm:mb-6 font-mono">
-            Computer Vision &amp; Geospatial AI
-          </p>
+      <section className="relative min-h-screen flex items-center justify-center z-10">
+        <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 text-center py-20">
+          <div className="inline-block px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full mb-8">
+            <p className="text-sm text-white font-semibold uppercase tracking-wider">
+              Computer Vision • Geospatial AI
+            </p>
+          </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.1] font-bold text-stone-900 mb-4 sm:mb-6 tracking-tight">
-            Inferring Geographic Location from Visual Data
+          <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl leading-[1.05] font-black text-white mb-8 tracking-tight">
+            Inferring Geographic
+            <br />
+            <span className="bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">Location from Visual Data</span>
           </h1>
 
-          <p className="text-lg sm:text-xl lg:text-2xl text-stone-600 leading-relaxed mb-8 sm:mb-10 max-w-[700px]">
-            Pic2Nav is a research system for extracting geographic, architectural,
-            and environmental signals from single images using multimodal AI models.
+          <p className="text-xl sm:text-2xl lg:text-3xl text-white/90 leading-relaxed mb-12 max-w-[900px] mx-auto font-medium">
+            Research system for extracting geographic, architectural, and environmental signals from images using multimodal AI
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 text-base sm:text-lg items-start sm:items-center">
-            <Link href="/camera" className="group inline-flex items-center gap-2 px-6 py-3 bg-stone-900 text-white hover:bg-stone-800 transition-colors w-full sm:w-auto justify-center">
-              Run interactive demo
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+            <Link href="/camera" className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-stone-900 hover:bg-white/90 transition-all font-bold rounded-full shadow-2xl">
+              Run Demo
               <span className="group-hover:translate-x-1 transition-transform">→</span>
             </Link>
-            <Link href="/blog" className="text-stone-700 hover:text-stone-900 underline underline-offset-4 decoration-stone-300 hover:decoration-stone-900 transition-colors">
-              Read publications
+            <Link href="/blog" className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 transition-all font-semibold rounded-full">
+              Read Publications
             </Link>
           </div>
         </div>
       </section>
 
       {/* Features */}
-      <section className="py-16 sm:py-24 lg:py-32 border-t border-stone-200 bg-white">
+      <section className="relative py-24 sm:py-32 bg-white z-10">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-8 sm:mb-12 lg:mb-16 tracking-tight text-stone-900">
-            Research Capabilities
-          </h2>
+          <div className="text-center mb-20 sm:mb-24">
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 text-stone-900">
+              Research Capabilities
+            </h2>
+            <p className="text-xl text-stone-600 max-w-[700px] mx-auto">
+              Advanced AI models for visual geolocation and environmental analysis
+            </p>
+          </div>
 
-          <ul className="space-y-8 sm:space-y-12">
-            <li className="group">
-              <div className="flex items-start gap-3 sm:gap-6">
-                <span className="font-mono text-xs text-stone-400 mt-1 min-w-[2rem] sm:min-w-[3rem]">01</span>
-                <div className="flex-1">
-                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-semibold mb-2 sm:mb-3 text-stone-900 group-hover:text-stone-600 transition-colors">Visual Geolocation</h3>
-                  <p className="text-stone-600 text-base sm:text-lg lg:text-xl leading-relaxed">
-                    Predict latitude and longitude from architectural and environmental cues using deep learning models trained on global imagery datasets.
-                  </p>
-                </div>
-              </div>
-            </li>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="group p-8 bg-stone-50 hover:bg-stone-100 transition-all rounded-2xl">
+              <div className="text-sm font-bold text-stone-400 mb-3">01</div>
+              <h3 className="text-2xl font-bold text-stone-900 mb-3">Visual Geolocation</h3>
+              <p className="text-stone-600 leading-relaxed">
+                Predict latitude and longitude from architectural and environmental cues using deep learning models trained on global imagery datasets.
+              </p>
+            </div>
 
-            <li className="group">
-              <div className="flex items-start gap-3 sm:gap-6">
-                <span className="font-mono text-xs text-stone-400 mt-1 min-w-[2rem] sm:min-w-[3rem]">02</span>
-                <div className="flex-1">
-                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-semibold mb-2 sm:mb-3 text-stone-900 group-hover:text-stone-600 transition-colors">Landmark Recognition</h3>
-                  <p className="text-stone-600 text-base sm:text-lg lg:text-xl leading-relaxed">
-                    Identify known and unknown landmarks using contrastive vision models with zero-shot classification capabilities.
-                  </p>
-                </div>
-              </div>
-            </li>
+            <div className="group p-8 bg-stone-50 hover:bg-stone-100 transition-all rounded-2xl">
+              <div className="text-sm font-bold text-stone-400 mb-3">02</div>
+              <h3 className="text-2xl font-bold text-stone-900 mb-3">Landmark Recognition</h3>
+              <p className="text-stone-600 leading-relaxed">
+                Identify known and unknown landmarks using contrastive vision models with zero-shot classification capabilities.
+              </p>
+            </div>
 
-            <li className="group">
-              <div className="flex items-start gap-3 sm:gap-6">
-                <span className="font-mono text-xs text-stone-400 mt-1 min-w-[2rem] sm:min-w-[3rem]">03</span>
-                <div className="flex-1">
-                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-semibold mb-2 sm:mb-3 text-stone-900 group-hover:text-stone-600 transition-colors">Urban &amp; Environmental Signals</h3>
-                  <p className="text-stone-600 text-base sm:text-lg lg:text-xl leading-relaxed">
-                    Infer walkability, density, and terrain characteristics from visual context through multi-task learning frameworks.
-                  </p>
-                </div>
-              </div>
-            </li>
+            <div className="group p-8 bg-stone-50 hover:bg-stone-100 transition-all rounded-2xl">
+              <div className="text-sm font-bold text-stone-400 mb-3">03</div>
+              <h3 className="text-2xl font-bold text-stone-900 mb-3">Urban &amp; Environmental Signals</h3>
+              <p className="text-stone-600 leading-relaxed">
+                Infer walkability, density, and terrain characteristics from visual context through multi-task learning frameworks.
+              </p>
+            </div>
 
-            <li className="group">
-              <div className="flex items-start gap-3 sm:gap-6">
-                <span className="font-mono text-xs text-stone-400 mt-1 min-w-[2rem] sm:min-w-[3rem]">04</span>
-                <div className="flex-1">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                    <h3 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-stone-900 group-hover:text-stone-600 transition-colors">NaviSense Model</h3>
-                    <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs sm:text-sm font-medium rounded-full inline-block w-fit">In Training</span>
-                  </div>
-                  <p className="text-stone-600 text-base sm:text-lg lg:text-xl leading-relaxed">
-                    Our proprietary transformer-based architecture currently in development that combines visual embeddings with geospatial priors for enhanced location prediction accuracy and semantic understanding of built environments.
-                  </p>
-                </div>
+            <div className="group p-8 bg-gradient-to-br from-stone-900 to-stone-800 hover:from-stone-800 hover:to-stone-700 transition-all rounded-2xl">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="text-sm font-bold text-stone-400">04</div>
+                <span className="px-3 py-1 bg-amber-500 text-white text-xs font-bold rounded-full">In Training</span>
               </div>
-            </li>
-          </ul>
+              <h3 className="text-2xl font-bold text-white mb-3">NaviSense Model</h3>
+              <p className="text-stone-300 leading-relaxed">
+                Our proprietary transformer-based architecture currently in development that combines visual embeddings with geospatial priors for enhanced location prediction accuracy and semantic understanding of built environments.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Mobile App */}
+      <section className="relative py-24 sm:py-32 bg-gradient-to-br from-stone-900 to-stone-800 z-10">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+                Take Pic2Nav Anywhere
+              </h2>
+              <p className="text-xl text-stone-300 mb-8 leading-relaxed">
+                Download our mobile app and access powerful geolocation AI directly from your phone. Analyze locations, identify landmarks, and explore the world around you.
+              </p>
+              <a href="https://play.google.com/store/apps/details?id=com.ssabiroad.pic2nav" target="_blank" rel="noopener noreferrer" className="inline-block">
+                <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" className="h-16 sm:h-20" />
+              </a>
+            </div>
+            <div className="flex justify-center lg:justify-end">
+              <div className="grid grid-cols-3 gap-4">
+                <img src="/images/app-screenshot-1.jpg" alt="App Screenshot" className="rounded-2xl shadow-2xl" />
+                <img src="/images/app-screenshot-2.jpg" alt="App Screenshot" className="rounded-2xl shadow-2xl mt-8" />
+                <img src="/images/app-screenshot-3.jpg" alt="App Screenshot" className="rounded-2xl shadow-2xl" />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Blog Posts */}
-      <section className="py-16 sm:py-24 lg:py-32 border-t border-stone-200 bg-stone-50">
+      <section className="relative py-16 sm:py-24 lg:py-32 bg-stone-50 z-10">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
           <div className="mb-8 sm:mb-12 lg:mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 tracking-tight text-stone-900">Publications</h2>
@@ -205,7 +232,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section className="py-16 sm:py-24 lg:py-32 border-t border-stone-200 bg-white">
+      <section className="relative py-16 sm:py-24 lg:py-32 border-t border-stone-200 bg-white z-10">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 text-center">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 tracking-tight text-stone-900">
             Explore the System
@@ -222,49 +249,52 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="relative border-t border-stone-200 py-12 sm:py-16 px-4 sm:px-6 bg-white">
-        <div className="max-w-[1600px] mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-8 sm:mb-12">
+      <footer className="relative bg-stone-900 py-16 sm:py-20 px-4 sm:px-6 z-10">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
             <div>
-              <h3 className="text-sm sm:text-base font-semibold text-stone-900 mb-3 sm:mb-4">Product</h3>
-              <ul className="space-y-2 sm:space-y-3">
-                <li><Link href="/camera" className="text-sm sm:text-base text-stone-600 hover:text-stone-900">Features</Link></li>
-                <li><Link href="/api-access" className="text-sm sm:text-base text-stone-600 hover:text-stone-900">Pricing</Link></li>
-                <li><Link href="/contribute" className="text-sm sm:text-base text-stone-600 hover:text-stone-900">Solutions</Link></li>
+              <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Product</h3>
+              <ul className="space-y-3">
+                <li><Link href="/camera" className="text-stone-400 hover:text-white transition-colors">Features</Link></li>
+                <li><Link href="/api-access" className="text-stone-400 hover:text-white transition-colors">Pricing</Link></li>
+                <li><Link href="/contribute" className="text-stone-400 hover:text-white transition-colors">Solutions</Link></li>
               </ul>
             </div>
             
             <div>
-              <h3 className="text-sm sm:text-base font-semibold text-stone-900 mb-3 sm:mb-4">Resources</h3>
-              <ul className="space-y-2 sm:space-y-3">
-                <li><Link href="/docs" className="text-sm sm:text-base text-stone-600 hover:text-stone-900">Documentation</Link></li>
-                <li><Link href="/api-access" className="text-sm sm:text-base text-stone-600 hover:text-stone-900">API Reference</Link></li>
-                <li><Link href="/blog" className="text-sm sm:text-base text-stone-600 hover:text-stone-900">Insights</Link></li>
+              <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Resources</h3>
+              <ul className="space-y-3">
+                <li><Link href="/docs" className="text-stone-400 hover:text-white transition-colors">Documentation</Link></li>
+                <li><Link href="/api-access" className="text-stone-400 hover:text-white transition-colors">API Reference</Link></li>
+                <li><Link href="/blog" className="text-stone-400 hover:text-white transition-colors">Insights</Link></li>
               </ul>
             </div>
             
             <div>
-              <h3 className="text-sm sm:text-base font-semibold text-stone-900 mb-3 sm:mb-4">Company</h3>
-              <ul className="space-y-2 sm:space-y-3">
-                <li><Link href="/about" className="text-sm sm:text-base text-stone-600 hover:text-stone-900">About</Link></li>
-                <li><Link href="/blog" className="text-sm sm:text-base text-stone-600 hover:text-stone-900">Blog</Link></li>
-                <li><Link href="/contribute" className="text-sm sm:text-base text-stone-600 hover:text-stone-900">Contact</Link></li>
+              <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Company</h3>
+              <ul className="space-y-3">
+                <li><Link href="/about" className="text-stone-400 hover:text-white transition-colors">About</Link></li>
+                <li><Link href="/blog" className="text-stone-400 hover:text-white transition-colors">Blog</Link></li>
+                <li><Link href="/contribute" className="text-stone-400 hover:text-white transition-colors">Contact</Link></li>
               </ul>
             </div>
             
             <div>
-              <h3 className="text-sm sm:text-base font-semibold text-stone-900 mb-3 sm:mb-4">Legal</h3>
-              <ul className="space-y-2 sm:space-y-3">
-                <li><Link href="/privacy" className="text-sm sm:text-base text-stone-600 hover:text-stone-900">Privacy</Link></li>
-                <li><Link href="/terms" className="text-sm sm:text-base text-stone-600 hover:text-stone-900">Terms</Link></li>
-                <li><Link href="/cookies" className="text-sm sm:text-base text-stone-600 hover:text-stone-900">Cookies</Link></li>
+              <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Legal</h3>
+              <ul className="space-y-3">
+                <li><Link href="/privacy" className="text-stone-400 hover:text-white transition-colors">Privacy</Link></li>
+                <li><Link href="/terms" className="text-stone-400 hover:text-white transition-colors">Terms</Link></li>
+                <li><Link href="/cookies" className="text-stone-400 hover:text-white transition-colors">Cookies</Link></li>
               </ul>
             </div>
           </div>
           
-          <div className="pt-6 sm:pt-8 border-t border-stone-200 flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4">
-            <img src="/pic2nav.png" alt="Pic2Nav" className="h-8 sm:h-10 w-auto" />
-            <p className="text-sm sm:text-base text-stone-600 text-center">© {new Date().getFullYear()} Pic2Nav. All rights reserved.</p>
+          <div className="pt-8 border-t border-stone-800 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-3">
+              <img src="/pic2nav.png" alt="Pic2Nav" className="h-8" />
+              <span className="text-stone-400 text-sm">© {new Date().getFullYear()} Pic2Nav Research</span>
+            </div>
+            <p className="text-stone-500 text-sm">All rights reserved.</p>
           </div>
         </div>
       </footer>

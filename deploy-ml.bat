@@ -1,24 +1,35 @@
 @echo off
-echo Deploying ML Server to EC2...
+echo Committing ML service changes...
+echo.
 
-set KEY=C:\Users\USER\Downloads\pic2nav-ml-key.pem
-set HOST=ubuntu@34.224.33.158
-set REMOTE_DIR=/home/ubuntu/ssabiroad/ml-models
+cd /d d:\ssabiroad
 
-echo Stopping old server...
-ssh -i "%KEY%" -o StrictHostKeyChecking=no %HOST% "pkill -f 'python.*api.main' || true"
-
-echo Uploading main.py...
-scp -i "%KEY%" -o StrictHostKeyChecking=no ml-models\api\main.py %HOST%:%REMOTE_DIR%/api/main.py
-
-echo Starting ML server...
-ssh -i "%KEY%" -o StrictHostKeyChecking=no %HOST% "cd %REMOTE_DIR% && nohup python3 -m api.main > ml_server.log 2>&1 &"
-
-echo Waiting for server to start...
-timeout /t 10 /nobreak
-
-echo Checking server status...
-ssh -i "%KEY%" -o StrictHostKeyChecking=no %HOST% "curl -s http://localhost:8000/ && echo '' && tail -20 %REMOTE_DIR%/ml_server.log"
+echo Adding files...
+git add navisense-ml/
+git add app/admin/ml-training/page.tsx
+git add app/api/location-recognition-v2/route.ts
+git add scripts/check-ready-for-training.js
+git add scripts/check-training-data.js
+git add scripts/sync-training.js
+git add scripts/test-ml-pipeline.js
+git add scripts/train-from-db.js
+git add scripts/verify-training.js
+git add .gitignore
 
 echo.
-echo Deployment complete!
+echo Committing...
+git commit -m "Add Navisense ML service with CLIP embeddings and Pinecone integration"
+
+echo.
+echo Pushing to GitHub...
+git push origin master
+
+echo.
+echo Done! Now deploy on Render:
+echo 1. Go to https://render.com
+echo 2. New Web Service
+echo 3. Connect GitHub repo
+echo 4. Root Directory: navisense-ml
+echo 5. Add environment variables from navisense-ml/DEPLOY.md
+echo.
+pause

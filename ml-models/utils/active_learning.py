@@ -187,30 +187,77 @@ class ContinuousTrainer:
         # Prepare data
         new_data_dir, count = self.active_learning.prepare_training_data()
         
-        if count < 10:
-            logger.warning("Too few samples prepared for training")
+        if count < 1:
+            logger.warning("No samples prepared for training")
             return None
         
-        # Combine with existing data
         from datetime import datetime
         version = f"active_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
         logger.info(f"Starting training cycle with {count} new samples")
         
-        # Train model (simplified - actual training would use your train_geolocation.py)
         try:
-            # This would call your actual training function
-            # train_geolocation_model(combined_data_dir, epochs=5, model_version=version)
+            # Load FAISS index and add new samples
+            from utils.clip_faiss import CLIPFAISSRetriever
+            retriever = CLIPFAISSRetriever()
+            retriever.load("faiss_index")
+            initial_size = retriever.index.ntotal
+            logger.info(f"Current index size: {initial_size}")
             
-            # Mark samples as trained
+            # Get all samples from queue
             batch = self.active_learning.get_training_batch()
-            self.active_learning.mark_trained(batch)
+            added = 0
             
-            logger.info(f"Training cycle complete: {version}")
-            return version
+            for sample in batch:
+                try:
+                    meta = sample.get("metadata", {})
+                    lat = meta.get("latitude")
+                    lng = meta.get("longitude")
+                    
+                    if lat is None or lng is None:
+                        continue
+                    
+                    # Check if image exists
+                    image_path = sample.get("image_path")
+                    if image_path and Path(image_path).exists():
+                        # Load and encode image
+                        image = Image.open(image_path).convert('RGB')
+                        embedding = retriever.encode_image(image)
+                        
+                        # Add to index
+                        metadata = {
+                            "latitude": float(lat),
+                            "longitude": float(lng),
+                            "name": meta.get("businessName") or meta.get("address") or "User Feedback",
+                            "address": meta.get("address"),
+                            "source": "user_feedback"
+                        }
+                        
+                        retriever.add_to_index(embedding, metadata)
+                        added += 1
+                except Exception as e:
+                    logger.error(f"Error adding sample: {e}")
+                    continue
+            
+            if added > 0:
+                # Save updated index
+                retriever.save_index()
+                new_size = retriever.index.ntotal
+                logger.info(f"✅ Added {added} samples to FAISS index: {initial_size} -> {new_size}")
+                
+                # Mark samples as trained
+                self.active_learning.mark_trained(batch)
+                
+                logger.info(f"Training cycle complete: {version}")
+                return version
+            else:
+                logger.warning("No samples were added to index")
+                return None
             
         except Exception as e:
             logger.error(f"Training cycle failed: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return None
     
     def schedule_training(self, check_interval_hours: int = 24):

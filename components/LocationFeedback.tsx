@@ -1,129 +1,137 @@
-'use client';
+"use client"
 
-import { useState } from 'react';
-import { submitLocationFeedback } from '@/lib/feedback-training';
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { CheckCircle2, XCircle, MapPin } from 'lucide-react'
 
-interface FeedbackProps {
-  recognitionId: string;
-  imageHash: string;
-  detectedLocation: { latitude: number; longitude: number };
-  detectedAddress: string;
-  userId?: string;
+interface LocationFeedbackProps {
+  imageUrl: string
+  latitude: number
+  longitude: number
+  address?: string
+  businessName?: string
+  onFeedbackSubmitted?: () => void
 }
 
-export function LocationFeedback({ recognitionId, imageHash, detectedLocation, detectedAddress, userId }: FeedbackProps) {
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
-  const [correctAddress, setCorrectAddress] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+export function LocationFeedback({
+  imageUrl,
+  latitude,
+  longitude,
+  address,
+  businessName,
+  onFeedbackSubmitted
+}: LocationFeedbackProps) {
+  const [showCorrection, setShowCorrection] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async () => {
-    if (!isCorrect && !correctAddress) {
-      alert('Please provide the correct address');
-      return;
-    }
-
-    setLoading(true);
+  const handleCorrect = async () => {
+    setLoading(true)
     try {
-      await submitLocationFeedback(
-        recognitionId,
-        imageHash,
-        isCorrect ? detectedLocation : { latitude: 0, longitude: 0 },
-        isCorrect ? detectedAddress : correctAddress,
-        undefined,
-        isCorrect ? 'correct' : 'corrected',
-        userId
-      );
-      setSubmitted(true);
-      setTimeout(() => setSubmitted(false), 3000);
+      await fetch('/api/navisense/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl,
+          latitude,
+          longitude,
+          address,
+          businessName,
+          wasCorrect: true,
+        })
+      })
+      setSubmitted(true)
+      onFeedbackSubmitted?.()
     } catch (error) {
-      alert('Failed to submit feedback');
+      console.error('Feedback error:', error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
+
+  const handleWrong = () => {
+    setShowCorrection(true)
+  }
+
+  const handleCorrection = async (newLat: number, newLng: number) => {
+    setLoading(true)
+    try {
+      await fetch('/api/navisense/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl,
+          latitude: newLat,
+          longitude: newLng,
+          address,
+          businessName,
+          wasCorrect: false,
+        })
+      })
+      setSubmitted(true)
+      onFeedbackSubmitted?.()
+    } catch (error) {
+      console.error('Feedback error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (submitted) {
+    return (
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+        <CheckCircle2 className="h-6 w-6 text-green-600 mx-auto mb-2" />
+        <p className="text-sm text-green-800 font-medium">
+          Thank you! Your feedback helps improve our AI.
+        </p>
+      </div>
+    )
+  }
+
+  if (showCorrection) {
+    return (
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm text-blue-900 font-medium mb-3">
+          <MapPin className="h-4 w-4 inline mr-1" />
+          Please tap the correct location on the map above
+        </p>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => setShowCorrection(false)}
+        >
+          Cancel
+        </Button>
+      </div>
+    )
+  }
 
   return (
-    <div style={{ padding: '16px', border: '1px solid #ccc', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
-      <h3 style={{ fontWeight: 'bold', marginBottom: '12px' }}>Is this correct?</h3>
-      
-      <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>{detectedAddress}</p>
-      
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-        <button
-          onClick={() => setIsCorrect(true)}
-          style={{
-            flex: 1,
-            padding: '10px',
-            borderRadius: '6px',
-            border: 'none',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            backgroundColor: isCorrect === true ? '#22c55e' : '#e5e7eb',
-            color: isCorrect === true ? 'white' : '#000'
-          }}
-        >
-          Yes
-        </button>
-        <button
-          onClick={() => setIsCorrect(false)}
-          style={{
-            flex: 1,
-            padding: '10px',
-            borderRadius: '6px',
-            border: 'none',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            backgroundColor: isCorrect === false ? '#ef4444' : '#e5e7eb',
-            color: isCorrect === false ? 'white' : '#000'
-          }}
-        >
-          No
-        </button>
-      </div>
-
-      {isCorrect === false && (
-        <div style={{ marginBottom: '16px' }}>
-          <input
-            type="text"
-            placeholder="Correct address"
-            value={correctAddress}
-            onChange={(e) => setCorrectAddress(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px',
-              marginBottom: '8px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              fontSize: '14px',
-              boxSizing: 'border-box'
-            }}
-          />
-        </div>
-      )}
-
-      {isCorrect !== null && (
-        <button
-          onClick={handleSubmit}
+    <div className="bg-stone-50 border border-stone-200 rounded-lg p-4">
+      <p className="text-sm text-stone-700 font-medium mb-3">
+        Is this location correct?
+      </p>
+      <div className="flex gap-2">
+        <Button
+          onClick={handleCorrect}
           disabled={loading}
-          style={{
-            width: '100%',
-            padding: '10px',
-            backgroundColor: loading ? '#9ca3af' : '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.6 : 1
-          }}
+          className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+          size="sm"
         >
-          {loading ? 'Submitting...' : submitted ? '✓ Submitted' : 'Submit'}
-        </button>
-      )}
+          <CheckCircle2 className="h-4 w-4 mr-2" />
+          Yes, Correct
+        </Button>
+        <Button
+          onClick={handleWrong}
+          disabled={loading}
+          variant="outline"
+          className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
+          size="sm"
+        >
+          <XCircle className="h-4 w-4 mr-2" />
+          No, Wrong
+        </Button>
+      </div>
     </div>
-  );
+  )
 }

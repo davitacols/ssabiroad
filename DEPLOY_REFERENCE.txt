@@ -1,0 +1,46 @@
+# Navisense ML - Deployment Quick Reference
+
+## 1. Commit & Push
+```bash
+cd d:\ssabiroad
+deploy-ml.bat
+```
+
+## 2. Render Setup
+- URL: https://render.com
+- New Web Service → Connect GitHub
+- Root Directory: `navisense-ml`
+- Build: `pip install -r requirements.txt`
+- Start: `python app.py`
+
+## 3. Environment Variables (Copy to Render)
+**Get these values from your local `.env` file:**
+```
+DATABASE_URL=<from_your_env>
+PINECONE_API_KEY=<from_your_env>
+PINECONE_INDEX_NAME=navisense-locations
+AWS_ACCESS_KEY_ID=<from_your_env>
+AWS_SECRET_ACCESS_KEY=<from_your_env>
+AWS_S3_REGION_NAME=us-east-1
+AWS_S3_BUCKET_NAME=pic2nav-blog-2025
+```
+
+## 4. Update Frontend
+After deployment, update `.env.local`:
+```
+NEXT_PUBLIC_ML_API_URL=https://your-service.onrender.com
+```
+
+## 5. Test
+```bash
+curl https://your-service.onrender.com/health
+```
+
+## Files Ready for Deployment
+✅ navisense-ml/app.py
+✅ navisense-ml/requirements.txt
+✅ navisense-ml/.env.example
+✅ navisense-ml/.gitignore
+✅ navisense-ml/render.yaml
+✅ app/admin/ml-training/page.tsx
+✅ scripts/*.js

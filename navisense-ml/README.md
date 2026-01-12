@@ -1,86 +1,98 @@
 # Navisense ML Service
 
-User-feedback powered location recognition using CLIP embeddings and Pinecone vector search.
-
-## Architecture
-
-- **Model**: OpenAI CLIP (ViT-B/32) for image embeddings
-- **Vector DB**: Pinecone for similarity search
-- **Framework**: FastAPI for REST API
-- **Database**: PostgreSQL for training data
+Location recognition ML service using CLIP embeddings and Pinecone vector database.
 
 ## Setup
 
-### 1. Install Dependencies
+1. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```bash
-cd navisense-ml
-pip install -r requirements.txt
-```
+2. **Configure environment**
+   - Copy `.env.example` to `.env` (already done)
+   - Ensure all credentials are set:
+     - `DATABASE_URL` - PostgreSQL connection
+     - `PINECONE_API_KEY` - Pinecone API key
+     - `AWS_ACCESS_KEY_ID` - AWS S3 access
+     - `AWS_SECRET_ACCESS_KEY` - AWS S3 secret
 
-### 2. Configure Environment
-
-Create `.env` file with:
-```
-PINECONE_API_KEY=your_key
-PINECONE_INDEX_NAME=navisense-locations
-DATABASE_URL=your_postgres_url
-```
-
-### 3. Run Locally
-
-```bash
-python app.py
-```
-
-API will be available at `http://localhost:8000`
+3. **Start the service**
+   ```bash
+   python app.py
+   ```
+   Service runs on http://localhost:8000
 
 ## API Endpoints
 
 ### GET /health
-Check service health and stats
-
-### POST /predict
-Predict location from image
-- Input: Image file (multipart/form-data)
-- Output: Location prediction with confidence
-
-### POST /sync-training
-Sync verified feedback from database to Pinecone
+Check service health and vector count
+```bash
+curl http://localhost:8000/health
+```
 
 ### GET /stats
 Get training statistics
-
-## Docker Deployment
-
-### Build Image
 ```bash
-docker build -t navisense-ml .
+curl http://localhost:8000/stats
 ```
 
-### Run Container
+### POST /predict
+Predict location from image
 ```bash
-docker run -p 8000:8000 --env-file .env navisense-ml
+curl -X POST -F "file=@image.jpg" http://localhost:8000/predict
 ```
 
-## AWS Lambda Deployment (Coming Soon)
+### POST /train
+Add single training sample
+```bash
+curl -X POST -F "file=@image.jpg" http://localhost:8000/train
+```
 
-For serverless deployment with lower costs.
+### POST /sync-training
+Sync verified locations from database (downloads images, generates embeddings, stores in Pinecone)
+```bash
+curl -X POST http://localhost:8000/sync-training
+```
 
 ## Training Pipeline
 
-1. Users submit feedback (correct/incorrect)
-2. Verified locations stored in PostgreSQL
-3. Cron job runs `/sync-training` weekly
-4. CLIP embeddings generated and stored in Pinecone
-5. New predictions use similarity search
+1. **User uploads image** → Location recognition API
+2. **System detects location** → Stores in `location_recognitions` table
+3. **User provides feedback** → Stores in `location_feedback` table
+4. **Cron job or manual trigger** → Calls `/sync-training`
+5. **Service processes**:
+   - Downloads images from S3
+   - Generates CLIP embeddings
+   - Stores in Pinecone with metadata
+6. **Model improves** → Better predictions for similar locations
 
-## Current Status
+## Testing
 
-- ✅ CLIP model integration
-- ✅ Pinecone vector database
-- ✅ Prediction endpoint
-- ✅ Database sync endpoint
-- ⏳ Image storage integration (S3)
-- ⏳ Automated training pipeline
-- ⏳ AWS Lambda deployment
+Run the complete pipeline test:
+```bash
+cd d:\ssabiroad
+node scripts\test-ml-pipeline.js
+```
+
+## Architecture
+
+- **Model**: CLIP ViT-B/32 (512-dimensional embeddings)
+- **Vector DB**: Pinecone (cosine similarity search)
+- **Storage**: AWS S3 (images)
+- **Database**: PostgreSQL (metadata, feedback)
+- **Framework**: FastAPI + PyTorch
+
+## Troubleshooting
+
+### SSL Certificate Error
+The service automatically downloads AWS RDS CA certificate on first run.
+
+### S3 Access Error
+Verify AWS credentials in `.env` file and S3 bucket permissions.
+
+### Out of Memory
+CLIP model requires ~1GB RAM. Consider using CPU mode or smaller batch sizes.
+
+### Pinecone Connection
+Check API key and ensure index `navisense-locations` exists.

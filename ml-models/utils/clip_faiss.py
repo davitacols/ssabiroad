@@ -82,7 +82,11 @@ class CLIPFAISSRetriever:
         path = Path(path)
         if (path / "index.faiss").exists():
             self.index = faiss.read_index(str(path / "index.faiss"))
+            logger.info(f"Loaded FAISS index with {self.index.ntotal} vectors")
         if (path / "metadata.pkl").exists():
             with open(path / "metadata.pkl", "rb") as f:
                 self.metadata = pickle.load(f)
-        logger.info(f"Loaded index with {len(self.metadata)} entries")
+            logger.info(f"Loaded metadata with {len(self.metadata)} entries")
+        else:
+            logger.warning(f"metadata.pkl not found at {path}")
+            self.metadata = []

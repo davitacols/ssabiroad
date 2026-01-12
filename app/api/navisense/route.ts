@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const ML_API_URL = process.env.ML_API_URL || 'http://52.91.173.191:8000';
+const ML_API_URL = process.env.ML_API_URL;
 
 export async function POST(request: NextRequest) {
   try {
+    // If ML API is disabled, return no location found
+    if (!ML_API_URL) {
+      return NextResponse.json({ 
+        hasLocation: false, 
+        message: 'ML API disabled - using fallback methods' 
+      });
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
     
@@ -23,8 +31,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message || 'Prediction failed' },
-      { status: 500 }
+      { 
+        hasLocation: false, 
+        error: error.message || 'ML prediction failed',
+        message: 'Falling back to other methods'
+      },
+      { status: 200 } // Return 200 to allow fallback
     );
   }
 }

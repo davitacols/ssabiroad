@@ -1,6 +1,8 @@
 import os
 import io
 import hashlib
+import ssl
+import urllib.request
 from typing import Optional
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,8 +13,27 @@ from pinecone import Pinecone, ServerlessSpec
 import psycopg2
 from dotenv import load_dotenv
 import numpy as np
+import boto3
+from botocore.exceptions import ClientError
 
 load_dotenv()
+
+# Download AWS RDS CA certificate if not exists
+RDS_CA_CERT_PATH = "rds-ca-2019-root.pem"
+if not os.path.exists(RDS_CA_CERT_PATH):
+    print("Downloading AWS RDS CA certificate...")
+    url = "https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem"
+    urllib.request.urlretrieve(url, RDS_CA_CERT_PATH)
+    print("AWS RDS CA certificate downloaded")
+
+# Initialize S3 client
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+    region_name=os.getenv('AWS_S3_REGION_NAME', 'us-east-1')
+)
+S3_BUCKET = os.getenv('AWS_S3_BUCKET_NAME', 'pic2nav-blog-2025')
 
 app = FastAPI(title="Navisense ML API")
 
@@ -50,7 +71,34 @@ index = pc.Index(index_name)
 print(f"Connected to Pinecone index: {index_name}")
 
 def get_db_connection():
-    return psycopg2.connect(os.getenv("DATABASE_URL"))
+    db_url = os.getenv("DATABASE_URL")
+    db_url = db_url.replace('?sslmode=require', '').replace('&sslmode=require', '')
+    return psycopg2.connect(db_url, sslmode='require', sslrootcert=RDS_CA_CERT_PATH)
+
+def download_image_from_s3(image_url: str) -> Optional[Image.Image]:
+    """Download image from S3 URL"""
+    try:
+        # Extract S3 key from URL
+        # Format: https://pic2nav-blog-2025.s3.amazonaws.com/path/to/image.jpg
+        if '.s3.amazonaws.com/' in image_url:
+            s3_key = image_url.split('.s3.amazonaws.com/')[-1]
+        elif '.s3.' in image_url and '.amazonaws.com/' in image_url:
+            s3_key = image_url.split('.amazonaws.com/')[-1]
+        else:
+            print(f"Invalid S3 URL format: {image_url}")
+            return None
+        
+        # Download from S3
+        response = s3_client.get_object(Bucket=S3_BUCKET, Key=s3_key)
+        image_bytes = response['Body'].read()
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        return image
+    except ClientError as e:
+        print(f"S3 download error: {e}")
+        return None
+    except Exception as e:
+        print(f"Image processing error: {e}")
+        return None
 
 def generate_embedding(image: Image.Image):
     """Generate CLIP embedding for an image"""
@@ -146,8 +194,33 @@ async def predict_location(file: UploadFile = File(...)):
 async def add_training_data(file: UploadFile = File(...)):
     """Add new training data to vector database"""
     try:
-        # This endpoint will be called by a cron job to process feedback data
-        return {"message": "Training endpoint - use /sync-training for batch processing"}
+        # Read and process image
+        image_bytes = await file.read()
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        
+        # Generate embedding
+        embedding = generate_embedding(image)
+        
+        # Generate unique ID from image hash
+        image_hash = calculate_image_hash(image_bytes)
+        
+        # Store in Pinecone (metadata should be provided via form data in production)
+        index.upsert(
+            vectors=[{
+                "id": image_hash,
+                "values": embedding,
+                "metadata": {
+                    "imageHash": image_hash,
+                    "source": "manual_upload"
+                }
+            }]
+        )
+        
+        return {
+            "success": True,
+            "imageHash": image_hash,
+            "message": "Training data added successfully"
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -162,35 +235,65 @@ async def sync_training_data():
         cur.execute("""
             SELECT 
                 lr.id,
-                lr.image_url,
+                lr."imageUrl",
                 lr.latitude,
                 lr.longitude,
-                lr.address,
-                lr.business_name,
-                lf.is_correct
+                lr."detectedAddress",
+                lr."businessName",
+                lf."wasCorrect"
             FROM location_recognitions lr
             LEFT JOIN location_feedback lf ON lr.id = lf."recognitionId"
-            WHERE lf.is_correct = true
-            AND lr.image_url IS NOT NULL
+            WHERE lf."wasCorrect" = true
+            AND lr."imageUrl" IS NOT NULL
         """)
         
         rows = cur.fetchall()
         synced_count = 0
+        failed_count = 0
+        skipped_count = 0
         
         for row in rows:
-            rec_id, image_url, lat, lng, address, business_name, is_correct = row
+            rec_id, image_url, lat, lng, address, business_name, was_correct = row
             
             # Check if already in Pinecone
             try:
-                existing = index.fetch(ids=[rec_id])
-                if rec_id in existing.vectors:
-                    continue  # Skip if already synced
+                existing = index.fetch(ids=[str(rec_id)])
+                if str(rec_id) in existing.vectors:
+                    skipped_count += 1
+                    continue
             except:
                 pass
             
-            # TODO: Download image from S3 and generate embedding
-            # For now, we'll skip this and handle it in a separate process
-            synced_count += 1
+            # Download image from S3
+            image = download_image_from_s3(image_url)
+            if image is None:
+                print(f"Failed to download image for {rec_id}")
+                failed_count += 1
+                continue
+            
+            # Generate embedding
+            try:
+                embedding = generate_embedding(image)
+                
+                # Store in Pinecone
+                index.upsert(
+                    vectors=[{
+                        "id": str(rec_id),
+                        "values": embedding,
+                        "metadata": {
+                            "latitude": str(lat),
+                            "longitude": str(lng),
+                            "address": address or "",
+                            "businessName": business_name or "",
+                            "imageUrl": image_url
+                        }
+                    }]
+                )
+                synced_count += 1
+                print(f"Synced {rec_id}: {business_name or address}")
+            except Exception as e:
+                print(f"Failed to process {rec_id}: {e}")
+                failed_count += 1
         
         cur.close()
         conn.close()
@@ -198,10 +301,15 @@ async def sync_training_data():
         return {
             "success": True,
             "synced": synced_count,
-            "message": f"Synced {synced_count} verified locations"
+            "skipped": skipped_count,
+            "failed": failed_count,
+            "message": f"Synced {synced_count} locations, skipped {skipped_count}, failed {failed_count}"
         }
         
     except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        print(f"Error in sync_training_data: {error_detail}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/stats")
@@ -214,7 +322,7 @@ def get_stats():
         cur.execute("SELECT COUNT(*) FROM location_recognitions")
         total_recognitions = cur.fetchone()[0]
         
-        cur.execute("SELECT COUNT(*) FROM location_feedback WHERE is_correct = true")
+        cur.execute("SELECT COUNT(*) FROM location_feedback WHERE \"wasCorrect\" = true")
         verified_count = cur.fetchone()[0]
         
         cur.close()
@@ -226,7 +334,7 @@ def get_stats():
             "total_recognitions": total_recognitions,
             "verified_feedback": verified_count,
             "vectors_in_pinecone": stats.total_vector_count,
-            "ready_for_training": verified_count - stats.total_vector_count
+            "ready_for_training": max(0, verified_count - stats.total_vector_count)
         }
         
     except Exception as e:

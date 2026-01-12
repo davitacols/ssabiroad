@@ -2,12 +2,22 @@ services:
   - type: web
     name: navisense-ml
     env: python
+    region: oregon
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: python app.py
     envVars:
+      - key: DATABASE_URL
+        sync: false
       - key: PINECONE_API_KEY
         sync: false
       - key: PINECONE_INDEX_NAME
         value: navisense-locations
-      - key: DATABASE_URL
+      - key: AWS_ACCESS_KEY_ID
         sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_S3_REGION_NAME
+        value: us-east-1
+      - key: AWS_S3_BUCKET_NAME
+        value: pic2nav-blog-2025

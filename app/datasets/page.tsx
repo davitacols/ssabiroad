@@ -26,12 +26,12 @@ export default function DatasetsPage() {
     },
     {
       name: "Landmark-Recognition-50K",
-      description: "Diverse landmark dataset covering famous and local landmarks across multiple continents.",
-      size: "50,000 images",
+      description: "Diverse landmark dataset covering famous and local landmarks across multiple continents. Now integrated with Google Vision API for real-time landmark detection.",
+      size: "50,000 images (target)",
       format: "JPEG, JSON",
       license: "Research Use",
-      status: "Coming Soon",
-      features: ["Landmark names", "Geographic regions", "Historical context", "Visual features"]
+      status: "In Collection",
+      features: ["Landmark names", "Geographic regions", "GPS coordinates", "Visual features", "API Integration"]
     }
   ]
 
@@ -93,6 +93,8 @@ export default function DatasetsPage() {
                       <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
                         dataset.status === "Available" 
                           ? "bg-green-100 text-green-800" 
+                          : dataset.status === "In Collection"
+                          ? "bg-blue-100 text-blue-800"
                           : "bg-amber-100 text-amber-800"
                       }`}>
                         {dataset.status}

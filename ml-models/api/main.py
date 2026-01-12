@@ -16,6 +16,15 @@ from utils.active_learning import ActiveLearningPipeline
 from loguru import logger
 import time
 
+# Import landmark endpoint (optional)
+try:
+    from landmark_endpoint import router as landmark_router
+    LANDMARK_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Landmark endpoint not available: {e}")
+    LANDMARK_AVAILABLE = False
+    landmark_router = None
+
 app = FastAPI(title="NaviSense AI - Intelligent Location Recognition", version="1.0.0", description="Powered by SSABIRoad")
 
 app.add_middleware(
@@ -25,6 +34,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include landmark recognition router (if available)
+if LANDMARK_AVAILABLE and landmark_router:
+    app.include_router(landmark_router, tags=["landmarks"])
+    logger.info("Landmark recognition endpoint enabled")
+else:
+    logger.warning("Landmark recognition endpoint disabled - using stub")
+    
+    # Stub endpoint for landmark recognition
+    @app.post("/recognize-landmark")
+    async def recognize_landmark_stub(image: UploadFile = File(...)):
+        """Stub endpoint - landmark recognition not available"""
+        return {
+            "success": False,
+            "error": "Landmark recognition model not loaded",
+            "landmarks": [],
+            "message": "This feature requires additional ML models to be installed"
+        }
 
 # Initialize components
 pipeline = None
