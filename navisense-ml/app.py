@@ -31,6 +31,21 @@ def generate_embedding(image: Image.Image):
     import base64
     buffered = io.BytesIO()
     image.save(buffered, format="JPEG")
+    img_str = base64.b64encode(buffered.getvalue()).decode()
+    
+    # Try Hugging Face API first
+    HF_API_KEY = os.getenv('HUGGINGFACE_API_KEY', '')
+    if HF_API_KEY:
+        try:
+            API_URL = "https://api-inference.huggingface.co/models/openai/clip-vit-base-patch32"
+            headers = {"Authorization": f"Bearer {HF_API_KEY}"}
+            response = requests.post(API_URL, headers=headers, json={"inputs": img_str}, timeout=10)
+            if response.status_code == 200:
+                return response.json()
+        except:
+            pass
+    
+    # Fallback to hash
     img_hash = hashlib.sha256(buffered.getvalue()).hexdigest()
     return [float(int(img_hash[i:i+2], 16)) / 255.0 for i in range(0, 128, 2)][:64] + [0.0] * 448
 
