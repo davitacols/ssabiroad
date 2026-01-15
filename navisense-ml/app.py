@@ -157,6 +157,28 @@ async def predict_location(file: UploadFile = File(...)):
     try:
         image_bytes = await file.read()
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        
+        # Try exact hash match first
+        img_hash = hashlib.sha256(image_bytes).hexdigest()
+        vector_id = f"loc_{img_hash[:16]}"
+        exact_match = index.fetch(ids=[vector_id])
+        
+        if exact_match.vectors and vector_id in exact_match.vectors:
+            match = exact_match.vectors[vector_id]
+            return {
+                "success": True,
+                "hasLocation": True,
+                "location": {
+                    "latitude": float(match.metadata["latitude"]),
+                    "longitude": float(match.metadata["longitude"]),
+                    "address": match.metadata.get("address"),
+                    "businessName": match.metadata.get("businessName")
+                },
+                "confidence": 1.0,
+                "method": "exact_match"
+            }
+        
+        # Fallback to similarity search
         embedding = generate_embedding(image)
         results = index.query(vector=embedding, top_k=5, include_metadata=True)
         
@@ -180,7 +202,8 @@ async def predict_location(file: UploadFile = File(...)):
                 "address": top_match.metadata.get("address"),
                 "businessName": top_match.metadata.get("businessName")
             },
-            "confidence": float(top_match.score)
+            "confidence": float(top_match.score),
+            "method": "similarity"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

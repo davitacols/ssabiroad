@@ -5403,7 +5403,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       if (
         navisenseResult?.success &&
         navisenseResult.location &&
-        navisenseResult.confidence >= 0.85
+        navisenseResult.confidence >= 0.5
       ) {
         const { latitude, longitude } = navisenseResult.location;
         const isValidRange =
@@ -5420,7 +5420,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         // Reject obviously wrong ML predictions
         const isBadPrediction = false;
 
-        if (isValidRange && navisenseResult.confidence >= 0.7) {
+        if (isValidRange && navisenseResult.confidence >= 0.5) {
           console.log(
             'NAVISENSE SUCCESS - ENRICHING AND RETURNING:',
             navisenseResult.location
