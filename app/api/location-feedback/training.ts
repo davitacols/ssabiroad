@@ -2,24 +2,32 @@ import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();
-const ML_API_URL = process.env.ML_API_URL || 'http://34.224.33.158:8000';
+const ML_API_URL = process.env.NAVISENSE_ML_URL || process.env.NEXT_PUBLIC_ML_API_URL || 'https://ssabiroad.onrender.com';
 
 export async function trainModelWithFeedback(
   location: { latitude: number; longitude: number },
   address?: string,
-  businessName?: string
+  businessName?: string,
+  imageBuffer?: Buffer
 ): Promise<void> {
   try {
+    if (!imageBuffer) {
+      console.log('⚠️ No image provided, skipping ML training');
+      return;
+    }
+
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     
     const formData = new FormData();
+    const blob = new Blob([imageBuffer], { type: 'image/jpeg' });
+    formData.append('file', blob, 'image.jpg');
     formData.append('latitude', location.latitude.toString());
     formData.append('longitude', location.longitude.toString());
     if (address) formData.append('address', address);
     if (businessName) formData.append('businessName', businessName);
 
-    const response = await fetch(`${ML_API_URL}/feedback`, {
+    const response = await fetch(`${ML_API_URL}/train`, {
       method: 'POST',
       body: formData,
       signal: controller.signal
@@ -29,21 +37,14 @@ export async function trainModelWithFeedback(
 
     if (response.ok) {
       const result = await response.json();
-      console.log('✅ Model training with feedback initiated:', result);
-      console.log('📊 Queue size:', result.queue_size);
-      
-      if (result.queue_size >= 5) {
-        console.log('🔄 Queue size >= 5, triggering model update...');
-        fetch(`${ML_API_URL}/retrain`, { method: 'POST' })
-          .then(res => res.json())
-          .then(data => console.log('✅ Retrain triggered:', data))
-          .catch(err => console.log('❌ Retrain failed:', err.message));
-      }
+      console.log('✅ Navisense training successful:', result);
+      console.log('📊 Total vectors in Pinecone:', result.total_vectors);
     } else {
-      console.log('❌ Training failed with status:', response.status);
+      const errorText = await response.text();
+      console.log('❌ Navisense training failed:', response.status, errorText);
     }
-  } catch (error) {
-    console.log('Model training error:', error.message);
+  } catch (error: any) {
+    console.log('❌ Navisense training failed:', error.message);
   }
 }
 
@@ -163,9 +164,8 @@ export async function saveFeedback(
       if (queueItem) {
         console.log('✅ Added to training queue & NavisenseTraining');
         
-        // Send to ML API with image (disabled for now)
-        // ML API is disabled, skip sending
-        console.log('ℹ️ ML API disabled, data saved for future training');
+        // Send to Navisense ML API for immediate training
+        await trainModelWithFeedback(location, correctAddress, undefined, imageBuffer);
       }
     }
 

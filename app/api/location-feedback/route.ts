@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     // Train model if location and image provided
     if (location && imageBuffer) {
-      await trainModelWithFeedback(location, address);
+      await trainModelWithFeedback(location, address, undefined, imageBuffer);
     }
 
     return NextResponse.json({ 

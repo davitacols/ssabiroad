@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import * as exifParser from 'exif-parser';
 const piexif = require('piexifjs');
 import NodeCache from 'node-cache';
@@ -129,7 +129,7 @@ class LocationRecognizer {
         }
       });
       
-      console.log('Ã¢Å“â€¦ Recognition saved successfully with ID:', recognition.id);
+      console.log('âœ… Recognition saved successfully with ID:', recognition.id);
       
       try {
         const base64Image = buffer.toString('base64');
@@ -150,7 +150,7 @@ class LocationRecognizer {
       
       return recognition.id;
     } catch (error) {
-      console.error('Ã¢ÂÅ’ Failed to save recognition to database:', error);
+      console.error('âŒ Failed to save recognition to database:', error);
       console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
       return null;
     }
@@ -158,7 +158,7 @@ class LocationRecognizer {
 
   // Enhanced EXIF GPS extraction with multiple methods
   extractGPS(buffer: Buffer): LocationResult | null {
-    console.log('Ã°Å¸â€Â Extracting GPS from buffer, size:', buffer.length);
+    console.log('ðŸ” Extracting GPS from buffer, size:', buffer.length);
     
     try {
       // Method 1: Try piexifjs (most reliable for GPS)
@@ -210,7 +210,7 @@ class LocationRecognizer {
             console.log('Converted coordinates:', { lat, lng });
             
             if (this.isValidCoordinate(lat, lng)) {
-              console.log('Ã¢Å“â€¦ VALID GPS COORDINATES FROM PIEXIFJS:', { lat, lng });
+              console.log('âœ… VALID GPS COORDINATES FROM PIEXIFJS:', { lat, lng });
               return {
                 success: true,
                 name: 'GPS Location (EXIF)',
@@ -299,7 +299,7 @@ class LocationRecognizer {
             !isNaN(lat) && !isNaN(lng) && 
             lat !== 0 && lng !== 0 &&
             lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-          console.log('Ã¢Å“â€¦ VALID EXIF GPS COORDINATES FOUND:', { lat, lng });
+          console.log('âœ… VALID EXIF GPS COORDINATES FOUND:', { lat, lng });
           return {
             success: true,
             name: 'GPS Location (EXIF)',
@@ -308,7 +308,7 @@ class LocationRecognizer {
             method: 'exif-gps-standard'
           };
         } else {
-          console.log('Ã¢ÂÅ’ GPS coordinates failed validation:', {
+          console.log('âŒ GPS coordinates failed validation:', {
             lat, lng,
             lat_valid: lat !== null && !isNaN(lat) && lat !== 0 && lat >= -90 && lat <= 90,
             lng_valid: lng !== null && !isNaN(lng) && lng !== 0 && lng >= -180 && lng <= 180
@@ -341,7 +341,7 @@ class LocationRecognizer {
           console.log('Found EXIF marker at position:', exifMarker);
           const gpsFromRaw = this.extractGPSFromRawEXIF(buffer, exifMarker);
           if (gpsFromRaw) {
-            console.log('Ã¢Å“â€¦ EXTRACTED GPS FROM RAW EXIF:', gpsFromRaw);
+            console.log('âœ… EXTRACTED GPS FROM RAW EXIF:', gpsFromRaw);
             return {
               success: true,
               name: 'GPS Location (Raw EXIF)',
@@ -355,12 +355,12 @@ class LocationRecognizer {
         console.log('Raw EXIF extraction failed:', rawError.message);
       }
       
-      console.log('Ã¢ÂÅ’ No valid GPS data found in EXIF - all methods failed');
+      console.log('âŒ No valid GPS data found in EXIF - all methods failed');
     } catch (error) {
       console.log('GPS extraction error:', error.message);
       console.log('GPS extraction error stack:', error.stack);
     }
-    console.log('Ã°Å¸â€Â GPS extraction complete - no valid coordinates found');
+    console.log('ðŸ” GPS extraction complete - no valid coordinates found');
     return null;
   }
   
@@ -497,7 +497,7 @@ class LocationRecognizer {
             
             // Extra validation to reject fake coordinates
             if (lat === 20000 || lng === 100000 || lat > 1000 || lng > 1000) {
-              console.log('Ã¢ÂÅ’ Rejecting fake coordinates from pattern:', { lat, lng });
+              console.log('âŒ Rejecting fake coordinates from pattern:', { lat, lng });
               continue;
             }
             
@@ -509,7 +509,7 @@ class LocationRecognizer {
         }
       }
       
-      console.log('Ã¢ÂÅ’ No valid GPS coordinates found in binary data');
+      console.log('âŒ No valid GPS coordinates found in binary data');
     } catch (error) {
       console.log('Binary extraction error:', error);
     }
@@ -636,7 +636,7 @@ class LocationRecognizer {
         
         // Validate the coordinate before returning
         if (coordinate > 1000 || coordinate < -1000) {
-          console.log('Ã¢ÂÅ’ Rejecting invalid coordinate from rational values:', coordinate);
+          console.log('âŒ Rejecting invalid coordinate from rational values:', coordinate);
           return null;
         }
         
@@ -666,7 +666,7 @@ class LocationRecognizer {
       
       // Validate rational result - reject obviously wrong values
       if (result > 10000 || result < -10000) {
-        console.log('Ã¢ÂÅ’ Rejecting invalid rational result:', { numerator, denominator, result });
+        console.log('âŒ Rejecting invalid rational result:', { numerator, denominator, result });
         return null;
       }
       
@@ -878,10 +878,10 @@ class LocationRecognizer {
       const parser = exifParser.create(buffer);
       const result = parser.parse();
       
-      console.log('Ã°Å¸â€œâ€¦ Extracting historical data, DateTime:', result.tags?.DateTime);
+      console.log('ðŸ“… Extracting historical data, DateTime:', result.tags?.DateTime);
       
       if (!result.tags?.DateTime) {
-        console.log('Ã¢ÂÅ’ No DateTime in EXIF');
+        console.log('âŒ No DateTime in EXIF');
         return null;
       }
       
@@ -932,10 +932,10 @@ class LocationRecognizer {
         historicalContext
       };
       
-      console.log('Ã¢Å“â€¦ Historical data extracted:', historicalData);
+      console.log('âœ… Historical data extracted:', historicalData);
       return historicalData;
     } catch (error) {
-      console.log('Ã¢ÂÅ’ Historical data extraction failed:', error.message);
+      console.log('âŒ Historical data extraction failed:', error.message);
       return null;
     }
   }
@@ -1579,7 +1579,7 @@ Return JSON with the most specific location information you can identify:
             const locationMatch = responseText.match(/(?:in|located in|at)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),?\s*([A-Z][a-z]+)/i);
             const location = locationMatch ? `${landmarkName}, ${locationMatch[1]}, ${locationMatch[2]}` : landmarkName;
             
-            console.log('Ã°Å¸Ââ€ºÃ¯Â¸Â Claude identified landmark:', landmarkName);
+            console.log('ðŸ›ï¸ Claude identified landmark:', landmarkName);
             
             // Search for the landmark with lower ML threshold
             const candidates = await this.getLocationCandidates(location);
@@ -1636,7 +1636,7 @@ Return JSON with the most specific location information you can identify:
       
       // If ALL three fields are placeholders, Claude couldn't read the image - use Vision API
       if (isPlaceholder(result.address) && isPlaceholder(result.area) && isPlaceholder(result.phoneNumber)) {
-        console.log('Ã¢Å¡Â Ã¯Â¸Â Claude returned ALL placeholder responses - image not readable, falling back to Vision API');
+        console.log('âš ï¸ Claude returned ALL placeholder responses - image not readable, falling back to Vision API');
         return null;
       }
       
@@ -1648,7 +1648,7 @@ Return JSON with the most specific location information you can identify:
       
       // If business name is also placeholder or too generic, reject
       if (isPlaceholder(result.businessName) || !result.businessName || result.businessName.length < 2) {
-        console.log('Ã¢Å¡Â Ã¯Â¸Â Claude returned invalid business name - falling back to Vision API');
+        console.log('âš ï¸ Claude returned invalid business name - falling back to Vision API');
         return null;
       }
       
@@ -1669,12 +1669,12 @@ Return JSON with the most specific location information you can identify:
         
         // IMMEDIATE UK BUSINESS RETURN with multiple location search
         if (result.businessName && result.confidence >= 0.7) {
-          console.log('Ã°Å¸Å¡â‚¬ IMMEDIATE UK RETURN FOR:', result.businessName);
+          console.log('ðŸš€ IMMEDIATE UK RETURN FOR:', result.businessName);
           
           // Skip generic single-word business names that could match anywhere
           const businessWords = result.businessName.trim().split(' ');
           if (businessWords.length === 1 && ['Boulevard', 'Restaurant', 'Cafe', 'Bar', 'Shop', 'Store', 'Results'].includes(businessWords[0])) {
-            console.log('Ã¢ÂÅ’ Skipping generic single-word business name:', result.businessName);
+            console.log('âŒ Skipping generic single-word business name:', result.businessName);
             // Continue to normal search flow
           } else {
             // Extract core business name
@@ -1743,7 +1743,7 @@ Return JSON with the most specific location information you can identify:
         
         if ((result.address === 'N/A' && result.area === 'N/A' && result.phoneNumber === 'N/A') ||
             (hasPlaceholderAddress && hasPlaceholderArea && hasPlaceholderPhone)) {
-          console.log('Ã¢Å¡Â Ã¯Â¸Â Claude returned placeholder/N/A responses - image likely not readable, falling back to vision API');
+          console.log('âš ï¸ Claude returned placeholder/N/A responses - image likely not readable, falling back to vision API');
           return null; // Fall through to vision API analysis
         }
         
@@ -1763,7 +1763,7 @@ Return JSON with the most specific location information you can identify:
         // Skip generic single-word business names that could match anywhere
         const businessWords = cleanBusinessName.trim().split(' ');
         if (businessWords.length === 1 && ['Boulevard', 'Restaurant', 'Cafe', 'Bar', 'Shop', 'Store', 'Hotel', 'Market'].includes(businessWords[0])) {
-          console.log('Ã¢ÂÅ’ Skipping generic single-word business name:', cleanBusinessName);
+          console.log('âŒ Skipping generic single-word business name:', cleanBusinessName);
           return null;
         }
         
@@ -1825,7 +1825,7 @@ Return JSON with the most specific location information you can identify:
           });
           if (businessKey) {
             knownFix = knownFixes[businessKey];
-            console.log(`Ã°Å¸â€Â Partial match found: "${cleanBusinessName}" -> "${businessKey}"`);
+            console.log(`ðŸ” Partial match found: "${cleanBusinessName}" -> "${businessKey}"`);
           }
         }
         
@@ -1837,18 +1837,18 @@ Return JSON with the most specific location information you can identify:
             address: '94 Alexandra Park Road, London N10 2AE, UK',
             validationPhone: null
           };
-          console.log('Ã°Å¸â€Â Applied Results fix for Alexandra Park Road');
+          console.log('ðŸ” Applied Results fix for Alexandra Park Road');
         }
         
         if (knownFix) {
           // Validate phone number if required
           if (knownFix.phoneValidation === 'required' && knownFix.validationPhone) {
             if (!result.phoneNumber || !result.phoneNumber.includes(knownFix.validationPhone.replace(/\s/g, ''))) {
-              console.log('Ã¢Å¡Â Ã¯Â¸Â Phone validation failed for known location - phone mismatch');
+              console.log('âš ï¸ Phone validation failed for known location - phone mismatch');
               // Continue to normal search instead of using known fix
             } else {
-              console.log('Ã¢Å“â€¦ Phone validation passed for known location');
-              console.log('Ã°Å¸Å½Â¯ KNOWN LOCATION FIX APPLIED:', knownFix.address);
+              console.log('âœ… Phone validation passed for known location');
+              console.log('ðŸŽ¯ KNOWN LOCATION FIX APPLIED:', knownFix.address);
               return {
                 success: true,
                 name: knownFix.name,
@@ -1866,7 +1866,7 @@ Return JSON with the most specific location information you can identify:
               };
             }
           } else {
-            console.log('Ã°Å¸Å½Â¯ KNOWN LOCATION FIX APPLIED:', knownFix.address);
+            console.log('ðŸŽ¯ KNOWN LOCATION FIX APPLIED:', knownFix.address);
             return {
               success: true,
               name: knownFix.name,
@@ -1934,7 +1934,7 @@ Return JSON with the most specific location information you can identify:
             searchQueries.unshift(`96 Alexandra Park Road ${cleanBusinessName}`);
             searchQueries.unshift(`${cleanBusinessName} 96 Alexandra Park Road London N10`);
             searchQueries.unshift(`${cleanBusinessName} 96 Alexandra Park Rd Muswell Hill`);
-            console.log('Ã°Å¸Å½Â¯ PRIORITIZING ADDRESS-SPECIFIC SEARCH: 96 Alexandra Park Road');
+            console.log('ðŸŽ¯ PRIORITIZING ADDRESS-SPECIFIC SEARCH: 96 Alexandra Park Road');
           } else if (addressContext.includes('broadwick') || addressContext.includes('soho')) {
             searchQueries.push(`${cleanBusinessName} Broadwick Street London`);
             searchQueries.push(`${cleanBusinessName} Soho London`);
@@ -2016,7 +2016,7 @@ Return JSON with the most specific location information you can identify:
                 // VALIDATE: Ensure location matches image content before returning
                 const isValid = await SceneValidator.validateCandidateWithScene(buffer, location, cleanBusinessName);
                 if (isValid) {
-                  console.log('Ã¢Å“â€¦ CLAUDE SUCCESS - LOCATION VALIDATED:', addressValidation);
+                  console.log('âœ… CLAUDE SUCCESS - LOCATION VALIDATED:', addressValidation);
                   return {
                     success: true,
                     name: cleanBusinessName,
@@ -2027,24 +2027,24 @@ Return JSON with the most specific location information you can identify:
                     description: `Address match: ${cleanBusinessName}`
                   };
                 } else {
-                  console.log('Ã¢ÂÅ’ Location validation failed - image does not match location');
+                  console.log('âŒ Location validation failed - image does not match location');
                 }
               }
             }
           }
         }
-        console.log('Ã¢Å¡Â Ã¯Â¸Â All address searches completed without valid result');
+        console.log('âš ï¸ All address searches completed without valid result');
         return null;
         
         // Execute priority searches FIRST if we have address context
         const hasPrioritySearches = searchQueries.some(q => q.includes('96 Alexandra Park Road'));
         
         if (hasPrioritySearches) {
-          console.log('Ã°Å¸Å¡â‚¬ EXECUTING PRIORITY ADDRESS SEARCHES FIRST');
+          console.log('ðŸš€ EXECUTING PRIORITY ADDRESS SEARCHES FIRST');
           const priorityQueries = searchQueries.filter(q => q.includes('96 Alexandra Park Road'));
           
           for (const searchQuery of priorityQueries) {
-            console.log('Ã°Å¸Å½Â¯ Priority search:', searchQuery);
+            console.log('ðŸŽ¯ Priority search:', searchQuery);
             
             try {
               const candidates = await this.getLocationCandidates(searchQuery);
@@ -2063,7 +2063,7 @@ Return JSON with the most specific location information you can identify:
                   
                   const addressValidation = await this.validateFoundLocation(location, cleanBusinessName, result.phoneNumber);
                   if (addressValidation && addressValidation.includes('Alexandra Park')) {
-                    console.log('Ã¢Å“â€¦ PRIORITY SEARCH SUCCESS:', addressValidation);
+                    console.log('âœ… PRIORITY SEARCH SUCCESS:', addressValidation);
                     
                     // Verify location with multiple sources
                     const verification = await LocationVerifier.verifyLocation(cleanBusinessName, {
@@ -2096,7 +2096,7 @@ Return JSON with the most specific location information you can identify:
               continue;
             }
           }
-          console.log('Ã¢Å¡Â Ã¯Â¸Â Priority searches completed but no Alexandra Park Road found');
+          console.log('âš ï¸ Priority searches completed but no Alexandra Park Road found');
         }
         
         // Detect country context from available data
@@ -2121,7 +2121,7 @@ Return JSON with the most specific location information you can identify:
               areaText.includes('modern urban') ||
               (result.address && result.address.match(/^\d{3,4}$/))) { // 3-4 digit addresses common in US
             countryContext = 'USA';
-            console.log('Ã°Å¸â€¡ÂºÃ°Å¸â€¡Â¸ US context detected from architectural/address patterns');
+            console.log('ðŸ‡ºðŸ‡¸ US context detected from architectural/address patterns');
           }
         }
         
@@ -2195,7 +2195,7 @@ Return JSON with the most specific location information you can identify:
       console.error('- Full error:', error);
       
       if (error.status === 401) {
-        console.error('Ã¢ÂÅ’ AUTHENTICATION FAILED - Invalid API key');
+        console.error('âŒ AUTHENTICATION FAILED - Invalid API key');
         // Return specific 401 error for client handling
         return {
           success: false,
@@ -2204,11 +2204,11 @@ Return JSON with the most specific location information you can identify:
           confidence: 0
         };
       } else if (error.status === 429) {
-        console.error('Ã¢ÂÅ’ RATE LIMIT EXCEEDED');
+        console.error('âŒ RATE LIMIT EXCEEDED');
       } else if (error.status === 400) {
-        console.error('Ã¢ÂÅ’ BAD REQUEST - Check image format');
+        console.error('âŒ BAD REQUEST - Check image format');
       } else if (error.status === 529) {
-        console.error('Ã¢ÂÅ’ SERVICE OVERLOADED - Anthropic servers are busy');
+        console.error('âŒ SERVICE OVERLOADED - Anthropic servers are busy');
       }
     }
     return null;
@@ -2291,7 +2291,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       // Check image quality first
       const quality = await OpenCVProcessor.checkQuality(buffer);
       if (!quality.isGood) {
-        console.log('Ã¢Å¡Â Ã¯Â¸Â Image quality warning:', quality.reason);
+        console.log('âš ï¸ Image quality warning:', quality.reason);
       }
       
       // Optimize large images for faster processing
@@ -2327,7 +2327,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         correctPerspective: true,
         denoise: true
       });
-      console.log('Ã¢Å“â€¦ OpenCV preprocessing complete');
+      console.log('âœ… OpenCV preprocessing complete');
       
       // OPTIMIZED image analysis - prioritize landmark detection for famous sites
       const [landmarkResult, textResult, logoResult, labelResult] = await Promise.allSettled([
@@ -2446,7 +2446,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
             
             // Accept all valid coordinates for landmarks
             if (lat !== 0 && lng !== 0 && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-              console.log('Ã¢Å“â€¦ Valid landmark coordinates:', { lat, lng });
+              console.log('âœ… Valid landmark coordinates:', { lat, lng });
               return {
                 success: true,
                 name: landmark.description,
@@ -2456,11 +2456,11 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
                 description: `Landmark: ${landmark.description}`
               };
             } else {
-              console.log(`Ã¢ÂÅ’ Invalid landmark coordinates: ${landmark.description} (${lat}, ${lng})`);
+              console.log(`âŒ Invalid landmark coordinates: ${landmark.description} (${lat}, ${lng})`);
             }
           } else if (landmark.description) {
             // Landmark detected but no coordinates - search for it
-            console.log('Ã°Å¸â€Â Landmark detected without coordinates, searching:', landmark.description);
+            console.log('ðŸ” Landmark detected without coordinates, searching:', landmark.description);
             const landmarkLocation = await this.searchBusinessByName(landmark.description);
             if (landmarkLocation) {
               return {
@@ -2525,7 +2525,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         for (const pattern of landmarkPatterns) {
           const match = enhancedText.match(pattern);
           if (match) {
-            console.log('Ã°Å¸Ââ€ºÃ¯Â¸Â Major landmark detected:', match[0]);
+            console.log('ðŸ›ï¸ Major landmark detected:', match[0]);
             const landmarkLocation = await this.searchBusinessByName(match[0] + ' London');
             if (landmarkLocation) {
               return {
@@ -2542,11 +2542,11 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         
         // DEEP scene analysis - extract every visual clue (with fallback for failed detections)
         const deepSceneContext = this.analyzeDeepSceneContext(objectResult, logoResult, labelResult, webResult, faceResult, enhancedText);
-        console.log('Ã°Å¸â€Â DEEP scene analysis:', deepSceneContext);
+        console.log('ðŸ” DEEP scene analysis:', deepSceneContext);
         
         // Extract architectural and environmental clues
         const visualClues = this.extractVisualLocationClues(deepSceneContext, enhancedText);
-        console.log('Ã°Å¸Ââ€”Ã¯Â¸Â Visual location clues:', visualClues);
+        console.log('ðŸ—ï¸ Visual location clues:', visualClues);
         
         const [businessName, address, addressWithPhone, streetAddress, locationContext, geographicClues] = await Promise.allSettled([
           Promise.resolve(this.extractBusinessName(enhancedText)),
@@ -2568,7 +2568,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
           console.log('Enhanced business name extraction:', businessNameValue);
         } else if (businessNameValue && (businessNameValue.includes('PLACE') || businessNameValue.includes('ROAD') || businessNameValue.includes('STREET'))) {
           // Fallback: Look for actual business names in the text
-          const actualBusinessNames = enhancedText.match(/\b(CAFÃƒâ€°|CAFE|DENTAL|SUITE|RESTAURANT|SHOP|STORE|MARKET)\b/gi);
+          const actualBusinessNames = enhancedText.match(/\b(CAFÃ‰|CAFE|DENTAL|SUITE|RESTAURANT|SHOP|STORE|MARKET)\b/gi);
           if (actualBusinessNames) {
             // Find business name before the type
             const businessPattern = new RegExp(`([A-Z]+(?:\s+[A-Z]+)*)\s+${actualBusinessNames[0]}`, 'i');
@@ -2598,7 +2598,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         
         if (fullAddressMatch) {
           const fullAddress = fullAddressMatch[0].trim();
-          console.log('Ã°Å¸â€œÂ FULL ADDRESS DETECTED IN IMAGE:', fullAddress);
+          console.log('ðŸ“ FULL ADDRESS DETECTED IN IMAGE:', fullAddress);
           
           const geocoded = await withTimeout(this.geocodeAddress(fullAddress), 2000).catch(() => null);
           
@@ -2618,7 +2618,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         // Check for UK postcode - if found, force UK geocoding with full address
         const ukPostcodeMatch = enhancedText.match(/\b[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}\b/i);
         if (ukPostcodeMatch) {
-          console.log('Ã°Å¸â€¡Â¬Ã°Å¸â€¡Â§ UK POSTCODE DETECTED:', ukPostcodeMatch[0], '- FORCING UK GEOCODING');
+          console.log('ðŸ‡¬ðŸ‡§ UK POSTCODE DETECTED:', ukPostcodeMatch[0], '- FORCING UK GEOCODING');
           
           // Try full address with postcode first
           const fullAddressQueries = [];
@@ -2634,7 +2634,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
             ).catch(() => null);
             
             if (postcodeLocation) {
-              console.log('Ã¢Å“â€¦ UK address geocoded:', query);
+              console.log('âœ… UK address geocoded:', query);
               return {
                 success: true,
                 name: businessNameValue || streetAddressValue || ukPostcodeMatch[0],
@@ -2684,7 +2684,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
                               enhancedText.toLowerCase().includes('zip code');
           
           if (hasUKContext) {
-            console.log('Ã°Å¸â€¡Â¬Ã°Å¸â€¡Â§ UK CONTEXT DETECTED - SEARCHING UK');
+            console.log('ðŸ‡¬ðŸ‡§ UK CONTEXT DETECTED - SEARCHING UK');
             const ukQueries = [
               `${businessNameValue} UK`,
               `${businessNameValue} London`,
@@ -2692,14 +2692,14 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
             ];
             
             for (const ukQuery of ukQueries) {
-              console.log('Ã°Å¸â€Â Trying UK search:', ukQuery);
+              console.log('ðŸ” Trying UK search:', ukQuery);
               const ukLocation = await withTimeout(
                 this.searchBusinessByName(ukQuery),
                 2000
               ).catch(() => null);
               
               if (ukLocation) {
-                console.log('Ã¢Å“â€¦ FOUND UK LOCATION!');
+                console.log('âœ… FOUND UK LOCATION!');
                 return {
                   success: true,
                   name: businessNameValue,
@@ -2710,9 +2710,9 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
                 };
               }
             }
-            console.log('Ã¢ÂÅ’ UK searches failed, continuing with normal flow');
+            console.log('âŒ UK searches failed, continuing with normal flow');
           } else if (hasUSContext) {
-            console.log('Ã°Å¸â€¡ÂºÃ°Å¸â€¡Â¸ US CONTEXT DETECTED - SEARCHING US');
+            console.log('ðŸ‡ºðŸ‡¸ US CONTEXT DETECTED - SEARCHING US');
             const usQueries = [
               `${businessNameValue} USA`,
               `${businessNameValue} United States`,
@@ -2720,14 +2720,14 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
             ];
             
             for (const usQuery of usQueries) {
-              console.log('Ã°Å¸â€Â Trying US search:', usQuery);
+              console.log('ðŸ” Trying US search:', usQuery);
               const usLocation = await withTimeout(
                 this.searchBusinessByName(usQuery),
                 2000
               ).catch(() => null);
               
               if (usLocation) {
-                console.log('Ã¢Å“â€¦ FOUND US LOCATION!');
+                console.log('âœ… FOUND US LOCATION!');
                 return {
                   success: true,
                   name: businessNameValue,
@@ -2738,7 +2738,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
                 };
               }
             }
-            console.log('Ã¢ÂÅ’ US searches failed, continuing with normal flow');
+            console.log('âŒ US searches failed, continuing with normal flow');
           }
           
           // Try business search with phone validation - detect various phone formats
@@ -2889,7 +2889,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
             // Search with country context if detected
             console.log('Country hint after processing:', countryHint || 'GLOBAL');
             if (countryHint === 'UK') {
-              console.log('Ã°Å¸â€¡Â¬Ã°Å¸â€¡Â§ FORCING UK-SPECIFIC SEARCH for:', businessNameValue);
+              console.log('ðŸ‡¬ðŸ‡§ FORCING UK-SPECIFIC SEARCH for:', businessNameValue);
               const ukSearchQueries = [
                 `${businessNameValue} UK`,
                 `${businessNameValue} United Kingdom`,
@@ -2898,14 +2898,14 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
               ];
               
               for (const ukQuery of ukSearchQueries) {
-                console.log('Ã°Å¸â€Â Trying UK search:', ukQuery);
+                console.log('ðŸ” Trying UK search:', ukQuery);
                 const ukLocation = await withTimeout(
                   this.searchBusinessByNameWithContext(ukQuery, 'UK'),
                   2000
                 ).catch(() => null);
                 
                 if (ukLocation) {
-                  console.log('Ã¢Å“â€¦ Found UK location:', ukLocation);
+                  console.log('âœ… Found UK location:', ukLocation);
                   return {
                     success: true,
                     name: businessNameValue,
@@ -2915,12 +2915,12 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
                     description: `UK location found using Claude context: ${businessNameValue}`
                   };
                 } else {
-                  console.log('Ã¢ÂÅ’ UK search failed for:', ukQuery);
+                  console.log('âŒ UK search failed for:', ukQuery);
                 }
               }
-              console.log('Ã¢Å¡Â Ã¯Â¸Â All UK searches failed, falling back to generic search');
+              console.log('âš ï¸ All UK searches failed, falling back to generic search');
             } else {
-              console.log('Ã¢â€žÂ¹Ã¯Â¸Â No UK forcing - countryHint is:', countryHint);
+              console.log('â„¹ï¸ No UK forcing - countryHint is:', countryHint);
             }
             
             // For franchises, search multiple variations to find all locations
@@ -2946,7 +2946,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
                 }
               }
             } else if (businessNameValue.toLowerCase().includes('fortune cookie') || businessNameValue.toLowerCase().includes('chinese takeaway')) {
-              console.log('Ã°Å¸ÂÂª Franchise detected - searching multiple locations');
+              console.log('ðŸª Franchise detected - searching multiple locations');
               const searchTerms = [
                 `${businessNameValue} Chinese Takeaway`,
                 `${businessNameValue} Takeaway`,
@@ -3459,8 +3459,8 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
   private extractBusinessNameFromContext(text: string): string | null {
     // Look for business name + type patterns (more precise)
     const businessPatterns = [
-      // Name + CAFÃƒâ€°/CAFE pattern (1-3 words before)
-      /\b([A-Z]+(?:\s+[A-Z]+){0,2})\s+(CAFÃƒâ€°|CAFE)\b/gi,
+      // Name + CAFÃ‰/CAFE pattern (1-3 words before)
+      /\b([A-Z]+(?:\s+[A-Z]+){0,2})\s+(CAFÃ‰|CAFE)\b/gi,
       // Name + DENTAL SUITE pattern (1-2 words before)
       /\b([A-Z]+(?:\s+[A-Z]+){0,1})\s+DENTAL\s+SUITE\b/gi,
       // Name + RESTAURANT pattern (1-3 words before)
@@ -3903,7 +3903,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
             
             // Always prioritize UK locations for fallback searches
             if (query.includes('UK') || query.includes('London')) {
-              // UK coordinates: roughly 49-61Ã‚Â°N, -8-2Ã‚Â°E
+              // UK coordinates: roughly 49-61Â°N, -8-2Â°E
               if (lat >= 49 && lat <= 61 && lng >= -8 && lng <= 2) {
                 console.log(`Found UK location for UK search "${query}": ${address}`);
                 return location;
@@ -3988,7 +3988,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
                        addressUpper.includes('ENGLAND') || addressUpper.includes('LONDON');
     
     if (hasUKPhone || hasUKAddress) {
-      // UK coordinates: roughly 49-61Ã‚Â°N, -8-2Ã‚Â°E
+      // UK coordinates: roughly 49-61Â°N, -8-2Â°E
       if (latitude >= 49 && latitude <= 61 && longitude >= -8 && longitude <= 2) {
         return true;
       }
@@ -4001,14 +4001,14 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     
     switch (expectedRegion) {
       case 'UK':
-        // UK coordinates: roughly 49-61Ã‚Â°N, -8-2Ã‚Â°E
+        // UK coordinates: roughly 49-61Â°N, -8-2Â°E
         if (latitude >= 49 && latitude <= 61 && longitude >= -8 && longitude <= 2) {
           return true;
         }
         return false;
         
       case 'USA':
-        // USA coordinates: roughly 25-49Ã‚Â°N, -125--66Ã‚Â°W
+        // USA coordinates: roughly 25-49Â°N, -125--66Â°W
         if (latitude >= 25 && latitude <= 49 && longitude >= -125 && longitude <= -66) {
           return true;
         }
@@ -4334,7 +4334,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       
       // If area is explicitly UK, validate coordinates
       if (area === 'UK') {
-        // UK coordinates: roughly 49-61Ã‚Â°N, -8-2Ã‚Â°E
+        // UK coordinates: roughly 49-61Â°N, -8-2Â°E
         if (lat < 49 || lat > 61 || lng < -8 || lng > 2) {
           console.log(`Rejecting non-UK coordinates for UK business: ${candidate.formatted_address} (${lat}, ${lng})`);
           return false;
@@ -4351,7 +4351,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       
       // If area is explicitly USA, prioritize US locations
       if (area === 'USA') {
-        // USA coordinates: roughly 25-49Ã‚Â°N, -125--66Ã‚Â°W
+        // USA coordinates: roughly 25-49Â°N, -125--66Â°W
         if (lat < 25 || lat > 49 || lng < -125 || lng > -66) {
           console.log(`Rejecting non-US coordinates for US business: ${candidate.formatted_address} (${lat}, ${lng})`);
           return false;
@@ -4457,12 +4457,12 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     
     // Turkey/Turkish business validation
     if (nameUpper.includes('TURKIYE') || nameUpper.includes('TURKEY') || nameUpper.includes('TURKISH')) {
-      // Turkey coordinates: roughly 36-42Ã‚Â°N, 26-45Ã‚Â°E
+      // Turkey coordinates: roughly 36-42Â°N, 26-45Â°E
       if (latitude >= 36 && latitude <= 42 && longitude >= 26 && longitude <= 45) {
         return true;
       }
       // Also accept if address contains Turkey
-      if (addressUpper.includes('TURKEY') || addressUpper.includes('TÃƒÅ“RKIYE')) {
+      if (addressUpper.includes('TURKEY') || addressUpper.includes('TÃœRKIYE')) {
         return true;
       }
       // Reject if clearly in wrong country
@@ -5251,26 +5251,26 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         formData.append('metadata', JSON.stringify(cleanMetadata));
       }
 
-      const response = await fetch(`${ML_API_URL}/feedback`, {
+      const response = await fetch(`${ML_API_URL}/train`, {
         method: 'POST',
         body: formData,
       });
       
       if (!response.ok) {
-        console.log('Ã¢ÂÅ’ Navisense training failed with status:', response.status);
+        console.log('âŒ Navisense training failed with status:', response.status);
         return;
       }
       
       const result = await response.json();
-      console.log('Ã¢Å“â€¦ Navisense training data submitted:', result);
+      console.log('âœ… Navisense training data submitted:', result);
       
       // Trigger immediate model update if queue is full
       if (result.queue_size >= 5) {
-        console.log('Ã°Å¸â€â€ž Queue size >= 5, triggering model update...');
+        console.log('ðŸ”„ Queue size >= 5, triggering model update...');
         fetch(`${ML_API_URL}/retrain`, { method: 'POST' })
           .then(res => res.json())
-          .then(data => console.log('Ã¢Å“â€¦ Retrain triggered:', data))
-          .catch(err => console.log('Ã¢ÂÅ’ Retrain failed:', err.message));
+          .then(data => console.log('âœ… Retrain triggered:', data))
+          .catch(err => console.log('âŒ Retrain failed:', err.message));
       }
     } catch (error) {
       console.log('Navisense training failed:', error.message);
@@ -5298,7 +5298,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     
     // PRIORITY: If we have provided location (client GPS), use it immediately
     if (providedLocation && providedLocation.latitude !== 0 && providedLocation.longitude !== 0) {
-      console.log('Ã°Å¸Å½Â¯ USING PROVIDED CLIENT GPS COORDINATES:', providedLocation);
+      console.log('ðŸŽ¯ USING PROVIDED CLIENT GPS COORDINATES:', providedLocation);
       const clientGpsResult = {
         success: true,
         name: 'GPS Location (Client)',
@@ -5592,16 +5592,16 @@ let extractedAreaContext = null;
         console.log('Google Vision failed or returned unsuccessful result');
       }
     } catch (error) {
-      console.log('Ã¢Å¡Â Ã¯Â¸Â Google Vision analysis timed out or failed:', error.message);
+      console.log('âš ï¸ Google Vision analysis timed out or failed:', error.message);
       console.log('Vision error type:', error.name);
       
       // Log timeout details for debugging
       if (error.message?.includes('timeout')) {
-        console.log('Ã¢ÂÂ±Ã¯Â¸Â Vision API timeout occurred after 60 seconds');
+        console.log('â±ï¸ Vision API timeout occurred after 60 seconds');
       }
     }
     
-    console.log('Ã¢ÂÅ’ All AI methods failed (EXIF, Navisense, Claude, Vision) - checking fallback options...');
+    console.log('âŒ All AI methods failed (EXIF, Navisense, Claude, Vision) - checking fallback options...');
     
     // 5. Skip device location fallback entirely - force AI analysis
     if (false) { // Disabled device location fallback
@@ -5783,7 +5783,7 @@ async function handleRequest(request: NextRequest) {
         latitude: clientLatNum,
         longitude: clientLngNum
       };
-      console.log('Ã°Å¸Å½Â¯ USING CLIENT GPS COORDINATES (mobile extracted):', providedLocation);
+      console.log('ðŸŽ¯ USING CLIENT GPS COORDINATES (mobile extracted):', providedLocation);
     }
   }
   
@@ -5796,7 +5796,7 @@ async function handleRequest(request: NextRequest) {
         latitude: latNum,
         longitude: lngNum
       };
-      console.log('Ã°Å¸â€œÂ Using fallback GPS coordinates:', providedLocation);
+      console.log('ðŸ“ Using fallback GPS coordinates:', providedLocation);
     }
   }
   
@@ -5825,7 +5825,7 @@ async function handleRequest(request: NextRequest) {
     if ((latitude === 2.0 && longitude === 1.0) || 
         (latitude === 20000 && longitude === 100000) ||
         (Math.abs(latitude - 2.0) < 0.001 && Math.abs(longitude - 1.0) < 0.001)) {
-      console.log('Ã¢ÂÅ’ FINAL VALIDATION: Rejecting fake coordinates:', { latitude, longitude });
+      console.log('âŒ FINAL VALIDATION: Rejecting fake coordinates:', { latitude, longitude });
       return NextResponse.json({
         success: false,
         error: 'Invalid location coordinates detected. Please try again with a different image.',
@@ -5844,7 +5844,7 @@ async function handleRequest(request: NextRequest) {
     if (result.address?.includes('Queensway, London') && 
         (result.name?.toLowerCase().includes('fortune cookie') || 
          result.address?.toLowerCase().includes('fortune cookie'))) {
-      console.log('Ã¢ÂÅ’ FINAL VALIDATION: Rejecting Queensway location');
+      console.log('âŒ FINAL VALIDATION: Rejecting Queensway location');
       return NextResponse.json({
         success: false,
         error: 'Unable to determine specific franchise location. Please try again.',
@@ -5878,6 +5878,7 @@ export async function OPTIONS(request: NextRequest) {
     },
   });
 }
+
 
 
 
