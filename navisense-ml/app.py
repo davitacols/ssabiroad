@@ -1,8 +1,7 @@
 import os
 import io
 import hashlib
-import urllib.request
-import requests
+import torch
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
@@ -10,6 +9,7 @@ from pinecone import Pinecone, ServerlessSpec
 import psycopg2
 from dotenv import load_dotenv
 import boto3
+from transformers import CLIPProcessor, CLIPModel
 
 load_dotenv()
 
@@ -27,27 +27,21 @@ if index_name not in pc.list_indexes().names():
     pc.create_index(name=index_name, dimension=512, metric="cosine", spec=ServerlessSpec(cloud="aws", region="us-east-1"))
 index = pc.Index(index_name)
 
+# Load CLIP model
+print("Loading CLIP model...")
+model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model.to(device)
+model.eval()
+print(f"CLIP model loaded on {device}")
+
 def generate_embedding(image: Image.Image):
-    import base64
-    buffered = io.BytesIO()
-    image.save(buffered, format="JPEG")
-    img_str = base64.b64encode(buffered.getvalue()).decode()
-    
-    # Try Hugging Face API first
-    HF_API_KEY = os.getenv('HUGGINGFACE_API_KEY', '')
-    if HF_API_KEY:
-        try:
-            API_URL = "https://api-inference.huggingface.co/models/openai/clip-vit-base-patch32"
-            headers = {"Authorization": f"Bearer {HF_API_KEY}"}
-            response = requests.post(API_URL, headers=headers, json={"inputs": img_str}, timeout=10)
-            if response.status_code == 200:
-                return response.json()
-        except:
-            pass
-    
-    # Fallback to hash
-    img_hash = hashlib.sha256(buffered.getvalue()).hexdigest()
-    return [float(int(img_hash[i:i+2], 16)) / 255.0 for i in range(0, 128, 2)][:64] + [0.0] * 448
+    """Generate CLIP embedding for image"""
+    inputs = processor(images=image, return_tensors="pt").to(device)
+    with torch.no_grad():
+        embeddings = model.get_image_features(**inputs)
+    return embeddings[0].cpu().numpy().tolist()
 
 @app.get("/")
 def read_root():
@@ -55,7 +49,7 @@ def read_root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy", "model": "CLIP ViT-B/32", "device": "cpu", "vectors_in_db": index.describe_index_stats().total_vector_count}
+    return {"status": "healthy", "model": "CLIP ViT-B/32", "device": device, "vectors_in_db": index.describe_index_stats().total_vector_count}
 
 @app.get("/stats")
 def get_stats():
