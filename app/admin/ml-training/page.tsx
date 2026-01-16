@@ -48,7 +48,7 @@ export default function MLTrainingPage() {
     setLoading(true);
     setError(null);
     try {
-      const ML_URL = process.env.NEXT_PUBLIC_ML_API_URL || 'http://localhost:8000';
+      const ML_URL = process.env.NEXT_PUBLIC_ML_API_URL || 'https://navisense-ml-678649320532.us-east1.run.app';
       
       const [healthRes, statsRes] = await Promise.all([
         fetch(`${ML_URL}/health`).catch(() => null),
@@ -58,11 +58,15 @@ export default function MLTrainingPage() {
       if (healthRes?.ok) {
         const healthData = await healthRes.json();
         setHealth(healthData);
+      } else {
+        console.warn('Health endpoint failed:', healthRes?.status);
       }
 
       if (statsRes?.ok) {
         const statsData = await statsRes.json();
         setStats(statsData);
+      } else {
+        console.warn('Stats endpoint failed:', statsRes?.status);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to fetch ML service data');
@@ -75,7 +79,7 @@ export default function MLTrainingPage() {
     setSyncing(true);
     setError(null);
     try {
-      const ML_URL = process.env.NEXT_PUBLIC_ML_API_URL || 'http://localhost:8000';
+      const ML_URL = process.env.NEXT_PUBLIC_ML_API_URL || 'https://navisense-ml-678649320532.us-east1.run.app';
       const res = await fetch(`${ML_URL}/sync-training`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
@@ -87,7 +91,7 @@ export default function MLTrainingPage() {
         await fetchData();
       } else {
         const errorText = await res.text();
-        setError(`Sync failed: ${errorText}`);
+        setError(`Sync failed (${res.status}): ${errorText}`);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to trigger sync');
@@ -147,7 +151,7 @@ export default function MLTrainingPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Vectors Stored</p>
-                <p className="text-2xl font-bold mt-1">{health.vectors_in_db}</p>
+                <p className="text-2xl font-bold mt-1 text-blue-600">{health.vectors_in_db}</p>
               </div>
             </div>
           ) : (
@@ -354,6 +358,16 @@ export default function MLTrainingPage() {
                 <li>Embedding stored in Pinecone with location data</li>
                 <li>Model automatically improves for future predictions</li>
               </ol>
+            </div>
+            <div className="pt-4 border-t">
+              <p className="text-sm text-muted-foreground mb-2">Service Endpoints</p>
+              <div className="text-xs font-mono space-y-1">
+                <div>GET /health - Service status and model info</div>
+                <div>GET /stats - Training statistics</div>
+                <div>POST /sync-training - Sync verified data to Pinecone</div>
+                <div>POST /predict - Location prediction from image</div>
+                <div>POST /train - Add new training data</div>
+              </div>
             </div>
           </div>
         </CardContent>

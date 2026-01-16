@@ -1,0 +1,38 @@
+# Ignore large files and directories
+lambda-deployment.zip
+package/
+.aws-sam/
+.elasticbeanstalk/
+
+# Ignore documentation and guides
+*.md
+DEPLOY.md
+DEPLOYMENT.md
+AWS-DEPLOYMENT.md
+CLOUDRUN-GUIDE.md
+CREATE-EC2-INSTANCE.md
+EC2-GUIDE.md
+LAMBDA_MANUAL.md
+
+# Ignore deployment scripts
+deploy-*.sh
+deploy-*.bat
+create-*.bat
+install-*.bat
+
+# Ignore test files
+test.py
+load_training_data.py
+seed_pinecone.py
+
+# Ignore certificates and configs
+rds-ca-2019-root.pem
+railway.json
+ecs-task-definition.json
+docker-compose.yml
+Dockerfile.aws
+Dockerfile.cloudrun
+
+# Ignore environment files
+.env
+.env.example
