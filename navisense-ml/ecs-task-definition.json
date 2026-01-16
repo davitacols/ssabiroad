@@ -1,0 +1,41 @@
+{
+  "family": "navisense-ml",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "containerDefinitions": [
+    {
+      "name": "navisense-ml",
+      "image": "<AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/navisense-ml:latest",
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {"name": "AWS_S3_REGION_NAME", "value": "us-east-1"},
+        {"name": "AWS_S3_BUCKET_NAME", "value": "pic2nav-blog-2025"},
+        {"name": "PINECONE_INDEX_NAME", "value": "navisense-locations"},
+        {"name": "POSTGRES_HOST", "value": "ssabiroad-db.ca968o2wg9ep.us-east-1.rds.amazonaws.com"},
+        {"name": "POSTGRES_DATABASE", "value": "ssabiroad"},
+        {"name": "POSTGRES_USER", "value": "ssabiroad_admin"}
+      ],
+      "secrets": [
+        {"name": "AWS_ACCESS_KEY_ID", "valueFrom": "arn:aws:secretsmanager:us-east-1:<AWS_ACCOUNT_ID>:secret:navisense/aws-access-key"},
+        {"name": "AWS_SECRET_ACCESS_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-1:<AWS_ACCOUNT_ID>:secret:navisense/aws-secret-key"},
+        {"name": "PINECONE_API_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-1:<AWS_ACCOUNT_ID>:secret:navisense/pinecone-api-key"},
+        {"name": "POSTGRES_PASSWORD", "valueFrom": "arn:aws:secretsmanager:us-east-1:<AWS_ACCOUNT_ID>:secret:navisense/postgres-password"}
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/navisense-ml",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

@@ -762,7 +762,7 @@ class LocationRecognizer {
         throw new Error(`HTTP ${response.status}`);
       }
       
-      const data = await response.json();
+      const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
       const places = data.results?.slice(0, 10).map((p: any) => {
         const place: any = {
           name: p.name,
@@ -820,7 +820,7 @@ class LocationRecognizer {
         throw new Error(`HTTP ${response.status}`);
       }
       
-      const data = await response.json();
+      const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
       const photos: string[] = [];
       
       if (data.results) {
@@ -1071,7 +1071,7 @@ class LocationRecognizer {
         throw new Error(`HTTP ${response.status}`);
       }
       
-      const data = await response.json();
+      const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
       const result = data.results?.[0];
       
       if (result) {
@@ -1116,7 +1116,7 @@ class LocationRecognizer {
         throw new Error(`HTTP ${response.status}`);
       }
       
-      const data = await response.json();
+      const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
       return {
         temperature: data.current_weather?.temperature,
         windSpeed: data.current_weather?.windspeed,
@@ -1145,7 +1145,7 @@ class LocationRecognizer {
         throw new Error(`HTTP ${response.status}`);
       }
       
-      const data = await response.json();
+      const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
       return {
         elevation: data.elevation?.[0],
         unit: 'meters'
@@ -1175,7 +1175,7 @@ class LocationRecognizer {
         throw new Error(`HTTP ${response.status}`);
       }
       
-      const data = await response.json();
+      const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
       return data.results?.slice(0, 3).map((station: any) => ({
         name: station.name,
         type: station.types?.find((t: string) => t.includes('station'))?.replace(/_/g, ' ') || 'Transit',
@@ -1339,7 +1339,7 @@ class LocationRecognizer {
       
       if (!response.ok) return [];
       
-      const data = await response.json();
+      const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
       return (data.results || []).slice(0, 3).map((place: any) => ({
         name: place.name,
         type: place.types?.[0]?.replace(/_/g, ' ') || 'Point of Interest',
@@ -1371,7 +1371,7 @@ class LocationRecognizer {
         throw new Error(`HTTP ${response.status}`);
       }
       
-      const data = await response.json();
+      const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
       return data.extract || `A notable landmark: ${landmarkName}`;
     } catch (error) {
       console.log('Wikipedia description fetch failed:', error.message);
@@ -1395,7 +1395,7 @@ class LocationRecognizer {
         throw new Error(`HTTP ${response.status}`);
       }
       
-      const data = await response.json();
+      const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
       return data.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(landmarkName.replace(/\s+/g, '_'))}`;
     } catch {
       return `https://en.wikipedia.org/wiki/${encodeURIComponent(landmarkName.replace(/\s+/g, '_'))}`;
@@ -3883,7 +3883,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         
         if (!response.ok) continue;
         
-        const data = await response.json();
+        const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
         const candidates = data.candidates || [];
         
         // Look for the best match with geographic validation
@@ -3950,7 +3950,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         
         if (!response.ok) continue;
         
-        const data = await response.json();
+        const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
         
         // Check all candidates, not just the first one
         for (const place of data.candidates || []) {
@@ -4029,9 +4029,9 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(businessName)}&inputtype=textquery&fields=geometry,name,formatted_address&key=${apiKey}`
       );
       
-      if (!response.ok) return null;
+      if (!response.ok) { console.log("? Navisense error:", response.status); return null; }
       
-      const data = await response.json();
+      const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
       return data.candidates || [];
     } catch (error) {
       console.log('Candidate search failed:', error.message);
@@ -4075,7 +4075,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         
         if (!response.ok) continue;
         
-        const data = await response.json();
+        const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
         const candidates = data.candidates || [];
         
         // Filter candidates geographically
@@ -4130,7 +4130,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         
         if (!response.ok) continue;
         
-        const data = await response.json();
+        const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
         const candidates = data.candidates || [];
         
         // Filter candidates by geographic plausibility first
@@ -4211,7 +4211,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         
         if (!response.ok) continue;
         
-        const data = await response.json();
+        const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
         const candidates = data.candidates || [];
         
         for (const place of candidates.slice(0, 2)) {
@@ -4496,7 +4496,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         throw new Error(`HTTP ${response.status}`);
       }
       
-      const data = await response.json();
+      const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
       const result = data.results?.[0];
       
       if (result?.geometry?.location) {
@@ -4545,7 +4545,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     try {
       const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
       const response = await fetch(`${baseUrl}/api/location-corrections?businessName=${encodeURIComponent(businessName)}`);
-      const data = await response.json();
+      const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
       return data.corrections?.[0] || null;
     } catch (error) {
       console.log('Failed to check user corrections:', error.message);
@@ -4621,7 +4621,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         return await this.tryPlacesNearbySearch(location, businessName);
       }
       
-      const data = await response.json();
+      const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
       console.log('Geocoding response data:', {
         status: data.status,
         error_message: data.error_message,
@@ -4684,7 +4684,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       );
       
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
         if (data.results && data.results.length > 0) {
           const place = data.results[0];
           console.log('Found nearby place:', place.name, place.vicinity);
@@ -4737,9 +4737,9 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(businessName + ' UK')}&inputtype=textquery&fields=geometry,formatted_address&key=${apiKey}`
       );
       
-      if (!response.ok) return null;
+      if (!response.ok) { console.log("? Navisense error:", response.status); return null; }
       
-      const data = await response.json();
+      const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
       const place = data.candidates?.[0];
       
       if (place?.geometry?.location) {
@@ -5176,7 +5176,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         body: JSON.stringify({ coordinates })
       });
       
-      const data = await response.json();
+      const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
       
       if (data.found) {
         console.log('Found existing correction:', data.correctAddress);
@@ -5209,11 +5209,11 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         body: formData,
       });
 
-      if (!response.ok) return null;
+      if (!response.ok) { console.log("? Navisense error:", response.status); return null; }
 
-      const data = await response.json();
+      const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
       
-      if (data.success && data.location && data.confidence >= 0.7) {
+      if (data.success && data.location && data.confidence >= 0.5) {
         return {
           success: true,
           name: data.location.businessName || 'NaviSense ML',
