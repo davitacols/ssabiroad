@@ -13,6 +13,8 @@ interface MLStats {
   verified_feedback: number;
   vectors_in_pinecone: number;
   ready_for_training: number;
+  navisense_training: number;
+  feedback_ready: number;
 }
 
 interface MLHealth {
@@ -239,7 +241,9 @@ export default function MLTrainingPage() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {stats.ready_for_training} verified location(s) are ready for training. 
+                {stats.ready_for_training} verified location(s) are ready for training:
+                {stats.navisense_training > 0 && ` ${stats.navisense_training} from training data`}
+                {stats.feedback_ready > 0 && ` ${stats.feedback_ready} from user feedback`}.
                 Note: Only locations with images can be trained.
               </AlertDescription>
             </Alert>
@@ -258,7 +262,8 @@ export default function MLTrainingPage() {
             <div className="flex-1">
               <h3 className="font-semibold">Sync Training Data</h3>
               <p className="text-sm text-muted-foreground">
-                Download images from S3, generate CLIP embeddings, and store in Pinecone
+                Download images from S3, generate CLIP embeddings, and store in Pinecone.
+                Processes both NavisenseTraining data and verified user feedback.
               </p>
               <div className="mt-2 flex gap-2">
                 {health ? (
@@ -284,7 +289,7 @@ export default function MLTrainingPage() {
               ) : (
                 <>
                   <Play className="mr-2 h-4 w-4" />
-                  Start Training
+                  Sync Training Data
                 </>
               )}
             </Button>
@@ -363,10 +368,10 @@ export default function MLTrainingPage() {
               <p className="text-sm text-muted-foreground mb-2">Service Endpoints</p>
               <div className="text-xs font-mono space-y-1">
                 <div>GET /health - Service status and model info</div>
-                <div>GET /stats - Training statistics</div>
+                <div>GET /stats - Training statistics from database</div>
                 <div>POST /sync-training - Sync verified data to Pinecone</div>
                 <div>POST /predict - Location prediction from image</div>
-                <div>POST /train - Add new training data</div>
+                <div>POST /train - Add new training data directly</div>
               </div>
             </div>
           </div>

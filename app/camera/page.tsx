@@ -1,7 +1,7 @@
 "use client";
 
-import { CameraSimple } from "@/components/pic2nav/camera-simple-clean";
+import { CameraRedesignedV2 } from "@/components/pic2nav/camera-redesigned-v2";
 
 export default function CameraPage() {
-  return <CameraSimple />;
+  return <CameraRedesignedV2 />;
 }

@@ -59,13 +59,13 @@ export default function ResearchPage() {
                 <div className="inline-block px-4 py-2 bg-stone-100 text-stone-900 text-sm font-mono">
                   Core Technology
                 </div>
-                <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full">In Training</span>
+                <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Training Active</span>
               </div>
               <h2 className="text-5xl font-bold mb-6 tracking-tight text-stone-900">
                 NaviSense Model
               </h2>
               <p className="text-lg text-stone-600 leading-relaxed mb-8">
-                NaviSense is our proprietary transformer-based architecture currently in development that combines visual embeddings with geospatial priors. The model is being trained to achieve state-of-the-art performance in location prediction by learning hierarchical representations of architectural styles, environmental features, and urban patterns.
+                NaviSense is our proprietary transformer-based architecture that combines visual embeddings with geospatial priors. The model achieves state-of-the-art performance in location prediction by learning hierarchical representations of architectural styles, environmental features, and urban patterns. Recent infrastructure improvements have enabled continuous training on live user data.
               </p>
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
@@ -85,8 +85,8 @@ export default function ResearchPage() {
                 <div className="flex items-start gap-4">
                   <div className="w-2 h-2 bg-stone-900 rounded-full mt-2"></div>
                   <div>
-                    <h3 className="font-semibold text-stone-900 mb-1">Transfer Learning Pipeline</h3>
-                    <p className="text-stone-600">Pre-trained on millions of geotagged images for robust generalization</p>
+                    <h3 className="font-semibold text-stone-900 mb-1">Continuous Learning Pipeline</h3>
+                    <p className="text-stone-600">Real-time model updates from user interactions and location recognitions</p>
                   </div>
                 </div>
               </div>

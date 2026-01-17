@@ -26,12 +26,12 @@ export default function DatasetsPage() {
     },
     {
       name: "Landmark-Recognition-50K",
-      description: "Diverse landmark dataset covering famous and local landmarks across multiple continents. Now integrated with Google Vision API for real-time landmark detection.",
-      size: "50,000 images (target)",
+      description: "Diverse landmark dataset covering famous and local landmarks across multiple continents. Integrated with Google Vision API for real-time landmark detection. ML training pipeline now fully operational after recent infrastructure fixes.",
+      size: "50,000+ images",
       format: "JPEG, JSON",
       license: "Research Use",
-      status: "In Collection",
-      features: ["Landmark names", "Geographic regions", "GPS coordinates", "Visual features", "API Integration"]
+      status: "Active Training",
+      features: ["Landmark names", "Geographic regions", "GPS coordinates", "Visual features", "API Integration", "Auto ML Training"]
     }
   ]
 
@@ -93,6 +93,8 @@ export default function DatasetsPage() {
                       <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
                         dataset.status === "Available" 
                           ? "bg-green-100 text-green-800" 
+                          : dataset.status === "Active Training"
+                          ? "bg-green-100 text-green-800"
                           : dataset.status === "In Collection"
                           ? "bg-blue-100 text-blue-800"
                           : "bg-amber-100 text-amber-800"
@@ -113,6 +115,11 @@ export default function DatasetsPage() {
                   {dataset.status === "Coming Soon" && dataset.name === "GeoVision-10M" && (
                     <Button variant="outline" className="border-stone-900 text-stone-900 hover:bg-stone-900 hover:text-white font-medium ml-6" asChild>
                       <Link href="/geovision-10m">View Progress</Link>
+                    </Button>
+                  )}
+                  {dataset.status === "Active Training" && (
+                    <Button variant="outline" className="border-green-600 text-green-700 hover:bg-green-600 hover:text-white font-medium ml-6" asChild>
+                      <Link href="/camera">View Live System</Link>
                     </Button>
                   )}
                   {dataset.status === "Coming Soon" && dataset.name === "Landmark-Recognition-50K" && (

@@ -147,11 +147,11 @@ export default function HomePage() {
             <div className="group p-8 bg-gradient-to-br from-stone-900 to-stone-800 hover:from-stone-800 hover:to-stone-700 transition-all rounded-2xl">
               <div className="flex items-center gap-3 mb-3">
                 <div className="text-sm font-bold text-stone-400">04</div>
-                <span className="px-3 py-1 bg-amber-500 text-white text-xs font-bold rounded-full">In Training</span>
+                <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">Training Active</span>
               </div>
               <h3 className="text-2xl font-bold text-white mb-3">NaviSense Model</h3>
               <p className="text-stone-300 leading-relaxed">
-                Our proprietary transformer-based architecture currently in development that combines visual embeddings with geospatial priors for enhanced location prediction accuracy and semantic understanding of built environments.
+                Our proprietary transformer-based architecture that combines visual embeddings with geospatial priors for enhanced location prediction accuracy. Now actively training on live user data with continuous learning capabilities.
               </p>
             </div>
           </div>

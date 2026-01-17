@@ -103,7 +103,9 @@ class LocationRecognizer {
         imageUrl = await uploadImageToS3(buffer, crypto.randomUUID());
         console.log('Image uploaded to S3:', imageUrl);
       } catch (err) {
-        console.error('S3 upload failed:', err);
+        console.error('S3 upload failed:', err.message);
+        // Continue without S3 upload - don't fail the entire recognition
+        console.log('Continuing recognition without S3 upload');
       }
       
       console.log('Attempting to save recognition to database:', {
@@ -5396,7 +5398,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const navisenseResult = await Promise.race([
         this.predictWithNavisense(buffer),
         new Promise<LocationResult | null>((_, reject) =>
-          setTimeout(() => reject(new Error('Navisense timeout')), 10000)
+          setTimeout(() => reject(new Error('Navisense timeout')), 30000)
         )
       ]);
 
