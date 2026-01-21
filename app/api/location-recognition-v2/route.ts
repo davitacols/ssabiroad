@@ -1411,7 +1411,9 @@ class LocationRecognizer {
       const credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
       if (credentialsJson) {
         try {
-          const credentials = JSON.parse(credentialsJson);
+          // Replace escaped newlines with actual newlines for proper JSON parsing
+          const unescapedJson = credentialsJson.replace(/\\n/g, '\n');
+          const credentials = JSON.parse(unescapedJson);
           const client = new vision.ImageAnnotatorClient({
             credentials,
             projectId: credentials.project_id || 'pic2nav'
@@ -5201,7 +5203,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
   // Navisense ML prediction
   private async predictWithNavisense(buffer: Buffer): Promise<LocationResult | null> {
     try {
-      const NAVISENSE_URL = process.env.NAVISENSE_ML_URL || 'http://localhost:8000';
+      const NAVISENSE_URL = process.env.NAVISENSE_ML_URL || process.env.ML_API_URL || 'http://localhost:8000';
       const blob = new Blob([buffer], { type: 'image/jpeg' });
       const formData = new FormData();
       formData.append('file', blob, 'image.jpg');
