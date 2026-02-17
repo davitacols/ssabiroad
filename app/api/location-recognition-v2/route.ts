@@ -963,15 +963,16 @@ class LocationRecognizer {
           const addressData = await Promise.race([
             this.getDetailedAddress(latitude, longitude),
             new Promise<{address: string, details: any}>((_, reject) => 
-              setTimeout(() => reject(new Error('Address timeout')), 2000)
+              setTimeout(() => reject(new Error('Address timeout')), 5000)
             )
           ]);
           address = addressData.address;
           locationDetails = addressData.details;
           cache.set(addressKey, addressData.address, 3600);
           cache.set(`details_${addressKey}`, addressData.details, 3600);
+          console.log('✅ Geocoded address:', address);
         } catch (error) {
-          console.log('Address fetch failed, using coordinates');
+          console.log('❌ Address fetch failed:', error.message);
           address = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
         }
       }
@@ -1020,9 +1021,16 @@ class LocationRecognizer {
         console.log('Device/historical analysis failed:', error.message);
       }
       
+      // Ensure we have a proper address - prioritize geocoded address over baseResult
+      const finalAddress = address || baseResult.address || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+      
+      // Ensure we have a proper name - replace "Unknown Business" with default
+      const finalName = (baseResult.name && baseResult.name !== 'Unknown Business') ? baseResult.name : 'Location Detected';
+      
       return {
         ...baseResult,
-        address: baseResult.address || address || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+        address: finalAddress,
+        name: finalName,
         nearbyPlaces: places || [],
         photos: photos || [],
         deviceAnalysis: deviceAnalysis,
@@ -5404,10 +5412,15 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         )
       ]);
 
+      // CRITICAL: Validate confidence threshold (0.85-1.0) to prevent false positives
+      const isValidConfidence = 
+        navisenseResult?.confidence >= 0.85 && 
+        navisenseResult?.confidence <= 1.0;
+
       if (
         navisenseResult?.success &&
         navisenseResult.location &&
-        navisenseResult.confidence >= 0.5
+        isValidConfidence
       ) {
         const { latitude, longitude } = navisenseResult.location;
         const isValidRange =
@@ -5424,14 +5437,55 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         // Reject obviously wrong ML predictions
         const isBadPrediction = false;
 
-        if (isValidRange && navisenseResult.confidence >= 0.5) {
+        if (isValidRange && isValidConfidence) {
           console.log(
-            'NAVISENSE SUCCESS - ENRICHING AND RETURNING:',
+            '✅ NAVISENSE SUCCESS (confidence:', navisenseResult.confidence, ') - ENRICHING AND RETURNING:',
             navisenseResult.location
           );
 
+          // If NaviSense returns "Unknown Business", try to get business name from Claude/Vision
+          let finalResult = navisenseResult;
+          const needsNameEnrichment = navisenseResult.name === 'Unknown Business' || !navisenseResult.name;
+          const needsAddressEnrichment = !navisenseResult.address || navisenseResult.address === 'Unknown';
+          
+          if (needsNameEnrichment || needsAddressEnrichment) {
+            console.log('⚠️ NaviSense returned unknown business name - trying Claude/Vision for business identification...');
+            
+            try {
+              const claudeResult = await this.analyzeWithClaude(null, buffer);
+              if (claudeResult?.name && claudeResult.name !== 'Unknown Business' && needsNameEnrichment) {
+                console.log('✅ Claude identified business:', claudeResult.name);
+                finalResult.name = claudeResult.name;
+                finalResult.method = 'navisense-location-claude-name';
+              }
+              
+              if (claudeResult?.address && needsAddressEnrichment) {
+                console.log('Claude identified address:', claudeResult.address);
+                finalResult.address = claudeResult.address;
+                finalResult.method = finalResult.method.includes('claude') ? 'navisense-location-claude-enriched' : 'navisense-location-claude-address';
+              }
+              
+              if ((needsNameEnrichment && !finalResult.name) || (needsAddressEnrichment && !finalResult.address)) {
+                const visionResult = await this.analyzeImageWithAI(buffer, null);
+                if (visionResult?.name && visionResult.name !== 'Unknown Business' && needsNameEnrichment && !finalResult.name) {
+                  console.log('✅ Vision API identified business:', visionResult.name);
+                  finalResult.name = visionResult.name;
+                  finalResult.method = 'navisense-location-vision-name';
+                }
+                
+                if (visionResult?.address && needsAddressEnrichment && !finalResult.address) {
+                  console.log('Vision API identified address:', visionResult.address);
+                  finalResult.address = visionResult.address;
+                  finalResult.method = finalResult.method.includes('vision') ? 'navisense-location-vision-enriched' : 'navisense-location-vision-address';
+                }
+              }
+            } catch (error) {
+              console.log('NaviSense enrichment failed:', error.message);
+            }
+          }
+
           const enrichedResult = await this.enrichLocationData(
-            navisenseResult,
+            finalResult,
             buffer,
             analyzeLandmarks
           );
@@ -5446,15 +5500,15 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
             enrichedResult.recognitionId = recognitionId;
           }
 
-          this.trainNavisense(buffer, navisenseResult.location, {
-            method: 'navisense-ml',
+          this.trainNavisense(buffer, finalResult.location, {
+            method: finalResult.method,
             userId
           }).catch(() => {});
 
           return enrichedResult;
         } else {
           console.log(
-            'Navisense prediction rejected - untrained, low confidence, or bad prediction:',
+            '⚠️ Navisense prediction rejected - invalid coordinates or bad prediction:',
             {
               latitude,
               longitude,
@@ -5465,7 +5519,8 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
           );
         }
       } else {
-        console.log('Navisense returned no valid result or confidence too low');
+        console.log('⚠️ NaviSense rejected - confidence too low or invalid:', navisenseResult?.confidence || 'N/A', '(threshold: 0.85-1.0)');
+        console.log('Falling back to Claude AI and Google Vision API for full location detection...');
         console.log(
           'Navisense result:',
           JSON.stringify({

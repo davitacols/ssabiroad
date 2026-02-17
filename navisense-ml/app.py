@@ -299,7 +299,7 @@ async def predict_location(file: UploadFile = File(...)):
             # Enhanced matching with architectural features
             arch_matches = architectural_matcher.match_building(embedding_np, candidates)
             
-            if arch_matches and arch_matches[0][1] > 0.6:  # Good architectural match
+            if arch_matches and arch_matches[0][1] > 0.85:  # STRICT: High confidence architectural match only
                 best_match = next(m for m in results.matches if m.id == arch_matches[0][0])
                 
                 # Weight-averaged location from top 3 architectural matches
@@ -322,7 +322,7 @@ async def predict_location(file: UploadFile = File(...)):
                             "address": best_match.metadata.get("address"),
                             "businessName": best_match.metadata.get("businessName")
                         },
-                        "confidence": float(top_3_arch[0][1]),
+                        "confidence": min(float(top_3_arch[0][1]), 0.95),  # Cap at 0.95 to indicate uncertainty
                         "method": "architectural_matching"
                     }
         
