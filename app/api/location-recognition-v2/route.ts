@@ -30,6 +30,8 @@ interface LocationResult {
   success: boolean;
   name?: string;
   address?: string;
+  extractedAddress?: string;
+  addressSource?: string;
   location?: Location;
   confidence: number;
   method: string;
@@ -1021,8 +1023,11 @@ class LocationRecognizer {
         console.log('Device/historical analysis failed:', error.message);
       }
       
-      // Ensure we have a proper address - prioritize geocoded address over baseResult
-      const finalAddress = address || baseResult.address || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+      // Preserve OCR-derived addresses when the image itself provided the location text.
+      const finalAddress =
+        baseResult.addressSource === 'image-ocr' && baseResult.address
+          ? baseResult.address
+          : address || baseResult.address || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
       
       // Ensure we have a proper name - replace "Unknown Business" with default
       const finalName = (baseResult.name && baseResult.name !== 'Unknown Business') ? baseResult.name : 'Location Detected';
@@ -1469,6 +1474,172 @@ class LocationRecognizer {
       }
     } catch (error) {
       console.error('Failed to initialize Vision client:', error.message);
+      return null;
+    }
+  }
+
+  private normalizeAddressCandidate(candidate: string | null | undefined): string | null {
+    if (!candidate) {
+      return null;
+    }
+
+    const normalized = candidate
+      .replace(/[\r\n]+/g, ' ')
+      .replace(/\s*,\s*/g, ', ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/^[,.;:\-]+|[,.;:\-]+$/g, '');
+
+    return normalized || null;
+  }
+
+  private isHighConfidenceVisibleAddress(candidate: string): boolean {
+    const normalized = this.normalizeAddressCandidate(candidate);
+    if (!normalized) {
+      return false;
+    }
+
+    const hasStreetToken = /\b(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Court|Ct|Place|Pl|Close|Crescent|Highway|Hwy)\b/i.test(normalized);
+    const hasUkPostcode = /\b[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}\b/i.test(normalized);
+    const hasStateZip = /,\s*[A-Z]{2}\s*\d{5}(?:-\d{4})?\b/.test(normalized);
+    const hasStreetNumber = /^\d{1,6}[A-Z]?\s/.test(normalized);
+
+    return (
+      normalized.length >= 10 &&
+      normalized.length <= 140 &&
+      this.scoreAddress(normalized) >= 0.7 &&
+      hasStreetNumber &&
+      (hasStreetToken || hasUkPostcode || hasStateZip)
+    );
+  }
+
+  private async extractPrioritizedImageAddress(buffer: Buffer): Promise<LocationResult | null> {
+    try {
+      console.log('Checking image for visible address before GPS/EXIF shortcuts...');
+
+      const client = await this.initVisionClient();
+      if (!client) {
+        console.log('Vision client unavailable for image-address precheck');
+        return null;
+      }
+
+      let processBuffer = buffer;
+      if (buffer.length > 1024 * 1024) {
+        try {
+          const sharp = require('sharp');
+          processBuffer = await sharp(buffer)
+            .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 85 })
+            .toBuffer();
+        } catch (error: any) {
+          console.log('Image optimization skipped for address precheck:', error.message);
+          processBuffer = buffer;
+        }
+      }
+
+      let enhancedBuffer = processBuffer;
+      try {
+        enhancedBuffer = await OpenCVProcessor.preprocess(processBuffer, {
+          enhanceText: true,
+          correctPerspective: true,
+          denoise: true
+        });
+      } catch (error: any) {
+        console.log('OpenCV preprocessing skipped for address precheck:', error.message);
+      }
+
+      const withTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
+        return Promise.race([
+          promise,
+          new Promise<T>((_, reject) =>
+            setTimeout(() => reject(new Error(`Address precheck timeout after ${timeoutMs}ms`)), timeoutMs)
+          )
+        ]);
+      };
+
+      const [textResult, documentResult] = await Promise.allSettled([
+        withTimeout(client.textDetection({ image: { content: enhancedBuffer } }), 12000),
+        withTimeout(client.documentTextDetection({ image: { content: enhancedBuffer } }), 12000)
+      ]);
+
+      let rawText = '';
+      if (documentResult.status === 'fulfilled') {
+        rawText = documentResult.value[0].fullTextAnnotation?.text || '';
+      }
+
+      if (!rawText && textResult.status === 'fulfilled') {
+        rawText = textResult.value[0].textAnnotations?.[0]?.description || '';
+      }
+
+      if (!rawText.trim()) {
+        console.log('No OCR text found during image-address precheck');
+        return null;
+      }
+
+      const enhancedText = this.enhanceTextDetection(rawText);
+      const fullAddressPattern = /\b\d+[A-Z]?\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Court|Ct|Place|Pl)\s*,?\s*[A-Za-z\s]*,?\s*(?:[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}|[A-Z]{2}\s*\d{5}(?:-\d{4})?)\b/i;
+      const fullAddressMatch = rawText.match(fullAddressPattern) || enhancedText.match(fullAddressPattern);
+      const streetAddress = this.extractStreetAddress(rawText);
+      const extractedAddress = this.extractAddress(rawText);
+      const ukPostcode = enhancedText.match(/\b[A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2}\b/i)?.[0];
+      const usStateZip = enhancedText.match(/\b[A-Z]{2}\s*\d{5}(?:-\d{4})?\b/i)?.[0];
+
+      const candidates = [
+        fullAddressMatch?.[0],
+        streetAddress && ukPostcode && !streetAddress.toUpperCase().includes(ukPostcode.toUpperCase())
+          ? `${streetAddress} ${ukPostcode}`
+          : null,
+        streetAddress && usStateZip && !streetAddress.toUpperCase().includes(usStateZip.toUpperCase())
+          ? `${streetAddress}, ${usStateZip}`
+          : null,
+        extractedAddress,
+        streetAddress,
+        ...this.extractAllAddresses(rawText)
+      ]
+        .map(candidate => this.normalizeAddressCandidate(candidate))
+        .filter((candidate): candidate is string => !!candidate)
+        .filter(candidate => this.isHighConfidenceVisibleAddress(candidate));
+
+      const uniqueCandidates = [...new Set(candidates)];
+      if (uniqueCandidates.length === 0) {
+        console.log('No high-confidence visible address detected before GPS/EXIF');
+        return null;
+      }
+
+      console.log('Visible address candidates detected:', uniqueCandidates);
+
+      for (const candidate of uniqueCandidates) {
+        const geocodedLocation = await withTimeout(this.geocodeAddress(candidate), 2500).catch(() => null);
+        if (geocodedLocation) {
+          console.log('Prioritizing visible image address over GPS/EXIF:', candidate);
+          return {
+            success: true,
+            name: 'Address from Image',
+            address: candidate,
+            extractedAddress: candidate,
+            addressSource: 'image-ocr',
+            location: geocodedLocation,
+            confidence: 0.97,
+            method: 'image-address-priority',
+            description: `Address extracted from visible image text: ${candidate}`
+          };
+        }
+      }
+
+      const strongestCandidate = uniqueCandidates[0];
+      console.log('Using visible image address without GPS/EXIF fallback:', strongestCandidate);
+      return {
+        success: true,
+        name: 'Address from Image',
+        address: strongestCandidate,
+        extractedAddress: strongestCandidate,
+        addressSource: 'image-ocr',
+        confidence: 0.88,
+        method: 'image-address-text-only',
+        description: `Visible address extracted from image text: ${strongestCandidate}`
+      };
+    } catch (error: any) {
+      console.log('Image-address precheck failed:', error.message);
       return null;
     }
   }
@@ -5289,7 +5460,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     }
   }
 
-  // V2 pipeline - EXIF GPS data with AI vision fallback
+  // V2 pipeline - image OCR address priority, then GPS/EXIF, then AI vision fallback
   async recognize(buffer: Buffer, providedLocation?: Location, analyzeLandmarks: boolean = true, regionHint?: string, searchPriority?: string, userId?: string): Promise<LocationResult> {
     console.log('V2: Enhanced location recognition starting...');
     console.log('Buffer info - Size:', buffer.length, 'bytes');
@@ -5299,6 +5470,34 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       providedLocation?.latitude,
       providedLocation?.longitude
     ) : null;
+
+    // PRIORITY: If the image itself contains a readable address, prefer that over GPS/EXIF metadata.
+    const imageAddressResult = await this.extractPrioritizedImageAddress(buffer);
+    if (imageAddressResult?.success) {
+      if (imageAddressResult.location) {
+        const enrichedAddressResult = await this.enrichLocationData(
+          imageAddressResult,
+          buffer,
+          analyzeLandmarks
+        );
+
+        if (!enrichedAddressResult.recognitionId) {
+          const recognitionId = await this.saveRecognition(
+            enrichedAddressResult,
+            buffer,
+            userId
+          );
+
+          if (recognitionId) {
+            enrichedAddressResult.recognitionId = recognitionId;
+          }
+        }
+
+        return enrichedAddressResult;
+      }
+
+      return imageAddressResult;
+    }
     
     // Check for existing corrections first if we have coordinates
     if (providedLocation) {
@@ -5308,7 +5507,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       }
     }
     
-    // PRIORITY: If we have provided location (client GPS), use it immediately
+    // Fallback: use provided location immediately only after image-address checks have failed.
     if (providedLocation && providedLocation.latitude !== 0 && providedLocation.longitude !== 0) {
       console.log('ðŸŽ¯ USING PROVIDED CLIENT GPS COORDINATES:', providedLocation);
       const clientGpsResult = {
@@ -5832,7 +6031,7 @@ async function handleRequest(request: NextRequest) {
     exifSource
   });
   
-  // PRIORITY: Use client GPS coordinates if available (mobile app extracted GPS)
+  // Capture client GPS coordinates so they are available as fallback context.
   let providedLocation = undefined;
   if (clientLat && clientLng) {
     const clientLatNum = parseFloat(clientLat as string);
