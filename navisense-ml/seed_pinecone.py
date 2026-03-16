@@ -1,12 +1,13 @@
 import os
 import io
 import hashlib
-import requests
+import torch
 from PIL import Image
 from pinecone import Pinecone
 import psycopg2
 from dotenv import load_dotenv
 import boto3
+from transformers import CLIPProcessor, CLIPModel
 
 load_dotenv()
 
@@ -18,12 +19,18 @@ s3_client = boto3.client('s3',
 pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 index = pc.Index(os.getenv("PINECONE_INDEX_NAME", "navisense-locations"))
 
+print("Loading CLIP model for Pinecone seeding...")
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+model.to(device)
+model.eval()
+
 def generate_embedding(image: Image.Image):
-    import base64
-    buffered = io.BytesIO()
-    image.save(buffered, format="JPEG")
-    img_hash = hashlib.sha256(buffered.getvalue()).hexdigest()
-    return [float(int(img_hash[i:i+2], 16)) / 255.0 for i in range(0, 128, 2)][:64] + [0.0] * 448
+    inputs = processor(images=image, return_tensors="pt").to(device)
+    with torch.no_grad():
+        embeddings = model.get_image_features(**inputs)
+    return embeddings[0].cpu().numpy().tolist()
 
 print("🔄 Seeding Pinecone with verified locations...")
 

@@ -31,7 +31,6 @@ railway.json
 ecs-task-definition.json
 docker-compose.yml
 Dockerfile.aws
-Dockerfile.cloudrun
 
 # Ignore environment files
 .env

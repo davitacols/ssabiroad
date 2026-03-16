@@ -24,17 +24,17 @@ def main():
             lr.id,
             lr.latitude,
             lr.longitude,
-            lr.address,
-            lr.business_name,
-            lr.image_url,
+            lr."detectedAddress",
+            lr."businessName",
+            lr."imageUrl",
             lr.method,
-            lr.created_at,
+            lr."createdAt",
             COUNT(lf.id) as feedback_count
         FROM location_recognitions lr
         LEFT JOIN location_feedback lf ON lr.id = lf."recognitionId"
-        WHERE lf.is_correct = true
+        WHERE lf."wasCorrect" = true
         GROUP BY lr.id
-        ORDER BY lr.created_at DESC
+        ORDER BY lr."createdAt" DESC
     """)
     
     rows = cur.fetchall()

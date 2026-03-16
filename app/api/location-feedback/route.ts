@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { saveFeedback, trainModelWithFeedback, getFeedbackStats } from './training';
+import { saveFeedback, getFeedbackStats } from './training';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -53,9 +53,11 @@ export async function POST(request: NextRequest) {
       imageBuffer
     );
 
-    // Train model if location and image provided
-    if (location && imageBuffer) {
-      await trainModelWithFeedback(location, address, undefined, imageBuffer);
+    if (!feedbackRecord) {
+      return NextResponse.json(
+        { error: 'Failed to persist feedback' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ 

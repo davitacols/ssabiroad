@@ -14,8 +14,8 @@ class EnhancedOCR:
     }
     
     def __init__(self):
-        self.phone_pattern = re.compile(r'(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}')
-        self.street_pattern = re.compile(r'\d+\s+[\w\s]+\s+(street|st|road|rd|avenue|ave|boulevard|blvd|lane|ln|drive|dr)', re.IGNORECASE)
+        self.phone_pattern = re.compile(r'(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}')
+        self.street_pattern = re.compile(r'\d+\s+[\w\s]+\s+(?:street|st|road|rd|avenue|ave|boulevard|blvd|lane|ln|drive|dr)', re.IGNORECASE)
         
     def extract_all(self, text: str) -> Dict:
         """Extract all information from OCR text"""
@@ -41,12 +41,11 @@ class EnhancedOCR:
     
     def extract_phone_numbers(self, text: str) -> List[str]:
         """Extract phone numbers"""
-        matches = self.phone_pattern.findall(text)
-        return [''.join(m) if isinstance(m, tuple) else m for m in matches]
+        return [match.group(0).strip() for match in self.phone_pattern.finditer(text)]
     
     def extract_addresses(self, text: str) -> List[str]:
         """Extract street addresses"""
-        return self.street_pattern.findall(text)
+        return [match.group(0).strip() for match in self.street_pattern.finditer(text)]
     
     def detect_landmarks(self, text: str) -> Dict[str, List[str]]:
         """Detect landmark types"""

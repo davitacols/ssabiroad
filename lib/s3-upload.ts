@@ -40,7 +40,7 @@ export async function uploadImageToS3(
 
     return `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
   } catch (error) {
-    console.error('S3 upload failed:', error.message);
+    console.error('S3 upload failed:', error instanceof Error ? error.message : String(error));
     throw error;
   }
 }

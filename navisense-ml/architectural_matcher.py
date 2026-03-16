@@ -1,8 +1,11 @@
-import numpy as np
-from typing import List, Dict, Tuple
-from sklearn.metrics.pairwise import cosine_similarity
 import json
 import os
+from typing import Dict, List, Tuple
+
+import boto3
+import numpy as np
+from botocore.exceptions import ClientError
+from sklearn.metrics.pairwise import cosine_similarity
 
 class ArchitecturalMatcher:
     """Enhanced multi-view matching for buildings from different angles"""
@@ -17,6 +20,28 @@ class ArchitecturalMatcher:
             'color_profile': 0.10,
             'texture_pattern': 0.05
         }
+        self.artifact_path = os.getenv("ARCHITECTURAL_FEATURES_PATH", "architectural_features.json")
+        self.artifact_bucket = os.getenv("ML_ARTIFACTS_BUCKET") or os.getenv("AWS_S3_BUCKET_NAME")
+        self.artifact_key = os.getenv(
+            "ARCHITECTURAL_FEATURES_S3_KEY",
+            "navisense-ml-artifacts/architectural_features.json"
+        )
+        self.s3_client = self._build_s3_client()
+
+    def _build_s3_client(self):
+        if not self.artifact_bucket:
+            return None
+
+        try:
+            return boto3.client(
+                "s3",
+                aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+                aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+                region_name=os.getenv("AWS_S3_REGION_NAME", "us-east-1")
+            )
+        except Exception as e:
+            print(f"Failed to initialize architectural artifact S3 client: {e}")
+            return None
         
     def extract_features(self, embedding: np.ndarray, metadata: dict) -> Dict:
         """Extract comprehensive architectural features from embedding"""
@@ -145,7 +170,14 @@ class ArchitecturalMatcher:
         matches = []
         
         for cand in candidates:
-            cand_emb = np.array(cand.get('embedding', query_emb))  # Fallback to query if no embedding
+            cand_values = cand.get('embedding')
+            if cand_values is None:
+                continue
+
+            cand_emb = np.array(cand_values)
+            if cand_emb.shape != query_emb.shape:
+                continue
+
             cand_features = self.extract_features(cand_emb, {})
             
             # Calculate individual feature similarities
@@ -211,17 +243,47 @@ class ArchitecturalMatcher:
                             serializable_feature[key] = value
                     serializable_features[building_id].append(serializable_feature)
             
-            with open('architectural_features.json', 'w') as f:
-                json.dump(serializable_features, f)
+            payload = json.dumps(serializable_features)
+
+            with open(self.artifact_path, 'w') as f:
+                f.write(payload)
+
+            if self.s3_client and self.artifact_bucket:
+                self.s3_client.put_object(
+                    Bucket=self.artifact_bucket,
+                    Key=self.artifact_key,
+                    Body=payload.encode("utf-8"),
+                    ContentType="application/json"
+                )
         except Exception as e:
             print(f"Failed to save architectural features: {e}")
     
     def load_features(self):
         """Load architectural features from disk"""
         try:
-            if os.path.exists('architectural_features.json'):
-                with open('architectural_features.json', 'r') as f:
+            serializable_features = None
+
+            if self.s3_client and self.artifact_bucket:
+                try:
+                    payload = self.s3_client.get_object(
+                        Bucket=self.artifact_bucket,
+                        Key=self.artifact_key
+                    )["Body"].read().decode("utf-8")
+                    serializable_features = json.loads(payload)
+                    print("Loaded architectural features from S3 artifact")
+                except ClientError as e:
+                    error_code = e.response.get("Error", {}).get("Code")
+                    if error_code not in {"NoSuchKey", "404"}:
+                        print(f"Failed to load architectural features from S3: {e}")
+                except Exception as e:
+                    print(f"Failed to load architectural features from S3: {e}")
+
+            if serializable_features is None and os.path.exists(self.artifact_path):
+                with open(self.artifact_path, 'r') as f:
                     serializable_features = json.load(f)
+                print("Loaded architectural features from local artifact")
+
+            if serializable_features:
                 
                 # Convert lists back to numpy arrays
                 for building_id, feature_list in serializable_features.items():

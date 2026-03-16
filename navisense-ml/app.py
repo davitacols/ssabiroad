@@ -1,21 +1,27 @@
-import os
 import io
 import hashlib
-import torch
+import json
+import mimetypes
+import os
+import random
+import re
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
+
+import boto3
 import numpy as np
-from fastapi import FastAPI, File, UploadFile, HTTPException, Form
+import psycopg2
+import torch
+from dotenv import load_dotenv
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 from pinecone import Pinecone, ServerlessSpec
-import psycopg2
-from dotenv import load_dotenv
-import boto3
-from transformers import CLIPProcessor, CLIPModel
-from geolocation_model import GeolocationPredictor
+from transformers import CLIPModel, CLIPProcessor
+
 from architectural_matcher import ArchitecturalMatcher
 from enhanced_ocr import EnhancedOCR
-import json
-from typing import Dict, List, Optional, Tuple
+from geolocation_model import GeolocationPredictor
 
 load_dotenv()
 
@@ -46,8 +52,16 @@ print(f"CLIP model loaded on {device}")
 geolocation_predictor = GeolocationPredictor(device)
 architectural_matcher = ArchitecturalMatcher()
 enhanced_ocr = EnhancedOCR()
+CODE_VERSION = "2026-03-16-training-complete-v4"
+TRAINING_IMAGE_PREFIX = os.getenv("TRAINING_IMAGE_PREFIX", "navisense-training/direct")
+TRAINING_SPLIT_SEED = 42
 
 print("All ML models initialized successfully")
+
+@app.on_event("startup")
+def load_cached_artifacts():
+    architectural_matcher.load_features()
+    print("Architectural matcher features loaded")
 
 def generate_embedding(image: Image.Image):
     """Generate CLIP embedding for image"""
@@ -55,6 +69,416 @@ def generate_embedding(image: Image.Image):
     with torch.no_grad():
         embeddings = model.get_image_features(**inputs)
     return embeddings[0].cpu().numpy().tolist()
+
+def get_db_connection():
+    return psycopg2.connect(
+        host=os.getenv('POSTGRES_HOST'),
+        database=os.getenv('POSTGRES_DATABASE'),
+        user=os.getenv('POSTGRES_USER'),
+        password=os.getenv('POSTGRES_PASSWORD'),
+        sslmode='require'
+    )
+
+def parse_metadata(metadata: Optional[str]) -> Dict[str, Any]:
+    if not metadata:
+        return {}
+
+    try:
+        parsed = json.loads(metadata)
+        return parsed if isinstance(parsed, dict) else {}
+    except json.JSONDecodeError:
+        return {}
+
+def sanitize_storage_segment(value: Optional[str], default: str = "direct-train") -> str:
+    cleaned = re.sub(r"[^a-z0-9_-]+", "-", (value or default).lower()).strip("-")
+    return cleaned or default
+
+def infer_file_extension(content_type: Optional[str], filename: Optional[str]) -> str:
+    if filename:
+        _, ext = os.path.splitext(filename)
+        if ext:
+            return ext.lower()
+
+    if content_type:
+        guessed = mimetypes.guess_extension(content_type.split(";")[0].strip()) or ""
+        if guessed == ".jpe":
+            return ".jpg"
+        if guessed:
+            return guessed.lower()
+
+    return ".jpg"
+
+def resolve_s3_key(image_url: str) -> str:
+    if image_url.startswith('https://'):
+        return image_url.split('.s3.amazonaws.com/')[-1]
+    if image_url.startswith('blog/'):
+        return image_url
+    if image_url.startswith('navisense-training/'):
+        return image_url
+    return f"navisense-training/{image_url}"
+
+def build_s3_url(key: str) -> str:
+    bucket = os.getenv('AWS_S3_BUCKET_NAME')
+    if not bucket:
+        raise RuntimeError("AWS_S3_BUCKET_NAME is not configured")
+    return f"https://{bucket}.s3.amazonaws.com/{key}"
+
+def upload_training_image(
+    image_bytes: bytes,
+    image_hash: str,
+    content_type: Optional[str],
+    filename: Optional[str],
+    source: Optional[str]
+) -> str:
+    bucket = os.getenv('AWS_S3_BUCKET_NAME')
+    if not bucket:
+        raise RuntimeError("AWS_S3_BUCKET_NAME is not configured")
+
+    extension = infer_file_extension(content_type, filename)
+    source_segment = sanitize_storage_segment(source)
+    s3_key = f"{TRAINING_IMAGE_PREFIX}/{source_segment}/{image_hash[:2]}/{image_hash}{extension}"
+    s3_client.put_object(
+        Bucket=bucket,
+        Key=s3_key,
+        Body=image_bytes,
+        ContentType=content_type or "application/octet-stream"
+    )
+    return build_s3_url(s3_key)
+
+def load_image_from_s3(image_url: str) -> Tuple[bytes, Image.Image]:
+    bucket = os.getenv('AWS_S3_BUCKET_NAME')
+    if not bucket:
+        raise RuntimeError("AWS_S3_BUCKET_NAME is not configured")
+
+    response = s3_client.get_object(Bucket=bucket, Key=resolve_s3_key(image_url))
+    image_bytes = response['Body'].read()
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    return image_bytes, image
+
+def build_vector_metadata(record: Dict[str, Any]) -> Dict[str, Any]:
+    metadata = {
+        "latitude": float(record["latitude"]),
+        "longitude": float(record["longitude"]),
+        "source": record.get("source", "unknown")
+    }
+    if record.get("address"):
+        metadata["address"] = record["address"]
+    if record.get("businessName"):
+        metadata["businessName"] = record["businessName"]
+    return metadata
+
+def upsert_training_vector(image_hash: str, embedding: List[float], metadata: Dict[str, Any]) -> str:
+    vector_id = f"loc_{image_hash[:16]}"
+    legacy_feedback_id = f"fb_{image_hash[:16]}"
+    index.upsert(vectors=[(vector_id, embedding, metadata)])
+    if legacy_feedback_id != vector_id:
+        try:
+            index.delete(ids=[legacy_feedback_id])
+        except Exception:
+            pass
+    return vector_id
+
+def upsert_training_record(
+    image_url: str,
+    image_hash: str,
+    latitude: float,
+    longitude: float,
+    address: Optional[str] = None,
+    business_name: Optional[str] = None,
+    verified: bool = True,
+    user_corrected: bool = False,
+    confidence: Optional[float] = None,
+    user_id: Optional[str] = None,
+    trained: bool = False
+) -> None:
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        trained_at = datetime.now(timezone.utc) if trained else None
+        cur.execute(
+            '''
+            INSERT INTO "NavisenseTraining" (
+                "imageUrl", "imageHash", latitude, longitude, address, "businessName",
+                verified, "userCorrected", confidence, "userId", "trainedAt"
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT ("imageHash") DO UPDATE SET
+                "imageUrl" = EXCLUDED."imageUrl",
+                latitude = EXCLUDED.latitude,
+                longitude = EXCLUDED.longitude,
+                address = COALESCE(EXCLUDED.address, "NavisenseTraining".address),
+                "businessName" = COALESCE(EXCLUDED."businessName", "NavisenseTraining"."businessName"),
+                verified = EXCLUDED.verified OR "NavisenseTraining".verified,
+                "userCorrected" = EXCLUDED."userCorrected" OR "NavisenseTraining"."userCorrected",
+                confidence = COALESCE(EXCLUDED.confidence, "NavisenseTraining".confidence),
+                "userId" = COALESCE(EXCLUDED."userId", "NavisenseTraining"."userId"),
+                "trainedAt" = COALESCE(EXCLUDED."trainedAt", "NavisenseTraining"."trainedAt")
+            ''',
+            (
+                image_url,
+                image_hash,
+                float(latitude),
+                float(longitude),
+                address,
+                business_name,
+                verified,
+                user_corrected,
+                confidence,
+                user_id,
+                trained_at
+            )
+        )
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()
+
+def mark_training_records_trained(image_hashes: List[str]) -> None:
+    if not image_hashes:
+        return
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            'UPDATE "NavisenseTraining" SET "trainedAt" = %s WHERE "imageHash" = ANY(%s)',
+            (datetime.now(timezone.utc), image_hashes)
+        )
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()
+
+def fetch_combined_training_records(limit: Optional[int] = None) -> List[Dict[str, Any]]:
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.execute(
+            '''
+            SELECT "imageUrl", "imageHash", latitude, longitude, address, "businessName",
+                   verified, "userCorrected", confidence, "userId", "createdAt"
+            FROM "NavisenseTraining"
+            WHERE verified = true AND "imageUrl" IS NOT NULL
+            ORDER BY "createdAt" DESC
+            '''
+        )
+        training_rows = cur.fetchall()
+
+        cur.execute(
+            '''
+            SELECT lr."imageUrl", lr."imageHash", lf."correctLat", lf."correctLng",
+                   COALESCE(lf."correctAddress", lr."detectedAddress"), lr."businessName",
+                   lf."createdAt", lr."userId"
+            FROM location_feedback lf
+            JOIN location_recognitions lr ON lf."recognitionId" = lr.id
+            WHERE lf."wasCorrect" = true
+              AND lf."correctLat" IS NOT NULL
+              AND lf."correctLng" IS NOT NULL
+              AND lr."imageUrl" IS NOT NULL
+            ORDER BY lf."createdAt" DESC
+            '''
+        )
+        feedback_rows = cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+    combined: List[Dict[str, Any]] = []
+
+    for row in training_rows:
+        image_url, image_hash, lat, lng, addr, business_name, verified, user_corrected, confidence, user_id, created_at = row
+        combined.append({
+            "source": "navisense_training",
+            "priority": 1,
+            "image_url": image_url,
+            "image_hash": image_hash,
+            "latitude": float(lat),
+            "longitude": float(lng),
+            "address": addr,
+            "businessName": business_name,
+            "verified": bool(verified),
+            "userCorrected": bool(user_corrected),
+            "confidence": float(confidence) if confidence is not None else None,
+            "userId": user_id,
+            "created_at": created_at,
+            "place_key": build_place_key({
+                "latitude": float(lat),
+                "longitude": float(lng),
+                "address": addr,
+                "businessName": business_name
+            })
+        })
+
+    for row in feedback_rows:
+        image_url, image_hash, lat, lng, addr, business_name, created_at, user_id = row
+        canonical_hash = image_hash or hashlib.sha256(image_url.encode()).hexdigest()
+        combined.append({
+            "source": "verified_feedback",
+            "priority": 2,
+            "image_url": image_url,
+            "image_hash": canonical_hash,
+            "latitude": float(lat),
+            "longitude": float(lng),
+            "address": addr,
+            "businessName": business_name,
+            "verified": True,
+            "userCorrected": True,
+            "confidence": None,
+            "userId": user_id,
+            "created_at": created_at,
+            "place_key": build_place_key({
+                "latitude": float(lat),
+                "longitude": float(lng),
+                "address": addr,
+                "businessName": business_name
+            })
+        })
+
+    combined.sort(key=lambda record: (record["priority"], sort_timestamp(record["created_at"])), reverse=True)
+
+    deduped: Dict[str, Dict[str, Any]] = {}
+    for record in combined:
+        image_hash = record["image_hash"]
+        if image_hash not in deduped:
+            deduped[image_hash] = record
+            continue
+
+        existing = deduped[image_hash]
+        if not existing.get("address") and record.get("address"):
+            existing["address"] = record["address"]
+        if not existing.get("businessName") and record.get("businessName"):
+            existing["businessName"] = record["businessName"]
+
+    deduped_records = list(deduped.values())
+    deduped_records.sort(key=lambda record: sort_timestamp(record["created_at"]), reverse=True)
+
+    if limit is not None:
+        return deduped_records[:limit]
+    return deduped_records
+
+def prepare_training_examples(
+    records: List[Dict[str, Any]],
+    sync_vectors: bool = False
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]]]:
+    prepared = []
+    failures = []
+
+    for record in records:
+        try:
+            _, image = load_image_from_s3(record["image_url"])
+            embedding = generate_embedding(image)
+            record_copy = dict(record)
+            record_copy["embedding"] = embedding
+            prepared.append(record_copy)
+
+            if sync_vectors:
+                upsert_training_vector(
+                    record_copy["image_hash"],
+                    embedding,
+                    build_vector_metadata(record_copy)
+                )
+        except Exception as e:
+            failures.append({
+                "image_hash": record["image_hash"],
+                "image_url": record["image_url"],
+                "error": str(e)
+            })
+
+    return prepared, failures
+
+def split_training_examples(
+    examples: List[Dict[str, Any]],
+    validation_ratio: float = 0.2
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    if len(examples) < 2:
+        return examples, []
+
+    grouped_examples: Dict[str, List[Dict[str, Any]]] = {}
+    for example in examples:
+        place_key = example.get("place_key") or build_place_key(example)
+        grouped_examples.setdefault(place_key, []).append(example)
+
+    place_keys = list(grouped_examples.keys())
+    if len(place_keys) < 2:
+        shuffled = list(examples)
+        random.Random(TRAINING_SPLIT_SEED).shuffle(shuffled)
+        return shuffled, []
+
+    random.Random(TRAINING_SPLIT_SEED).shuffle(place_keys)
+
+    target_validation_size = (
+        max(1, int(round(len(examples) * validation_ratio)))
+        if len(examples) >= 5
+        else 0
+    )
+    if target_validation_size <= 0:
+        training_examples = []
+        for place_key in place_keys:
+            training_examples.extend(grouped_examples[place_key])
+        return training_examples, []
+
+    validation_place_keys = []
+    validation_count = 0
+
+    for index, place_key in enumerate(place_keys):
+        remaining_place_groups = len(place_keys) - (index + 1)
+        if validation_count >= target_validation_size:
+            break
+        if remaining_place_groups <= 0:
+            break
+
+        validation_place_keys.append(place_key)
+        validation_count += len(grouped_examples[place_key])
+
+    if not validation_place_keys:
+        training_examples = []
+        for place_key in place_keys:
+            training_examples.extend(grouped_examples[place_key])
+        return training_examples, []
+
+    validation_place_key_set = set(validation_place_keys)
+    training_examples = []
+    validation_examples = []
+
+    for place_key in place_keys:
+        target = validation_examples if place_key in validation_place_key_set else training_examples
+        target.extend(grouped_examples[place_key])
+
+    return training_examples, validation_examples
+
+def choose_training_epochs(sample_count: int) -> int:
+    if sample_count < 20:
+        return 60
+    if sample_count < 75:
+        return 40
+    return 25
+
+def sort_timestamp(value: Optional[datetime]) -> float:
+    if value is None:
+        return 0.0
+    return value.timestamp()
+
+def normalize_place_text(value: Optional[str]) -> str:
+    if not value:
+        return ""
+    normalized = re.sub(r"\s+", " ", value.strip().lower())
+    normalized = re.sub(r"[^a-z0-9\s,.-]", "", normalized)
+    return normalized.strip()
+
+def build_place_key(record: Dict[str, Any]) -> str:
+    address = normalize_place_text(record.get("address"))
+    business_name = normalize_place_text(record.get("businessName"))
+    lat_bucket = round(float(record["latitude"]), 4)
+    lng_bucket = round(float(record["longitude"]), 4)
+
+    if address and business_name:
+        return f"{business_name}|{address}"
+    if address:
+        return f"addr|{address}"
+    if business_name:
+        return f"biz|{business_name}|{lat_bucket}|{lng_bucket}"
+    return f"coords|{lat_bucket}|{lng_bucket}"
 
 @app.get("/")
 def read_root():
@@ -76,10 +500,24 @@ def health_check():
         "status": "healthy", 
         "model": "CLIP ViT-B/32", 
         "device": device, 
+        "code_version": CODE_VERSION,
+        "confidence_gate": geolocation_predictor.confidence_gate,
         "vectors_in_db": index.describe_index_stats().total_vector_count,
         "geolocation_model": "loaded",
         "architectural_matcher": "loaded",
         "enhanced_ocr": "loaded"
+    }
+
+@app.get("/debug/parser-check")
+def parser_check():
+    sample_address = "123 Main Street"
+    sample_phone = "(555) 123-4567"
+    return {
+        "code_version": CODE_VERSION,
+        "address_input": sample_address,
+        "address_output": enhanced_ocr.extract_addresses(sample_address),
+        "phone_input": sample_phone,
+        "phone_output": enhanced_ocr.extract_phone_numbers(sample_phone)
     }
 
 @app.get("/stats")
@@ -137,119 +575,39 @@ def get_stats():
         }
 
 @app.post("/sync-training")
-async def sync_training():
+async def sync_training(limit: Optional[int] = None):
     try:
-        conn = psycopg2.connect(
-            host=os.getenv('POSTGRES_HOST'),
-            database=os.getenv('POSTGRES_DATABASE'),
-            user=os.getenv('POSTGRES_USER'),
-            password=os.getenv('POSTGRES_PASSWORD'),
-            sslmode='require'
-        )
-        cur = conn.cursor()
-        
-        # Get verified training data from NavisenseTraining
-        cur.execute('SELECT "imageUrl", "imageHash", latitude, longitude, address, "businessName" FROM "NavisenseTraining" WHERE verified = true LIMIT 50')
-        training_rows = cur.fetchall()
-        
-        # Get verified feedback data with correct locations
-        cur.execute('''
-            SELECT lr."imageUrl", lr."imageHash", lf."correctLat", lf."correctLng", lf."correctAddress"
-            FROM location_feedback lf
-            JOIN location_recognitions lr ON lf."recognitionId" = lr.id
-            WHERE lf."wasCorrect" = true AND lf."correctLat" IS NOT NULL AND lf."correctLng" IS NOT NULL
-            AND lr."imageUrl" IS NOT NULL
-            LIMIT 50
-        ''')
-        feedback_rows = cur.fetchall()
-        
-        cur.close()
-        conn.close()
-        
+        records = fetch_combined_training_records(limit=limit)
         synced = 0
-        skipped = 0
         failed = 0
-        
-        # Process NavisenseTraining data
-        for row in training_rows:
-            image_url, image_hash, lat, lng, addr, business_name = row
+        failures = []
+
+        for record in records:
             try:
-                vector_id = f"loc_{image_hash[:16]}"
-                existing = index.fetch(ids=[vector_id])
-                if existing.vectors:
-                    skipped += 1
-                    continue
-                
-                bucket = os.getenv('AWS_S3_BUCKET_NAME')
-                # Handle different S3 key formats
-                if image_url.startswith('https://'):
-                    s3_key = image_url.split('.s3.amazonaws.com/')[-1]
-                elif image_url.startswith('blog/'):
-                    s3_key = image_url
-                elif image_url.startswith('navisense-training/'):
-                    s3_key = image_url
-                else:
-                    s3_key = f"navisense-training/{image_url}"
-                response = s3_client.get_object(Bucket=bucket, Key=s3_key)
-                image_bytes = response['Body'].read()
-                image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-                
+                _, image = load_image_from_s3(record["image_url"])
                 embedding = generate_embedding(image)
-                
-                metadata = {"latitude": float(lat), "longitude": float(lng)}
-                if addr:
-                    metadata["address"] = addr
-                if business_name:
-                    metadata["businessName"] = business_name
-                
-                index.upsert(vectors=[(vector_id, embedding, metadata)])
+                upsert_training_vector(
+                    record["image_hash"],
+                    embedding,
+                    build_vector_metadata(record)
+                )
                 synced += 1
             except Exception as e:
                 failed += 1
-                continue
-        
-        # Process verified feedback data
-        for row in feedback_rows:
-            image_url, image_hash, lat, lng, addr = row
-            try:
-                vector_id = f"fb_{image_hash[:16]}" if image_hash else f"fb_{hashlib.sha256(image_url.encode()).hexdigest()[:16]}"
-                existing = index.fetch(ids=[vector_id])
-                if existing.vectors:
-                    skipped += 1
-                    continue
-                
-                bucket = os.getenv('AWS_S3_BUCKET_NAME')
-                # Handle different S3 key formats
-                if image_url.startswith('https://'):
-                    s3_key = image_url.split('.s3.amazonaws.com/')[-1]
-                elif image_url.startswith('blog/'):
-                    s3_key = image_url
-                elif image_url.startswith('navisense-training/'):
-                    s3_key = image_url
-                else:
-                    s3_key = f"navisense-training/{image_url}"
-                response = s3_client.get_object(Bucket=bucket, Key=s3_key)
-                image_bytes = response['Body'].read()
-                image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-                
-                embedding = generate_embedding(image)
-                
-                metadata = {"latitude": float(lat), "longitude": float(lng)}
-                if addr:
-                    metadata["address"] = addr
-                
-                index.upsert(vectors=[(vector_id, embedding, metadata)])
-                synced += 1
-            except Exception as e:
-                failed += 1
-                continue
-        
+                failures.append({
+                    "image_hash": record["image_hash"],
+                    "image_url": record["image_url"],
+                    "error": str(e)
+                })
+
         return {
             "success": True,
+            "records_considered": len(records),
             "synced": synced,
-            "skipped": skipped,
+            "skipped": 0,
             "failed": failed,
-            "message": f"Synced {synced} locations ({len(training_rows)} from training, {len(feedback_rows)} from feedback), skipped {skipped}, failed {failed}"
+            "failures": failures[:5],
+            "message": f"Synced {synced} training vectors from {len(records)} canonical records"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -262,36 +620,43 @@ async def predict_location(file: UploadFile = File(...)):
         
         # Try exact hash match first
         img_hash = hashlib.sha256(image_bytes).hexdigest()
-        vector_id = f"loc_{img_hash[:16]}"
-        exact_match = index.fetch(ids=[vector_id])
+        exact_ids = [f"loc_{img_hash[:16]}", f"fb_{img_hash[:16]}"]
+        exact_match = index.fetch(ids=exact_ids)
         
-        if exact_match.vectors and vector_id in exact_match.vectors:
-            match = exact_match.vectors[vector_id]
-            return {
-                "success": True,
-                "hasLocation": True,
-                "location": {
-                    "latitude": float(match.metadata["latitude"]),
-                    "longitude": float(match.metadata["longitude"]),
-                    "address": match.metadata.get("address"),
-                    "businessName": match.metadata.get("businessName")
-                },
-                "confidence": 1.0,
-                "method": "exact_match"
-            }
+        if exact_match.vectors:
+            for vector_id in exact_ids:
+                if vector_id in exact_match.vectors:
+                    match = exact_match.vectors[vector_id]
+                    return {
+                        "success": True,
+                        "hasLocation": True,
+                        "location": {
+                            "latitude": float(match.metadata["latitude"]),
+                            "longitude": float(match.metadata["longitude"]),
+                            "address": match.metadata.get("address"),
+                            "businessName": match.metadata.get("businessName")
+                        },
+                        "confidence": 1.0,
+                        "method": "exact_match"
+                    }
         
         # Generate embedding for similarity search and geolocation prediction
         embedding = generate_embedding(image)
         embedding_np = np.array(embedding)
         
         # Try similarity search with architectural matching
-        results = index.query(vector=embedding, top_k=10, include_metadata=True)
+        results = index.query(
+            vector=embedding,
+            top_k=10,
+            include_metadata=True,
+            include_values=True
+        )
         
         if results.matches:
             # Use architectural matcher for better building matching
             candidates = [{
                 'id': match.id,
-                'embedding': embedding,  # We'd need to store embeddings in metadata for real matching
+                'embedding': getattr(match, 'values', None),
                 'metadata': match.metadata,
                 'score': match.score
             } for match in results.matches]
@@ -331,7 +696,11 @@ async def predict_location(file: UploadFile = File(...)):
             pred_lat, pred_lng, geo_confidence = geolocation_predictor.predict(embedding_np)
             
             # Validate predicted coordinates are reasonable
-            if -90 <= pred_lat <= 90 and -180 <= pred_lng <= 180 and geo_confidence > 0.4:
+            if (
+                -90 <= pred_lat <= 90
+                and -180 <= pred_lng <= 180
+                and geo_confidence >= geolocation_predictor.confidence_gate
+            ):
                 return {
                     "success": True,
                     "hasLocation": True,
@@ -342,6 +711,7 @@ async def predict_location(file: UploadFile = File(...)):
                         "businessName": "Unknown building"
                     },
                     "confidence": geo_confidence,
+                    "confidence_gate": geolocation_predictor.confidence_gate,
                     "method": "geolocation_prediction"
                 }
         
@@ -436,6 +806,7 @@ async def geolocation_predict(file: UploadFile = File(...)):
                 "longitude": pred_lng
             },
             "confidence": confidence,
+            "confidence_gate": geolocation_predictor.confidence_gate,
             "method": "geolocation_regression"
         }
     except Exception as e:
@@ -453,7 +824,12 @@ async def multi_view_match(file: UploadFile = File(...)):
         embedding_np = np.array(embedding)
         
         # Get candidates from vector database
-        results = index.query(vector=embedding, top_k=20, include_metadata=True)
+        results = index.query(
+            vector=embedding,
+            top_k=20,
+            include_metadata=True,
+            include_values=True
+        )
         
         if not results.matches:
             return {"success": False, "message": "No candidates found"}
@@ -461,7 +837,7 @@ async def multi_view_match(file: UploadFile = File(...)):
         # Prepare candidates for architectural matching
         candidates = [{
             'id': match.id,
-            'embedding': embedding,  # In real implementation, we'd store embeddings
+            'embedding': getattr(match, 'values', None),
             'metadata': match.metadata,
             'score': match.score
         } for match in results.matches]
@@ -531,38 +907,86 @@ def get_sample_data():
         return {"success": False, "error": str(e)}
 
 @app.post("/train")
-async def train_location(file: UploadFile = File(...), latitude: float = Form(...), longitude: float = Form(...), address: str = Form(None), businessName: str = Form(None)):
+async def train_location(
+    file: UploadFile = File(...),
+    latitude: float = Form(...),
+    longitude: float = Form(...),
+    address: str = Form(None),
+    businessName: str = Form(None),
+    userId: str = Form(None),
+    metadata: str = Form(None)
+):
     try:
+        metadata_payload = parse_metadata(metadata)
+        effective_address = address or metadata_payload.get("address")
+        effective_business_name = (
+            businessName
+            or metadata_payload.get("businessName")
+            or metadata_payload.get("name")
+        )
+        effective_user_id = userId or metadata_payload.get("userId") or metadata_payload.get("deviceId")
+        source = metadata_payload.get("source") or metadata_payload.get("method") or "direct-train"
+        confidence = metadata_payload.get("confidence")
+        try:
+            confidence = float(confidence) if confidence is not None else None
+        except (TypeError, ValueError):
+            confidence = None
+
         image_bytes = await file.read()
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-        
-        # Generate embedding
+
         embedding = generate_embedding(image)
         embedding_np = np.array(embedding)
-        
-        # Create unique ID
+
         img_hash = hashlib.sha256(image_bytes).hexdigest()
-        vector_id = f"loc_{img_hash[:16]}"
-        
-        # Store in Pinecone
-        metadata = {"latitude": latitude, "longitude": longitude}
-        if address:
-            metadata["address"] = address
-        if businessName:
-            metadata["businessName"] = businessName
-        
-        index.upsert(vectors=[(vector_id, embedding, metadata)])
-        
-        # Train geolocation model with this verified data
+        stored_image_url = upload_training_image(
+            image_bytes,
+            img_hash,
+            file.content_type,
+            file.filename,
+            source
+        )
+
+        training_record = {
+            "image_hash": img_hash,
+            "image_url": stored_image_url,
+            "latitude": latitude,
+            "longitude": longitude,
+            "address": effective_address,
+            "businessName": effective_business_name,
+            "source": source
+        }
+        vector_metadata = build_vector_metadata(training_record)
+        vector_id = upsert_training_vector(img_hash, embedding, vector_metadata)
+
+        upsert_training_record(
+            stored_image_url,
+            img_hash,
+            latitude,
+            longitude,
+            address=effective_address,
+            business_name=effective_business_name,
+            verified=True,
+            user_corrected=bool(metadata_payload.get("userCorrected"))
+            or metadata_payload.get("method") == "user-correction"
+            or source == "user-correction",
+            confidence=confidence,
+            user_id=effective_user_id,
+            trained=True
+        )
+
         geolocation_predictor.train_step(embedding_np, latitude, longitude)
-        
-        # Add to architectural matcher database
-        architectural_matcher.add_building(vector_id, embedding_np, metadata)
-        
+        geolocation_predictor.save_model()
+
+        architectural_matcher.add_building(vector_id, embedding_np, vector_metadata)
+        architectural_matcher.save_features()
+
         return {
-            "success": True, 
-            "message": "Training data added and models updated", 
-            "vector_id": vector_id, 
+            "success": True,
+            "message": "Training data persisted and models updated",
+            "vector_id": vector_id,
+            "image_hash": img_hash,
+            "training_image_url": stored_image_url,
             "total_vectors": index.describe_index_stats().total_vector_count
         }
     except Exception as e:
@@ -570,57 +994,71 @@ async def train_location(file: UploadFile = File(...), latitude: float = Form(..
 
 @app.post("/retrain")
 async def retrain_models():
-    """Retrain geolocation model with all available data"""
+    """Retrain the geolocation model from the full canonical training corpus."""
     try:
-        # Get all training data from database
-        conn = psycopg2.connect(
-            host=os.getenv('POSTGRES_HOST'),
-            database=os.getenv('POSTGRES_DATABASE'),
-            user=os.getenv('POSTGRES_USER'),
-            password=os.getenv('POSTGRES_PASSWORD'),
-            sslmode='require'
+        records = fetch_combined_training_records()
+        if not records:
+            return {
+                "success": False,
+                "message": "No verified training data available for retraining"
+            }
+
+        examples, failures = prepare_training_examples(records, sync_vectors=True)
+        if len(examples) < 2:
+            return {
+                "success": False,
+                "message": "Not enough valid training samples after loading images",
+                "records_considered": len(records),
+                "samples_loaded": len(examples),
+                "samples_failed": len(failures),
+                "failures": failures[:5]
+            }
+
+        train_examples, validation_examples = split_training_examples(examples)
+        train_embeddings = [example["embedding"] for example in train_examples]
+        train_lats = [example["latitude"] for example in train_examples]
+        train_lngs = [example["longitude"] for example in train_examples]
+
+        geolocation_predictor.reset_model()
+        epochs = choose_training_epochs(len(train_examples))
+        final_loss = geolocation_predictor.batch_train(
+            train_embeddings,
+            train_lats,
+            train_lngs,
+            epochs=epochs
         )
-        cur = conn.cursor()
-        
-        # Get verified training data
-        cur.execute('SELECT "imageUrl", latitude, longitude FROM "NavisenseTraining" WHERE verified = true LIMIT 100')
-        training_rows = cur.fetchall()
-        
-        cur.close()
-        conn.close()
-        
-        retrained_count = 0
-        
-        # Retrain geolocation model with verified data
-        for row in training_rows:
-            try:
-                image_url, lat, lng = row
-                
-                # Load image from S3
-                bucket = os.getenv('AWS_S3_BUCKET_NAME')
-                if image_url.startswith('https://'):
-                    s3_key = image_url.split('.s3.amazonaws.com/')[-1]
-                else:
-                    s3_key = f"navisense-training/{image_url}"
-                    
-                response = s3_client.get_object(Bucket=bucket, Key=s3_key)
-                image_bytes = response['Body'].read()
-                image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-                
-                # Generate embedding and train
-                embedding = generate_embedding(image)
-                embedding_np = np.array(embedding)
-                
-                geolocation_predictor.train_step(embedding_np, float(lat), float(lng))
-                retrained_count += 1
-                
-            except Exception as e:
-                continue
-        
+        geolocation_predictor.save_model()
+
+        architectural_matcher.save_features()
+        mark_training_records_trained([example["image_hash"] for example in examples])
+
+        validation_metrics = None
+        confidence_calibration = None
+        if validation_examples:
+            validation_metrics = geolocation_predictor.evaluate_accuracy(
+                [example["embedding"] for example in validation_examples],
+                [example["latitude"] for example in validation_examples],
+                [example["longitude"] for example in validation_examples]
+            )
+            confidence_calibration = geolocation_predictor.calibrate_confidence(
+                [example["embedding"] for example in validation_examples],
+                [example["latitude"] for example in validation_examples],
+                [example["longitude"] for example in validation_examples]
+            )
+
         return {
             "success": True,
-            "message": f"Retrained geolocation model with {retrained_count} samples",
-            "samples_processed": retrained_count
+            "message": f"Retrained geolocation model with {len(train_examples)} samples",
+            "records_considered": len(records),
+            "samples_loaded": len(examples),
+            "samples_failed": len(failures),
+            "train_samples": len(train_examples),
+            "validation_samples": len(validation_examples),
+            "epochs": epochs,
+            "final_training_loss": final_loss,
+            "validation_metrics": validation_metrics,
+            "confidence_calibration": confidence_calibration,
+            "failures": failures[:5]
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -635,71 +1073,42 @@ def test_s3_access():
         return {"success": True, "bucket": bucket, "sample_objects": objects}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
 @app.get("/evaluate-models")
 async def evaluate_models():
     """Comprehensive evaluation of all ML models"""
     try:
-        # Get test data from database
-        conn = psycopg2.connect(
-            host=os.getenv('POSTGRES_HOST'),
-            database=os.getenv('POSTGRES_DATABASE'),
-            user=os.getenv('POSTGRES_USER'),
-            password=os.getenv('POSTGRES_PASSWORD'),
-            sslmode='require'
-        )
-        cur = conn.cursor()
-        
-        # Get sample of verified data for evaluation
-        cur.execute('SELECT "imageUrl", latitude, longitude, address FROM "NavisenseTraining" WHERE verified = true LIMIT 20')
-        test_data = cur.fetchall()
-        
-        cur.close()
-        conn.close()
-        
-        if not test_data:
+        records = fetch_combined_training_records(limit=50)
+        if not records:
             return {"success": False, "message": "No test data available"}
-        
-        # Evaluate geolocation model
-        test_embeddings = []
-        test_lats = []
-        test_lngs = []
-        
-        for row in test_data[:10]:  # Use first 10 for evaluation
-            try:
-                image_url, lat, lng, addr = row
-                
-                # Load image from S3
-                bucket = os.getenv('AWS_S3_BUCKET_NAME')
-                if image_url.startswith('https://'):
-                    s3_key = image_url.split('.s3.amazonaws.com/')[-1]
-                else:
-                    s3_key = f"navisense-training/{image_url}"
-                    
-                response = s3_client.get_object(Bucket=bucket, Key=s3_key)
-                image_bytes = response['Body'].read()
-                image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-                
-                # Generate embedding
-                embedding = generate_embedding(image)
-                test_embeddings.append(embedding)
-                test_lats.append(float(lat))
-                test_lngs.append(float(lng))
-                
-            except Exception as e:
-                continue
-        
-        # Evaluate geolocation accuracy
-        geo_evaluation = geolocation_predictor.evaluate_accuracy(test_embeddings, test_lats, test_lngs)
+
+        examples, failures = prepare_training_examples(records, sync_vectors=False)
+        if not examples:
+            return {
+                "success": False,
+                "message": "Unable to load evaluation images",
+                "records_considered": len(records),
+                "failures": failures[:5]
+            }
+
+        _, validation_examples = split_training_examples(examples)
+        eval_examples = validation_examples or examples
+        geo_evaluation = geolocation_predictor.evaluate_accuracy(
+            [example["embedding"] for example in eval_examples],
+            [example["latitude"] for example in eval_examples],
+            [example["longitude"] for example in eval_examples]
+        )
         
         # Test architectural matcher
         arch_test_results = []
-        if len(test_embeddings) >= 2:
-            query_emb = np.array(test_embeddings[0])
+        eval_embeddings = [example["embedding"] for example in eval_examples]
+        if len(eval_embeddings) >= 2:
+            query_emb = np.array(eval_embeddings[0])
             candidates = [{
                 'id': f'test_{i}',
                 'embedding': emb,
                 'metadata': {'test': True}
-            } for i, emb in enumerate(test_embeddings[1:6])]
+            } for i, emb in enumerate(eval_embeddings[1:6])]
             
             arch_matches = architectural_matcher.match_building(query_emb, candidates)
             arch_test_results = arch_matches[:3]
@@ -714,6 +1123,12 @@ async def evaluate_models():
             "evaluation_results": {
                 "geolocation_model": {
                     "average_error_km": geo_evaluation['average_error_km'],
+                    "median_error_km": geo_evaluation['median_error_km'],
+                    "within_1km": geo_evaluation['within_1km'],
+                    "within_10km": geo_evaluation['within_10km'],
+                    "within_50km": geo_evaluation['within_50km'],
+                    "confidence_gate": geolocation_predictor.confidence_gate,
+                    "confidence_calibration": geolocation_predictor.confidence_calibration,
                     "samples_tested": geo_evaluation['total_samples'],
                     "status": "good" if geo_evaluation['average_error_km'] < 50 else "needs_improvement"
                 },
@@ -732,6 +1147,10 @@ async def evaluate_models():
                     "status": "operational"
                 }
             },
+            "records_considered": len(records),
+            "samples_loaded": len(examples),
+            "samples_failed": len(failures),
+            "failures": failures[:5],
             "overall_status": "All models operational"
         }
     except Exception as e:
@@ -753,6 +1172,8 @@ def get_model_info():
                 "architecture": "3-layer MLP with confidence estimation",
                 "input_dim": 512,
                 "output": "latitude, longitude, confidence",
+                "confidence_gate": geolocation_predictor.confidence_gate,
+                "confidence_calibration": geolocation_predictor.confidence_calibration,
                 "status": "loaded"
             },
             "architectural_matcher": {

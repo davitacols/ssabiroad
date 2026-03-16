@@ -18,7 +18,7 @@ import { SceneValidator } from './scene-validator';
 import { PrismaClient } from '@prisma/client'; 
 
 const prisma = new PrismaClient();
-const ML_API_URL = process.env.ML_API_URL || 'http://34.224.33.158:8000';
+const ML_API_URL = process.env.ML_API_URL || 'https://navisense-ml-678649320532.us-east1.run.app';
 
 
 interface Location {
@@ -5507,7 +5507,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       }
     }
     
-    // Fallback: use provided location immediately only after image-address checks have failed.
+    // PRIORITY: If we have provided location (client GPS), use it immediately
     if (providedLocation && providedLocation.latitude !== 0 && providedLocation.longitude !== 0) {
       console.log('ðŸŽ¯ USING PROVIDED CLIENT GPS COORDINATES:', providedLocation);
       const clientGpsResult = {
@@ -6031,7 +6031,7 @@ async function handleRequest(request: NextRequest) {
     exifSource
   });
   
-  // Capture client GPS coordinates so they are available as fallback context.
+  // PRIORITY: Use client GPS coordinates if available (mobile app extracted GPS)
   let providedLocation = undefined;
   if (clientLat && clientLng) {
     const clientLatNum = parseFloat(clientLat as string);
