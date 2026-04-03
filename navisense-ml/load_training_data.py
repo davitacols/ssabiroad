@@ -6,6 +6,8 @@ import psycopg2
 from pinecone import Pinecone
 from dotenv import load_dotenv
 
+from backbone import get_backbone_model_name, resolve_index_name
+
 load_dotenv()
 
 def main():
@@ -65,7 +67,7 @@ def main():
     # Check Pinecone status
     print("\nChecking Pinecone status...")
     pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-    index_name = os.getenv("PINECONE_INDEX_NAME", "navisense-locations")
+    index_name = resolve_index_name(get_backbone_model_name())
     
     if index_name in pc.list_indexes().names():
         index = pc.Index(index_name)

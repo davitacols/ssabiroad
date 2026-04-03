@@ -55,9 +55,10 @@ class GeolocationEstimator(nn.Module):
         return lat, lng, confidence
 
 class GeolocationPredictor:
-    def __init__(self, device="cpu"):
+    def __init__(self, device="cpu", embedding_dim: int = 512):
         self.device = device
-        self.model = GeolocationEstimator().to(device)
+        self.embedding_dim = int(embedding_dim)
+        self.model = GeolocationEstimator(embedding_dim=self.embedding_dim).to(device)
         self.model.eval()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
         self.loss_fn = nn.MSELoss()
@@ -98,7 +99,7 @@ class GeolocationPredictor:
 
     def reset_model(self):
         """Reinitialize the regressor before a clean retrain."""
-        self.model = GeolocationEstimator().to(self.device)
+        self.model = GeolocationEstimator(embedding_dim=self.embedding_dim).to(self.device)
         self.model.eval()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
         self.confidence_gate = float(os.getenv("GEOLOCATION_CONFIDENCE_GATE", "0.5"))
@@ -264,6 +265,7 @@ class GeolocationPredictor:
             checkpoint = {
                 'model_state_dict': self.model.state_dict(),
                 'optimizer_state_dict': self.optimizer.state_dict(),
+                'embedding_dim': self.embedding_dim,
                 'confidence_gate': self.confidence_gate,
                 'confidence_scale_km': self.confidence_scale_km,
                 'confidence_success_km': self.confidence_success_km,
@@ -311,6 +313,13 @@ class GeolocationPredictor:
 
             if checkpoint_bytes is not None:
                 checkpoint = torch.load(io.BytesIO(checkpoint_bytes), map_location=self.device)
+                checkpoint_embedding_dim = int(checkpoint.get('embedding_dim', self.embedding_dim))
+                if checkpoint_embedding_dim != self.embedding_dim:
+                    print(
+                        "Skipping geolocation checkpoint because the embedding dimension changed: "
+                        f"{checkpoint_embedding_dim} -> {self.embedding_dim}"
+                    )
+                    return
                 self.model.load_state_dict(checkpoint['model_state_dict'])
                 self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
                 self.confidence_gate = float(checkpoint.get('confidence_gate', self.confidence_gate))

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { createTrainingQueueRecord } from '@/lib/training-queue';
 
 const prisma = new PrismaClient();
 
@@ -38,16 +39,18 @@ export async function POST() {
       }
 
       // Add to training queue
-      await prisma.trainingQueue.create({
-        data: {
+      await createTrainingQueueRecord(
+        prisma.trainingQueue,
+        {
           imageUrl: feedback.recognitionId,
           address: feedback.correctAddress || 'User Feedback',
           latitude: feedback.correctLat,
           longitude: feedback.correctLng,
           deviceId: feedback.userId || 'anonymous',
           status: 'PENDING'
-        }
-      });
+        },
+        'ml/sync-feedback',
+      );
 
       added++;
     }

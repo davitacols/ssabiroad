@@ -57,10 +57,22 @@ class ArchitecturalMatcher:
             'building_age': self._estimate_age(embedding),
             'symmetry_score': self._calculate_symmetry(embedding)
         }
+
+    @staticmethod
+    def _slice_by_ratio(emb: np.ndarray, start_ratio: float, end_ratio: float, minimum_width: int = 8) -> np.ndarray:
+        embedding_length = max(int(len(emb)), 1)
+        start_index = min(int(embedding_length * start_ratio), embedding_length - 1)
+        end_index = max(start_index + minimum_width, int(np.ceil(embedding_length * end_ratio)))
+        end_index = min(end_index, embedding_length)
+
+        segment = emb[start_index:end_index]
+        if segment.size == 0:
+            return emb
+        return segment
     
     def _detect_roof(self, emb: np.ndarray) -> str:
         """Detect roof type from embedding features"""
-        roof_features = emb[0:50]
+        roof_features = self._slice_by_ratio(emb, 0.0, 0.1)
         roof_score = np.mean(roof_features)
         
         if roof_score < -0.3: return 'flat'
@@ -71,7 +83,7 @@ class ArchitecturalMatcher:
     
     def _detect_windows(self, emb: np.ndarray) -> str:
         """Detect window pattern and style"""
-        window_features = emb[50:100]
+        window_features = self._slice_by_ratio(emb, 0.1, 0.2)
         pattern_variance = np.var(window_features)
         pattern_mean = np.mean(window_features)
         
@@ -88,7 +100,7 @@ class ArchitecturalMatcher:
     
     def _detect_facade(self, emb: np.ndarray) -> str:
         """Detect facade material and style"""
-        facade_features = emb[100:150]
+        facade_features = self._slice_by_ratio(emb, 0.2, 0.3)
         texture_intensity = np.std(facade_features)
         color_intensity = np.mean(np.abs(facade_features))
         
@@ -105,14 +117,14 @@ class ArchitecturalMatcher:
     
     def _extract_colors(self, emb: np.ndarray) -> List[float]:
         """Extract dominant color profile with more precision"""
-        color_region = emb[200:220]
+        color_region = self._slice_by_ratio(emb, 0.39, 0.43, minimum_width=6)
         # Normalize to 0-1 range for color representation
         normalized_colors = (color_region - np.min(color_region)) / (np.max(color_region) - np.min(color_region) + 1e-8)
         return normalized_colors[:3].tolist()
     
     def _estimate_height(self, emb: np.ndarray) -> str:
         """Estimate building height category"""
-        height_features = emb[300:320]
+        height_features = self._slice_by_ratio(emb, 0.59, 0.63)
         height_score = np.mean(height_features)
         
         if height_score < -0.3: return 'single_story'
@@ -123,7 +135,7 @@ class ArchitecturalMatcher:
     
     def _detect_texture(self, emb: np.ndarray) -> str:
         """Detect surface texture patterns"""
-        texture_features = emb[400:450]
+        texture_features = self._slice_by_ratio(emb, 0.78, 0.88)
         texture_complexity = np.std(texture_features)
         
         if texture_complexity > 0.4: return 'highly_textured'
@@ -132,7 +144,7 @@ class ArchitecturalMatcher:
     
     def _detect_style(self, emb: np.ndarray) -> str:
         """Detect architectural style"""
-        style_features = emb[450:500]
+        style_features = self._slice_by_ratio(emb, 0.88, 0.98)
         style_score = np.mean(style_features)
         
         if style_score > 0.3: return 'modern'
@@ -143,7 +155,7 @@ class ArchitecturalMatcher:
     
     def _estimate_age(self, emb: np.ndarray) -> str:
         """Estimate building age category"""
-        age_indicators = emb[350:400]
+        age_indicators = self._slice_by_ratio(emb, 0.68, 0.78)
         wear_score = np.mean(np.abs(age_indicators))
         
         if wear_score > 0.4: return 'very_old'
@@ -154,8 +166,9 @@ class ArchitecturalMatcher:
     
     def _calculate_symmetry(self, emb: np.ndarray) -> float:
         """Calculate architectural symmetry score"""
-        left_half = emb[:256]
-        right_half = emb[256:512]
+        midpoint = max(len(emb) // 2, 1)
+        left_half = emb[:midpoint]
+        right_half = emb[midpoint:]
         
         # Pad if necessary
         if len(right_half) < len(left_half):

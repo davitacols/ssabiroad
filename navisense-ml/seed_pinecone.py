@@ -3,11 +3,12 @@ import io
 import hashlib
 import torch
 from PIL import Image
-from pinecone import Pinecone
+from pinecone import Pinecone, ServerlessSpec
 import psycopg2
 from dotenv import load_dotenv
 import boto3
-from transformers import CLIPProcessor, CLIPModel
+
+from backbone import load_backbone
 
 load_dotenv()
 
@@ -17,14 +18,17 @@ s3_client = boto3.client('s3',
     region_name=os.getenv('AWS_S3_REGION_NAME', 'us-east-1'))
 
 pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-index = pc.Index(os.getenv("PINECONE_INDEX_NAME", "navisense-locations"))
-
-print("Loading CLIP model for Pinecone seeding...")
-device = "cuda" if torch.cuda.is_available() else "cpu"
-model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-model.to(device)
-model.eval()
+model, processor, device, backbone_info = load_backbone()
+index_name = backbone_info["index_name"]
+embedding_dim = int(backbone_info["embedding_dim"])
+if index_name not in pc.list_indexes().names():
+    pc.create_index(
+        name=index_name,
+        dimension=embedding_dim,
+        metric="cosine",
+        spec=ServerlessSpec(cloud="aws", region="us-east-1"),
+    )
+index = pc.Index(index_name)
 
 def generate_embedding(image: Image.Image):
     inputs = processor(images=image, return_tensors="pt").to(device)
