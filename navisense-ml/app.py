@@ -13,15 +13,16 @@ import numpy as np
 import psycopg2
 import torch
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 from pinecone import Pinecone, ServerlessSpec
-from transformers import CLIPModel, CLIPProcessor
 
 from architectural_matcher import ArchitecturalMatcher
+from backbone import load_backbone
 from enhanced_ocr import EnhancedOCR
 from geolocation_model import GeolocationPredictor
+from navisense_v3 import NaviSenseV3
 
 load_dotenv()
 
@@ -33,26 +34,65 @@ s3_client = boto3.client('s3',
 app = FastAPI(title="Navisense ML API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
+def resolve_index_dimension(description: Any) -> Optional[int]:
+    if description is None:
+        return None
+
+    if isinstance(description, dict):
+        value = description.get("dimension")
+        return value if isinstance(value, int) else None
+
+    for attribute in ("dimension",):
+        value = getattr(description, attribute, None)
+        if isinstance(value, int):
+            return value
+
+    if hasattr(description, "to_dict"):
+        try:
+            as_dict = description.to_dict()
+            value = as_dict.get("dimension")
+            return value if isinstance(value, int) else None
+        except Exception:
+            return None
+
+    return None
+
+
+model, processor, device, backbone_info = load_backbone()
+EMBEDDING_DIM = int(backbone_info["embedding_dim"])
+BACKBONE_MODEL_NAME = str(backbone_info["model_name"])
+
 pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-index_name = os.getenv("PINECONE_INDEX_NAME", "navisense-locations")
+index_name = backbone_info["index_name"]
 if index_name not in pc.list_indexes().names():
-    pc.create_index(name=index_name, dimension=512, metric="cosine", spec=ServerlessSpec(cloud="aws", region="us-east-1"))
+    pc.create_index(
+        name=index_name,
+        dimension=EMBEDDING_DIM,
+        metric="cosine",
+        spec=ServerlessSpec(cloud="aws", region="us-east-1"),
+    )
+else:
+    index_description = None
+    try:
+        index_description = pc.describe_index(index_name)
+    except Exception as error:
+        print(f"Unable to inspect Pinecone index '{index_name}' dimension: {error}")
+
+    existing_dimension = resolve_index_dimension(index_description)
+    if existing_dimension is not None and existing_dimension != EMBEDDING_DIM:
+        raise RuntimeError(
+            f"Pinecone index '{index_name}' dimension ({existing_dimension}) does not match "
+            f"the configured backbone '{BACKBONE_MODEL_NAME}' ({EMBEDDING_DIM}). "
+            "Set PINECONE_INDEX_NAME to a compatible index or use a matching backbone."
+        )
 index = pc.Index(index_name)
 
-# Load CLIP model
-print("Loading CLIP model...")
-model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-device = "cuda" if torch.cuda.is_available() else "cpu"
-model.to(device)
-model.eval()
-print(f"CLIP model loaded on {device}")
-
 # Initialize new ML components
-geolocation_predictor = GeolocationPredictor(device)
+geolocation_predictor = GeolocationPredictor(device, embedding_dim=EMBEDDING_DIM)
 architectural_matcher = ArchitecturalMatcher()
 enhanced_ocr = EnhancedOCR()
-CODE_VERSION = "2026-03-16-training-complete-v4"
+navisense_v3 = NaviSenseV3(model, processor, device, embedding_dim=EMBEDDING_DIM)
+CODE_VERSION = "2026-04-01-configurable-backbone"
 TRAINING_IMAGE_PREFIX = os.getenv("TRAINING_IMAGE_PREFIX", "navisense-training/direct")
 TRAINING_SPLIT_SEED = 42
 
@@ -63,8 +103,128 @@ def load_cached_artifacts():
     architectural_matcher.load_features()
     print("Architectural matcher features loaded")
 
+
+def build_scene_analysis(
+    embedding_np: np.ndarray,
+    ocr_text: Optional[str] = None,
+    context_clues: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    try:
+        return navisense_v3.analyze_scene(
+            embedding_np,
+            ocr_text=ocr_text,
+            context_clues=context_clues,
+        )
+    except Exception as error:
+        return {"error": str(error)}
+
+def parse_context_hint_field(value: Optional[str]) -> List[str]:
+    if not value:
+        return []
+
+    stripped = value.strip()
+    if not stripped:
+        return []
+
+    try:
+        parsed = json.loads(stripped)
+        if isinstance(parsed, list):
+            return [str(item).strip() for item in parsed if str(item).strip()]
+    except json.JSONDecodeError:
+        pass
+
+    return [part.strip() for part in re.split(r"[\n,|]+", stripped) if part.strip()]
+
+def score_context_clue(clue: str) -> int:
+    normalized = clue.lower()
+    score = 0
+
+    if (
+        re.search(r"\d", normalized)
+        or "," in normalized
+        or any(
+            token in normalized
+            for token in [
+                "road",
+                "street",
+                "avenue",
+                "boulevard",
+                "junction",
+                "retail park",
+                "shopping centre",
+                "shopping center",
+                "industrial estate",
+                "mall",
+                "district",
+                "estate",
+                "park",
+            ]
+        )
+    ):
+        score += 4
+
+    if any(
+        token in normalized
+        for token in [
+            "commercial",
+            "retail",
+            "storefront",
+            "industrial",
+            "warehouse",
+            "suburban",
+            "urban",
+            "coastal",
+            "tropical",
+            "residential",
+            "office",
+            "facade",
+            "signage",
+            "roadside",
+        ]
+    ):
+        score += 2
+
+    if len(normalized.split()) >= 3:
+        score += 1
+
+    return score
+
+def collect_multimodal_context_clues(
+    ocr_text: Optional[str] = None,
+    context_labels: Optional[str] = None,
+    best_guess_labels: Optional[str] = None,
+) -> List[str]:
+    context_candidates = []
+    seen = set()
+
+    for clue in parse_context_hint_field(context_labels) + parse_context_hint_field(best_guess_labels):
+        lowered = clue.lower()
+        if lowered in seen:
+            continue
+        seen.add(lowered)
+        context_candidates.append(clue)
+
+    context_candidates.sort(
+        key=lambda clue: (score_context_clue(clue), len(clue)),
+        reverse=True,
+    )
+
+    collected = []
+    if ocr_text and ocr_text.strip():
+        normalized_text = re.sub(r"\s+", " ", ocr_text).strip()
+        if normalized_text:
+            lowered = normalized_text.lower()
+            if lowered not in seen:
+                collected.append(normalized_text)
+                seen.add(lowered)
+
+    context_limit = 11 if collected else 12
+    collected.extend(context_candidates[:context_limit])
+
+    return collected[:12]
+
 def generate_embedding(image: Image.Image):
-    """Generate CLIP embedding for image"""
+    """Generate a backbone embedding for an input image."""
     inputs = processor(images=image, return_tensors="pt").to(device)
     with torch.no_grad():
         embeddings = model.get_image_features(**inputs)
@@ -165,7 +325,56 @@ def build_vector_metadata(record: Dict[str, Any]) -> Dict[str, Any]:
         metadata["address"] = record["address"]
     if record.get("businessName"):
         metadata["businessName"] = record["businessName"]
+    if record.get("originalMethod"):
+        metadata["originalMethod"] = record["originalMethod"]
     return metadata
+
+def normalize_candidate_text(value: Optional[str]) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+
+def build_candidate_location_key(metadata: Optional[Dict[str, Any]]) -> str:
+    metadata = metadata or {}
+    latitude = metadata.get("latitude")
+    longitude = metadata.get("longitude")
+    address = normalize_candidate_text(metadata.get("address"))
+    business_name = normalize_candidate_text(metadata.get("businessName"))
+    semantic_name = address or business_name
+
+    if latitude is not None and longitude is not None:
+        try:
+            lat_key = round(float(latitude), 4)
+            lng_key = round(float(longitude), 4)
+            if semantic_name:
+                return f"{lat_key}:{lng_key}:{semantic_name}"
+            return f"{lat_key}:{lng_key}"
+        except (TypeError, ValueError):
+            pass
+
+    return semantic_name or "unknown"
+
+def dedupe_architectural_candidates(
+    arch_matches: List[Tuple[str, float]],
+    pinecone_matches: Any,
+) -> Tuple[List[Tuple[Any, float]], int]:
+    match_lookup = {match.id: match for match in pinecone_matches}
+    deduped: List[Tuple[Any, float]] = []
+    seen_keys = set()
+    collapsed_duplicates = 0
+
+    for match_id, score in arch_matches:
+        pinecone_match = match_lookup.get(match_id)
+        if pinecone_match is None:
+            continue
+
+        candidate_key = build_candidate_location_key(getattr(pinecone_match, "metadata", {}))
+        if candidate_key in seen_keys:
+            collapsed_duplicates += 1
+            continue
+
+        seen_keys.add(candidate_key)
+        deduped.append((pinecone_match, float(score)))
+
+    return deduped, collapsed_duplicates
 
 def upsert_training_vector(image_hash: str, embedding: List[float], metadata: Dict[str, Any]) -> str:
     vector_id = f"loc_{image_hash[:16]}"
@@ -357,6 +566,65 @@ def fetch_combined_training_records(limit: Optional[int] = None) -> List[Dict[st
         return deduped_records[:limit]
     return deduped_records
 
+def fetch_recognition_backfill_records(limit: Optional[int] = None) -> List[Dict[str, Any]]:
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        query = '''
+            SELECT "imageUrl", "imageHash", latitude, longitude, "detectedAddress",
+                   "businessName", method, "createdAt"
+            FROM location_recognitions
+            WHERE latitude IS NOT NULL
+              AND longitude IS NOT NULL
+              AND "imageUrl" IS NOT NULL
+              AND method != 'navisense-ml'
+            ORDER BY "createdAt" DESC
+        '''
+        params: Tuple[Any, ...] = ()
+        if limit is not None:
+            query += ' LIMIT %s'
+            params = (limit,)
+
+        cur.execute(query, params)
+        rows = cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+    records: List[Dict[str, Any]] = []
+    for row in rows:
+        image_url, image_hash, lat, lng, addr, business_name, method, created_at = row
+        canonical_hash = image_hash or hashlib.sha256(image_url.encode()).hexdigest()
+        records.append({
+            "source": "historical_recognition",
+            "originalMethod": method,
+            "image_url": image_url,
+            "image_hash": canonical_hash,
+            "latitude": float(lat),
+            "longitude": float(lng),
+            "address": addr,
+            "businessName": business_name,
+            "created_at": created_at,
+        })
+
+    deduped: Dict[str, Dict[str, Any]] = {}
+    for record in records:
+        image_hash = record["image_hash"]
+        if image_hash not in deduped:
+            deduped[image_hash] = record
+            continue
+
+        existing = deduped[image_hash]
+        if not existing.get("address") and record.get("address"):
+            existing["address"] = record["address"]
+        if not existing.get("businessName") and record.get("businessName"):
+            existing["businessName"] = record["businessName"]
+
+    deduped_records = list(deduped.values())
+    deduped_records.sort(key=lambda record: sort_timestamp(record["created_at"]), reverse=True)
+    return deduped_records
+
 def prepare_training_examples(
     records: List[Dict[str, Any]],
     sync_vectors: bool = False
@@ -387,12 +655,31 @@ def prepare_training_examples(
 
     return prepared, failures
 
-def split_training_examples(
+def count_unique_places(examples: List[Dict[str, Any]]) -> int:
+    return len({
+        example.get("place_key") or build_place_key(example)
+        for example in examples
+    })
+
+def split_examples_by_place(
     examples: List[Dict[str, Any]],
-    validation_ratio: float = 0.2
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    validation_ratio: float = 0.2,
+    minimum_validation_examples: int = 0,
+    random_seed: int = TRAINING_SPLIT_SEED
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
     if len(examples) < 2:
-        return examples, []
+        return examples, [], {
+            "seed": random_seed,
+            "requested_validation_ratio": validation_ratio,
+            "minimum_validation_examples": minimum_validation_examples,
+            "target_validation_examples": 0,
+            "train_samples": len(examples),
+            "validation_samples": 0,
+            "train_unique_places": count_unique_places(examples),
+            "validation_unique_places": 0,
+            "total_unique_places": count_unique_places(examples),
+            "actual_validation_ratio": 0.0,
+        }
 
     grouped_examples: Dict[str, List[Dict[str, Any]]] = {}
     for example in examples:
@@ -402,21 +689,49 @@ def split_training_examples(
     place_keys = list(grouped_examples.keys())
     if len(place_keys) < 2:
         shuffled = list(examples)
-        random.Random(TRAINING_SPLIT_SEED).shuffle(shuffled)
-        return shuffled, []
+        random.Random(random_seed).shuffle(shuffled)
+        return shuffled, [], {
+            "seed": random_seed,
+            "requested_validation_ratio": validation_ratio,
+            "minimum_validation_examples": minimum_validation_examples,
+            "target_validation_examples": 0,
+            "train_samples": len(shuffled),
+            "validation_samples": 0,
+            "train_unique_places": count_unique_places(shuffled),
+            "validation_unique_places": 0,
+            "total_unique_places": count_unique_places(shuffled),
+            "actual_validation_ratio": 0.0,
+        }
 
-    random.Random(TRAINING_SPLIT_SEED).shuffle(place_keys)
+    random.Random(random_seed).shuffle(place_keys)
 
     target_validation_size = (
         max(1, int(round(len(examples) * validation_ratio)))
         if len(examples) >= 5
         else 0
     )
+    max_validation_examples = max(0, len(examples) - 1)
+    if minimum_validation_examples > 0:
+        target_validation_size = max(
+            target_validation_size,
+            min(minimum_validation_examples, max_validation_examples)
+        )
     if target_validation_size <= 0:
         training_examples = []
         for place_key in place_keys:
             training_examples.extend(grouped_examples[place_key])
-        return training_examples, []
+        return training_examples, [], {
+            "seed": random_seed,
+            "requested_validation_ratio": validation_ratio,
+            "minimum_validation_examples": minimum_validation_examples,
+            "target_validation_examples": 0,
+            "train_samples": len(training_examples),
+            "validation_samples": 0,
+            "train_unique_places": count_unique_places(training_examples),
+            "validation_unique_places": 0,
+            "total_unique_places": count_unique_places(training_examples),
+            "actual_validation_ratio": 0.0,
+        }
 
     validation_place_keys = []
     validation_count = 0
@@ -427,15 +742,30 @@ def split_training_examples(
             break
         if remaining_place_groups <= 0:
             break
+        candidate_group_size = len(grouped_examples[place_key])
+        remaining_training_examples = len(examples) - (validation_count + candidate_group_size)
+        if remaining_training_examples <= 0:
+            break
 
         validation_place_keys.append(place_key)
-        validation_count += len(grouped_examples[place_key])
+        validation_count += candidate_group_size
 
     if not validation_place_keys:
         training_examples = []
         for place_key in place_keys:
             training_examples.extend(grouped_examples[place_key])
-        return training_examples, []
+        return training_examples, [], {
+            "seed": random_seed,
+            "requested_validation_ratio": validation_ratio,
+            "minimum_validation_examples": minimum_validation_examples,
+            "target_validation_examples": target_validation_size,
+            "train_samples": len(training_examples),
+            "validation_samples": 0,
+            "train_unique_places": count_unique_places(training_examples),
+            "validation_unique_places": 0,
+            "total_unique_places": count_unique_places(training_examples),
+            "actual_validation_ratio": 0.0,
+        }
 
     validation_place_key_set = set(validation_place_keys)
     training_examples = []
@@ -445,6 +775,31 @@ def split_training_examples(
         target = validation_examples if place_key in validation_place_key_set else training_examples
         target.extend(grouped_examples[place_key])
 
+    return training_examples, validation_examples, {
+        "seed": random_seed,
+        "requested_validation_ratio": validation_ratio,
+        "minimum_validation_examples": minimum_validation_examples,
+        "target_validation_examples": target_validation_size,
+        "train_samples": len(training_examples),
+        "validation_samples": len(validation_examples),
+        "train_unique_places": count_unique_places(training_examples),
+        "validation_unique_places": count_unique_places(validation_examples),
+        "total_unique_places": count_unique_places(examples),
+        "actual_validation_ratio": (
+            len(validation_examples) / len(examples) if examples else 0.0
+        ),
+    }
+
+def split_training_examples(
+    examples: List[Dict[str, Any]],
+    validation_ratio: float = 0.2
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    training_examples, validation_examples, _ = split_examples_by_place(
+        examples,
+        validation_ratio=validation_ratio,
+        minimum_validation_examples=0,
+        random_seed=TRAINING_SPLIT_SEED,
+    )
     return training_examples, validation_examples
 
 def choose_training_epochs(sample_count: int) -> int:
@@ -480,17 +835,88 @@ def build_place_key(record: Dict[str, Any]) -> str:
         return f"biz|{business_name}|{lat_bucket}|{lng_bucket}"
     return f"coords|{lat_bucket}|{lng_bucket}"
 
+def build_evaluation_results(
+    eval_examples: List[Dict[str, Any]],
+    include_scene_analysis: bool = False
+) -> Dict[str, Any]:
+    geo_evaluation = geolocation_predictor.evaluate_accuracy(
+        [example["embedding"] for example in eval_examples],
+        [example["latitude"] for example in eval_examples],
+        [example["longitude"] for example in eval_examples]
+    )
+
+    arch_test_results = []
+    eval_embeddings = [example["embedding"] for example in eval_examples]
+    if len(eval_embeddings) >= 2:
+        query_emb = np.array(eval_embeddings[0])
+        candidates = [{
+            'id': f'test_{i}',
+            'embedding': emb,
+            'metadata': {'test': True}
+        } for i, emb in enumerate(eval_embeddings[1:6])]
+
+        arch_matches = architectural_matcher.match_building(query_emb, candidates)
+        arch_test_results = arch_matches[:3]
+
+    sample_ocr_text = "McDonald's Restaurant\n123 Main Street\n(555) 123-4567\nOpen 24 Hours"
+    ocr_results = enhanced_ocr.extract_all(sample_ocr_text)
+    ocr_confidence = enhanced_ocr.confidence_score(ocr_results)
+    navisense_v3_evaluation = navisense_v3.evaluate(eval_examples)
+
+    sample_scene_analysis = None
+    if include_scene_analysis and eval_embeddings:
+        sample_scene_analysis = build_scene_analysis(np.array(eval_embeddings[0]))
+
+    return {
+        "geolocation_model": {
+            "average_error_km": geo_evaluation['average_error_km'],
+            "median_error_km": geo_evaluation['median_error_km'],
+            "within_1km": geo_evaluation['within_1km'],
+            "within_10km": geo_evaluation['within_10km'],
+            "within_50km": geo_evaluation['within_50km'],
+            "confidence_gate": geolocation_predictor.confidence_gate,
+            "confidence_calibration": geolocation_predictor.confidence_calibration,
+            "samples_tested": geo_evaluation['total_samples'],
+            "status": "good" if geo_evaluation['average_error_km'] < 50 else "needs_improvement"
+        },
+        "architectural_matcher": {
+            "test_matches": arch_test_results,
+            "buildings_in_database": len(architectural_matcher.building_features),
+            "status": "operational"
+        },
+        "enhanced_ocr": {
+            "sample_extraction": ocr_results,
+            "confidence": ocr_confidence,
+            "status": "operational"
+        },
+        "navisense_v3": {
+            "training_examples": len(navisense_v3.training_examples),
+            "score_gate": navisense_v3.score_gate,
+            "metrics": navisense_v3_evaluation,
+            "sample_scene_analysis": sample_scene_analysis,
+            "status": "operational" if navisense_v3.training_examples else "warming_up"
+        },
+        "vector_database": {
+            "index_name": index_name,
+            "dimension": EMBEDDING_DIM,
+            "total_vectors": index.describe_index_stats().total_vector_count,
+            "status": "operational"
+        }
+    }
+
 @app.get("/")
 def read_root():
     return {
         "status": "Navisense ML API", 
-        "version": "4.0",
+        "version": "4.1",
         "features": [
-            "CLIP Image Embeddings",
+            "Configurable Vision-Language Image Embeddings",
+            "Geo Alignment Retrieval",
             "Geolocation Prediction", 
             "Multi-View Architectural Matching",
             "Enhanced OCR Analysis",
-            "Landmark Detection"
+            "Landmark Detection",
+            "Zero-Shot Scene Understanding"
         ]
     }
 
@@ -498,14 +924,21 @@ def read_root():
 def health_check():
     return {
         "status": "healthy", 
-        "model": "CLIP ViT-B/32", 
+        "model": BACKBONE_MODEL_NAME, 
+        "index_name": index_name,
+        "embedding_dim": EMBEDDING_DIM,
         "device": device, 
         "code_version": CODE_VERSION,
         "confidence_gate": geolocation_predictor.confidence_gate,
         "vectors_in_db": index.describe_index_stats().total_vector_count,
         "geolocation_model": "loaded",
         "architectural_matcher": "loaded",
-        "enhanced_ocr": "loaded"
+        "enhanced_ocr": "loaded",
+        "navisense_v3": {
+            "status": "loaded",
+            "examples_cached": len(navisense_v3.training_examples),
+            "score_gate": navisense_v3.score_gate
+        }
     }
 
 @app.get("/debug/parser-check")
@@ -612,11 +1045,72 @@ async def sync_training(limit: Optional[int] = None):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/sync-recognition-vectors")
+async def sync_recognition_vectors(limit: int = Query(default=200, ge=1, le=5000)):
+    try:
+        records = fetch_recognition_backfill_records(limit=limit)
+        before_count = index.describe_index_stats().total_vector_count
+        synced = 0
+        failed = 0
+        failures = []
+
+        for record in records:
+            try:
+                _, image = load_image_from_s3(record["image_url"])
+                embedding = generate_embedding(image)
+                upsert_training_vector(
+                    record["image_hash"],
+                    embedding,
+                    build_vector_metadata(record)
+                )
+                synced += 1
+            except Exception as e:
+                failed += 1
+                failures.append({
+                    "image_hash": record["image_hash"],
+                    "image_url": record["image_url"],
+                    "error": str(e)
+                })
+
+        after_count = index.describe_index_stats().total_vector_count
+        methods_seen = sorted({
+            str(record.get("originalMethod"))
+            for record in records
+            if record.get("originalMethod")
+        })
+
+        return {
+            "success": True,
+            "records_considered": len(records),
+            "synced": synced,
+            "failed": failed,
+            "failures": failures[:10],
+            "vector_count_before": before_count,
+            "vector_count_after": after_count,
+            "methods_seen": methods_seen,
+            "message": (
+                f"Synced {synced} historical recognition vectors into index "
+                f"'{index_name}' from {len(records)} recognition records"
+            )
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/predict")
-async def predict_location(file: UploadFile = File(...)):
+async def predict_location(
+    file: UploadFile = File(...),
+    ocr_text: Optional[str] = Form(None),
+    context_labels: Optional[str] = Form(None),
+    best_guess_labels: Optional[str] = Form(None),
+):
     try:
         image_bytes = await file.read()
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        context_clues = collect_multimodal_context_clues(
+            ocr_text=ocr_text,
+            context_labels=context_labels,
+            best_guess_labels=best_guess_labels,
+        )
         
         # Try exact hash match first
         img_hash = hashlib.sha256(image_bytes).hexdigest()
@@ -640,10 +1134,21 @@ async def predict_location(file: UploadFile = File(...)):
                         "method": "exact_match"
                     }
         
-        # Generate embedding for similarity search and geolocation prediction
+        # Generate embedding for similarity search, geospatial alignment, and scene analysis
         embedding = generate_embedding(image)
         embedding_np = np.array(embedding)
-        
+        scene_analysis = build_scene_analysis(
+            embedding_np,
+            ocr_text=ocr_text,
+            context_clues=context_clues,
+        )
+        geospatial_alignment = navisense_v3.predict(
+            embedding_np,
+            top_k=5,
+            ocr_text=ocr_text,
+            context_clues=context_clues,
+        )
+
         # Try similarity search with architectural matching
         results = index.query(
             vector=embedding,
@@ -663,35 +1168,79 @@ async def predict_location(file: UploadFile = File(...)):
             
             # Enhanced matching with architectural features
             arch_matches = architectural_matcher.match_building(embedding_np, candidates)
-            
-            if arch_matches and arch_matches[0][1] > 0.85:  # STRICT: High confidence architectural match only
-                best_match = next(m for m in results.matches if m.id == arch_matches[0][0])
-                
-                # Weight-averaged location from top 3 architectural matches
-                top_3_arch = arch_matches[:3]
-                total_weight = sum(score for _, score in top_3_arch)
-                
-                if total_weight > 0:
-                    weighted_matches = [next(m for m in results.matches if m.id == match_id) 
-                                      for match_id, _ in top_3_arch]
-                    
-                    avg_lat = sum(float(m.metadata["latitude"]) * score for m, (_, score) in zip(weighted_matches, top_3_arch)) / total_weight
-                    avg_lng = sum(float(m.metadata["longitude"]) * score for m, (_, score) in zip(weighted_matches, top_3_arch)) / total_weight
-                    
-                    return {
-                        "success": True,
-                        "hasLocation": True,
-                        "location": {
-                            "latitude": avg_lat,
-                            "longitude": avg_lng,
-                            "address": best_match.metadata.get("address"),
-                            "businessName": best_match.metadata.get("businessName")
-                        },
-                        "confidence": min(float(top_3_arch[0][1]), 0.95),  # Cap at 0.95 to indicate uncertainty
-                        "method": "architectural_matching"
-                    }
-        
-        # If no good similarity match, try geolocation prediction for unknown buildings
+            multimodal_context = scene_analysis.get("multimodal_context", {}) if isinstance(scene_analysis, dict) else {}
+            multimodal_enabled = bool(
+                multimodal_context.get("enabled") and (multimodal_context.get("clue_count", 0) or 0) > 0
+            )
+            geospatial_alignment_confidence = (
+                float(geospatial_alignment["confidence"])
+                if geospatial_alignment and geospatial_alignment.get("confidence") is not None
+                else 0.0
+            )
+             
+            if arch_matches:
+                unique_arch_matches, collapsed_duplicates = dedupe_architectural_candidates(
+                    arch_matches,
+                    results.matches,
+                )
+                unique_candidate_count = len(unique_arch_matches[:5])
+                top_arch_score = unique_arch_matches[0][1] if unique_arch_matches else 0.0
+                architectural_support = (
+                    unique_candidate_count >= 2
+                    or multimodal_enabled
+                    or geospatial_alignment_confidence >= max(navisense_v3.score_gate - 0.06, 0.72)
+                )
+                architectural_gate = 0.88 if architectural_support else 0.93
+
+                if unique_arch_matches and top_arch_score >= architectural_gate and architectural_support:
+                    best_match = unique_arch_matches[0][0]
+
+                    # Weight-averaged location from the strongest unique architectural matches
+                    top_unique_arch = unique_arch_matches[: min(3, len(unique_arch_matches))]
+                    total_weight = sum(score for _, score in top_unique_arch)
+
+                    if total_weight > 0:
+                        avg_lat = sum(float(match.metadata["latitude"]) * score for match, score in top_unique_arch) / total_weight
+                        avg_lng = sum(float(match.metadata["longitude"]) * score for match, score in top_unique_arch) / total_weight
+
+                        return {
+                            "success": True,
+                            "hasLocation": True,
+                            "location": {
+                                "latitude": avg_lat,
+                                "longitude": avg_lng,
+                                "address": best_match.metadata.get("address"),
+                                "businessName": best_match.metadata.get("businessName")
+                            },
+                            "confidence": min(float(top_arch_score), 0.94),  # Cap to keep approximate retrieval clearly below exact matches
+                            "method": "architectural_matching",
+                            "analysis": scene_analysis,
+                            "top_geospatial_matches": geospatial_alignment["top_matches"] if geospatial_alignment else [],
+                            "geospatial_prior": geospatial_alignment["geospatial_prior"] if geospatial_alignment else None,
+                            "prior_diagnostics": geospatial_alignment["prior_diagnostics"] if geospatial_alignment else None,
+                            "candidate_diversity": {
+                                "unique_locations": unique_candidate_count,
+                                "duplicate_candidates_collapsed": collapsed_duplicates,
+                                "geospatial_alignment_confidence": round(geospatial_alignment_confidence, 4),
+                                "multimodal_enabled": multimodal_enabled,
+                            }
+                        }
+
+        if geospatial_alignment and geospatial_alignment["confidence"] >= navisense_v3.score_gate:
+            return {
+                "success": True,
+                "hasLocation": True,
+                "location": geospatial_alignment["location"],
+                "confidence": geospatial_alignment["confidence"],
+                "score_gate": geospatial_alignment["score_gate"],
+                "method": "geospatial_alignment",
+                "analysis": scene_analysis,
+                "top_geospatial_matches": geospatial_alignment["top_matches"],
+                "geospatial_prior": geospatial_alignment["geospatial_prior"],
+                "prior_diagnostics": geospatial_alignment["prior_diagnostics"],
+            }
+
+        # If no strong retrieval or alignment match, try geolocation prediction for unknown buildings
         if not results.matches or results.matches[0].score < 0.5:
             pred_lat, pred_lng, geo_confidence = geolocation_predictor.predict(embedding_np)
             
@@ -712,7 +1261,11 @@ async def predict_location(file: UploadFile = File(...)):
                     },
                     "confidence": geo_confidence,
                     "confidence_gate": geolocation_predictor.confidence_gate,
-                    "method": "geolocation_prediction"
+                    "method": "geolocation_prediction",
+                    "analysis": scene_analysis,
+                    "top_geospatial_matches": geospatial_alignment["top_matches"] if geospatial_alignment else [],
+                    "geospatial_prior": geospatial_alignment["geospatial_prior"] if geospatial_alignment else None,
+                    "prior_diagnostics": geospatial_alignment["prior_diagnostics"] if geospatial_alignment else None,
                 }
         
         # Fallback to basic similarity if available
@@ -732,11 +1285,96 @@ async def predict_location(file: UploadFile = File(...)):
                     "businessName": top_match.metadata.get("businessName")
                 },
                 "confidence": float(top_match.score),
-                "method": "similarity"
+                "method": "similarity",
+                "analysis": scene_analysis,
+                "top_geospatial_matches": geospatial_alignment["top_matches"] if geospatial_alignment else [],
+                "geospatial_prior": geospatial_alignment["geospatial_prior"] if geospatial_alignment else None,
+                "prior_diagnostics": geospatial_alignment["prior_diagnostics"] if geospatial_alignment else None,
             }
         
-        return {"success": False, "hasLocation": False, "message": "No similar locations found", "confidence": 0.0}
+        return {
+            "success": False,
+            "hasLocation": False,
+            "message": "No similar locations found",
+            "confidence": 0.0,
+            "analysis": scene_analysis
+        }
         
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/scene-analysis")
+async def scene_analysis_route(
+    file: UploadFile = File(...),
+    ocr_text: Optional[str] = Form(None),
+    context_labels: Optional[str] = Form(None),
+    best_guess_labels: Optional[str] = Form(None),
+):
+    """Zero-shot scene understanding plus geospatial alignment hints"""
+    try:
+        image_bytes = await file.read()
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        embedding = generate_embedding(image)
+        embedding_np = np.array(embedding)
+        context_clues = collect_multimodal_context_clues(
+            ocr_text=ocr_text,
+            context_labels=context_labels,
+            best_guess_labels=best_guess_labels,
+        )
+
+        return {
+            "success": True,
+            "analysis": build_scene_analysis(
+                embedding_np,
+                ocr_text=ocr_text,
+                context_clues=context_clues,
+            ),
+            "method": "navisense_v3_scene_analysis"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/geospatial-alignment")
+async def geospatial_alignment_route(
+    file: UploadFile = File(...),
+    ocr_text: Optional[str] = Form(None),
+    context_labels: Optional[str] = Form(None),
+    best_guess_labels: Optional[str] = Form(None),
+):
+    """Predict location via continuous image-to-GPS alignment"""
+    try:
+        image_bytes = await file.read()
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        embedding = generate_embedding(image)
+        embedding_np = np.array(embedding)
+        context_clues = collect_multimodal_context_clues(
+            ocr_text=ocr_text,
+            context_labels=context_labels,
+            best_guess_labels=best_guess_labels,
+        )
+        prediction = navisense_v3.predict(
+            embedding_np,
+            top_k=5,
+            ocr_text=ocr_text,
+            context_clues=context_clues,
+        )
+
+        if not prediction:
+            return {
+                "success": False,
+                "message": "No trained geospatial alignment memory available"
+            }
+
+        return {
+            "success": True,
+            "prediction": prediction,
+            "analysis": build_scene_analysis(
+                embedding_np,
+                ocr_text=ocr_text,
+                context_clues=context_clues,
+            ),
+            "method": "navisense_v3_geospatial_alignment"
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -980,6 +1618,7 @@ async def train_location(
 
         architectural_matcher.add_building(vector_id, embedding_np, vector_metadata)
         architectural_matcher.save_features()
+        navisense_v3.add_training_example(embedding, training_record)
 
         return {
             "success": True,
@@ -987,7 +1626,8 @@ async def train_location(
             "vector_id": vector_id,
             "image_hash": img_hash,
             "training_image_url": stored_image_url,
-            "total_vectors": index.describe_index_stats().total_vector_count
+            "total_vectors": index.describe_index_stats().total_vector_count,
+            "navisense_v3_examples": len(navisense_v3.training_examples)
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1028,12 +1668,18 @@ async def retrain_models():
             epochs=epochs
         )
         geolocation_predictor.save_model()
+        navisense_v3_loss = navisense_v3.batch_train(
+            train_examples,
+            epochs=max(8, min(epochs, 20)),
+            batch_size=min(32, max(len(train_examples), 2))
+        )
 
         architectural_matcher.save_features()
         mark_training_records_trained([example["image_hash"] for example in examples])
 
         validation_metrics = None
         confidence_calibration = None
+        navisense_v3_validation = None
         if validation_examples:
             validation_metrics = geolocation_predictor.evaluate_accuracy(
                 [example["embedding"] for example in validation_examples],
@@ -1045,6 +1691,7 @@ async def retrain_models():
                 [example["latitude"] for example in validation_examples],
                 [example["longitude"] for example in validation_examples]
             )
+            navisense_v3_validation = navisense_v3.evaluate(validation_examples)
 
         return {
             "success": True,
@@ -1056,8 +1703,10 @@ async def retrain_models():
             "validation_samples": len(validation_examples),
             "epochs": epochs,
             "final_training_loss": final_loss,
+            "navisense_v3_training_loss": navisense_v3_loss,
             "validation_metrics": validation_metrics,
             "confidence_calibration": confidence_calibration,
+            "navisense_v3_validation": navisense_v3_validation,
             "failures": failures[:5]
         }
     except Exception as e:
@@ -1075,10 +1724,13 @@ def test_s3_access():
         return {"success": False, "error": str(e)}
 
 @app.get("/evaluate-models")
-async def evaluate_models():
+async def evaluate_models(
+    limit: int = Query(default=20, ge=2, le=100),
+    include_scene_analysis: bool = Query(default=False)
+):
     """Comprehensive evaluation of all ML models"""
     try:
-        records = fetch_combined_training_records(limit=50)
+        records = fetch_combined_training_records(limit=limit)
         if not records:
             return {"success": False, "message": "No test data available"}
 
@@ -1093,59 +1745,16 @@ async def evaluate_models():
 
         _, validation_examples = split_training_examples(examples)
         eval_examples = validation_examples or examples
-        geo_evaluation = geolocation_predictor.evaluate_accuracy(
-            [example["embedding"] for example in eval_examples],
-            [example["latitude"] for example in eval_examples],
-            [example["longitude"] for example in eval_examples]
-        )
-        
-        # Test architectural matcher
-        arch_test_results = []
-        eval_embeddings = [example["embedding"] for example in eval_examples]
-        if len(eval_embeddings) >= 2:
-            query_emb = np.array(eval_embeddings[0])
-            candidates = [{
-                'id': f'test_{i}',
-                'embedding': emb,
-                'metadata': {'test': True}
-            } for i, emb in enumerate(eval_embeddings[1:6])]
-            
-            arch_matches = architectural_matcher.match_building(query_emb, candidates)
-            arch_test_results = arch_matches[:3]
-        
-        # Test enhanced OCR with sample text
-        sample_ocr_text = "McDonald's Restaurant\n123 Main Street\n(555) 123-4567\nOpen 24 Hours"
-        ocr_results = enhanced_ocr.extract_all(sample_ocr_text)
-        ocr_confidence = enhanced_ocr.confidence_score(ocr_results)
         
         return {
             "success": True,
-            "evaluation_results": {
-                "geolocation_model": {
-                    "average_error_km": geo_evaluation['average_error_km'],
-                    "median_error_km": geo_evaluation['median_error_km'],
-                    "within_1km": geo_evaluation['within_1km'],
-                    "within_10km": geo_evaluation['within_10km'],
-                    "within_50km": geo_evaluation['within_50km'],
-                    "confidence_gate": geolocation_predictor.confidence_gate,
-                    "confidence_calibration": geolocation_predictor.confidence_calibration,
-                    "samples_tested": geo_evaluation['total_samples'],
-                    "status": "good" if geo_evaluation['average_error_km'] < 50 else "needs_improvement"
-                },
-                "architectural_matcher": {
-                    "test_matches": arch_test_results,
-                    "buildings_in_database": len(architectural_matcher.building_features),
-                    "status": "operational"
-                },
-                "enhanced_ocr": {
-                    "sample_extraction": ocr_results,
-                    "confidence": ocr_confidence,
-                    "status": "operational"
-                },
-                "vector_database": {
-                    "total_vectors": index.describe_index_stats().total_vector_count,
-                    "status": "operational"
-                }
+            "evaluation_results": build_evaluation_results(
+                eval_examples,
+                include_scene_analysis=include_scene_analysis
+            ),
+            "evaluation_config": {
+                "records_limit": limit,
+                "include_scene_analysis": include_scene_analysis
             },
             "records_considered": len(records),
             "samples_loaded": len(examples),
@@ -1156,21 +1765,87 @@ async def evaluate_models():
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+@app.get("/evaluate-heldout")
+async def evaluate_heldout(
+    limit: Optional[int] = Query(default=None, ge=2, le=1000),
+    validation_ratio: float = Query(default=0.3, ge=0.1, le=0.5),
+    minimum_validation_examples: int = Query(default=10, ge=1, le=200),
+    include_scene_analysis: bool = Query(default=False)
+):
+    """Evaluate on a larger deterministic held-out split built from canonical records."""
+    try:
+        records = fetch_combined_training_records(limit=limit)
+        if not records:
+            return {"success": False, "message": "No test data available"}
+
+        examples, failures = prepare_training_examples(records, sync_vectors=False)
+        if not examples:
+            return {
+                "success": False,
+                "message": "Unable to load evaluation images",
+                "records_considered": len(records),
+                "failures": failures[:5]
+            }
+
+        train_examples, validation_examples, holdout_summary = split_examples_by_place(
+            examples,
+            validation_ratio=validation_ratio,
+            minimum_validation_examples=minimum_validation_examples,
+            random_seed=TRAINING_SPLIT_SEED,
+        )
+
+        if not validation_examples:
+            return {
+                "success": False,
+                "message": "Unable to create a non-empty held-out split",
+                "records_considered": len(records),
+                "samples_loaded": len(examples),
+                "samples_failed": len(failures),
+                "holdout_summary": holdout_summary,
+                "failures": failures[:5]
+            }
+
+        return {
+            "success": True,
+            "evaluation_results": build_evaluation_results(
+                validation_examples,
+                include_scene_analysis=include_scene_analysis
+            ),
+            "evaluation_config": {
+                "records_limit": limit,
+                "validation_ratio": validation_ratio,
+                "minimum_validation_examples": minimum_validation_examples,
+                "include_scene_analysis": include_scene_analysis,
+                "seed": TRAINING_SPLIT_SEED,
+            },
+            "holdout_split": holdout_summary,
+            "records_considered": len(records),
+            "samples_loaded": len(examples),
+            "samples_failed": len(failures),
+            "train_samples": len(train_examples),
+            "validation_samples": len(validation_examples),
+            "failures": failures[:5],
+            "overall_status": "All models operational"
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 @app.get("/model-info")
 def get_model_info():
     """Get detailed information about all loaded models"""
     return {
-        "navisense_ml_version": "4.0",
+        "navisense_ml_version": "4.3",
         "models": {
             "clip_embeddings": {
-                "model": "openai/clip-vit-base-patch32",
-                "embedding_dim": 512,
+                "model": BACKBONE_MODEL_NAME,
+                "embedding_dim": EMBEDDING_DIM,
+                "index_name": index_name,
                 "device": device,
                 "status": "loaded"
             },
             "geolocation_predictor": {
                 "architecture": "3-layer MLP with confidence estimation",
-                "input_dim": 512,
+                "input_dim": EMBEDDING_DIM,
                 "output": "latitude, longitude, confidence",
                 "confidence_gate": geolocation_predictor.confidence_gate,
                 "confidence_calibration": geolocation_predictor.confidence_calibration,
@@ -1193,12 +1868,35 @@ def get_model_info():
                 ],
                 "landmark_categories": list(enhanced_ocr.LANDMARK_PATTERNS.keys()),
                 "status": "loaded"
+            },
+            "navisense_v3": {
+                "architecture": "configurable vision-language encoder + Fourier location encoder + contrastive geo alignment + learned geospatial prior heads",
+                "geospatial_prior_heads": [
+                    "coarse_cell_classifier",
+                    "climate_band_classifier",
+                    "latitude_hemisphere_classifier",
+                    "longitude_hemisphere_classifier",
+                    "coordinate_prior_head"
+                ],
+                "zero_shot_heads": [
+                    "landmark_hypotheses",
+                    "architectural_hypotheses",
+                    "environment_hypotheses",
+                    "urban_signals",
+                    "multimodal_text_fusion"
+                ],
+                "examples_cached": len(navisense_v3.training_examples),
+                "score_gate": navisense_v3.score_gate,
+                "inference_temperature": navisense_v3.inference_temperature,
+                "text_fusion_weight_cap": navisense_v3.scene_analyzer.max_text_fusion_weight,
+                "training_metrics": navisense_v3.training_metrics,
+                "status": "loaded"
             }
         },
         "vector_database": {
             "provider": "Pinecone",
             "index_name": index_name,
-            "dimension": 512,
+            "dimension": EMBEDDING_DIM,
             "metric": "cosine",
             "total_vectors": index.describe_index_stats().total_vector_count
         }
@@ -1208,5 +1906,8 @@ if __name__ == "__main__":
     import uvicorn
     # Load architectural features on startup
     architectural_matcher.load_features()
-    print("NaviSense ML API v4.0 starting with all enhanced features...")
+    print(
+        "NaviSense ML API v4.3 starting with configurable backbone support:",
+        f"{BACKBONE_MODEL_NAME} ({EMBEDDING_DIM} dims)"
+    )
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))

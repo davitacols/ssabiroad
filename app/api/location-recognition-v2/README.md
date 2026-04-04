@@ -32,7 +32,32 @@ The location-recognition-v2 API identifies locations from images using a multi-l
 - Multiple extraction methods including binary search
 - Confidence: 0.95
 
-### 3. AI Vision Analysis (Medium Accuracy)
+### 3. NaviSense Hybrid ML (Medium to High Accuracy)
+**Exact Match Retrieval**
+- Detects identical previously verified images via hash match
+- Highest confidence when trustworthy address or business metadata exists
+
+**Architectural Matching**
+- Uses CLIP retrieval plus architectural reranking across candidate matches
+- Better for alternate building viewpoints than raw similarity alone
+- Collapses duplicate same-place candidates before scoring
+- Requires supporting evidence such as candidate diversity, multimodal clues, or strong geo-alignment support before approximate matches are accepted
+
+**Geospatial Alignment**
+- Uses NaviSense V3 image-to-GPS alignment to retrieve likely coordinates from a continuous location space
+- Returns geospatial priors and top candidate matches for downstream validation
+- Learns coarse geographic cells, climate bands, hemispheres, and a rough coordinate prior from the image embedding itself
+
+**Scene Understanding**
+- Adds zero-shot landmark, architecture, environment, and urban-signal analysis
+- Helps explain why the ML system thinks a place belongs to a given geographic context
+
+**Optional Multimodal Fusion**
+- Can fuse OCR text, web entities, and best-guess labels into the NaviSense V3 query embedding
+- Useful for storefronts, stations, landmarks, and signage-heavy scenes when text clues are available
+- Route-side prefetch is enabled by default unless `NAVISENSE_MULTIMODAL_PREFETCH=false`
+
+### 4. AI Vision Analysis (Medium Accuracy)
 **Landmark Detection**
 - Identifies famous buildings, monuments, landmarks
 - Uses Google Vision API landmark recognition
@@ -54,7 +79,7 @@ The location-recognition-v2 API identifies locations from images using a multi-l
 - Geocodes addresses to coordinates
 - Confidence: 0.65+
 
-### 4. Device Location Fallback (Low Accuracy)
+### 5. Device Location Fallback (Low Accuracy)
 - Uses provided device coordinates when AI analysis fails
 - Confidence: 0.4
 
@@ -103,6 +128,9 @@ const response = await fetch('/api/location-recognition-v2', {
   "confidence": 0.92,
   "method": "ai-landmark-detection",
   "description": "Famous iron lattice tower in Paris",
+  "navisenseGeospatialPrior": {...},
+  "navisensePriorDiagnostics": {...},
+  "navisenseMultimodalContext": {...},
   "nearbyPlaces": [...],
   "photos": [...],
   "weather": {...}
@@ -113,12 +141,16 @@ const response = await fetch('/api/location-recognition-v2', {
 
 1. **exif-gps-standard** - Standard EXIF GPS extraction
 2. **exif-gps-binary** - Binary search for GPS data  
-3. **ai-landmark-detection** - Famous landmarks and monuments
-4. **ai-logo-detection** - Business logos and brand recognition
-5. **ai-text-business** - Business names from text analysis
-6. **ai-text-address** - Street addresses from text
-7. **claude-ai-analysis** - Advanced AI image interpretation
-8. **device-location-fallback** - Device GPS coordinates
+3. **navisense-ml / exact_match** - Verified duplicate image lookup
+4. **navisense-ml / architectural_matching** - Multi-view building retrieval
+5. **navisense-ml / geospatial_alignment** - Continuous image-to-location alignment
+6. **navisense-ml / geolocation_prediction** - Direct coordinate regression fallback
+7. **ai-landmark-detection** - Famous landmarks and monuments
+8. **ai-logo-detection** - Business logos and brand recognition
+9. **ai-text-business** - Business names from text analysis
+10. **ai-text-address** - Street addresses from text
+11. **claude-ai-analysis** - Advanced AI image interpretation
+12. **device-location-fallback** - Device GPS coordinates
 
 ## Performance Improvements
 
