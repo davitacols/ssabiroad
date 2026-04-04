@@ -184,3 +184,73 @@ Explicitly not the focus of this decision commit:
 2. Backfill StreetCLIP retrieval memory toward parity with the baseline service.
 3. Compare route-level outcomes, not just ML-side diagnostics.
 4. Decide whether StreetCLIP becomes the new production default after a larger evaluation pass.
+## Nigeria Dataset Expansion
+
+To grow the corpus more safely than ad hoc scraping, this branch now adds a Nigeria-first review
+and import path:
+
+- `navisense-ml/build_nigeria_dataset.py` builds a reviewable manifest from HOT OSM,
+  Overpass, reverse geocoding, and optional Street View downloads
+- `navisense-ml/import_reviewed_manifest.py` imports approved manifest rows into the canonical
+  `NavisenseTraining` table after uploading local images to the training image bucket
+
+This keeps collection, review, and canonical training import separate. It gives us a cleaner way
+to scale the training set while preserving provenance, approval, and reproducibility.
+
+### First approved Nigeria import result
+
+On 2026-04-04, we completed the first end-to-end canonical import from the Nigeria dataset
+builder:
+
+- 10 manifest rows were collected in the first image-bearing run
+- 4 rows had Street View images and were manually approved
+- those 4 rows were imported into `NavisenseTraining`
+- the baseline `navisense-ml` service was re-synced, increasing the vector database from
+  `100` to `104`
+
+We also fixed a data-quality issue discovered during this import:
+
+- the builder had been preserving country-only addresses such as `Nigeria`
+- the importer now upgrades low-specificity addresses to richer city-level labels such as
+  `Abuja, Nigeria` and `Lagos, Nigeria`
+- the builder now reverse-geocodes records whose address evidence is too generic instead of
+  treating those rows as already resolved
+
+The research outcome is mixed and important:
+
+- the ingestion and sync pipeline now works end to end
+- the newly imported rows are present in the canonical corpus and vector store
+- however, the tiny first Nigeria slice degraded held-out evaluation after retraining
+
+Post-import baseline held-out snapshot:
+
+- direct geolocation average error: `2568.32 km`
+- direct geolocation median error: `46.31 km`
+- direct geolocation within 50 km: `60%`
+- `NaviSense V3` average error: `1883.81 km`
+- `NaviSense V3` median error: `1.36 km`
+- `NaviSense V3` within 10 km: `60%`
+
+Interpretation:
+
+- the problem is no longer data plumbing
+- the next bottleneck is label and cohort quality
+- future imports should be promoted in larger, city-balanced reviewed batches instead of very
+  small slices
+
+### Public-data promotion gate
+
+To make that lesson operational, the reviewed-manifest importer now supports a stricter
+`--public-training-ready` gate for publicly sourced training data.
+
+That gate requires:
+
+- explicit review approval
+- image-backed rows
+- allowed public sources only, currently centered on `hotosm_nigeria` and `overpass_seed`
+- location-specific labels, not generic country-only addresses
+- an explicit city label
+- a minimum per-city batch size and minimum total batch size before import
+
+This keeps future public-data imports from repeating the first 4-row Nigeria mistake, where a
+tiny reviewed slice entered the canonical corpus and degraded held-out evaluation after retraining.
