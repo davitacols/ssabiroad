@@ -1,30 +1,66 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { SimpleMap } from "@/components/ui/simple-map"
-import { CookieConsent } from "@/components/CookieConsent"
-import { Camera, MapPin, ArrowRight, Zap, Globe2, Upload, Search, Heart, ShoppingCart, BookOpen } from "lucide-react"
-import Link from "next/link"
-import Head from "next/head"
-import { seoConfig } from "@/lib/seo-config"
 import { useEffect, useState } from "react"
+import Head from "next/head"
+import Link from "next/link"
+import { ArrowRight, BookOpen, Camera, Globe2, MapPin, Search } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { NewsletterSignup } from "@/components/newsletter-signup"
 import { InteractiveGlobe } from "@/components/ui/interactive-globe"
+import { seoConfig } from "@/lib/seo-config"
+
+interface BlogPost {
+  id: string | number
+  slug: string
+  title: string
+  excerpt: string
+  coverImage?: string
+}
+
+const proofPoints = [
+  { value: "Hybrid stack", label: "Metadata, OCR, retrieval, and reasoning in one route" },
+  { value: "Fail closed", label: "The system abstains when the evidence is weak" },
+  { value: "Learning loop", label: "Corrections become future retrieval and training memory" },
+]
+
+const capabilities = [
+  {
+    icon: Camera,
+    title: "Capture and review",
+    text: "Move from upload or live camera into a single recognition workflow with confidence-aware output.",
+  },
+  {
+    icon: Search,
+    title: "Verify messy evidence",
+    text: "Use visible text, landmarks, and weak scene clues without pretending every image is clean and easy.",
+  },
+  {
+    icon: BookOpen,
+    title: "Publish the system",
+    text: "Keep papers, experiments, and product updates close to the actual stack instead of treating them as separate worlds.",
+  },
+]
+
+const researchNotes = [
+  "Direct signals such as EXIF GPS and visible addresses are prioritized before broader inference.",
+  "NaviSense, Claude, and Google Vision are routed together when evidence is partial or noisy.",
+  "Every accepted result is shaped by confidence gating, geographic validation, and operator review.",
+]
 
 export default function HomePage() {
-  const [posts, setPosts] = useState<any[]>([])
+  const [posts, setPosts] = useState<BlogPost[]>([])
 
   useEffect(() => {
-    fetch('/api/blog?page=1&limit=3')
-      .then(res => res.json())
-      .then(data => setPosts(data.posts || []))
+    fetch("/api/blog?page=1&limit=3")
+      .then((response) => response.json())
+      .then((data) => setPosts(data.posts || []))
       .catch(() => setPosts([]))
   }, [])
 
   const structuredDataArray = [
     seoConfig.webApplicationSchema,
     seoConfig.organizationSchema,
-    seoConfig.faqSchema
+    seoConfig.faqSchema,
   ]
 
   return (
@@ -32,6 +68,7 @@ export default function HomePage() {
       <Head>
         <link rel="canonical" href="https://pic2nav.com" />
       </Head>
+
       {structuredDataArray.map((schema, index) => (
         <script
           key={index}
@@ -39,268 +76,378 @@ export default function HomePage() {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
         />
       ))}
-      <div className="min-h-screen bg-white">
 
-      {/* Video Background */}
-      <div className="fixed top-0 left-0 w-full h-screen pointer-events-none z-0">
-        {/* Video by niko Jimsheleishvili from Pixabay */}
-        <video autoPlay loop muted playsInline className="w-full h-full object-cover" preload="auto">
-          <source src="/hero-video.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/70 to-white"></div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-transparent backdrop-blur-sm">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 sm:gap-3 relative z-10">
-            <img src="/pic2nav.png" alt="Pic2Nav" className="h-7 sm:h-9" />
-            <span className="text-sm sm:text-base font-mono tracking-wide text-white font-bold hidden sm:inline">
-              Pic2Nav Research
-            </span>
-          </Link>
-
-          <div className="hidden lg:flex items-center gap-8 xl:gap-12 text-sm font-bold relative z-10">
-            <Link href="/blog" className="text-white hover:text-stone-200 transition-colors">Publications</Link>
-            <Link href="/datasets" className="text-white hover:text-stone-200 transition-colors">Datasets</Link>
-            <Link href="/research" className="text-white hover:text-stone-200 transition-colors">Research</Link>
-          </div>
-
-          <Button
-            variant="outline"
-            className="border-white text-white hover:bg-white hover:text-stone-900 transition-all font-bold text-sm px-3 sm:px-4 relative z-10"
-            asChild
-          >
-            <Link href="/camera">Run Model</Link>
-          </Button>
-        </div>
-      </nav>
-
-      {/* Hero */}
-      <section className="relative min-h-screen flex items-center justify-center z-10">
-        <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 text-center py-20">
-          <div className="inline-block px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full mb-8">
-            <p className="text-sm text-white font-semibold uppercase tracking-wider">
-              Computer Vision • Geospatial AI
-            </p>
-          </div>
-
-          <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl leading-[1.05] font-black text-white mb-8 tracking-tight">
-            Inferring Geographic
-            <br />
-            <span className="bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">Location from Visual Data</span>
-          </h1>
-
-          <p className="text-xl sm:text-2xl lg:text-3xl text-white/90 leading-relaxed mb-12 max-w-[900px] mx-auto font-medium">
-            Research system for extracting geographic, architectural, and environmental signals from images using multimodal AI
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
-            <Link href="/camera" className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-stone-900 hover:bg-white/90 transition-all font-bold rounded-full shadow-2xl">
-              Run Demo
-              <span className="group-hover:translate-x-1 transition-transform">→</span>
-            </Link>
-            <Link href="/blog" className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 transition-all font-semibold rounded-full">
-              Read Publications
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="relative py-24 sm:py-32 bg-white z-10">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
-          <div className="text-center mb-20 sm:mb-24">
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 text-stone-900">
-              Research Capabilities
-            </h2>
-            <p className="text-xl text-stone-600 max-w-[700px] mx-auto">
-              Advanced AI models for visual geolocation and environmental analysis
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="group p-8 bg-stone-50 hover:bg-stone-100 transition-all rounded-2xl">
-              <div className="text-sm font-bold text-stone-400 mb-3">01</div>
-              <h3 className="text-2xl font-bold text-stone-900 mb-3">Visual Geolocation</h3>
-              <p className="text-stone-600 leading-relaxed">
-                Predict latitude and longitude from architectural and environmental cues using deep learning models trained on global imagery datasets.
-              </p>
-            </div>
-
-            <div className="group p-8 bg-stone-50 hover:bg-stone-100 transition-all rounded-2xl">
-              <div className="text-sm font-bold text-stone-400 mb-3">02</div>
-              <h3 className="text-2xl font-bold text-stone-900 mb-3">Landmark Recognition</h3>
-              <p className="text-stone-600 leading-relaxed">
-                Identify known and unknown landmarks using contrastive vision models with zero-shot classification capabilities.
-              </p>
-            </div>
-
-            <div className="group p-8 bg-stone-50 hover:bg-stone-100 transition-all rounded-2xl">
-              <div className="text-sm font-bold text-stone-400 mb-3">03</div>
-              <h3 className="text-2xl font-bold text-stone-900 mb-3">Urban &amp; Environmental Signals</h3>
-              <p className="text-stone-600 leading-relaxed">
-                Infer walkability, density, and terrain characteristics from visual context through multi-task learning frameworks.
-              </p>
-            </div>
-
-            <div className="group p-8 bg-gradient-to-br from-stone-900 to-stone-800 hover:from-stone-800 hover:to-stone-700 transition-all rounded-2xl">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="text-sm font-bold text-stone-400">04</div>
-                <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">Training Active</span>
+      <div className="min-h-screen bg-[#fbfbf8]" style={{ color: "#0f172a" }}>
+        <nav className="sticky top-0 z-50 border-b border-slate-900/8 bg-[#fbfbf8]/92 backdrop-blur">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
+            <Link href="/" className="flex items-center gap-3">
+              <img src="/pic2nav.png" alt="Pic2Nav" className="h-9 w-auto sm:h-10" />
+              <div className="hidden sm:block">
+                <p className="text-[11px] uppercase tracking-[0.28em] text-slate-700">Pic2Nav</p>
+                <p className="text-sm font-medium text-slate-950">Visual geolocation research platform</p>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3">NaviSense Model</h3>
-              <p className="text-stone-300 leading-relaxed">
-                Our proprietary transformer-based architecture that combines visual embeddings with geospatial priors for enhanced location prediction accuracy. Now actively training on live user data with continuous learning capabilities.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+            </Link>
 
-      {/* Mobile App */}
-      <section className="relative py-24 sm:py-32 bg-gradient-to-br from-stone-900 to-stone-800 z-10">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
-                Take Pic2Nav Anywhere
-              </h2>
-              <p className="text-xl text-stone-300 mb-8 leading-relaxed">
-                Download our mobile app and access powerful geolocation AI directly from your phone. Analyze locations, identify landmarks, and explore the world around you.
-              </p>
-              <a href="https://play.google.com/store/apps/details?id=com.ssabiroad.pic2nav" target="_blank" rel="noopener noreferrer" className="inline-block">
-                <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" className="h-16 sm:h-20" />
-              </a>
+            <div className="hidden items-center gap-8 text-sm text-slate-700 lg:flex">
+              <Link href="/research" className="font-medium transition hover:text-slate-950">
+                Research
+              </Link>
+              <Link href="/blog" className="font-medium transition hover:text-slate-950">
+                Publications
+              </Link>
+              <Link href="/datasets" className="font-medium transition hover:text-slate-950">
+                Datasets
+              </Link>
+              <Link href="/api-access" className="font-medium transition hover:text-slate-950">
+                API Access
+              </Link>
             </div>
-            <div className="flex justify-center lg:justify-end">
-              <div className="grid grid-cols-3 gap-4">
-                <img src="/images/app-screenshot-1.jpg" alt="App Screenshot" className="rounded-2xl shadow-2xl" />
-                <img src="/images/app-screenshot-2.jpg" alt="App Screenshot" className="rounded-2xl shadow-2xl mt-8" />
-                <img src="/images/app-screenshot-3.jpg" alt="App Screenshot" className="rounded-2xl shadow-2xl" />
+
+            <Button
+              variant="outline"
+              className="rounded-full !border-slate-900 !bg-white px-4 !text-slate-950 hover:!bg-slate-900 hover:!text-white"
+              asChild
+            >
+              <Link href="/camera">Open demo</Link>
+            </Button>
+          </div>
+        </nav>
+
+        <main>
+          <section className="mx-auto max-w-7xl px-4 pb-20 pt-14 sm:px-6 sm:pb-28 sm:pt-20">
+            <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+              <div className="max-w-3xl rounded-[2rem] border border-slate-900/8 bg-white p-6 shadow-[0_12px_40px_rgba(15,23,42,0.04)] sm:p-8">
+                <p className="text-xs uppercase tracking-[0.32em] text-slate-700">
+                  Product meets research
+                </p>
+                <h1
+                  className="mt-6 text-balance text-5xl font-semibold leading-[0.95] tracking-[-0.04em] sm:text-6xl lg:text-7xl"
+                  style={{ color: "#020617" }}
+                >
+                  Photo geolocation for real-world evidence.
+                </h1>
+                <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-700 sm:text-xl">
+                  Pic2Nav is a modern geolocation stack that combines metadata recovery, OCR,
+                  retrieval, validation, and feedback-driven learning to turn photographs into
+                  reviewable location signals.
+                </p>
+
+                <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+                  <Button
+                    className="group rounded-full !bg-slate-950 px-6 py-6 text-base !text-white hover:!bg-slate-800"
+                    asChild
+                  >
+                    <Link href="/camera">
+                      Try the demo
+                      <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" />
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="rounded-full !border-slate-400 !bg-white px-6 py-6 text-base !text-slate-950 hover:!border-slate-900 hover:!bg-slate-50"
+                    asChild
+                  >
+                    <Link href="/research">Read the research</Link>
+                  </Button>
+                </div>
+
+                <div className="mt-12 grid gap-6 border-t border-slate-900/10 pt-8 sm:grid-cols-3">
+                  {proofPoints.map((point) => (
+                    <div key={point.label}>
+                      <p className="text-sm font-medium text-slate-950">{point.value}</p>
+                      <p className="mt-2 text-sm leading-6 text-slate-800">{point.label}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Blog Posts */}
-      <section className="relative py-16 sm:py-24 lg:py-32 bg-stone-50 z-10">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
-          <div className="mb-8 sm:mb-12 lg:mb-16">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 tracking-tight text-stone-900">Publications</h2>
-            <p className="text-stone-600 text-lg sm:text-xl">
-              Technical articles, experiments, and system updates.
-            </p>
-          </div>
+              <div className="rounded-[2rem] border border-slate-900/10 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.05)] sm:p-6">
+                <div className="flex items-center justify-between border-b border-slate-900/8 pb-4" style={{ color: "#0f172a" }}>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.28em] text-slate-700">
+                      Recognition surface
+                    </p>
+                    <h2 className="mt-2 text-2xl font-medium tracking-[-0.03em] text-slate-950">
+                      A product interface built around evidence
+                    </h2>
+                  </div>
+                  <div className="hidden h-11 w-11 items-center justify-center rounded-full border border-slate-900/10 text-slate-900 sm:flex">
+                    <Globe2 className="h-5 w-5" />
+                  </div>
+                </div>
 
-          {posts.length > 0 ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {posts.map((post) => (
-                <Link key={post.id} href={'/blog/' + post.slug} className="group block">
-                  <article className="bg-white border border-stone-200 hover:border-stone-400 transition-all duration-300 h-full">
-                    {post.coverImage && (
-                      <div className="aspect-[16/10] overflow-hidden relative bg-stone-100">
-                        <img 
-                          src={post.coverImage} 
-                          alt={post.title} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                      </div>
-                    )}
-                    <div className="p-6">
-                      <h3 className="text-lg sm:text-xl font-semibold text-stone-900 mb-2 line-clamp-2 group-hover:text-stone-600 transition-colors">
-                        {post.title}
-                      </h3>
-                      <p className="text-base sm:text-lg text-stone-600 line-clamp-3 leading-relaxed">
-                        {post.excerpt}
+                <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-slate-900/8 bg-slate-950">
+                  <div className="relative h-[300px]">
+                    <InteractiveGlobe />
+                    <div className="pointer-events-none absolute inset-x-4 bottom-4 rounded-[1.25rem] border border-white/10 bg-slate-950/75 p-4 text-white backdrop-blur">
+                      <p className="text-[11px] uppercase tracking-[0.28em] text-white">
+                        Pipeline
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-slate-100">
+                        Direct signals are checked first. Broader reasoning only comes in when the
+                        image needs it.
                       </p>
                     </div>
-                  </article>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-stone-600 text-lg mb-4">No insights available yet</p>
-              <Button variant="outline" className="rounded-xl border-2 border-stone-300 text-stone-700 hover:bg-stone-50 font-semibold" asChild>
-                <Link href="/blog">View All Articles</Link>
-              </Button>
-            </div>
-          )}
-        </div>
-      </section>
+                  </div>
+                </div>
 
-      {/* CTA */}
-      <section className="relative py-16 sm:py-24 lg:py-32 border-t border-stone-200 bg-white z-10">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 text-center">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 tracking-tight text-stone-900">
-            Explore the System
-          </h2>
-          <p className="text-stone-600 text-lg sm:text-xl mb-8 sm:mb-12 max-w-[600px] mx-auto px-4">
-            Access the demo or integrate the research API into your workflow.
-          </p>
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-slate-900/8 p-4">
+                    <p className="text-[11px] uppercase tracking-[0.26em] text-slate-700">1</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-800">Recover direct evidence where possible.</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-900/8 p-4">
+                    <p className="text-[11px] uppercase tracking-[0.26em] text-slate-700">2</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-800">Route through retrieval, OCR, and scene reasoning.</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-900/8 p-4">
+                    <p className="text-[11px] uppercase tracking-[0.26em] text-slate-700">3</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-800">Return only validated, reviewable location output.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
 
-          <Link href="/camera" className="group inline-flex items-center gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-stone-900 text-white hover:bg-stone-800 transition-all text-base sm:text-lg font-medium">
-            Launch interactive demo
-            <span className="group-hover:translate-x-1 transition-transform">→</span>
-          </Link>
-        </div>
-      </section>
+          <section className="border-y border-slate-900/8 bg-white">
+            <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20" style={{ color: "#0f172a" }}>
+              <div className="max-w-2xl">
+                <p className="text-xs uppercase tracking-[0.32em] text-slate-700">What Pic2Nav is</p>
+                <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-slate-950 sm:text-5xl">
+                  A restrained interface for a complicated system.
+                </h2>
+                <p className="mt-4 text-lg leading-8 text-slate-700">
+                  The product is designed to feel simple on the surface while staying honest about
+                  uncertainty, validation, and messy image evidence underneath.
+                </p>
+              </div>
 
-      {/* Footer */}
-      <footer className="relative bg-stone-900 py-16 sm:py-20 px-4 sm:px-6 z-10">
-        <div className="max-w-[1400px] mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
-            <div>
-              <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Product</h3>
-              <ul className="space-y-3">
-                <li><Link href="/camera" className="text-stone-400 hover:text-white transition-colors">Features</Link></li>
-                <li><Link href="/api-access" className="text-stone-400 hover:text-white transition-colors">Pricing</Link></li>
-                <li><Link href="/contribute" className="text-stone-400 hover:text-white transition-colors">Solutions</Link></li>
-              </ul>
+              <div className="mt-12 grid gap-5 lg:grid-cols-3">
+                {capabilities.map((item) => (
+                  <div key={item.title} className="rounded-[1.75rem] border border-slate-900/8 bg-[#fcfcfa] p-6">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-900/10 text-slate-900">
+                      <item.icon className="h-5 w-5" />
+                    </div>
+                    <h3 className="mt-5 text-2xl font-medium tracking-[-0.03em] text-slate-950">
+                      {item.title}
+                    </h3>
+                    <p className="mt-3 text-base leading-7 text-slate-700">{item.text}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            
-            <div>
-              <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Resources</h3>
-              <ul className="space-y-3">
-                <li><Link href="/docs" className="text-stone-400 hover:text-white transition-colors">Documentation</Link></li>
-                <li><Link href="/api-access" className="text-stone-400 hover:text-white transition-colors">API Reference</Link></li>
-                <li><Link href="/blog" className="text-stone-400 hover:text-white transition-colors">Insights</Link></li>
-              </ul>
+          </section>
+
+          <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24">
+            <div className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr]" style={{ color: "#0f172a" }}>
+              <div className="max-w-2xl">
+                <p className="text-xs uppercase tracking-[0.32em] text-slate-700">Research posture</p>
+                <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-slate-950 sm:text-5xl">
+                  Built like software, written like research.
+                </h2>
+                <p className="mt-5 text-lg leading-8 text-slate-700">
+                  Pic2Nav is not presented as a single magical model. It is a hybrid production
+                  system with routing logic, confidence rules, and a feedback loop that makes the
+                  stack sharper over time.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {researchNotes.map((note) => (
+                  <div key={note} className="flex gap-4 rounded-[1.5rem] border border-slate-900/8 bg-white p-5">
+                    <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-950 text-white">
+                      <MapPin className="h-4 w-4" />
+                    </div>
+                    <p className="text-base leading-7 text-slate-700">{note}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            
-            <div>
-              <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Company</h3>
-              <ul className="space-y-3">
-                <li><Link href="/about" className="text-stone-400 hover:text-white transition-colors">About</Link></li>
-                <li><Link href="/blog" className="text-stone-400 hover:text-white transition-colors">Blog</Link></li>
-                <li><Link href="/contribute" className="text-stone-400 hover:text-white transition-colors">Contact</Link></li>
-              </ul>
+          </section>
+
+          <section className="border-t border-slate-900/8 bg-white">
+            <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24" style={{ color: "#0f172a" }}>
+              <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="max-w-2xl">
+                  <p className="text-xs uppercase tracking-[0.32em] text-slate-700">Latest publications</p>
+                  <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-slate-950 sm:text-5xl">
+                    Notes from the system as it evolves.
+                  </h2>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-fit rounded-full !border-slate-400 !bg-white !text-slate-950 hover:!border-slate-900 hover:!bg-slate-50"
+                  asChild
+                >
+                  <Link href="/blog">Browse all posts</Link>
+                </Button>
+              </div>
+
+              {posts.length > 0 ? (
+                <div className="grid gap-5 lg:grid-cols-3">
+                  {posts.map((post) => (
+                    <Link key={post.id} href={`/blog/${post.slug}`} className="group block">
+                      <article className="h-full overflow-hidden rounded-[1.75rem] border border-slate-900/8 bg-[#fcfcfa] transition hover:border-slate-900/18">
+                        {post.coverImage && (
+                          <div className="aspect-[16/10] overflow-hidden bg-slate-100">
+                            <img
+                              src={post.coverImage}
+                              alt={post.title}
+                              className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+                            />
+                          </div>
+                        )}
+                        <div className="p-6">
+                          <p className="text-[11px] uppercase tracking-[0.28em] text-slate-700">Publication</p>
+                          <h3 className="mt-3 text-2xl font-medium tracking-[-0.03em] text-slate-950">
+                            {post.title}
+                          </h3>
+                          <p className="mt-3 text-base leading-7 text-slate-700">{post.excerpt}</p>
+                        </div>
+                      </article>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-[1.75rem] border border-slate-900/8 bg-[#fcfcfa] p-10 text-center">
+                  <p className="text-lg text-slate-700">No publications are live yet.</p>
+                  <Button
+                    variant="outline"
+                    className="mt-6 rounded-full !border-slate-400 !bg-white !text-slate-950 hover:!border-slate-900 hover:!bg-slate-50"
+                    asChild
+                  >
+                    <Link href="/blog">View the archive</Link>
+                  </Button>
+                </div>
+              )}
             </div>
-            
-            <div>
-              <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Legal</h3>
-              <ul className="space-y-3">
-                <li><Link href="/privacy" className="text-stone-400 hover:text-white transition-colors">Privacy</Link></li>
-                <li><Link href="/terms" className="text-stone-400 hover:text-white transition-colors">Terms</Link></li>
-                <li><Link href="/cookies" className="text-stone-400 hover:text-white transition-colors">Cookies</Link></li>
-              </ul>
+          </section>
+
+          <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24">
+            <div className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
+              <div
+                className="rounded-[2rem] border p-8 sm:p-10"
+                style={{
+                  backgroundColor: "#020617",
+                  borderColor: "rgba(255,255,255,0.12)",
+                  color: "#ffffff",
+                }}
+              >
+                <p
+                  className="text-xs uppercase tracking-[0.32em]"
+                  style={{ color: "#ffffff" }}
+                >
+                  Start with the product
+                </p>
+                <h2
+                  className="mt-4 max-w-2xl text-4xl font-semibold tracking-[-0.04em] sm:text-5xl"
+                  style={{ color: "#ffffff" }}
+                >
+                  Open the camera workflow and test the stack on real images.
+                </h2>
+                <p
+                  className="mt-5 max-w-2xl text-lg leading-8"
+                  style={{ color: "rgba(255,255,255,0.82)" }}
+                >
+                  Upload, capture, or verify a location in the same interface used to connect image
+                  evidence, confidence, map context, and feedback.
+                </p>
+
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                  <Button
+                    className="group rounded-full px-6 py-6 text-base"
+                    style={{
+                      backgroundColor: "#ffffff",
+                      color: "#020617",
+                    }}
+                    asChild
+                  >
+                    <Link href="/camera">
+                      Open demo
+                      <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" />
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="rounded-full px-6 py-6 text-base"
+                    style={{
+                      borderColor: "rgba(255,255,255,0.72)",
+                      backgroundColor: "rgba(255,255,255,0.08)",
+                      color: "#ffffff",
+                    }}
+                    asChild
+                  >
+                    <Link href="/api-access">Explore API access</Link>
+                  </Button>
+                </div>
+              </div>
+
+              <div className="rounded-[2rem] border border-slate-900/8 bg-white p-8 sm:p-10">
+                <p className="text-xs uppercase tracking-[0.32em] text-slate-700">Newsletter</p>
+                <h3 className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-slate-950">
+                  Follow product releases and research updates.
+                </h3>
+                <p className="mt-4 text-base leading-7 text-slate-700">
+                  Get publication links, model updates, and major system changes without having to
+                  watch the repo full-time.
+                </p>
+                <div className="mt-6">
+                  <NewsletterSignup />
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <footer className="border-t border-slate-900/8 bg-white px-4 py-12 sm:px-6">
+          <div className="mx-auto max-w-7xl">
+            <div className="grid gap-8 md:grid-cols-4">
+              <div style={{ color: "#0f172a" }}>
+                <div className="flex items-center gap-3">
+                  <img src="/pic2nav.png" alt="Pic2Nav" className="h-9 w-auto" />
+                  <span className="text-lg font-medium text-slate-950">Pic2Nav</span>
+                </div>
+                <p className="mt-4 max-w-xs text-sm leading-6 text-slate-700">
+                  Geospatial intelligence from photographs, designed for recognition, review, and
+                  continuous refinement.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium uppercase tracking-[0.24em] text-slate-700">Product</h3>
+                <ul className="mt-4 space-y-3 text-sm text-slate-700">
+                  <li><Link href="/camera" className="transition hover:text-slate-950">Demo</Link></li>
+                  <li><Link href="/api-access" className="transition hover:text-slate-950">API Access</Link></li>
+                  <li><Link href="/datasets" className="transition hover:text-slate-950">Datasets</Link></li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium uppercase tracking-[0.24em] text-slate-700">Research</h3>
+                <ul className="mt-4 space-y-3 text-sm text-slate-700">
+                  <li><Link href="/blog" className="transition hover:text-slate-950">Publications</Link></li>
+                  <li><Link href="/research" className="transition hover:text-slate-950">Research Notes</Link></li>
+                  <li><Link href="/docs" className="transition hover:text-slate-950">Documentation</Link></li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium uppercase tracking-[0.24em] text-slate-700">Legal</h3>
+                <ul className="mt-4 space-y-3 text-sm text-slate-700">
+                  <li><Link href="/privacy" className="transition hover:text-slate-950">Privacy</Link></li>
+                  <li><Link href="/terms" className="transition hover:text-slate-950">Terms</Link></li>
+                  <li><Link href="/cookies" className="transition hover:text-slate-950">Cookies</Link></li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="mt-10 flex flex-col gap-3 border-t border-slate-900/8 pt-6 text-sm text-slate-700 sm:flex-row sm:items-center sm:justify-between">
+              <p>Copyright {new Date().getFullYear()} Pic2Nav. All rights reserved.</p>
+              <p>Built for visual geolocation, field verification, and feedback-driven model improvement.</p>
             </div>
           </div>
-          
-          <div className="pt-8 border-t border-stone-800 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-3">
-              <img src="/pic2nav.png" alt="Pic2Nav" className="h-8" />
-              <span className="text-stone-400 text-sm">© {new Date().getFullYear()} Pic2Nav Research</span>
-            </div>
-            <p className="text-stone-500 text-sm">All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-
+        </footer>
       </div>
-      <CookieConsent />
     </>
   )
 }

@@ -33,7 +33,7 @@ export function NewsletterSignup() {
   }
 
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full max-w-md" style={{ color: "#0f172a" }}>
       <form onSubmit={handleSubmit} className="flex gap-2">
         <Input
           type="email"
@@ -41,9 +41,13 @@ export function NewsletterSignup() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="flex-1 bg-white border-2 border-stone-200 text-stone-900 placeholder:text-stone-500"
+          className="flex-1 !border-stone-300 !bg-white !text-stone-900 placeholder:!text-stone-500"
         />
-        <Button type="submit" disabled={loading} className="bg-stone-900 hover:bg-stone-800 text-white font-semibold">
+        <Button
+          type="submit"
+          disabled={loading}
+          className="!bg-stone-900 hover:!bg-stone-800 !text-white font-semibold"
+        >
           <Mail className="h-4 w-4 mr-2" />
           {loading ? 'Subscribing...' : 'Subscribe'}
         </Button>
