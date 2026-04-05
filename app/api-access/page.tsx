@@ -13,6 +13,7 @@ import {
   EyeOff,
   KeyRound,
   LockKeyhole,
+  MapPinned,
   Plus,
   ShieldCheck,
   Trash2,
