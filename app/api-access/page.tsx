@@ -106,6 +106,30 @@ const docLinks = [
   },
 ]
 
+const workflowStages = [
+  {
+    icon: KeyRound,
+    title: "Issue a key for the environment you control",
+    text: "Keep production, staging, and experiments separate so usage remains attributable and keys are easy to rotate later.",
+  },
+  {
+    icon: MapPinned,
+    title: "Call the same route used by the product workflow",
+    text: "The API follows the live recognition stack: direct evidence first, then retrieval, scene reasoning, and route-side validation.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Handle confidence-aware output instead of guessing",
+    text: "The response is designed to fail closed when evidence is weak, so your integration can decide how to escalate or ask for another image.",
+  },
+]
+
+const responseHighlights = [
+  "Structured coordinates, address context, method provenance, and enrichment fields in one response.",
+  "The same production workflow surfaced in the camera demo, not a separate toy endpoint.",
+  "A system that can connect future feedback and training rather than a one-off model call with no memory.",
+]
+
 function decodeJwtUserId(token: string): string | null {
   try {
     const payload = token.split(".")[1]
@@ -308,19 +332,23 @@ export default function ApiAccessPage() {
           <Link href="/" className="flex items-center gap-3">
             <img src="/pic2nav.png" alt="Pic2Nav" className="h-10 w-auto sm:h-11" />
             <div className="hidden sm:block">
-              <p className="text-[11px] uppercase tracking-[0.28em] text-slate-700">Pic2Nav</p>
-              <p className="text-sm font-medium text-slate-950">API Access</p>
+              <p className="text-[11px] uppercase tracking-[0.28em]" style={{ color: "#334155" }}>
+                Pic2Nav
+              </p>
+              <p className="text-sm font-medium" style={{ color: "#020617" }}>
+                API Access
+              </p>
             </div>
           </Link>
 
-          <div className="hidden items-center gap-8 text-sm text-slate-700 lg:flex">
+          <div className="hidden items-center gap-8 text-sm lg:flex" style={{ color: "#334155" }}>
             <Link href="/research" className="font-medium transition hover:text-slate-950">
               Research
             </Link>
             <Link href="/api-doc" className="font-medium transition hover:text-slate-950">
               Docs
             </Link>
-            <Link href="/blog" className="font-medium transition hover:text-slate-950">
+            <Link href="/publications" className="font-medium transition hover:text-slate-950">
               Publications
             </Link>
           </div>
@@ -337,18 +365,21 @@ export default function ApiAccessPage() {
 
       <main>
         <section className="mx-auto max-w-7xl px-4 pb-16 pt-14 sm:px-6 sm:pb-20 sm:pt-20">
-          <div className="grid gap-10 lg:grid-cols-[1.04fr_0.96fr]">
+          <div className="grid gap-10 lg:grid-cols-[1.06fr_0.94fr]">
             <div className="max-w-3xl rounded-[2rem] border border-slate-900/8 bg-white p-6 shadow-[0_12px_40px_rgba(15,23,42,0.04)] sm:p-8">
-              <p className="text-xs uppercase tracking-[0.32em] text-slate-700">Developer access</p>
+              <p className="text-xs uppercase tracking-[0.32em]" style={{ color: "#334155" }}>
+                Developer access
+              </p>
               <h1
                 className="mt-6 text-balance text-5xl font-semibold leading-[0.95] tracking-[-0.04em] sm:text-6xl lg:text-7xl"
                 style={{ color: "#020617" }}
               >
-                Use Pic2Nav as an API, not just as a demo.
+                Build on the same geolocation workflow that powers the product.
               </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-700 sm:text-xl">
+              <p className="mt-6 max-w-2xl text-lg leading-8 sm:text-xl" style={{ color: "#334155" }}>
                 Generate and manage API keys, inspect usage, and integrate the photo geolocation
-                pipeline into your own applications with a clean request flow and current docs.
+                pipeline into your own applications with a clearer request path and a confidence-aware
+                response model.
               </p>
 
               <div className="mt-10 flex flex-col gap-3 sm:flex-row">
@@ -372,9 +403,11 @@ export default function ApiAccessPage() {
             </div>
 
             <div className="rounded-[2rem] border border-slate-900/8 bg-white p-6 shadow-[0_12px_40px_rgba(15,23,42,0.04)] sm:p-8">
-              <p className="text-[11px] uppercase tracking-[0.28em] text-slate-700">Usage snapshot</p>
-              <h2 className="mt-3 text-3xl font-medium tracking-[-0.03em] text-slate-950">
-                Built for product teams, internal tools, and research workflows.
+              <p className="text-[11px] uppercase tracking-[0.28em]" style={{ color: "#334155" }}>
+                Usage snapshot
+              </p>
+              <h2 className="mt-3 text-3xl font-medium tracking-[-0.03em]" style={{ color: "#020617" }}>
+                One surface for access, usage, and request readiness.
               </h2>
               <div className="mt-8 grid gap-4 sm:grid-cols-2">
                 <div className="rounded-[1.4rem] border border-slate-900/8 bg-[#fcfcfa] p-5">
@@ -383,8 +416,8 @@ export default function ApiAccessPage() {
                       <KeyRound className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="text-2xl font-semibold text-slate-950">{apiKeys.length}</p>
-                      <p className="text-sm text-slate-700">active API keys</p>
+                      <p className="text-2xl font-semibold" style={{ color: "#020617" }}>{apiKeys.length}</p>
+                      <p className="text-sm" style={{ color: "#334155" }}>active API keys</p>
                     </div>
                   </div>
                 </div>
@@ -394,8 +427,8 @@ export default function ApiAccessPage() {
                       <Activity className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="text-2xl font-semibold text-slate-950">{totalRequests.toLocaleString()}</p>
-                      <p className="text-sm text-slate-700">total requests</p>
+                      <p className="text-2xl font-semibold" style={{ color: "#020617" }}>{totalRequests.toLocaleString()}</p>
+                      <p className="text-sm" style={{ color: "#334155" }}>total requests</p>
                     </div>
                   </div>
                 </div>
@@ -408,7 +441,7 @@ export default function ApiAccessPage() {
                       <p className="text-2xl font-semibold text-slate-950">
                         {totalCapacity ? totalCapacity.toLocaleString() : "10,000"}
                       </p>
-                      <p className="text-sm text-slate-700">combined monthly capacity</p>
+                      <p className="text-sm" style={{ color: "#334155" }}>combined monthly capacity</p>
                     </div>
                   </div>
                 </div>
@@ -418,15 +451,15 @@ export default function ApiAccessPage() {
                       <Database className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="text-2xl font-semibold text-slate-950">{usageRate.toFixed(0)}%</p>
-                      <p className="text-sm text-slate-700">current usage rate</p>
+                      <p className="text-2xl font-semibold" style={{ color: "#020617" }}>{usageRate.toFixed(0)}%</p>
+                      <p className="text-sm" style={{ color: "#334155" }}>current usage rate</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="mt-6 rounded-[1.4rem] border border-slate-900/8 bg-[#fcfcfa] p-5">
-                <div className="flex items-center justify-between text-sm text-slate-700">
+                <div className="flex items-center justify-between text-sm" style={{ color: "#334155" }}>
                   <span>Capacity in use</span>
                   <span>{usageRate.toFixed(1)}%</span>
                 </div>
@@ -445,13 +478,26 @@ export default function ApiAccessPage() {
           <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
             {banner ? (
               <div
-                className={`mb-8 rounded-[1.4rem] border px-5 py-4 text-sm ${
+                className="mb-8 rounded-[1.4rem] border px-5 py-4 text-sm"
+                style={
                   banner.type === "success"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                    ? {
+                        borderColor: "#a7f3d0",
+                        backgroundColor: "#ecfdf5",
+                        color: "#065f46",
+                      }
                     : banner.type === "error"
-                      ? "border-red-200 bg-red-50 text-red-900"
-                      : "border-slate-200 bg-slate-50 text-slate-900"
-                }`}
+                      ? {
+                          borderColor: "#fecaca",
+                          backgroundColor: "#fef2f2",
+                          color: "#991b1b",
+                        }
+                      : {
+                          borderColor: "#cbd5e1",
+                          backgroundColor: "#f8fafc",
+                          color: "#0f172a",
+                        }
+                }
               >
                 {banner.message}
               </div>
@@ -461,13 +507,15 @@ export default function ApiAccessPage() {
               <div className="rounded-[1.9rem] border border-slate-900/8 bg-[#fcfcfa] p-6 sm:p-8">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-[11px] uppercase tracking-[0.28em] text-slate-700">API keys</p>
-                    <h2 className="mt-3 text-3xl font-medium tracking-[-0.03em] text-slate-950">
+                    <p className="text-[11px] uppercase tracking-[0.28em]" style={{ color: "#334155" }}>
+                      API keys
+                    </p>
+                    <h2 className="mt-3 text-3xl font-medium tracking-[-0.03em]" style={{ color: "#020617" }}>
                       Manage authentication and usage.
                     </h2>
-                    <p className="mt-3 max-w-2xl text-base leading-7 text-slate-700">
+                    <p className="mt-3 max-w-2xl text-base leading-7" style={{ color: "#334155" }}>
                       Create separate keys for production, staging, or experiments. Keys are shown
-                      once here and can be copied directly into your environment.
+                      here so they can move directly into your environment and deployment flow.
                     </p>
                   </div>
                   <div className="hidden h-11 w-11 items-center justify-center rounded-full border border-slate-900/10 text-slate-900 sm:flex">
@@ -500,7 +548,7 @@ export default function ApiAccessPage() {
 
                 <div className="mt-8 space-y-4">
                   {isLoading ? (
-                    <div className="rounded-[1.5rem] border border-slate-900/8 bg-white p-6 text-sm text-slate-700">
+                    <div className="rounded-[1.5rem] border border-slate-900/8 bg-white p-6 text-sm" style={{ color: "#334155" }}>
                       Loading your API keys...
                     </div>
                   ) : apiKeys.length > 0 ? (
@@ -511,8 +559,8 @@ export default function ApiAccessPage() {
                         <div key={apiKey.id} className="rounded-[1.5rem] border border-slate-900/8 bg-white p-5">
                           <div className="flex items-start justify-between gap-4">
                             <div>
-                              <p className="text-lg font-medium text-slate-950">{apiKey.name}</p>
-                              <p className="mt-1 text-sm text-slate-700">Created {apiKey.createdLabel}</p>
+                              <p className="text-lg font-medium" style={{ color: "#020617" }}>{apiKey.name}</p>
+                              <p className="mt-1 text-sm" style={{ color: "#334155" }}>Created {apiKey.createdLabel}</p>
                             </div>
                             <Button
                               variant="outline"
@@ -557,9 +605,9 @@ export default function ApiAccessPage() {
                             </div>
                           </div>
 
-                          <div className="mt-4 flex flex-col gap-2 text-sm text-slate-700 sm:flex-row sm:items-center sm:justify-between">
-                            <span>Last used: {apiKey.lastUsedLabel}</span>
-                            <span className="font-medium text-slate-950">
+                          <div className="mt-4 flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+                            <span style={{ color: "#334155" }}>Last used: {apiKey.lastUsedLabel}</span>
+                            <span className="font-medium" style={{ color: "#020617" }}>
                               {apiKey.requests.toLocaleString()} / {apiKey.limit.toLocaleString()}
                             </span>
                           </div>
@@ -578,8 +626,8 @@ export default function ApiAccessPage() {
                       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-slate-900/10 text-slate-900">
                         <KeyRound className="h-5 w-5" />
                       </div>
-                      <p className="mt-4 text-lg font-medium text-slate-950">No API keys yet</p>
-                      <p className="mt-2 text-sm leading-6 text-slate-700">
+                      <p className="mt-4 text-lg font-medium" style={{ color: "#020617" }}>No API keys yet</p>
+                      <p className="mt-2 text-sm leading-6" style={{ color: "#334155" }}>
                         Create your first key to authenticate requests from your app, scripts, or
                         internal tools.
                       </p>
@@ -590,14 +638,23 @@ export default function ApiAccessPage() {
 
               <div className="space-y-6">
                 <div className="rounded-[1.9rem] border border-slate-900/8 bg-white p-6 sm:p-8">
-                  <p className="text-[11px] uppercase tracking-[0.28em] text-slate-700">Quick start</p>
-                  <h2 className="mt-3 text-3xl font-medium tracking-[-0.03em] text-slate-950">
+                  <p className="text-[11px] uppercase tracking-[0.28em]" style={{ color: "#334155" }}>
+                    Quick start
+                  </p>
+                  <h2 className="mt-3 text-3xl font-medium tracking-[-0.03em]" style={{ color: "#020617" }}>
                     Send an image and receive a structured geolocation result.
                   </h2>
+                  <p className="mt-3 max-w-2xl text-base leading-7" style={{ color: "#334155" }}>
+                    This is the shortest path from key issuance to a working request. Use it to
+                    validate auth, payload shape, and the live response contract before wiring the
+                    rest of your product around it.
+                  </p>
 
                   <div className="mt-6 rounded-[1.3rem] border border-slate-900/8 bg-[#fcfcfa] p-4">
-                    <p className="text-xs uppercase tracking-[0.22em] text-slate-700">Endpoint</p>
-                    <code className="mt-2 block overflow-x-auto text-sm text-slate-900">
+                    <p className="text-xs uppercase tracking-[0.22em]" style={{ color: "#334155" }}>
+                      Endpoint
+                    </p>
+                    <code className="mt-2 block overflow-x-auto text-sm" style={{ color: "#020617" }}>
                       {API_ENDPOINT}
                     </code>
                   </div>
@@ -641,7 +698,32 @@ export default function ApiAccessPage() {
                 </div>
 
                 <div className="rounded-[1.9rem] border border-slate-900/8 bg-white p-6 sm:p-8">
-                  <p className="text-[11px] uppercase tracking-[0.28em] text-slate-700">Documentation</p>
+                  <p className="text-[11px] uppercase tracking-[0.28em]" style={{ color: "#334155" }}>
+                    Request flow
+                  </p>
+                  <div className="mt-5 space-y-4">
+                    {workflowStages.map((stage) => (
+                      <div key={stage.title} className="flex gap-4 rounded-[1.3rem] border border-slate-900/8 bg-[#fcfcfa] p-4">
+                        <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-950 text-white">
+                          <stage.icon className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-base font-medium" style={{ color: "#020617" }}>
+                            {stage.title}
+                          </p>
+                          <p className="mt-1 text-sm leading-7" style={{ color: "#334155" }}>
+                            {stage.text}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-[1.9rem] border border-slate-900/8 bg-white p-6 sm:p-8">
+                  <p className="text-[11px] uppercase tracking-[0.28em]" style={{ color: "#334155" }}>
+                    Documentation
+                  </p>
                   <div className="mt-5 space-y-3">
                     {docLinks.map((link) => (
                       <Link
@@ -649,41 +731,34 @@ export default function ApiAccessPage() {
                         href={link.href}
                         className="block rounded-[1.3rem] border border-slate-900/8 bg-[#fcfcfa] p-4 transition hover:border-slate-900/18"
                       >
-                        <p className="text-base font-medium text-slate-950">{link.title}</p>
-                        <p className="mt-1 text-sm leading-6 text-slate-700">{link.description}</p>
+                        <p className="text-base font-medium" style={{ color: "#020617" }}>{link.title}</p>
+                        <p className="mt-1 text-sm leading-6" style={{ color: "#334155" }}>{link.description}</p>
                       </Link>
                     ))}
                   </div>
                 </div>
 
                 <div className="rounded-[1.9rem] border border-slate-900/8 bg-[#fcfcfa] p-6 sm:p-8">
-                  <p className="text-[11px] uppercase tracking-[0.28em] text-slate-700">What you get</p>
+                  <p className="text-[11px] uppercase tracking-[0.28em]" style={{ color: "#334155" }}>
+                    What you get
+                  </p>
                   <div className="mt-5 space-y-4">
-                    <div className="flex gap-3">
-                      <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-950 text-white">
-                        <MapPinned className="h-4 w-4" />
+                    {responseHighlights.map((item, index) => (
+                      <div key={item} className="flex gap-3">
+                        <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-950 text-white">
+                          {index === 0 ? (
+                            <MapPinned className="h-4 w-4" />
+                          ) : index === 1 ? (
+                            <ShieldCheck className="h-4 w-4" />
+                          ) : (
+                            <BookOpen className="h-4 w-4" />
+                          )}
+                        </div>
+                        <p className="text-sm leading-7" style={{ color: "#334155" }}>
+                          {item}
+                        </p>
                       </div>
-                      <p className="text-sm leading-7 text-slate-700">
-                        The same production route used in the product demo: direct signals first,
-                        then retrieval, reasoning, and route-level validation.
-                      </p>
-                    </div>
-                    <div className="flex gap-3">
-                      <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-950 text-white">
-                        <ShieldCheck className="h-4 w-4" />
-                      </div>
-                      <p className="text-sm leading-7 text-slate-700">
-                        Confidence-aware output designed to fail closed when the evidence is too weak.
-                      </p>
-                    </div>
-                    <div className="flex gap-3">
-                      <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-950 text-white">
-                        <BookOpen className="h-4 w-4" />
-                      </div>
-                      <p className="text-sm leading-7 text-slate-700">
-                        A research-backed system surface, not just a thin wrapper around one model call.
-                      </p>
-                    </div>
+                    ))}
                   </div>
                 </div>
               </div>

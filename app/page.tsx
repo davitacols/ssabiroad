@@ -92,7 +92,7 @@ export default function HomePage() {
               <Link href="/research" className="font-medium transition hover:text-slate-950">
                 Research
               </Link>
-              <Link href="/blog" className="font-medium transition hover:text-slate-950">
+              <Link href="/publications" className="font-medium transition hover:text-slate-950">
                 Publications
               </Link>
               <Link href="/datasets" className="font-medium transition hover:text-slate-950">
@@ -279,7 +279,7 @@ export default function HomePage() {
                   className="w-fit rounded-full !border-slate-400 !bg-white !text-slate-950 hover:!border-slate-900 hover:!bg-slate-50"
                   asChild
                 >
-                  <Link href="/blog">Browse all posts</Link>
+                    <Link href="/publications">Browse publication notes</Link>
                 </Button>
               </div>
 
@@ -316,7 +316,7 @@ export default function HomePage() {
                     className="mt-6 rounded-full !border-slate-400 !bg-white !text-slate-950 hover:!border-slate-900 hover:!bg-slate-50"
                     asChild
                   >
-                    <Link href="/blog">View the archive</Link>
+                      <Link href="/publications">View publication notes</Link>
                   </Button>
                 </div>
               )}
@@ -425,7 +425,7 @@ export default function HomePage() {
               <div>
                 <h3 className="text-sm font-medium uppercase tracking-[0.24em] text-slate-700">Research</h3>
                 <ul className="mt-4 space-y-3 text-sm text-slate-700">
-                  <li><Link href="/blog" className="transition hover:text-slate-950">Publications</Link></li>
+                  <li><Link href="/publications" className="transition hover:text-slate-950">Publications</Link></li>
                   <li><Link href="/research" className="transition hover:text-slate-950">Research Notes</Link></li>
                   <li><Link href="/docs" className="transition hover:text-slate-950">Documentation</Link></li>
                 </ul>

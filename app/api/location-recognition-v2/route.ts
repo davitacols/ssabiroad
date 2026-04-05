@@ -66,6 +66,11 @@ interface LocationResult {
     }>;
   };
   enhancedAnalysis?: any;
+  navisenseDiagnostics?: {
+    providerMethod?: string;
+    hasHumanReadableAddress?: boolean;
+    genericBusinessName?: boolean;
+  };
 }
 
 // Ultra-fast cache with 5-minute TTL
@@ -2609,6 +2614,15 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
             }
           }
         }
+      } else if (navisenseResult?.success && navisenseResult.location && isValidConfidence && !navisenseGate.accepted) {
+        console.log('âš ï¸ NaviSense rejected by grounding gate:', {
+          confidence: navisenseResult.confidence,
+          provider: navisenseResult.navisenseDiagnostics?.providerMethod || 'unknown',
+          reason: navisenseGate.reason,
+          address: navisenseResult.address,
+          name: navisenseResult.name,
+        });
+        console.log('Falling back to Claude AI and Google Vision API for full location detection...');
       } else {
         console.log('Logo detection failed:', logoResult.reason?.message);
       }
@@ -5397,23 +5411,102 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const data = await response.json(); console.log("?? Navisense response:", JSON.stringify(data));
       
       if (data.success && data.location && data.confidence >= 0.5) {
+        const rawAddress = data.location.address;
+        const rawBusinessName = data.location.businessName;
         return {
           success: true,
-          name: data.location.businessName || 'NaviSense ML',
+          name: rawBusinessName || 'NaviSense ML',
           location: { 
             latitude: data.location.latitude, 
             longitude: data.location.longitude 
           },
-          address: data.location.address,
+          address: rawAddress,
           confidence: data.confidence,
           method: 'navisense-ml',
-          description: 'Location predicted by Navisense V2 ML model'
+          description: 'Location predicted by Navisense V2 ML model',
+          navisenseDiagnostics: {
+            providerMethod: typeof data.method === 'string' ? data.method : undefined,
+            hasHumanReadableAddress: this.hasHumanReadableNavisenseAddress(rawAddress),
+            genericBusinessName: this.isGenericNavisenseBusinessName(rawBusinessName),
+          }
         };
       }
     } catch (error) {
       console.log('Navisense prediction failed:', error.message);
     }
     return null;
+  }
+
+  private isGenericNavisenseBusinessName(name?: string | null): boolean {
+    if (!name) return true;
+
+    const normalized = name.trim().toLowerCase();
+    if (!normalized) return true;
+
+    return (
+      normalized === 'unknown business' ||
+      normalized === 'navisense ml' ||
+      normalized === 'location detected' ||
+      normalized === 'location detected by ai' ||
+      normalized.startsWith('unknown ')
+    );
+  }
+
+  private hasHumanReadableNavisenseAddress(address?: string | null): boolean {
+    if (!address) return false;
+
+    const normalized = address.trim();
+    if (!normalized) return false;
+
+    if (/location detected by ai/i.test(normalized) || /^unknown$/i.test(normalized)) {
+      return false;
+    }
+
+    if (/^[23456789CFGHJMPQRVWX]{4,}\+[23456789CFGHJMPQRVWX]{2,}(,.*)?$/i.test(normalized)) {
+      return false;
+    }
+
+    return /[A-Za-z]/.test(normalized);
+  }
+
+  private evaluateNavisenseAcceptance(result: LocationResult): { accepted: boolean; reason: string } {
+    const providerMethod = result.navisenseDiagnostics?.providerMethod || 'unknown';
+    const hasHumanReadableAddress = !!result.navisenseDiagnostics?.hasHumanReadableAddress;
+    const genericBusinessName = !!result.navisenseDiagnostics?.genericBusinessName;
+
+    if (providerMethod === 'exact_match') {
+      return { accepted: true, reason: 'exact_match' };
+    }
+
+    if (providerMethod === 'architectural_matching') {
+      if (result.confidence < 0.95) {
+        return { accepted: false, reason: 'architectural_matching confidence below 0.95' };
+      }
+
+      if (!hasHumanReadableAddress && genericBusinessName) {
+        return { accepted: false, reason: 'architectural_matching lacks grounded address or business signal' };
+      }
+
+      return { accepted: true, reason: 'architectural_matching passed strict confidence gate' };
+    }
+
+    if (providerMethod === 'similarity') {
+      if (result.confidence < 0.97) {
+        return { accepted: false, reason: 'similarity confidence below 0.97' };
+      }
+
+      if (!hasHumanReadableAddress || genericBusinessName) {
+        return { accepted: false, reason: 'similarity result is not grounded by address and business evidence' };
+      }
+
+      return { accepted: true, reason: 'similarity passed strict grounding gate' };
+    }
+
+    if (!hasHumanReadableAddress && genericBusinessName) {
+      return { accepted: false, reason: 'generic ML result without grounded address or business evidence' };
+    }
+
+    return { accepted: true, reason: 'default Navisense gate passed' };
   }
 
   // Train Navisense with user upload
@@ -5615,11 +5708,15 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       const isValidConfidence = 
         navisenseResult?.confidence >= 0.85 && 
         navisenseResult?.confidence <= 1.0;
+      const navisenseGate = navisenseResult
+        ? this.evaluateNavisenseAcceptance(navisenseResult)
+        : { accepted: false, reason: 'no result' };
 
       if (
         navisenseResult?.success &&
         navisenseResult.location &&
-        isValidConfidence
+        isValidConfidence &&
+        navisenseGate.accepted
       ) {
         const { latitude, longitude } = navisenseResult.location;
         const isValidRange =
@@ -5637,6 +5734,12 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
         const isBadPrediction = false;
 
         if (isValidRange && isValidConfidence) {
+          console.log('NaviSense grounding gate passed:', {
+            provider: navisenseResult.navisenseDiagnostics?.providerMethod || 'unknown',
+            reason: navisenseGate.reason,
+            address: navisenseResult.address,
+            name: navisenseResult.name,
+          });
           console.log(
             '✅ NAVISENSE SUCCESS (confidence:', navisenseResult.confidence, ') - ENRICHING AND RETURNING:',
             navisenseResult.location

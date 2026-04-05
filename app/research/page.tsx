@@ -90,7 +90,7 @@ const publicationLinks = [
   {
     title: "Working paper",
     description: "A systems paper framing Pic2Nav as a deployable hybrid photo geolocation stack.",
-    href: "/blog",
+    href: "/publications",
     cta: "Read publication notes",
   },
   {
@@ -124,7 +124,7 @@ export default function ResearchPage() {
             <Link href="/research" className="font-medium text-slate-950">
               Research
             </Link>
-            <Link href="/blog" className="font-medium transition hover:text-slate-950">
+            <Link href="/publications" className="font-medium transition hover:text-slate-950">
               Publications
             </Link>
             <Link href="/datasets" className="font-medium transition hover:text-slate-950">
@@ -177,7 +177,7 @@ export default function ResearchPage() {
                   className="rounded-full !border-slate-400 !bg-white px-6 py-6 text-base !text-slate-950 hover:!border-slate-900 hover:!bg-slate-50"
                   asChild
                 >
-                  <Link href="/blog">Read publication notes</Link>
+                  <Link href="/publications">Read publication notes</Link>
                 </Button>
               </div>
             </div>
