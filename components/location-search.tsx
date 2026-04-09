@@ -9,6 +9,9 @@ import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
 
+const GOOGLE_MAPS_BROWSER_ENABLED =
+  process.env.NEXT_PUBLIC_ENABLE_GOOGLE_MAPS === "true" && !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
 interface PlacePrediction {
   place_id: string
   description: string
@@ -47,6 +50,10 @@ export function LocationSearch({
 
   // Initialize Google Maps services
   useEffect(() => {
+    if (!GOOGLE_MAPS_BROWSER_ENABLED) {
+      return
+    }
+
     // Check if the Google Maps API is loaded
     if (typeof window !== "undefined" && window.google && window.google.maps) {
       autocompleteService.current = new google.maps.places.AutocompleteService()
@@ -98,6 +105,12 @@ export function LocationSearch({
     const value = e.target.value
     setQuery(value)
 
+    if (!GOOGLE_MAPS_BROWSER_ENABLED) {
+      setPredictions([])
+      setShowSuggestions(false)
+      return
+    }
+
     if (value.length > 1 && autocompleteService.current) {
       setIsLoading(true)
       setShowSuggestions(true)
@@ -125,6 +138,10 @@ export function LocationSearch({
 
   // Handle selection of a place from suggestions
   const handlePlaceSelect = (prediction: PlacePrediction) => {
+    if (!GOOGLE_MAPS_BROWSER_ENABLED) {
+      return
+    }
+
     setQuery(prediction.structured_formatting.main_text)
     setShowSuggestions(false)
 
@@ -160,6 +177,11 @@ export function LocationSearch({
 
   // Handle "Near Me" button click
   const handleNearMeClick = () => {
+    if (!GOOGLE_MAPS_BROWSER_ENABLED || typeof google === "undefined" || !google.maps) {
+      alert("Interactive Google Maps is disabled for cost control.")
+      return
+    }
+
     setIsGettingLocation(true)
 
     if (navigator.geolocation) {

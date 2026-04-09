@@ -15,9 +15,7 @@ import { OpenCVProcessor } from './opencv-processor';
 import { EnhancedAnalyzer } from './enhanced-analysis';
 import { TextCorrection } from './text-correction';
 import { SceneValidator } from './scene-validator';
-import { PrismaClient } from '@prisma/client'; 
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma-client'; 
 const ML_API_URL = process.env.ML_API_URL || 'https://navisense-ml-678649320532.us-east1.run.app';
 
 
@@ -92,6 +90,27 @@ class LocationRecognizer {
   constructor() {
     this.mlModel = new LocationMLModel();
   }
+
+  private isGoogleBudgetModeEnabled(): boolean {
+    return process.env.GOOGLE_BUDGET_MODE !== 'false';
+  }
+
+  private getMaxGoogleSearchQueries(defaultBudgetMax: number, defaultFullMax: number): number {
+    const budgetMode = this.isGoogleBudgetModeEnabled();
+    const configured = budgetMode
+      ? process.env.GOOGLE_BUDGET_MAX_SEARCH_QUERIES
+      : process.env.GOOGLE_MAX_SEARCH_QUERIES;
+
+    const fallback = budgetMode ? defaultBudgetMax : defaultFullMax;
+    const parsed = configured ? Number.parseInt(configured, 10) : NaN;
+
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  }
+
+  private limitGoogleSearchQueries(queries: string[], defaultBudgetMax: number, defaultFullMax: number): string[] {
+    const uniqueQueries = [...new Set(queries)].filter(q => q.trim().length > 2);
+    return uniqueQueries.slice(0, this.getMaxGoogleSearchQueries(defaultBudgetMax, defaultFullMax));
+  }
   
   private async saveRecognition(result: LocationResult, buffer: Buffer, userId?: string): Promise<string | null> {
     try {
@@ -103,16 +122,18 @@ class LocationRecognizer {
       const crypto = require('crypto');
       const imageHash = crypto.createHash('md5').update(buffer).digest('hex');
       
-      // Upload image to S3
+      // Upload image to Google Cloud Storage
       let imageUrl: string | null = null;
       try {
-        const { uploadImageToS3 } = await import('../../../lib/s3-upload');
-        imageUrl = await uploadImageToS3(buffer, crypto.randomUUID());
-        console.log('Image uploaded to S3:', imageUrl);
+        const { uploadImageWithGoogleOnly } = await import('../../../lib/image-upload');
+        imageUrl = await uploadImageWithGoogleOnly(
+          buffer,
+          crypto.randomUUID(),
+          'location-recognition-v2/saveRecognition',
+        );
       } catch (err) {
-        console.error('S3 upload failed:', err.message);
-        // Continue without S3 upload - don't fail the entire recognition
-        console.log('Continuing recognition without S3 upload');
+        console.error('Google upload failed:', err instanceof Error ? err.message : String(err));
+        console.log('Continuing recognition without cloud image upload');
       }
       
       console.log('Attempting to save recognition to database:', {
@@ -984,14 +1005,20 @@ class LocationRecognizer {
         }
       }
       
-      // Get other enrichment data with shorter timeouts - prioritize fast APIs
+      const budgetMode = this.isGoogleBudgetModeEnabled();
+      if (budgetMode) {
+        console.log('Google budget mode active - skipping broad Places enrichment');
+      }
+
+      // Keep the cheap/high-value enrichments by default and avoid the broader paid fan-out
+      // unless budget mode is explicitly disabled.
       const enrichmentPromise = Promise.allSettled([
-        this.getNearbyPlaces(latitude, longitude),
-        this.getLocationPhotos(latitude, longitude),
+        budgetMode ? Promise.resolve([]) : this.getNearbyPlaces(latitude, longitude),
+        budgetMode ? Promise.resolve([]) : this.getLocationPhotos(latitude, longitude),
         this.getWeatherData(latitude, longitude),
         this.getElevationData(latitude, longitude),
-        this.getTransitData(latitude, longitude),
-        this.getDemographicData(latitude, longitude),
+        budgetMode ? Promise.resolve([]) : this.getTransitData(latitude, longitude),
+        budgetMode ? Promise.resolve(null) : this.getDemographicData(latitude, longitude),
         analyzeLandmarks ? this.analyzeLandmarks(buffer, latitude, longitude) : Promise.resolve([])
       ]);
       
@@ -2168,12 +2195,12 @@ Return JSON with the most specific location information you can identify:
         }
         searchQueries.push(cleanBusinessName);
         
-        // Remove duplicates and prioritize specific locations
-        const uniqueQueries = [...new Set(searchQueries)];
-        console.log('Claude search queries:', uniqueQueries);
+        // Remove duplicates and cap fan-out to keep Places costs predictable.
+        const limitedQueries = this.limitGoogleSearchQueries(searchQueries, 2, 6);
+        console.log('Claude search queries:', limitedQueries);
         
         // Execute address searches FIRST before building name
-        for (const searchQuery of uniqueQueries) {
+        for (const searchQuery of limitedQueries) {
           console.log('Trying search:', searchQuery);
           
           const candidates = await this.getLocationCandidates(searchQuery);
@@ -4256,7 +4283,7 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     searchQueries.push(businessName);
     searchQueries.push(businessName.split(' ').slice(0, 3).join(' '));
     
-    const filteredQueries = searchQueries.filter(q => q.trim().length > 2);
+    const filteredQueries = this.limitGoogleSearchQueries(searchQueries, 2, 4);
     
     for (const query of filteredQueries) {
       try {
@@ -4311,9 +4338,10 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
       businessName.split(' ').slice(0, 3).join(' '), // First 3 words
       businessName.replace(/\b(TURKIYE|TURKEY|UK|USA|CANADA|AUSTRALIA)\b/gi, '').trim(), // Remove country references
       businessName.split(' ')[0] + ' ' + businessName.split(' ').slice(-1)[0] // First + last word
-    ].filter(q => q.trim().length > 2);
+    ];
+    const limitedQueries = this.limitGoogleSearchQueries(searchQueries, 2, 4);
     
-    for (const query of searchQueries) {
+    for (const query of limitedQueries) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 2000);
@@ -4394,7 +4422,9 @@ Respond ONLY with valid JSON: {"location": "specific place name", "confidence": 
     searchQueries.push(`${businessName} "${phoneNumber}"`);
     searchQueries.push(businessName);
     
-    for (const query of searchQueries) {
+    const limitedQueries = this.limitGoogleSearchQueries(searchQueries, 2, 4);
+
+    for (const query of limitedQueries) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 2000);

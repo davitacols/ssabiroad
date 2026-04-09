@@ -1,7 +1,7 @@
 // /app/api/accessibility/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyC56tMVTlDcInBCHog0YqkuQ2cgH9JJuhU";
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -9,6 +9,10 @@ export async function GET(request: NextRequest) {
   
   if (!placeId) {
     return NextResponse.json({ error: 'place_id parameter is required' }, { status: 400 });
+  }
+
+  if (!GOOGLE_MAPS_API_KEY) {
+    return NextResponse.json({ error: 'Server Places API key not configured' }, { status: 500 });
   }
   
   try {

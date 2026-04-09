@@ -17,7 +17,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.GOOGLE_MAPS_API_KEY || "AIzaSyC56tMVTlDcInBCHog0YqkuQ2cgH9JJuhU"
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY
+    if (!apiKey) {
+      return NextResponse.json({ error: 'Server directions key not configured' }, { status: 500 })
+    }
     const response = await fetch(
       `https://maps.googleapis.com/maps/api/directions/json?origin=${originLat},${originLng}&destination=${destLat},${destLng}&mode=transit&alternatives=true&key=${apiKey}`
     )

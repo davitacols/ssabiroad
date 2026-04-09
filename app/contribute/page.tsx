@@ -72,10 +72,10 @@ export default function ContributePage() {
       formData.append('deviceId', deviceId);
 
       const geocodeRes = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${exif.latitude},${exif.longitude}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+        `/api/geocode?latlng=${encodeURIComponent(`${exif.latitude},${exif.longitude}`)}`
       );
       const geocodeData = await geocodeRes.json();
-      const address = geocodeData.results[0]?.formatted_address || '';
+      const address = geocodeData.formatted_address || '';
       formData.append('address', address);
 
       const res = await fetch('/api/gamification/contribute', {

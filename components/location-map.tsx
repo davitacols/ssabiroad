@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { LocationSearch } from "@/components/location-search"
 
+const GOOGLE_MAPS_BROWSER_ENABLED =
+  process.env.NEXT_PUBLIC_ENABLE_GOOGLE_MAPS === "true" && !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
 interface MapLocation {
   id: string | number
   name: string
@@ -153,6 +156,12 @@ export function LocationMap({
 
   // Initialize the map
   useEffect(() => {
+    if (!GOOGLE_MAPS_BROWSER_ENABLED) {
+      setError("Interactive Google Maps is disabled for cost control.")
+      setIsLoading(false)
+      return
+    }
+
     // Check if Google Maps API is loaded
     if (typeof window === "undefined" || !window.google || !window.google.maps) {
       // Load Google Maps API if not already loaded

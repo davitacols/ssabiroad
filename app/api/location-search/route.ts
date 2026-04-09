@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // Configuration
-const GOOGLE_PLACES_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
 const GOOGLE_PLACES_BASE_URL = "https://maps.googleapis.com/maps/api/place";
 
 // Type Definitions
@@ -169,6 +169,13 @@ async function getPlaceDetails(placeId: string) {
 // GET Route Handler
 export async function GET(request: NextRequest) {
   try {
+    if (!GOOGLE_PLACES_API_KEY) {
+      return NextResponse.json(
+        { error: 'Server Places API key is required' },
+        { status: 500 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     
     // Extract search parameters
@@ -234,6 +241,13 @@ export async function GET(request: NextRequest) {
 // POST Route Handler (optional)
 export async function POST(request: NextRequest) {
   try {
+    if (!GOOGLE_PLACES_API_KEY) {
+      return NextResponse.json(
+        { error: 'Server Places API key is required' },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
     const {
       query,

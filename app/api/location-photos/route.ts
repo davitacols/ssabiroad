@@ -11,9 +11,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Query required" }, { status: 400 })
     }
 
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    const apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY
     if (!apiKey) {
-      return NextResponse.json({ error: "API key not configured" }, { status: 500 })
+      return NextResponse.json({ error: "Server Places API key not configured" }, { status: 500 })
     }
 
     const photos: string[] = []
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
               for (const photo of place.photos.slice(0, 3)) {
                 if (photos.length < 6) {
                   photos.push(
-                    `https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=${photo.photo_reference}&key=${apiKey}`
+                    `/api/place-photo?reference=${encodeURIComponent(photo.photo_reference)}`
                   )
                 }
               }

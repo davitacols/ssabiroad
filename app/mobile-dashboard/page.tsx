@@ -1406,7 +1406,7 @@ const MobileLocationsFeature = () => {
                         width="100%"
                         height="100%"
                         frameBorder="0"
-                        src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${selectedLocation.location.latitude},${selectedLocation.location.longitude}&zoom=15`}
+                        src={`https://www.google.com/maps?q=${selectedLocation.location.latitude},${selectedLocation.location.longitude}&z=15&output=embed`}
                         allowFullScreen
                       ></iframe>
                     </div>

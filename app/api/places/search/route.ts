@@ -9,15 +9,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Query parameter is required" }, { status: 400 })
   }
 
-  if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
-    return NextResponse.json({ error: "Google Maps API key is not configured" }, { status: 500 })
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY
+  if (!apiKey) {
+    return NextResponse.json({ error: "Server Places API key is not configured" }, { status: 500 })
   }
 
   try {
     const response = await axios.get("https://maps.googleapis.com/maps/api/place/textsearch/json", {
       params: {
         query,
-        key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+        key: apiKey,
       },
     })
 
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
             .slice(0, 1)
             .map(
               (photo: any) =>
-                `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`,
+                `/api/place-photo?reference=${encodeURIComponent(photo.photo_reference)}`,
             )
         : ["/placeholder.svg?height=100&width=100"]
 

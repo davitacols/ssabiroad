@@ -7,6 +7,9 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
+const GOOGLE_MAPS_BROWSER_ENABLED =
+  process.env.NEXT_PUBLIC_ENABLE_GOOGLE_MAPS === "true" && !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
 interface HomepageMapProps {
   height?: string
   className?: string
@@ -309,6 +312,12 @@ export function HomepageMap({ height = "400px", className = "" }: HomepageMapPro
 
   // Initialize the map
   useEffect(() => {
+    if (!GOOGLE_MAPS_BROWSER_ENABLED) {
+      setError("Interactive Google Maps is disabled for cost control.")
+      setIsLoading(false)
+      return
+    }
+
     const initializeMap = () => {
       if (typeof window === "undefined" || !window.google?.maps) {
         const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY

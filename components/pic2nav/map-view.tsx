@@ -22,8 +22,8 @@ export function MapView({ location, name, address }: MapViewProps) {
       return;
     }
     
-    // Create a Google Maps embed URL
-    const url = `https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${location.latitude},${location.longitude}&zoom=17`;
+    // Use the public maps embed URL so we do not expose or depend on a browser API key.
+    const url = `https://www.google.com/maps?q=${location.latitude},${location.longitude}&z=17&output=embed`;
     setMapUrl(url);
     setLoading(false);
   }, [location]);

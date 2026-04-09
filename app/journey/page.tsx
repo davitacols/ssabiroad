@@ -40,6 +40,9 @@ type DirectionStep = {
   travelMode: "DRIVING" | "WALKING" | "BICYCLING" | "TRANSIT" | "FLIGHT" | "SHIP"
 }
 
+const GOOGLE_MAPS_BROWSER_ENABLED =
+  process.env.NEXT_PUBLIC_ENABLE_GOOGLE_MAPS === "true" && !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
 interface Directions {
   distance: string
   duration: string
@@ -142,6 +145,10 @@ const MapComponent: React.FC<{ currentLocation: Location; destinationLocation: L
   const mapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (!GOOGLE_MAPS_BROWSER_ENABLED) {
+      return
+    }
+
     const initMap = () => {
       if (!mapRef.current) return
 
@@ -201,6 +208,17 @@ const MapComponent: React.FC<{ currentLocation: Location; destinationLocation: L
       initMap()
     }
   }, [currentLocation, destinationLocation])
+
+  if (!GOOGLE_MAPS_BROWSER_ENABLED) {
+    return (
+      <iframe
+        src={`https://www.google.com/maps?q=${destinationLocation.lat},${destinationLocation.lng}&z=14&output=embed`}
+        className="w-full h-64 rounded-xl overflow-hidden shadow-md border-0"
+        loading="lazy"
+        title="Location map"
+      />
+    )
+  }
 
   return <div ref={mapRef} className="w-full h-64 rounded-xl overflow-hidden shadow-md" />
 }

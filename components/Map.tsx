@@ -15,6 +15,9 @@ import { Search, AlertCircle, Loader2, X } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { toast } from "@/components/ui/use-toast"
 
+const GOOGLE_MAPS_BROWSER_ENABLED =
+  process.env.NEXT_PUBLIC_ENABLE_GOOGLE_MAPS === "true" && !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
 // Map configuration
 const MAPS_CONFIG = {
   containerStyle: {
@@ -59,14 +62,14 @@ export default function MapComponent() {
 
   // Load Google Maps
   const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '',
+    googleMapsApiKey: GOOGLE_MAPS_BROWSER_ENABLED ? (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '') : '',
     libraries: MAPS_CONFIG.libraries
   })
 
   // Error handling for missing API key
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
-      setApiError('Google Maps API key is missing. Please check your environment variables.')
+    if (!GOOGLE_MAPS_BROWSER_ENABLED) {
+      setApiError('Interactive Google Maps is disabled for cost control. Use the camera workflow or server-side search routes instead.')
     }
   }, [])
 

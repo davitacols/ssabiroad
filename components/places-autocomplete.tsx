@@ -22,6 +22,9 @@ declare global {
   }
 }
 
+const GOOGLE_MAPS_BROWSER_ENABLED =
+  process.env.NEXT_PUBLIC_ENABLE_GOOGLE_MAPS === "true" && !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
 export const PlacesAutocomplete = ({ placeholder, className, onPlaceSelect, onValueChange, renderInput }: PlacesAutocompleteProps) => {
   const [inputValue, setInputValue] = useState("")
   const autoCompleteRef = useRef<HTMLInputElement>(null)
@@ -54,9 +57,8 @@ export const PlacesAutocomplete = ({ placeholder, className, onPlaceSelect, onVa
 
   // Load Google Maps API and initialize services
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
-      console.warn("Google Maps API key is missing. Using fallback search functionality.")
-      setApiError("API key missing")
+    if (!GOOGLE_MAPS_BROWSER_ENABLED) {
+      setApiError("client_maps_disabled")
       return
     }
 
@@ -166,10 +168,30 @@ export const PlacesAutocomplete = ({ placeholder, className, onPlaceSelect, onVa
   }, [autocompleteService, getFilteredMockPredictions])
 
   // Handle input changes for fallback mode
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setInputValue(value)
     onValueChange?.(value)
+
+    if (!GOOGLE_MAPS_BROWSER_ENABLED && value.length >= 3) {
+      try {
+        setIsLoading(true)
+        const response = await fetch(`/api/places-autocomplete?input=${encodeURIComponent(value)}`)
+        const data = await response.json()
+        const nextPredictions = Array.isArray(data.predictions) ? data.predictions : []
+        setPredictions(nextPredictions)
+        setShowPredictions(nextPredictions.length > 0)
+        setApiError(nextPredictions.length > 0 ? null : "no_results")
+      } catch (error) {
+        console.error("Server autocomplete fallback failed:", error)
+        setPredictions(getFilteredMockPredictions(value))
+        setShowPredictions(true)
+        setApiError("server_autocomplete_failed")
+      } finally {
+        setIsLoading(false)
+      }
+      return
+    }
 
     if ((apiError || !autocompleteService) && value.length > 0) {
       // Use fallback predictions when API has errors
@@ -182,8 +204,39 @@ export const PlacesAutocomplete = ({ placeholder, className, onPlaceSelect, onVa
   }
 
   // Handle prediction click and get place details
-  const handlePredictionClick = (placeId: string) => {
+  const handlePredictionClick = async (placeId: string) => {
     // If it's a mock prediction or we have API errors, use fallback
+    if (!GOOGLE_MAPS_BROWSER_ENABLED && !placeId.startsWith("mock")) {
+      const selectedPrediction = predictions.find((p) => p.place_id === placeId)
+      try {
+        const response = await fetch(`/api/place-details?placeId=${encodeURIComponent(placeId)}`)
+        const place = await response.json()
+
+        if (place && !place.error) {
+          setInputValue(place.address || place.name || selectedPrediction?.description || "")
+          setPredictions([])
+          setShowPredictions(false)
+
+          if (onPlaceSelect) {
+            onPlaceSelect({
+              name: place.name,
+              formatted_address: place.address,
+              place_id: placeId,
+              geometry: {
+                location: {
+                  lat: () => place.location?.lat ?? 0,
+                  lng: () => place.location?.lng ?? 0,
+                },
+              },
+            })
+          }
+          return
+        }
+      } catch (error) {
+        console.error("Server place details fallback failed:", error)
+      }
+    }
+
     if (apiError || placeId.startsWith("mock") || !placesService) {
       const selectedPrediction = predictions.find((p) => p.place_id === placeId)
       if (selectedPrediction) {
@@ -286,10 +339,10 @@ export const PlacesAutocomplete = ({ placeholder, className, onPlaceSelect, onVa
             <LucideIcons.Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>
         )}
-        {apiError === "billing_not_enabled" && (
+        {(apiError === "billing_not_enabled" || apiError === "client_maps_disabled") && (
           <div
             className="absolute right-3 top-1/2 transform -translate-y-1/2"
-            title="Using fallback search (Google Maps billing not enabled)"
+            title="Using low-cost search mode"
           >
             <LucideIcons.AlertCircle className="h-4 w-4 text-amber-500" />
           </div>
@@ -298,11 +351,11 @@ export const PlacesAutocomplete = ({ placeholder, className, onPlaceSelect, onVa
 
       {showPredictions && predictions.length > 0 && (
         <div className="absolute z-[10001] mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-auto">
-          {apiError === "billing_not_enabled" && (
+          {(apiError === "billing_not_enabled" || apiError === "client_maps_disabled") && (
             <div className="px-3 py-2 text-xs text-amber-500 bg-amber-50/30 dark:bg-amber-950/30 border-b border-border">
               <div className="flex items-center">
                 <LucideIcons.AlertTriangle className="w-3 h-3 mr-1" />
-                <span>Using fallback search mode</span>
+                <span>Using low-cost search mode</span>
               </div>
             </div>
           )}
